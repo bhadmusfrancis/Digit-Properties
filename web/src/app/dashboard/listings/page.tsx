@@ -36,7 +36,9 @@ export default async function MyListingsPage() {
             {listings.map((l) => (
               <tr key={l._id.toString()}>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{l.title}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{formatPrice(l.price)}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${

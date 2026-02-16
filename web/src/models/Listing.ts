@@ -28,6 +28,8 @@ export interface IListing {
   agentName?: string;
   agentPhone?: string;
   agentEmail?: string;
+  /** Rent period: day | month | year (for rent listings) */
+  rentPeriod?: 'day' | 'month' | 'year';
   leaseDuration?: string;
   boostExpiresAt?: Date;
   viewCount: number;
@@ -75,6 +77,7 @@ const ListingSchema = new Schema<IListing>(
     agentName: String,
     agentPhone: String,
     agentEmail: String,
+    rentPeriod: { type: String, enum: ['day', 'month', 'year'] },
     leaseDuration: String,
     boostExpiresAt: Date,
     viewCount: { type: Number, default: 0 },

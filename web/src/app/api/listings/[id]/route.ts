@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
-import { listingSchema } from '@/lib/validations';
+import { listingUpdateSchema } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
 import mongoose from 'mongoose';
 
@@ -62,7 +62,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const parsed = listingSchema.partial().safeParse(body);
+    const parsed = listingUpdateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }

@@ -10,6 +10,7 @@ interface Listing {
   title: string;
   price: number;
   listingType: string;
+  rentPeriod?: 'day' | 'month' | 'year';
   propertyType: string;
   location: { city: string; state: string };
   bedrooms: number;
@@ -57,7 +58,9 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
           </div>
           <div className="p-4">
             <p className="text-lg font-semibold text-gray-900 line-clamp-2">{listing.title}</p>
-            <p className="mt-1 text-primary-600 font-bold">{formatPrice(listing.price)}</p>
+            <p className="mt-1 text-primary-600 font-bold">
+              {formatPrice(listing.price, listing.listingType === 'rent' ? listing.rentPeriod : undefined)}
+            </p>
             <p className="mt-1 text-sm text-gray-500">
               {listing.location?.city}, {listing.location?.state}
             </p>

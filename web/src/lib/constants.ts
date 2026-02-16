@@ -18,6 +18,13 @@ export const LISTING_TYPE = {
   RENT: 'rent',
 } as const;
 
+/** Rent period: price is per day, month, or year (for rent listings only) */
+export const RENT_PERIOD = {
+  DAY: 'day',
+  MONTH: 'month',
+  YEAR: 'year',
+} as const;
+
 export const PROPERTY_TYPES = [
   'apartment',
   'house',

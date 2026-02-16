@@ -25,7 +25,6 @@ const SAMPLE_LISTINGS = [
     area: 450,
     amenities: ['Parking', 'Security', 'Pool', 'Generator', 'Fitted Kitchen'],
     tags: ['luxury', 'lekki', '4-bedroom', 'duplex'],
-    leaseDuration: undefined,
   },
   {
     title: '2-Bedroom Apartment for Rent in Victoria Island',
@@ -39,7 +38,7 @@ const SAMPLE_LISTINGS = [
     area: 95,
     amenities: ['Parking', 'Security', '24hr Power'],
     tags: ['vi', '2-bedroom', 'estate'],
-    leaseDuration: '1 year',
+    rentPeriod: 'year',
   },
   {
     title: 'Plot of Land in Maitama, Abuja',
@@ -79,7 +78,7 @@ const SAMPLE_LISTINGS = [
     area: 35,
     amenities: ['Parking', 'Security'],
     tags: ['studio', 'yaba', 'affordable'],
-    leaseDuration: '1 year',
+    rentPeriod: 'month',
   },
   {
     title: '5-Bedroom Villa in Ikeja GRA',
@@ -106,7 +105,7 @@ const SAMPLE_LISTINGS = [
     area: 200,
     amenities: ['Parking', 'Security', 'Elevator', 'AC'],
     tags: ['commercial', 'office', 'abuja'],
-    leaseDuration: '2 years',
+    rentPeriod: 'month',
   },
   {
     title: '3-Bedroom Terrace in Ajah',
@@ -146,7 +145,7 @@ const SAMPLE_LISTINGS = [
     area: 280,
     amenities: ['Parking', 'Security', 'Generator', 'Furnished'],
     tags: ['abuja', 'garki', '4-bedroom', 'furnished'],
-    leaseDuration: '1 year',
+    rentPeriod: 'year',
   },
   {
     title: 'Residential Plot in Bodija, Ibadan',
@@ -173,7 +172,7 @@ const SAMPLE_LISTINGS = [
     area: 85,
     amenities: ['Parking', 'Security'],
     tags: ['surulere', '2-bedroom', 'affordable'],
-    leaseDuration: '1 year',
+    rentPeriod: 'year',
   },
   {
     title: '3-Bedroom Duplex in Enugu',
@@ -200,7 +199,7 @@ const SAMPLE_LISTINGS = [
     area: 55,
     amenities: ['Parking', 'Security'],
     tags: ['alausa', '1-bedroom', 'affordable'],
-    leaseDuration: '1 year',
+    rentPeriod: 'month',
   },
   {
     title: 'Commercial Land in Trans Amadi, PH',
@@ -240,7 +239,7 @@ const SAMPLE_LISTINGS = [
     area: 110,
     amenities: ['Parking', 'Security', 'Pool', 'Gym'],
     tags: ['asokoro', 'abuja', '2-bedroom'],
-    leaseDuration: '1 year',
+    rentPeriod: 'year',
   },
   {
     title: 'Shop Space in Computer Village, Ikeja',
@@ -254,7 +253,7 @@ const SAMPLE_LISTINGS = [
     area: 45,
     amenities: ['Security'],
     tags: ['commercial', 'shop', 'ikeja', 'computer-village'],
-    leaseDuration: '1 year',
+    rentPeriod: 'year',
   },
   {
     title: '3-Bedroom Bungalow in Benin City',

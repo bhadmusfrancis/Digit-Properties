@@ -69,8 +69,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
               <p className="mt-2 text-2xl font-bold text-primary-600">
                 {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(listing.price)}
-                {listing.listingType === 'rent' && listing.leaseDuration && (
-                  <span className="ml-2 text-base font-normal text-gray-600">/ {listing.leaseDuration}</span>
+                {listing.listingType === 'rent' && listing.rentPeriod && (
+                  <span className="ml-2 text-base font-normal text-gray-600">
+                    / {listing.rentPeriod === 'day' ? 'day' : listing.rentPeriod === 'month' ? 'month' : 'year'}
+                  </span>
                 )}
               </p>
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">

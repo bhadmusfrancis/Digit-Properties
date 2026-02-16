@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PROPERTY_TYPES, NIGERIAN_STATES, LISTING_TYPE } from './constants';
+import { PROPERTY_TYPES, NIGERIAN_STATES, LISTING_TYPE, RENT_PERIOD } from './constants';
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -12,7 +12,7 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export const listingSchema = z.object({
+const listingBaseSchema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(20).max(5000),
   listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
@@ -31,9 +31,18 @@ export const listingSchema = z.object({
   agentName: z.string().optional(),
   agentPhone: z.string().optional(),
   agentEmail: z.string().email().optional().or(z.literal('')),
+  rentPeriod: z.enum(Object.values(RENT_PERIOD) as [string, ...string[]]).optional(),
   leaseDuration: z.string().optional(),
   status: z.enum(['draft', 'active']).optional(),
 });
+
+export const listingSchema = listingBaseSchema.refine((data) => {
+  if (data.listingType === 'rent') return !!data.rentPeriod;
+  return true;
+}, { message: 'Rent period is required for rental listings', path: ['rentPeriod'] });
+
+/** Partial schema for PATCH/update - no refine */
+export const listingUpdateSchema = listingBaseSchema.partial();
 
 export const claimSchema = z.object({
   listingId: z.string(),
@@ -59,6 +68,7 @@ export const alertSchema = z.object({
     city: z.string().optional(),
     bedrooms: z.number().optional(),
     bathrooms: z.number().optional(),
+    rentPeriod: z.enum(['day', 'month', 'year']).optional(),
     tags: z.array(z.string()).optional(),
   }),
   notifyPush: z.boolean().default(true),

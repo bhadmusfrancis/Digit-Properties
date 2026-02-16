@@ -16,6 +16,7 @@ export async function GET(req: Request) {
     const limit = Math.min(50, parseInt(searchParams.get('limit') || '12', 10));
     const listingType = searchParams.get('listingType');
     const propertyType = searchParams.get('propertyType');
+    const rentPeriod = searchParams.get('rentPeriod');
     const state = searchParams.get('state');
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
@@ -26,6 +27,7 @@ export async function GET(req: Request) {
     const filter: Record<string, unknown> = { status: LISTING_STATUS.ACTIVE };
     if (listingType) filter.listingType = listingType;
     if (propertyType) filter.propertyType = propertyType;
+    if (rentPeriod) filter.rentPeriod = rentPeriod;
     if (state) filter['location.state'] = state;
     if (minPrice && maxPrice) {
       filter.price = { $gte: parseInt(minPrice, 10), $lte: parseInt(maxPrice, 10) };

@@ -12,6 +12,7 @@ export function ListingFilters() {
   const [state, setState] = useState(searchParams.get('state') || '');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [rentPeriod, setRentPeriod] = useState(searchParams.get('rentPeriod') || '');
   const [q, setQ] = useState(searchParams.get('q') || '');
 
   function apply() {
@@ -21,6 +22,7 @@ export function ListingFilters() {
     if (state) params.set('state', state);
     if (minPrice) params.set('minPrice', minPrice);
     if (maxPrice) params.set('maxPrice', maxPrice);
+    if (rentPeriod) params.set('rentPeriod', rentPeriod);
     if (q) params.set('q', q);
     router.push(`/listings?${params.toString()}`);
   }
@@ -70,6 +72,14 @@ export function ListingFilters() {
           onChange={(e) => setMaxPrice(e.target.value)}
           className="input"
         />
+        {listingType === 'rent' && (
+          <select value={rentPeriod} onChange={(e) => setRentPeriod(e.target.value)} className="input">
+            <option value="">Rent period</option>
+            <option value="day">Per day</option>
+            <option value="month">Per month</option>
+            <option value="year">Per year</option>
+          </select>
+        )}
       </div>
       <button onClick={apply} className="btn-primary mt-4">
         Apply filters

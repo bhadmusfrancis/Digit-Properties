@@ -17,8 +17,14 @@ export default function ListingsScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
+  const formatPrice = (n: number, rentPeriod?: 'day' | 'month' | 'year') => {
+    const formatted = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
+    if (rentPeriod) {
+      const suffix = rentPeriod === 'day' ? '/day' : rentPeriod === 'month' ? '/month' : '/year';
+      return `${formatted}${suffix}`;
+    }
+    return formatted;
+  };
 
   if (loading) {
     return (
@@ -45,7 +51,9 @@ export default function ListingsScreen() {
           )}
           <View style={styles.cardContent}>
             <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.price}>{formatPrice(item.price)}</Text>
+            <Text style={styles.price}>
+              {formatPrice(item.price, item.listingType === 'rent' ? item.rentPeriod : undefined)}
+            </Text>
             <Text style={styles.location}>
               {item.location?.city}, {item.location?.state}
             </Text>

@@ -24,8 +24,12 @@ const schema = z.object({
   agentName: z.string().optional(),
   agentPhone: z.string().optional(),
   agentEmail: z.string().email().optional().or(z.literal('')),
+  rentPeriod: z.enum(['day', 'month', 'year']).optional(),
   leaseDuration: z.string().optional(),
   status: z.enum(['draft', 'active']).optional(),
+}).refine((d) => d.listingType !== 'rent' || !!d.rentPeriod, {
+  message: 'Rent period is required for rental listings',
+  path: ['rentPeriod'],
 });
 
 type FormData = z.infer<typeof schema>;
@@ -117,10 +121,25 @@ export function ListingForm() {
           </select>
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Price (NGN)</label>
-        <input type="number" {...register('price', { valueAsNumber: true })} className="input mt-1" />
-        {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>}
+      <div className={watch('listingType') === 'rent' ? 'grid gap-4 sm:grid-cols-2' : ''}>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Price (NGN)</label>
+          <input type="number" {...register('price', { valueAsNumber: true })} className="input mt-1" />
+          {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>}
+        </div>
+        {watch('listingType') === 'rent' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Price period</label>
+            <select {...register('rentPeriod')} className="input mt-1" required>
+              <option value="">Select period</option>
+              <option value="day">Per day</option>
+              <option value="month">Per month</option>
+              <option value="year">Per year</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">Price is per selected period</p>
+            {errors.rentPeriod && <p className="mt-1 text-sm text-red-600">{errors.rentPeriod.message}</p>}
+          </div>
+        )}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700">Address</label>
@@ -155,12 +174,6 @@ export function ListingForm() {
           <input type="number" {...register('area', { valueAsNumber: true })} className="input mt-1" />
         </div>
       </div>
-      {watch('listingType') === 'rent' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Lease duration</label>
-          <input {...register('leaseDuration')} placeholder="e.g. 1 year" className="input mt-1" />
-        </div>
-      )}
       <div>
         <label className="block text-sm font-medium text-gray-700">Images</label>
         <input

@@ -106,6 +106,21 @@ export function SearchFilters({ states, propertyTypes }: SearchFiltersProps) {
             onChange={(e) => update('maxPrice', e.target.value || null)}
           />
         </div>
+        {searchParams.get('listingType') === 'rent' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Rent period</label>
+            <select
+              className="input mt-1"
+              value={searchParams.get('rentPeriod') || ''}
+              onChange={(e) => update('rentPeriod', e.target.value || null)}
+            >
+              <option value="">All</option>
+              <option value="day">Per day</option>
+              <option value="month">Per month</option>
+              <option value="year">Per year</option>
+            </select>
+          </div>
+        )}
       </div>
       <div className="mt-4 flex gap-4">
         <button type="submit" className="btn-primary">
