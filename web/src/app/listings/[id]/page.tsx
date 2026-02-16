@@ -4,40 +4,56 @@ import Image from 'next/image';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
 
+function serializeCreatedBy(createdBy: unknown): { _id: string; name?: string; role?: string } | null {
+  if (!createdBy || typeof createdBy !== 'object') return null;
+  const obj = createdBy as { _id?: unknown; name?: string; role?: string };
+  const id = obj._id != null ? String(obj._id) : null;
+  if (!id) return null;
+  return { _id: id, name: obj.name, role: obj.role };
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await params;
-  if (!mongoose.Types.ObjectId.isValid(id)) return {};
-  await dbConnect();
-  const listing = await Listing.findById(id).lean();
-  if (!listing) return {};
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
-  return {
-    title: listing.title,
-    description: listing.description?.slice(0, 160),
-    openGraph: {
+  try {
+    const { id } = await params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return {};
+    await dbConnect();
+    const listing = await Listing.findById(id).lean();
+    if (!listing) return {};
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    return {
       title: listing.title,
       description: listing.description?.slice(0, 160),
-      url: `${baseUrl}/listings/${id}`,
-      images: listing.images?.[0]?.url ? [{ url: listing.images[0].url }] : undefined,
-    },
-  };
+      openGraph: {
+        title: listing.title,
+        description: listing.description?.slice(0, 160),
+        url: `${baseUrl}/listings/${id}`,
+        images: listing.images?.[0]?.url ? [{ url: listing.images[0].url }] : undefined,
+      },
+    };
+  } catch (e) {
+    console.error('[ListingPage generateMetadata]', e);
+    return {};
+  }
 }
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!mongoose.Types.ObjectId.isValid(id)) notFound();
+  try {
+    const { id } = await params;
+    if (!mongoose.Types.ObjectId.isValid(id)) notFound();
 
-  await dbConnect();
-  const listing = await Listing.findById(id).populate('createdBy', 'name image role').lean();
-  if (!listing) notFound();
+    await dbConnect();
+    void User; // Ensure User model is registered for populate
+    const listing = await Listing.findById(id).populate('createdBy', 'name image role').lean();
+    if (!listing) notFound();
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
-  const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
 
-  return (
+    return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -107,10 +123,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               {listing.location?.city}, {listing.location?.state}
             </p>
             <ListingDetailClient
-              listingId={listing._id.toString()}
+              listingId={String(listing._id)}
               title={listing.title}
-              createdBy={listing.createdBy ? { _id: String((listing.createdBy as { _id: unknown })._id), name: (listing.createdBy as { name?: string }).name, role: (listing.createdBy as { role?: string }).role } : null}
-              createdByType={listing.createdByType}
+              createdBy={serializeCreatedBy(listing.createdBy)}
+              createdByType={listing.createdByType ?? 'user'}
               baseUrl={baseUrl}
             />
             <Link href="/listings" className="btn-secondary mt-4 block text-center">
@@ -120,5 +136,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
     </div>
-  );
+    );
+  } catch (e) {
+    console.error('[ListingPage]', e);
+    notFound();
+  }
 }
