@@ -54,6 +54,9 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
             )}
             <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800 capitalize">
               {listing.listingType}
+              {listing.listingType === 'rent' && listing.rentPeriod && (
+                <span className="ml-1 text-primary-600">• Per {listing.rentPeriod}</span>
+              )}
             </span>
           </div>
           <div className="p-4">

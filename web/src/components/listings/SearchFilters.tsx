@@ -107,18 +107,32 @@ export function SearchFilters({ states, propertyTypes }: SearchFiltersProps) {
           />
         </div>
         {searchParams.get('listingType') === 'rent' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Rent period</label>
-            <select
-              className="input mt-1"
-              value={searchParams.get('rentPeriod') || ''}
-              onChange={(e) => update('rentPeriod', e.target.value || null)}
-            >
-              <option value="">All</option>
-              <option value="day">Per day</option>
-              <option value="month">Per month</option>
-              <option value="year">Per year</option>
-            </select>
+          <div className="sm:col-span-2 lg:col-span-6">
+            <span className="block text-sm font-medium text-gray-700">Rent period</span>
+            <div className="mt-2 flex flex-wrap gap-4" role="radiogroup" aria-label="Filter by rent period">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="rentPeriodFilter"
+                  checked={(searchParams.get('rentPeriod') || '') === ''}
+                  onChange={() => update('rentPeriod', null)}
+                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm">All</span>
+              </label>
+              {(['day', 'month', 'year'] as const).map((p) => (
+                <label key={p} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    name="rentPeriodFilter"
+                    checked={searchParams.get('rentPeriod') === p}
+                    onChange={() => update('rentPeriod', p)}
+                    className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm">Per {p === 'day' ? 'day' : p === 'month' ? 'month' : 'year'}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
       </div>

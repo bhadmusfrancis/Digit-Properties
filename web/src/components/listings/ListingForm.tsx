@@ -129,13 +129,20 @@ export function ListingForm() {
         </div>
         {watch('listingType') === 'rent' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price period</label>
-            <select {...register('rentPeriod')} className="input mt-1" required>
-              <option value="">Select period</option>
-              <option value="day">Per day</option>
-              <option value="month">Per month</option>
-              <option value="year">Per year</option>
-            </select>
+            <span className="block text-sm font-medium text-gray-700">Price period</span>
+            <div className="mt-2 flex flex-wrap gap-4" role="radiogroup" aria-label="Rent period">
+              {(['day', 'month', 'year'] as const).map((p) => (
+                <label key={p} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    {...register('rentPeriod', { required: true })}
+                    value={p}
+                    className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm">Per {p === 'day' ? 'day' : p === 'month' ? 'month' : 'year'}</span>
+                </label>
+              ))}
+            </div>
             <p className="mt-1 text-xs text-gray-500">Price is per selected period</p>
             {errors.rentPeriod && <p className="mt-1 text-sm text-red-600">{errors.rentPeriod.message}</p>}
           </div>

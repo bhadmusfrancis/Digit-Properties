@@ -73,12 +73,33 @@ export function ListingFilters() {
           className="input"
         />
         {listingType === 'rent' && (
-          <select value={rentPeriod} onChange={(e) => setRentPeriod(e.target.value)} className="input">
-            <option value="">Rent period</option>
-            <option value="day">Per day</option>
-            <option value="month">Per month</option>
-            <option value="year">Per year</option>
-          </select>
+          <div className="sm:col-span-2 lg:col-span-6">
+            <span className="block text-sm font-medium text-gray-700">Rent period</span>
+            <div className="mt-2 flex flex-wrap gap-4" role="radiogroup" aria-label="Filter by rent period">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="rentPeriodFilter"
+                  checked={rentPeriod === ''}
+                  onChange={() => setRentPeriod('')}
+                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm">All</span>
+              </label>
+              {(['day', 'month', 'year'] as const).map((p) => (
+                <label key={p} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    name="rentPeriodFilter"
+                    checked={rentPeriod === p}
+                    onChange={() => setRentPeriod(p)}
+                    className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm">Per {p === 'day' ? 'day' : p === 'month' ? 'month' : 'year'}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         )}
       </div>
       <button onClick={apply} className="btn-primary mt-4">
