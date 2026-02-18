@@ -94,6 +94,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
                 <span>{listing.bedrooms} beds</span>
                 <span>{listing.bathrooms} baths</span>
+                {listing.toilets != null && listing.toilets > 0 && <span>{listing.toilets} toilets</span>}
                 {listing.area && <span>{listing.area} sqm</span>}
                 <span className="capitalize">{listing.propertyType}</span>
                 <span className="capitalize">{listing.listingType}</span>

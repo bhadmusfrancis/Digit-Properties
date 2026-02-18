@@ -4,8 +4,10 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Claim from '@/models/Claim';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 import { claimSchema } from '@/lib/validations';
 import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
+import { sendAdminNewClaim } from '@/lib/email';
 import mongoose from 'mongoose';
 
 const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -63,6 +65,13 @@ export async function POST(req: Request) {
       userId: session.user.id,
       status: CLAIM_STATUS.PENDING,
     });
+
+    const claimant = await User.findById(session.user.id).lean();
+    const claimantName = claimant?.name || session.user.name || 'Unknown';
+    const claimantEmail = (claimant?.email as string) || session.user.email || '';
+    sendAdminNewClaim(listing.title, claimantName, claimantEmail, String(claim._id)).catch((e) =>
+      console.error('[claims] admin email:', e)
+    );
 
     return NextResponse.json(claim);
   } catch (e) {

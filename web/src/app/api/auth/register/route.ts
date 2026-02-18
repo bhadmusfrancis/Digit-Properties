@@ -4,6 +4,7 @@ import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { registerSchema } from '@/lib/validations';
 import { USER_ROLES } from '@/lib/constants';
+import { sendWelcomeEmail, sendAdminNewUser } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -25,6 +26,8 @@ export async function POST(req: Request) {
       password: hashed,
       role: USER_ROLES.GUEST,
     });
+    sendWelcomeEmail(email, name).catch((e) => console.error('[register] welcome email:', e));
+    sendAdminNewUser(name, email).catch((e) => console.error('[register] admin email:', e));
     return NextResponse.json({
       id: user._id,
       email: user.email,

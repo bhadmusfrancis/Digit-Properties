@@ -15,6 +15,7 @@ interface Listing {
   location: { city: string; state: string };
   bedrooms: number;
   bathrooms: number;
+  toilets?: number;
   images?: { url: string }[];
   isBoosted?: boolean;
   createdBy?: { name?: string; role?: string };
@@ -71,6 +72,12 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
               <span className="text-sm text-gray-600">{listing.bedrooms} beds</span>
               <span className="text-gray-400">•</span>
               <span className="text-sm text-gray-600">{listing.bathrooms} baths</span>
+              {listing.toilets != null && listing.toilets > 0 && (
+                <>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-sm text-gray-600">{listing.toilets} toilets</span>
+                </>
+              )}
               <span className="text-gray-400">•</span>
               <span className="text-sm text-gray-600 capitalize">{listing.propertyType}</span>
             </div>

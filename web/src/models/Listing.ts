@@ -18,6 +18,7 @@ export interface IListing {
   location: ILocation;
   bedrooms: number;
   bathrooms: number;
+  toilets?: number;
   area?: number;
   amenities: string[];
   images: { public_id: string; url: string }[];
@@ -62,6 +63,7 @@ const ListingSchema = new Schema<IListing>(
     location: { type: LocationSchema, required: true },
     bedrooms: { type: Number, default: 0 },
     bathrooms: { type: Number, default: 0 },
+    toilets: { type: Number, default: 0 },
     area: Number,
     amenities: [{ type: String }],
     images: [

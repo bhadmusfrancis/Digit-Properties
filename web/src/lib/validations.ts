@@ -25,6 +25,7 @@ const listingBaseSchema = z.object({
   }),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),
+  toilets: z.number().int().min(0).optional(),
   area: z.number().positive().optional(),
   amenities: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),

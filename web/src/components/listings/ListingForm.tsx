@@ -18,6 +18,7 @@ const schema = z.object({
   state: z.enum(NIGERIAN_STATES as unknown as [string, ...string[]]),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),
+  toilets: z.number().int().min(0).optional(),
   area: z.number().positive().optional(),
   amenities: z.string().optional(),
   tags: z.string().optional(),
@@ -47,7 +48,7 @@ export function ListingForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { listingType: 'sale', status: 'draft', bedrooms: 0, bathrooms: 0 },
+    defaultValues: { listingType: 'sale', status: 'draft', bedrooms: 0, bathrooms: 0, toilets: 0 },
   });
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -167,7 +168,7 @@ export function ListingForm() {
           </select>
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
           <input type="number" {...register('bedrooms', { valueAsNumber: true })} className="input mt-1" />
@@ -175,6 +176,10 @@ export function ListingForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700">Bathrooms</label>
           <input type="number" {...register('bathrooms', { valueAsNumber: true })} className="input mt-1" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Toilets</label>
+          <input type="number" {...register('toilets', { valueAsNumber: true })} className="input mt-1" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Area (sqm)</label>

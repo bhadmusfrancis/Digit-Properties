@@ -3,8 +3,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 import { listingSchema } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { sendAdminNewListing } from '@/lib/email';
+import { notifyMatchingAlerts } from '@/lib/alerts';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -94,6 +97,19 @@ export async function POST(req: Request) {
       createdBy: session.user.id,
       createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : 'user',
     });
+
+    const isActive = (parsed.data.status || LISTING_STATUS.DRAFT) === LISTING_STATUS.ACTIVE;
+    if (isActive) {
+      const creator = await User.findById(session.user.id).lean();
+      sendAdminNewListing(
+        listing.title,
+        String(listing._id),
+        creator?.name || session.user.name || 'Unknown',
+        listing.listingType,
+        listing.price
+      ).catch((e) => console.error('[listings] admin email:', e));
+      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
+    }
 
     return NextResponse.json(listing);
   } catch (e) {

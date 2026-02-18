@@ -1,0 +1,20 @@
+
+echo "# Digit-Properties" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/bhadmusfrancis/Digit-Properties.git
+git push -u origin main
+
+git remote add origin https://github.com/bhadmusfrancis/Digit-Properties.git
+git branch -M main
+git push -u origin main
+
+
+cd mobile
+eas update --branch production --message "Rent period display update"
+
+git add .
+git commit -m "listing page"
+git push origin main

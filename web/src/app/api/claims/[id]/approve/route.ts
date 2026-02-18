@@ -4,7 +4,9 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Claim from '@/models/Claim';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
+import { sendClaimApproved, sendClaimRejected } from '@/lib/email';
 import mongoose from 'mongoose';
 
 export async function POST(
@@ -32,6 +34,10 @@ export async function POST(
       return NextResponse.json({ error: 'Claim already processed' }, { status: 400 });
     }
 
+    const listing = await Listing.findById(claim.listingId).lean();
+    const claimant = await User.findById(claim.userId).lean();
+    const claimantEmail = (claimant?.email as string) || '';
+
     if (approve) {
       await Listing.findByIdAndUpdate(claim.listingId, {
         createdBy: claim.userId,
@@ -45,6 +51,18 @@ export async function POST(
     claim.reviewedBy = new mongoose.Types.ObjectId(session.user.id);
     claim.reviewedAt = new Date();
     await claim.save();
+
+    if (claimantEmail && listing) {
+      if (approve) {
+        sendClaimApproved(claimantEmail, listing.title, String(claim.listingId)).catch((e) =>
+          console.error('[claims] approved email:', e)
+        );
+      } else {
+        sendClaimRejected(claimantEmail, listing.title, claim.rejectionReason).catch((e) =>
+          console.error('[claims] rejected email:', e)
+        );
+      }
+    }
 
     return NextResponse.json(claim);
   } catch (e) {

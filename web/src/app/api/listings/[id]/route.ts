@@ -3,8 +3,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 import { listingUpdateSchema } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { sendAdminNewListing } from '@/lib/email';
+import { notifyMatchingAlerts } from '@/lib/alerts';
 import mongoose from 'mongoose';
 
 export async function GET(
@@ -67,8 +70,22 @@ export async function PATCH(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    const wasDraft = listing.status === LISTING_STATUS.DRAFT;
     Object.assign(listing, parsed.data);
     await listing.save();
+
+    const nowActive = listing.status === LISTING_STATUS.ACTIVE;
+    if (wasDraft && nowActive) {
+      const creator = await User.findById(listing.createdBy).lean();
+      sendAdminNewListing(
+        listing.title,
+        String(listing._id),
+        creator?.name || 'Unknown',
+        listing.listingType,
+        listing.price
+      ).catch((e) => console.error('[listings] admin email:', e));
+      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
+    }
 
     return NextResponse.json(listing);
   } catch (e) {
