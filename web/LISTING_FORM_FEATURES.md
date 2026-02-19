@@ -9,7 +9,7 @@
 
 ## Title (SEO)
 
-- **Generate title**: The **Title** field is placed **below** Amenities. Use **“Generate title”** to build a title from:
+- **Generate title**: The **Title** field is in the **Title & contact** section. **Click (focus) the title field** to **“Generate title”** to build a title from:
   - Listing type (sale/rent)
   - Property type
   - State, city, suburb

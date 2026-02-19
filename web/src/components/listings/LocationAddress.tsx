@@ -94,7 +94,7 @@ export function LocationAddress() {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Address</label>
+        <label className="block text-sm font-medium text-gray-700">Address <span className="text-red-500">*</span></label>
         <div className="mt-1 flex gap-2">
           <div className="relative flex-1">
             <input
@@ -171,12 +171,12 @@ export function LocationAddress() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700">City</label>
-          <input {...register('city')} className="input mt-1" />
+          <label className="block text-sm font-medium text-gray-700">City <span className="text-red-500">*</span></label>
+          <input {...register('city')} className="input mt-1" placeholder="e.g. Lagos" required />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">State</label>
-          <select {...register('state')} className="input mt-1">
+          <label className="block text-sm font-medium text-gray-700">State <span className="text-red-500">*</span></label>
+          <select {...register('state')} className="input mt-1" required>
             {NIGERIAN_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}

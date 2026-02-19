@@ -207,10 +207,20 @@ export function ListingForm() {
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+        {/* Basics */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Basics</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea {...register('description')} rows={5} className="input mt-1" placeholder="Describe the property in detail. Use words like luxury, modern, spacious for better SEO." />
+          <label className="block text-sm font-medium text-gray-700">
+            Description <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            {...register('description')}
+            rows={5}
+            className="input mt-1"
+            placeholder="Describe the property in detail. Use words like luxury, modern, spacious for better SEO. Minimum 20 characters."
+          />
           {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
         </div>
 
@@ -234,8 +244,10 @@ export function ListingForm() {
 
         <div className={watch('listingType') === 'rent' ? 'grid gap-4 sm:grid-cols-2' : ''}>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price (NGN)</label>
-            <input type="number" {...register('price', { valueAsNumber: true })} className="input mt-1" />
+            <label className="block text-sm font-medium text-gray-700">
+              Price (NGN) <span className="text-red-500">*</span>
+            </label>
+            <input type="number" {...register('price', { valueAsNumber: true })} className="input mt-1" placeholder="e.g. 50000000" required />
             {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>}
           </div>
           {watch('listingType') === 'rent' && (
@@ -253,11 +265,20 @@ export function ListingForm() {
             </div>
           )}
         </div>
+        </section>
 
+        {/* Location */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Location</h2>
         <LocationAddress />
         {errors.address && <p className="text-sm text-red-600">{errors.address.message}</p>}
         {errors.city && <p className="text-sm text-red-600">{errors.city.message}</p>}
+        {errors.state && <p className="text-sm text-red-600">{errors.state.message}</p>}
+        </section>
 
+        {/* Property details */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Property details</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
@@ -276,9 +297,13 @@ export function ListingForm() {
             <input type="number" {...register('area', { valueAsNumber: true })} className="input mt-1" />
           </div>
         </div>
+        </section>
 
+        {/* Media */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Images &amp; media</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Images &amp; media</label>
+          <label className="block text-sm font-medium text-gray-700">Photos</label>
           <p className="mt-1 text-xs text-gray-500">
             Recommended for SEO: 1200×630 or 1920×1080, JPEG/PNG/WebP, max 10MB. First image is used in search previews.
           </p>
@@ -321,9 +346,13 @@ export function ListingForm() {
             ))}
           </div>
         </div>
+        </section>
 
+        {/* Amenities */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Amenities</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Amenities</label>
+          <label className="block text-sm font-medium text-gray-700">Features</label>
           <p className="mt-1 text-xs text-gray-500">Choose popular amenities or add your own below.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {POPULAR_AMENITIES.map((a) => (
@@ -339,16 +368,22 @@ export function ListingForm() {
           </div>
           <input {...register('amenities')} placeholder="Or type custom (comma-separated)" className="input mt-2" />
         </div>
+        </section>
 
+        {/* Title & contact */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Title &amp; contact</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Title (SEO)</label>
-          <p className="mt-1 text-xs text-gray-500">Generate from listing details, then edit if needed.</p>
-          <div className="mt-2 flex gap-2">
-            <input {...register('title')} className="input flex-1" placeholder="e.g. 3-Bedroom Apartment for Sale in Lekki, Lagos" />
-            <button type="button" onClick={generateTitle} className="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-              Generate title
-            </button>
-          </div>
+          <label className="block text-sm font-medium text-gray-700">
+            Title (SEO) <span className="text-red-500">*</span>
+          </label>
+          <p className="mt-1 text-xs text-gray-500">Click the field to auto-generate a title from your listing details, then edit if needed.</p>
+          <input
+            {...register('title')}
+            onFocus={() => { if (!watched.title?.trim()) generateTitle(); }}
+            className="input mt-2"
+            placeholder="Click here to generate from details, or type your own (e.g. 3-Bedroom Apartment for Sale in Lekki, Lagos)"
+          />
           {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
         </div>
 
@@ -360,15 +395,17 @@ export function ListingForm() {
             <input {...register('agentEmail')} type="email" placeholder="Email" className="input" />
           </div>
         </div>
+        </section>
 
-        <div className="flex gap-4">
+        {/* Actions */}
+        <section className="flex flex-wrap gap-4 pt-4 border-t border-gray-200">
           <button type="submit" onClick={() => setValue('status', 'draft')} disabled={isSubmitting} className="btn-secondary">
             Save as draft
           </button>
-          <button type="submit" onClick={() => setValue('status', 'active')} disabled={isSubmitting} className="btn-primary">
+          <button type="submit" onClick={() => setValue('status', 'active')} disabled={isSubmitting} className="btn-primary min-w-[120px]">
             {isSubmitting ? 'Publishing...' : 'Publish'}
           </button>
-        </div>
+        </section>
       </form>
     </FormProvider>
   );
