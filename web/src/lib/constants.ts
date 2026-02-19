@@ -45,6 +45,25 @@ export const NIGERIAN_STATES = [
   'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
 ] as const;
 
+/** Popular amenities shown as quick-select on listing form (web + mobile). */
+export const POPULAR_AMENITIES = [
+  'Parking',
+  'Security',
+  '24hr Power',
+  'Generator',
+  'Pool',
+  'Gym',
+  'Fitted Kitchen',
+  'BQ',
+  'Garden',
+  'Water Supply',
+  'Elevator',
+  'AC',
+  'WiFi',
+  'CCTV',
+  'Serviced',
+] as const;
+
 export const CLAIM_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',

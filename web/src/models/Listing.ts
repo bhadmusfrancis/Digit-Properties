@@ -5,6 +5,7 @@ export interface ILocation {
   address: string;
   city: string;
   state: string;
+  suburb?: string;
   coordinates?: { lat: number; lng: number };
 }
 
@@ -22,6 +23,7 @@ export interface IListing {
   area?: number;
   amenities: string[];
   images: { public_id: string; url: string }[];
+  videos?: { public_id: string; url: string }[];
   tags: string[];
   status: (typeof LISTING_STATUS)[keyof typeof LISTING_STATUS];
   createdBy: mongoose.Types.ObjectId;
@@ -45,6 +47,7 @@ const LocationSchema = new Schema<ILocation>(
     address: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
+    suburb: String,
     coordinates: {
       lat: Number,
       lng: Number,
@@ -67,6 +70,12 @@ const ListingSchema = new Schema<IListing>(
     area: Number,
     amenities: [{ type: String }],
     images: [
+      {
+        public_id: String,
+        url: String,
+      },
+    ],
+    videos: [
       {
         public_id: String,
         url: String,

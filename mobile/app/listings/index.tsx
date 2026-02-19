@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Image, Pressable, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
 
 const API_URL = (typeof process !== 'undefined' && (process as any).env?.EXPO_PUBLIC_API_URL) || 'https://digitproperties.com';
+const WEB_APP_URL = (typeof process !== 'undefined' && (process as any).env?.EXPO_PUBLIC_APP_URL) || 'https://digitproperties.com';
 
 export default function ListingsScreen() {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     fetch(`${API_URL}/api/listings?limit=20`)
@@ -39,6 +38,14 @@ export default function ListingsScreen() {
       data={listings}
       keyExtractor={(item) => item._id}
       contentContainerStyle={styles.list}
+      ListHeaderComponent={
+        <Pressable
+          style={styles.createButton}
+          onPress={() => Linking.openURL(WEB_APP_URL + '/listings/new')}
+        >
+          <Text style={styles.createButtonText}>+ Create Listing (web)</Text>
+        </Pressable>
+      }
       renderItem={({ item }) => (
         <Pressable
           style={styles.card}
@@ -55,7 +62,7 @@ export default function ListingsScreen() {
               {formatPrice(item.price, item.listingType === 'rent' ? item.rentPeriod : undefined)}
             </Text>
             <Text style={styles.location}>
-              {item.location?.city}, {item.location?.state}
+              {[item.location?.suburb, item.location?.city, item.location?.state].filter(Boolean).join(', ') || '—'}
             </Text>
           </View>
         </Pressable>
@@ -72,6 +79,14 @@ export default function ListingsScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   list: { padding: 16, paddingBottom: 32 },
+  createButton: {
+    backgroundColor: '#0d9488',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  createButtonText: { color: 'white', fontWeight: '600', fontSize: 16 },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,

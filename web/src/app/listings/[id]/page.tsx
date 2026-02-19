@@ -121,7 +121,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <p className="mt-2 text-gray-600">
               {listing.location?.address}
               <br />
-              {listing.location?.city}, {listing.location?.state}
+              {[listing.location?.suburb, listing.location?.city, listing.location?.state].filter(Boolean).join(', ')}
             </p>
             <ListingDetailClient
               listingId={String(listing._id)}

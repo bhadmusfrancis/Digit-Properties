@@ -1,5 +1,7 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
 import { Link } from 'expo-router';
+
+const WEB_APP_URL = (typeof process !== 'undefined' && (process as any).env?.EXPO_PUBLIC_APP_URL) || 'https://digitproperties.com';
 
 export default function HomeScreen() {
   return (
@@ -11,8 +13,14 @@ export default function HomeScreen() {
           <Text style={styles.buttonText}>Browse Listings</Text>
         </Pressable>
       </Link>
+      <Pressable
+        style={[styles.button, styles.buttonSecondary]}
+        onPress={() => Linking.openURL(WEB_APP_URL + '/listings/new')}
+      >
+        <Text style={styles.buttonText}>Create Listing</Text>
+      </Pressable>
       <Text style={styles.note}>
-        Mobile app — connect to web API at NEXT_PUBLIC_APP_URL for full functionality
+        Create listing opens the web form with address autocomplete, GPS, map picker, camera upload, and title generator.
       </Text>
     </View>
   );
@@ -38,11 +46,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
-    marginTop: 32,
+    marginTop: 16,
     backgroundColor: '#0ea5e9',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
+  },
+  buttonSecondary: {
+    backgroundColor: '#0d9488',
   },
   buttonText: {
     color: 'white',
@@ -50,9 +61,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   note: {
-    marginTop: 48,
+    marginTop: 32,
     fontSize: 12,
     color: '#9ca3af',
     textAlign: 'center',
+    paddingHorizontal: 16,
   },
 });

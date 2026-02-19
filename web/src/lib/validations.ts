@@ -22,6 +22,8 @@ const listingBaseSchema = z.object({
     address: z.string().min(5),
     city: z.string().min(2),
     state: z.enum(NIGERIAN_STATES as unknown as [string, ...string[]]),
+    suburb: z.string().optional(),
+    coordinates: z.object({ lat: z.number(), lng: z.number() }).optional(),
   }),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),

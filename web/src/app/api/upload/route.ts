@@ -3,8 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import cloudinary from '@/lib/cloudinary';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB, SEO-friendly
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(req: Request) {
   try {
@@ -21,24 +23,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type. Use JPEG, PNG, or WebP.' }, { status: 400 });
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+    const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
+    if (!isImage && !isVideo) {
+      return NextResponse.json(
+        { error: 'Use JPEG, PNG, WebP for images or MP4/WebM for video.' },
+        { status: 400 }
+      );
     }
 
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File too large. Max 10MB.' }, { status: 400 });
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: isVideo ? 'Video max 50MB.' : 'Image max 10MB (recommended 1200×630 or 1920×1080 for SEO).' },
+        { status: 400 }
+      );
     }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const resourceType = isVideo ? 'video' : 'image';
 
     const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+      const options: Record<string, unknown> = {
+        folder,
+        resource_type: resourceType,
+      };
+      if (isImage) {
+        options.transformation = [{ width: 1920, crop: 'limit', quality: 'auto' }];
+      }
       const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder,
-          resource_type: 'image',
-          transformation: [{ width: 1920, crop: 'limit', quality: 'auto' }],
-        },
+        options as { folder: string; resource_type: string; transformation?: unknown[] },
         (err, res) => {
           if (err) reject(err);
           else if (res) resolve({ secure_url: res.secure_url!, public_id: res.public_id! });
@@ -51,6 +66,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       url: result.secure_url,
       public_id: result.public_id,
+      type: resourceType,
     });
   } catch (e) {
     console.error(e);
