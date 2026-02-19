@@ -26,7 +26,7 @@ export function LocationAddress() {
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const applyResult = useCallback(
     (r: GeocodeResult) => {
