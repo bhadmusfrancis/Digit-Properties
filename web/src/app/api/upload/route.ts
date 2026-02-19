@@ -42,10 +42,14 @@ export async function POST(req: Request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const resourceType = isVideo ? 'video' : 'image';
+    const resourceType: 'image' | 'video' = isVideo ? 'video' : 'image';
 
     const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-      const options: Record<string, unknown> = {
+      const options: {
+        folder: string;
+        resource_type: 'image' | 'video';
+        transformation?: Array<{ width: number; crop: string; quality: string }>;
+      } = {
         folder,
         resource_type: resourceType,
       };
@@ -53,7 +57,7 @@ export async function POST(req: Request) {
         options.transformation = [{ width: 1920, crop: 'limit', quality: 'auto' }];
       }
       const uploadStream = cloudinary.uploader.upload_stream(
-        options as { folder: string; resource_type: string; transformation?: unknown[] },
+        options,
         (err, res) => {
           if (err) reject(err);
           else if (res) resolve({ secure_url: res.secure_url!, public_id: res.public_id! });
