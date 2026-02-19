@@ -18,7 +18,15 @@ export async function GET(req: Request) {
       const addr = data.address || {};
       const city = addr.city || addr.town || addr.village || addr.county || addr.state || '';
       const state = addr.state || '';
-      const suburb = addr.suburb || addr.neighbourhood || addr.quarter || '';
+      const suburb =
+        addr.suburb ||
+        addr.neighbourhood ||
+        addr.quarter ||
+        addr.locality ||
+        addr.district ||
+        addr.city_district ||
+        addr.borough ||
+        '';
       return NextResponse.json({
         address: data.display_name || '',
         city,
@@ -44,7 +52,15 @@ export async function GET(req: Request) {
         address: r.display_name,
         city: addr.city || addr.town || addr.village || addr.county || addr.state || '',
         state: addr.state || '',
-        suburb: addr.suburb || addr.neighbourhood || addr.quarter || '',
+        suburb:
+          addr.suburb ||
+          addr.neighbourhood ||
+          addr.quarter ||
+          addr.locality ||
+          addr.district ||
+          addr.city_district ||
+          addr.borough ||
+          '',
         lat: parseFloat(r.lat),
         lng: parseFloat(r.lon),
       };
