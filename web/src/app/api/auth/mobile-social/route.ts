@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       }
     } else {
       return NextResponse.json(
-        { error: provider === 'google' ? 'idToken required' : provider === 'facebook' ? 'accessToken or code+redirectUri required' : 'identityToken required' },
+        { error: 'idToken, accessToken/code, or identityToken required for the chosen provider' },
         { status: 400 }
       );
     }
