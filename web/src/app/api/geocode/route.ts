@@ -1,7 +1,24 @@
 import { NextResponse } from 'next/server';
+import { extractSuburbFromDisplayName, matchKnownSuburb } from '@/lib/nigeria-suburbs';
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 const UA = 'DigitProperties/1.0 (contact@digitproperties.com)';
+
+function getSuburb(addr: Record<string, string>, displayName: string, city: string, state: string): string {
+  const fromAddr =
+    addr.suburb ||
+    addr.neighbourhood ||
+    addr.quarter ||
+    addr.locality ||
+    addr.district ||
+    addr.city_district ||
+    addr.borough ||
+    '';
+  if (fromAddr) return fromAddr;
+  const known = matchKnownSuburb(displayName || '', state);
+  if (known) return known;
+  return extractSuburbFromDisplayName(displayName || '', city, state);
+}
 
 export async function GET(req: Request) {
   try {
@@ -18,15 +35,7 @@ export async function GET(req: Request) {
       const addr = data.address || {};
       const city = addr.city || addr.town || addr.village || addr.county || addr.state || '';
       const state = addr.state || '';
-      const suburb =
-        addr.suburb ||
-        addr.neighbourhood ||
-        addr.quarter ||
-        addr.locality ||
-        addr.district ||
-        addr.city_district ||
-        addr.borough ||
-        '';
+      const suburb = getSuburb(addr, data.display_name || '', city, state);
       return NextResponse.json({
         address: data.display_name || '',
         city,
@@ -48,19 +57,14 @@ export async function GET(req: Request) {
 
     const out = results.map((r: { lat: string; lon: string; display_name: string; address?: Record<string, string> }) => {
       const addr = r.address || {};
+      const city = addr.city || addr.town || addr.village || addr.county || addr.state || '';
+      const state = addr.state || '';
+      const suburb = getSuburb(addr, r.display_name, city, state);
       return {
         address: r.display_name,
-        city: addr.city || addr.town || addr.village || addr.county || addr.state || '',
-        state: addr.state || '',
-        suburb:
-          addr.suburb ||
-          addr.neighbourhood ||
-          addr.quarter ||
-          addr.locality ||
-          addr.district ||
-          addr.city_district ||
-          addr.borough ||
-          '',
+        city,
+        state,
+        suburb,
         lat: parseFloat(r.lat),
         lng: parseFloat(r.lon),
       };

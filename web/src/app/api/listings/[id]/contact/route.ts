@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import mongoose from 'mongoose';
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession(req);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Login required to view contact details' }, { status: 401 });
     }

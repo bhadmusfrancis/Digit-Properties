@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, Pressable, Linking } from 'react-native';
-
-const API_URL = (typeof process !== 'undefined' && (process as any).env?.EXPO_PUBLIC_API_URL) || 'https://digitproperties.com';
-const WEB_APP_URL = (typeof process !== 'undefined' && (process as any).env?.EXPO_PUBLIC_APP_URL) || 'https://digitproperties.com';
+import { View, Text, FlatList, StyleSheet, Image, Pressable } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { getApiUrl } from '../../lib/api';
 
 export default function ListingsScreen() {
+  const router = useRouter();
+  const { listingType } = useLocalSearchParams<{ listingType?: string }>();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/listings?limit=20`)
+    const params: Record<string, string> = { limit: '20' };
+    if (listingType === 'sale' || listingType === 'rent') params.listingType = listingType;
+    fetch(getApiUrl('listings', params))
       .then((r) => r.json())
       .then((d) => setListings(d.listings || []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [listingType]);
 
   const formatPrice = (n: number, rentPeriod?: 'day' | 'month' | 'year') => {
     const formatted = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
@@ -41,15 +44,15 @@ export default function ListingsScreen() {
       ListHeaderComponent={
         <Pressable
           style={styles.createButton}
-          onPress={() => Linking.openURL(WEB_APP_URL + '/listings/new')}
+          onPress={() => router.push('/listings/new')}
         >
-          <Text style={styles.createButtonText}>+ Create Listing (web)</Text>
+          <Text style={styles.createButtonText}>+ Create Listing</Text>
         </Pressable>
       }
       renderItem={({ item }) => (
         <Pressable
           style={styles.card}
-          onPress={() => Linking.openURL(`${API_URL.replace('/api', '')}/listings/${item._id}`)}
+          onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item._id } })}
         >
           {item.images?.[0]?.url ? (
             <Image source={{ uri: item.images[0].url }} style={styles.image} />
@@ -69,7 +72,7 @@ export default function ListingsScreen() {
       )}
       ListEmptyComponent={
         <View style={styles.center}>
-          <Text style={styles.empty}>No listings. Start the web app and add listings.</Text>
+          <Text style={styles.empty}>No listings yet. Create one or pull to refresh.</Text>
         </View>
       }
     />

@@ -13,9 +13,10 @@ interface Props {
   createdBy: { _id: string; name?: string; role?: string } | null;
   createdByType: string;
   baseUrl: string;
+  isOwner?: boolean;
 }
 
-export function ListingDetailClient({ listingId, title, createdBy, createdByType, baseUrl }: Props) {
+export function ListingDetailClient({ listingId, title, createdBy, createdByType, baseUrl, isOwner }: Props) {
   const { data: session, status } = useSession();
   const [claimOpen, setClaimOpen] = useState(false);
   const queryClient = useQueryClient();
