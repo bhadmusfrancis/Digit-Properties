@@ -24,6 +24,9 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   if (!isAdmin && !isOwner) notFound();
 
   const loc = listing.location as { address?: string; city?: string; state?: string; suburb?: string } | undefined;
+  const listingStatus = listing.status as string;
+  const formStatus: 'draft' | 'active' =
+    listingStatus === 'draft' || listingStatus === 'active' ? listingStatus : 'active';
   const editInitial = {
     title: listing.title,
     description: listing.description,
@@ -43,7 +46,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     agentPhone: listing.agentPhone ?? '',
     agentEmail: listing.agentEmail ?? '',
     rentPeriod: listing.rentPeriod,
-    status: listing.status,
+    status: formStatus,
     images: listing.images ?? [],
   };
 
