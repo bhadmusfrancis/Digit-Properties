@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
@@ -47,8 +49,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     await dbConnect();
     void User; // Ensure User model is registered for populate
-    const listing = await Listing.findById(id).populate('createdBy', 'name image role').lean();
+    const [session, listing] = await Promise.all([
+      getServerSession(authOptions),
+      Listing.findById(id).populate('createdBy', 'name image role').lean(),
+    ]);
     if (!listing) notFound();
+
+    const createdById = listing.createdBy && typeof listing.createdBy === 'object' && '_id' in listing.createdBy
+      ? String((listing.createdBy as { _id: unknown })._id)
+      : String(listing.createdBy);
+    const isOwner = !!session?.user?.id && createdById === session.user.id;
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
@@ -129,7 +139,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               createdBy={serializeCreatedBy(listing.createdBy)}
               createdByType={listing.createdByType ?? 'user'}
               baseUrl={baseUrl}
+              isOwner={isOwner}
             />
+            {isOwner && (
+              <div className="mt-4 flex gap-3">
+                <Link href={`/listings/${listing._id}/edit`} className="btn-primary flex-1 text-center">
+                  Edit listing
+                </Link>
+                <Link href="/dashboard/listings" className="btn-secondary flex-1 text-center">
+                  My listings
+                </Link>
+              </div>
+            )}
             <Link href="/listings" className="btn-secondary mt-4 block text-center">
               Back to listings
             </Link>

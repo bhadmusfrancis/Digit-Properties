@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { formatPrice } from '@/lib/utils';
+import { MyListingActions } from '@/components/listings/MyListingActions';
 
 export default async function MyListingsPage() {
   const session = await getServerSession(authOptions);
@@ -53,9 +54,7 @@ export default async function MyListingsPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/listings/${l._id}`} className="text-primary-600 hover:underline">
-                    View
-                  </Link>
+                  <MyListingActions listingId={String(l._id)} />
                 </td>
               </tr>
             ))}

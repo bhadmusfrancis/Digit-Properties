@@ -34,6 +34,17 @@ Expo Go lets you run the app on your phone without building a native binary.
 
 5. **Hot reload:** Shake the device (or press `r` in the terminal) to reload. Logs appear in the terminal.
 
+## Social login (optional)
+
+Sign in / Sign up support **Google**, **Facebook**, and **Apple** (iOS only). To enable:
+
+1. **Backend (web):** Ensure `GOOGLE_CLIENT_ID`, `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET`, and `APPLE_CLIENT_ID` are set in `web/.env.local` (same as for the website).
+2. **Mobile:** In `mobile/.env`, set:
+   - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — same as `GOOGLE_CLIENT_ID` (Google Cloud Console → Web client ID).
+   - `EXPO_PUBLIC_FACEBOOK_APP_ID` — same as `FACEBOOK_CLIENT_ID` (Facebook App ID).
+3. **Google:** For native builds you’ll need `GoogleService-Info.plist` (iOS) and `google-services.json` (Android); for Expo Go, web client ID is enough if you use it as `webClientId`.
+4. **Apple:** Sign in with Apple only appears on iOS 13+; no extra env on mobile.
+
 ## Structure
 
 - `app/` — Expo Router screens
