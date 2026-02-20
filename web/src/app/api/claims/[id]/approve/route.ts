@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Claim from '@/models/Claim';
 import Listing from '@/models/Listing';
@@ -14,7 +13,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession(req);
     if (session?.user?.role !== USER_ROLES.ADMIN) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

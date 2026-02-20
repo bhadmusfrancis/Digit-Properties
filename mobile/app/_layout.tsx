@@ -1,10 +1,15 @@
 import { Stack } from 'expo-router';
+import { AuthProvider } from '../contexts/AuthContext';
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: 'Digit Properties' }} />
-      <Stack.Screen name="listings/index" options={{ title: 'Listings' }} />
-    </Stack>
+    <AuthProvider>
+      <Stack>
+        <Stack.Screen name="index" options={{ title: 'Digit Properties' }} />
+        <Stack.Screen name="listings/index" options={{ title: 'Listings' }} />
+        <Stack.Screen name="auth/signin" options={{ title: 'Sign in' }} />
+        <Stack.Screen name="auth/signup" options={{ title: 'Sign up' }} />
+      </Stack>
+    </AuthProvider>
   );
 }

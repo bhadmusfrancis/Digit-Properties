@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +23,7 @@ const schema = z.object({
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),
   toilets: z.number().int().min(0).optional(),
-  area: z.number().positive().optional(),
+  area: z.preprocess((v) => (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v)) ? undefined : Number(v)), z.number().positive().optional()),
   amenities: z.string().optional(),
   tags: z.string().optional(),
   agentName: z.string().optional(),
@@ -39,14 +39,40 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export function ListingForm() {
+type ListingFormProps = {
+  editId?: string;
+  editInitial?: Partial<FormData> & { images?: { url: string; public_id: string }[] };
+};
+
+export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
   const router = useRouter();
-  const [images, setImages] = useState<{ url: string; public_id: string }[]>([]);
+  const [images, setImages] = useState<{ url: string; public_id: string }[]>(editInitial?.images ?? []);
   const [uploading, setUploading] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const methods = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
+    defaultValues: editInitial ? {
+      title: editInitial.title ?? '',
+      description: editInitial.description ?? '',
+      listingType: editInitial.listingType ?? 'sale',
+      propertyType: editInitial.propertyType ?? 'apartment',
+      price: editInitial.price ?? 0,
+      address: editInitial.address ?? '',
+      city: editInitial.city ?? '',
+      state: editInitial.state ?? NIGERIAN_STATES[0],
+      suburb: editInitial.suburb ?? '',
+      bedrooms: editInitial.bedrooms ?? 0,
+      bathrooms: editInitial.bathrooms ?? 0,
+      toilets: editInitial.toilets ?? 0,
+      area: editInitial.area,
+      amenities: editInitial.amenities ?? '',
+      agentName: editInitial.agentName ?? '',
+      agentPhone: editInitial.agentPhone ?? '',
+      agentEmail: editInitial.agentEmail ?? '',
+      rentPeriod: editInitial.rentPeriod,
+      status: editInitial.status ?? 'draft',
+    } : {
       listingType: 'sale',
       status: 'draft',
       bedrooms: 0,
@@ -113,50 +139,24 @@ export function ListingForm() {
     e.target.value = '';
   }
 
-  async function onCameraCapture() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      const track = stream.getTracks()[0];
-      track.stop();
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      input.onchange = (ev) => {
-        const file = (ev.target as HTMLInputElement).files?.[0];
-        if (file) {
-          setUploading(true);
-          const form = new FormData();
-          form.append('file', file);
-          fetch('/api/upload', { method: 'POST', body: form })
-            .then((r) => r.json())
-            .then((data) => {
-              if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
-            })
-            .finally(() => setUploading(false));
-        }
-      };
-      input.click();
-    } catch {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (ev) => {
-        const file = (ev.target as HTMLInputElement).files?.[0];
-        if (file) {
-          setUploading(true);
-          const form = new FormData();
-          form.append('file', file);
-          fetch('/api/upload', { method: 'POST', body: form })
-            .then((r) => r.json())
-            .then((data) => {
-              if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
-            })
-            .finally(() => setUploading(false));
-        }
-      };
-      input.click();
+  function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploading(true);
+      const form = new FormData();
+      form.append('file', file);
+      fetch('/api/upload', { method: 'POST', body: form })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
+        })
+        .finally(() => setUploading(false));
     }
+    e.target.value = '';
+  }
+
+  function onCameraCapture() {
+    cameraInputRef.current?.click();
   }
 
   const moveImage = (index: number, direction: 'left' | 'right') => {
@@ -176,20 +176,36 @@ export function ListingForm() {
     if (data.suburb) location.suburb = data.suburb;
     if (data.coordinates) location.coordinates = data.coordinates;
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...data,
       location,
       amenities: data.amenities ? data.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [],
       tags: data.tags ? data.tags.split(',').map((s) => s.trim()).filter(Boolean) : [],
       images,
     };
-    delete (payload as Record<string, unknown>).address;
-    delete (payload as Record<string, unknown>).city;
-    delete (payload as Record<string, unknown>).state;
-    delete (payload as Record<string, unknown>).suburb;
-    delete (payload as Record<string, unknown>).coordinates;
-    delete (payload as Record<string, unknown>).amenities;
-    delete (payload as Record<string, unknown>).tags;
+    if (payload.area === undefined || (typeof payload.area === 'number' && Number.isNaN(payload.area))) delete payload.area;
+    delete payload.address;
+    delete payload.city;
+    delete payload.state;
+    delete payload.suburb;
+    delete payload.coordinates;
+    delete payload.amenities;
+    delete payload.tags;
+
+    if (editId) {
+      const res = await fetch('/api/listings/' + editId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Failed to update listing');
+        return;
+      }
+      router.push('/listings/' + editId);
+      return;
+    }
 
     const res = await fetch('/api/listings', {
       method: 'POST',
@@ -293,8 +309,8 @@ export function ListingForm() {
             <input type="number" {...register('toilets', { valueAsNumber: true })} className="input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Area (sqm)</label>
-            <input type="number" {...register('area', { valueAsNumber: true })} className="input mt-1" />
+            <label className="block text-sm font-medium text-gray-700">Area (sqm) <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="number" {...register('area', { valueAsNumber: true })} className="input mt-1" placeholder="e.g. 120" />
           </div>
         </div>
         </section>
@@ -320,6 +336,16 @@ export function ListingForm() {
             <label htmlFor="file-upload" className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
               Choose files
             </label>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              ref={cameraInputRef}
+              onChange={onCameraFileChange}
+              disabled={uploading || images.length >= 10}
+              className="hidden"
+              aria-hidden
+            />
             <button type="button" onClick={onCameraCapture} disabled={uploading || images.length >= 10} className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               Use camera
             </button>
