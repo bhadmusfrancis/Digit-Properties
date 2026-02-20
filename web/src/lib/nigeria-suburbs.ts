@@ -61,10 +61,10 @@ export const NIGERIA_AREAS_BY_STATE: Record<string, string[]> = {
     'Abeokuta', 'Sagamu', 'Ijebu Ode', 'Ijebu Igbo', 'Ifo', 'Sango Ota', 'Ota', 'Ado Odo',
     'Mowe', 'Ibafo', 'Arepo', 'Redemption Camp', 'Lafenwa', 'Kuto', 'Panseke',
   ],
-  Akwa Ibom: [
+  'Akwa Ibom': [
     'Uyo', 'Eket', 'Ikot Ekpene', 'Oron', 'Abak', 'Etinan', 'Nwaniba', 'Ibeno',
   ],
-  Cross River: [
+  'Cross River': [
     'Calabar', 'Calabar South', 'Calabar Municipality', 'Atimbo', '8 Miles', 'Marian', 'Efio-Etung',
   ],
 };
