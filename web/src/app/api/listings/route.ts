@@ -4,16 +4,18 @@ import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { listingSchema } from '@/lib/validations';
-import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
+import { getSubscriptionLimits } from '@/lib/subscription-limits';
 
-const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
+const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
 export async function GET(req: Request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(req.url);
+    const mine = searchParams.get('mine') === '1';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(50, parseInt(searchParams.get('limit') || '12', 10));
     const listingType = searchParams.get('listingType');
@@ -26,7 +28,16 @@ export async function GET(req: Request) {
     const tags = searchParams.get('tags')?.split(',').filter(Boolean);
     const q = searchParams.get('q');
 
-    const filter: Record<string, unknown> = { status: LISTING_STATUS.ACTIVE };
+    let filter: Record<string, unknown>;
+    if (mine) {
+      const session = await getSession(req);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      filter = { createdBy: session.user.id };
+    } else {
+      filter = { status: LISTING_STATUS.ACTIVE };
+    }
     if (listingType) filter.listingType = listingType;
     if (propertyType) filter.propertyType = propertyType;
     if (rentPeriod) filter.rentPeriod = rentPeriod;
@@ -90,8 +101,44 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
+    const user = await User.findById(session.user.id).lean();
+    const tier =
+      session.user.role === USER_ROLES.ADMIN
+        ? SUBSCRIPTION_TIERS.PREMIUM
+        : (user?.subscriptionTier as string) ||
+          (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
+    const limits = await getSubscriptionLimits(tier);
+
+    const listingCount = await Listing.countDocuments({
+      createdBy: session.user.id,
+      status: { $in: [LISTING_STATUS.DRAFT, LISTING_STATUS.ACTIVE, LISTING_STATUS.PAUSED] },
+    });
+    if (listingCount >= limits.maxListings) {
+      return NextResponse.json(
+        { error: `Listing limit reached (${limits.maxListings} for your plan). Upgrade for more.` },
+        { status: 403 }
+      );
+    }
+
+    const images = Array.isArray(parsed.data.images) ? parsed.data.images : [];
+    const videos = Array.isArray(parsed.data.videos) ? parsed.data.videos : [];
+    if (images.length > limits.maxImages) {
+      return NextResponse.json(
+        { error: `Maximum ${limits.maxImages} images per listing for your plan.` },
+        { status: 400 }
+      );
+    }
+    if (videos.length > limits.maxVideos) {
+      return NextResponse.json(
+        { error: `Maximum ${limits.maxVideos} video(s) per listing for your plan.` },
+        { status: 400 }
+      );
+    }
+
     const listing = await Listing.create({
       ...parsed.data,
+      images,
+      videos: videos.length ? videos : undefined,
       status: parsed.data.status || LISTING_STATUS.DRAFT,
       createdBy: session.user.id,
       createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : 'user',

@@ -47,7 +47,12 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     agentEmail: listing.agentEmail ?? '',
     rentPeriod: listing.rentPeriod,
     status: formStatus,
-    images: listing.images ?? [],
+    images: Array.isArray(listing.images)
+      ? listing.images.map((img: { url?: string; public_id?: string }) => ({
+          url: img?.url ?? '',
+          public_id: img?.public_id ?? '',
+        }))
+      : [],
   };
 
   return (

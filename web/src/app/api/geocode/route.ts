@@ -33,14 +33,15 @@ export async function GET(req: Request) {
       const data = await res.json();
       if (data.error) return NextResponse.json({ error: data.error }, { status: 400 });
       const addr = data.address || {};
-      const city = addr.city || addr.town || addr.village || addr.county || addr.state || '';
+      const fromCity = addr.city || addr.town || addr.village || addr.county || addr.state || '';
       const state = addr.state || '';
-      const suburb = getSuburb(addr, data.display_name || '', city, state);
+      const fromSuburb = getSuburb(addr, data.display_name || '', fromCity, state);
+      // Fix interchange: correct so City = main city, Suburb = area (Nominatim often has them reversed)
       return NextResponse.json({
         address: data.display_name || '',
-        city,
+        city: fromSuburb || fromCity,
         state,
-        suburb,
+        suburb: fromSuburb ? fromCity : '',
         lat: parseFloat(lat),
         lng: parseFloat(lon),
       });
@@ -57,14 +58,14 @@ export async function GET(req: Request) {
 
     const out = results.map((r: { lat: string; lon: string; display_name: string; address?: Record<string, string> }) => {
       const addr = r.address || {};
-      const city = addr.city || addr.town || addr.village || addr.county || addr.state || '';
+      const fromCity = addr.city || addr.town || addr.village || addr.county || addr.state || '';
       const state = addr.state || '';
-      const suburb = getSuburb(addr, r.display_name, city, state);
+      const fromSuburb = getSuburb(addr, r.display_name, fromCity, state);
       return {
         address: r.display_name,
-        city,
+        city: fromSuburb || fromCity,
         state,
-        suburb,
+        suburb: fromSuburb ? fromCity : '',
         lat: parseFloat(r.lat),
         lng: parseFloat(r.lon),
       };

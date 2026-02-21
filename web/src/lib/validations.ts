@@ -37,6 +37,8 @@ const listingBaseSchema = z.object({
   rentPeriod: z.enum(Object.values(RENT_PERIOD) as [string, ...string[]]).optional(),
   leaseDuration: z.string().optional(),
   status: z.enum(['draft', 'active']).optional(),
+  images: z.array(z.object({ public_id: z.string(), url: z.string() })).optional().default([]),
+  videos: z.array(z.object({ public_id: z.string(), url: z.string() })).optional().default([]),
 });
 
 export const listingSchema = listingBaseSchema.refine((data) => {

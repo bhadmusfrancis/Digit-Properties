@@ -48,6 +48,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
             >
               Payments
             </Link>
+            <Link
+              href="/dashboard/profile"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Profile
+            </Link>
           </nav>
         </aside>
         <main className="flex-1">{children}</main>
