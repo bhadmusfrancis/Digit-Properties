@@ -6,6 +6,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
@@ -49,9 +50,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     await dbConnect();
     void User; // Ensure User model is registered for populate
-    const [session, listing] = await Promise.all([
+    const [session, listing, likeCount] = await Promise.all([
       getServerSession(authOptions),
       Listing.findById(id).populate('createdBy', 'name image role').lean(),
+      ListingLike.countDocuments({ listingId: new mongoose.Types.ObjectId(id) }),
     ]);
     if (!listing) notFound();
 
@@ -140,6 +142,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               createdByType={listing.createdByType ?? 'user'}
               baseUrl={baseUrl}
               isOwner={isOwner}
+              viewCount={listing.viewCount ?? 0}
+              likeCount={likeCount}
             />
             {isOwner && (
               <div className="mt-4 flex gap-3">

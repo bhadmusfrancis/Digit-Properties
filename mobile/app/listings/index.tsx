@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, Pressable } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, Image, Pressable, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getApiUrl } from '../../lib/api';
 
@@ -8,16 +8,24 @@ export default function ListingsScreen() {
   const { listingType } = useLocalSearchParams<{ listingType?: string }>();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQ, setSearchQ] = useState('');
+  const [searchSubmit, setSearchSubmit] = useState('');
 
-  useEffect(() => {
+  const loadListings = useCallback(() => {
     const params: Record<string, string> = { limit: '20' };
     if (listingType === 'sale' || listingType === 'rent') params.listingType = listingType;
+    if (searchSubmit.trim()) params.q = searchSubmit.trim();
+    setLoading(true);
     fetch(getApiUrl('listings', params))
       .then((r) => r.json())
       .then((d) => setListings(d.listings || []))
       .catch(() => setListings([]))
       .finally(() => setLoading(false));
-  }, [listingType]);
+  }, [listingType, searchSubmit]);
+
+  useEffect(() => {
+    loadListings();
+  }, [loadListings]);
 
   const formatPrice = (n: number, rentPeriod?: 'day' | 'month' | 'year') => {
     const formatted = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
@@ -42,12 +50,28 @@ export default function ListingsScreen() {
       keyExtractor={(item) => item._id}
       contentContainerStyle={styles.list}
       ListHeaderComponent={
-        <Pressable
-          style={styles.createButton}
-          onPress={() => router.push('/listings/new')}
-        >
-          <Text style={styles.createButtonText}>+ Create Listing</Text>
-        </Pressable>
+        <>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search listings..."
+              placeholderTextColor="#94a3b8"
+              value={searchQ}
+              onChangeText={setSearchQ}
+              onSubmitEditing={() => setSearchSubmit(searchQ)}
+              returnKeyType="search"
+            />
+            <Pressable style={styles.searchBtn} onPress={() => setSearchSubmit(searchQ)}>
+              <Text style={styles.searchBtnText}>Search</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            style={styles.createButton}
+            onPress={() => router.push('/listings/new')}
+          >
+            <Text style={styles.createButtonText}>+ Create Listing</Text>
+          </Pressable>
+        </>
       }
       renderItem={({ item }) => (
         <Pressable
@@ -82,6 +106,26 @@ export default function ListingsScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   list: { padding: 16, paddingBottom: 32 },
+  searchRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    color: '#0f172a',
+  },
+  searchBtn: {
+    backgroundColor: '#0c4a6e',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    justifyContent: 'center',
+  },
+  searchBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
   createButton: {
     backgroundColor: '#0d9488',
     paddingVertical: 12,

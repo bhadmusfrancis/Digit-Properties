@@ -203,4 +203,23 @@ export async function sendAlertMatchEmail(
   return { ok: result.ok };
 }
 
+export async function sendContactFormEmail(
+  fromEmail: string,
+  fromName: string,
+  subject: string,
+  message: string
+): Promise<{ ok: boolean }> {
+  const body = `
+    <p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
+    <p><strong>Subject:</strong> ${subject}</p>
+    <hr />
+    <p>${message.replace(/\n/g, '<br />')}</p>`;
+  const result = await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `[${APP_NAME} Contact] ${subject}`,
+    html: wrapBody('Contact form submission', body),
+  });
+  return { ok: result.ok };
+}
+
 export { canSend, ADMIN_EMAIL, FROM_EMAIL };

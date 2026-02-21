@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { getWhatsAppUrl } from '@/lib/utils';
@@ -14,11 +14,15 @@ interface Props {
   createdByType: string;
   baseUrl: string;
   isOwner?: boolean;
+  viewCount?: number;
+  likeCount?: number;
 }
 
-export function ListingDetailClient({ listingId, title, createdBy, createdByType, baseUrl, isOwner }: Props) {
+export function ListingDetailClient({ listingId, title, createdBy, createdByType, baseUrl, isOwner, viewCount = 0, likeCount: initialLikeCount = 0 }: Props) {
   const { data: session, status } = useSession();
   const [claimOpen, setClaimOpen] = useState(false);
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [liked, setLiked] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: contact } = useQuery({
@@ -26,6 +30,16 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
     queryFn: () => fetch(`/api/listings/${listingId}/contact`).then((r) => r.json()),
     enabled: !!session && !!listingId,
   });
+
+  const { data: likeData } = useQuery({
+    queryKey: ['like', listingId],
+    queryFn: () => fetch(`/api/listings/${listingId}/like`).then((r) => r.json()),
+    enabled: !!listingId,
+  });
+  useEffect(() => {
+    if (likeData && typeof likeData.likeCount === 'number') setLikeCount(likeData.likeCount);
+    if (likeData && typeof likeData.liked === 'boolean') setLiked(likeData.liked);
+  }, [likeData]);
 
   const { data: savedData, refetch: refetchSaved } = useQuery({
     queryKey: ['saved'],
@@ -47,11 +61,33 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
     onSuccess: () => refetchSaved(),
   });
 
+  const toggleLike = useMutation({
+    mutationFn: () => fetch(`/api/listings/${listingId}/like`, { method: 'POST' }).then((r) => r.json()),
+    onSuccess: (data: { liked?: boolean; likeCount?: number }) => {
+      if (typeof data.liked === 'boolean') setLiked(data.liked);
+      if (typeof data.likeCount === 'number') setLikeCount(data.likeCount);
+    },
+  });
+
   const listingUrl = `${baseUrl}/listings/${listingId}`;
   const whatsappMessage = `Hi, I'm interested in this property: ${title} - ${listingUrl}`;
 
   return (
     <div className="mt-6 space-y-4">
+      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+        <span>{viewCount} view{viewCount !== 1 ? 's' : ''}</span>
+        <span>{likeCount} like{likeCount !== 1 ? 's' : ''}</span>
+      </div>
+      {session && (
+        <button
+          type="button"
+          onClick={() => toggleLike.mutate()}
+          className="btn-secondary w-full"
+          disabled={toggleLike.isPending}
+        >
+          {liked ? 'Unlike' : 'Like'} listing
+        </button>
+      )}
       {createdBy && (
         <div>
           <p className="text-sm text-gray-500">Listed by</p>

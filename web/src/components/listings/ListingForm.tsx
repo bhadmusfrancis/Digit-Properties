@@ -350,6 +350,7 @@ export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
               Use camera
             </button>
           </div>
+          <p className="mt-1 text-xs text-gray-500">You can add multiple photos: choose multiple files at once, or use the camera repeatedly to add another after each shot.</p>
           {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
           <div className="mt-2 flex flex-wrap gap-2">
             {images.map((img, index) => (

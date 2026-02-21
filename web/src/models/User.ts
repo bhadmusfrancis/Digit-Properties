@@ -1,5 +1,5 @@
 import mongoose, { Schema, Model } from 'mongoose';
-import { USER_ROLES } from '@/lib/constants';
+import { USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
@@ -8,6 +8,7 @@ export interface IUser {
   image?: string;
   password?: string;
   role: (typeof USER_ROLES)[keyof typeof USER_ROLES];
+  subscriptionTier?: (typeof SUBSCRIPTION_TIERS)[keyof typeof SUBSCRIPTION_TIERS];
   phone?: string;
   verifiedAt?: Date;
   fcmTokens: string[];
@@ -22,6 +23,7 @@ const UserSchema = new Schema<IUser>(
     image: String,
     password: String,
     role: { type: String, enum: Object.values(USER_ROLES), default: USER_ROLES.GUEST },
+    subscriptionTier: { type: String, enum: Object.values(SUBSCRIPTION_TIERS) },
     phone: String,
     verifiedAt: Date,
     fcmTokens: [{ type: String }],

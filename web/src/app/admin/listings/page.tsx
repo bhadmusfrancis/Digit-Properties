@@ -3,15 +3,15 @@ import Listing from '@/models/Listing';
 import User from '@/models/User';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
+import { AdminListingActions } from './AdminListingActions';
 
 export default async function AdminListingsPage() {
   await dbConnect();
-  void User;
-  const listings = await Listing.find({})
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .populate('createdBy', 'name email')
-    .lean();
+  const [listings, users] = await Promise.all([
+    Listing.find({}).sort({ createdAt: -1 }).limit(100).populate('createdBy', 'name email').lean(),
+    User.find({}).select('_id name email').sort({ name: 1 }).limit(500).lean(),
+  ]);
+  const userList = users.map((u) => ({ _id: String(u._id), name: u.name, email: u.email }));
 
   return (
     <div>
@@ -50,13 +50,12 @@ export default async function AdminListingsPage() {
                     : '—'}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/listings/${l._id}`} className="text-primary-600 hover:underline">
-                    View
-                  </Link>
-                  {' · '}
-                  <Link href={`/listings/${l._id}/edit`} className="text-primary-600 hover:underline">
-                    Edit
-                  </Link>
+                  <AdminListingActions
+                    listingId={String(l._id)}
+                    status={l.status}
+                    createdById={l.createdBy && typeof l.createdBy === 'object' && '_id' in l.createdBy ? String((l.createdBy as { _id: unknown })._id) : String(l.createdBy)}
+                    users={userList}
+                  />
                 </td>
               </tr>
             ))}

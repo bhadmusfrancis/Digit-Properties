@@ -130,7 +130,7 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <View style={styles.footer}>
+      <View style={styles.ctaSection}>
         <Link href="/listings" asChild>
           <Pressable style={styles.browseBtn}>
             <Text style={styles.browseBtnText}>Browse all listings</Text>
@@ -141,6 +141,21 @@ export default function HomeScreen() {
             <Text style={styles.createBtnText}>Create a listing</Text>
           </Pressable>
         </Link>
+        {isLoaded && user && (
+          <Pressable style={styles.dashboardBtn} onPress={() => router.push('/dashboard')}>
+            <Text style={styles.dashboardBtnText}>My dashboard</Text>
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerTitle}>How it works</Text>
+        <View style={styles.footerSteps}>
+          <Text style={styles.footerStep}>1. Search — Filter by location, price & type</Text>
+          <Text style={styles.footerStep}>2. Connect — View contact details & reach out</Text>
+          <Text style={styles.footerStep}>3. Close — Work with agents to close the deal</Text>
+        </View>
+        <Text style={styles.footerCopy}>© Digit Properties. Listings sync with the app and web.</Text>
       </View>
     </ScrollView>
   );
@@ -254,7 +269,28 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
   cardPrice: { fontSize: 15, fontWeight: 'bold', color: '#0ea5e9', marginTop: 4 },
   cardLocation: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  footer: { paddingHorizontal: 20, paddingTop: 28, gap: 12 },
+  ctaSection: { paddingHorizontal: 20, paddingTop: 28, gap: 12 },
+  dashboardBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#0c4a6e',
+  },
+  dashboardBtnText: { fontSize: 16, fontWeight: '600', color: '#0c4a6e' },
+  footer: {
+    marginTop: 32,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 32,
+    backgroundColor: '#e2e8f0',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  footerTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  footerSteps: { gap: 6 },
+  footerStep: { fontSize: 14, color: '#475569', lineHeight: 20 },
+  footerCopy: { marginTop: 16, fontSize: 12, color: '#64748b', textAlign: 'center' },
   browseBtn: {
     backgroundColor: '#0ea5e9',
     paddingVertical: 16,
