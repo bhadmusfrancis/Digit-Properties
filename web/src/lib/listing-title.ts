@@ -1,10 +1,11 @@
 /**
  * Generate SEO-friendly listing title from form data (web + mobile).
- * Uses several formats randomly: e.g. "{bedrooms} Bed {propertyType} in {location}", "{propertyType} for {listingType} – {location}".
+ * Uses "at" for location, e.g. "3 Bed Apartment AT Jakande, Baale Street, Lagos".
  */
 export interface TitleInput {
   listingType: string;
   propertyType: string;
+  address?: string;
   state?: string;
   city?: string;
   suburb?: string;
@@ -26,9 +27,11 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
+/** Location string for title: suburb, address, city, state (e.g. "Jakande, Baale Street, Lagos"). */
 function locationStr(input: TitleInput): string {
   const parts: string[] = [];
   if (input.suburb?.trim()) parts.push(input.suburb.trim());
+  if (input.address?.trim()) parts.push(input.address.trim());
   if (input.city?.trim()) parts.push(input.city.trim());
   if (input.state?.trim()) parts.push(input.state.trim());
   return parts.join(', ');
@@ -55,26 +58,26 @@ export function generateListingTitle(input: TitleInput): string {
   const formats: Array<() => string> = [
     () =>
       beds > 0
-        ? `${beds} Bed ${prop} in ${loc || 'Nigeria'}`
-        : `${prop} in ${loc || 'Nigeria'}`,
+        ? `${beds} Bed ${prop} at ${loc || 'Nigeria'}`
+        : `${prop} at ${loc || 'Nigeria'}`,
     () =>
       loc
         ? `${prop} ${typeStr} – ${loc}`
         : `${prop} ${typeStr}`,
     () =>
       beds > 0 && loc
-        ? `${beds}-Bedroom ${prop} ${typeStr} in ${loc}`
+        ? `${beds}-Bedroom ${prop} ${typeStr} at ${loc}`
         : beds > 0
           ? `${beds}-Bedroom ${prop} ${typeStr}`
           : `${prop} ${typeStr}`,
     () => {
       const parts: string[] = beds > 0 ? [`${beds}-Bedroom ${prop}`, typeStr] : [`${prop}`, typeStr];
-      if (loc) parts.push('in', loc);
+      if (loc) parts.push('at', loc);
       return parts.join(' ');
     },
     () =>
       loc
-        ? `${prop} in ${loc} – ${typeStr}`
+        ? `${prop} at ${loc} – ${typeStr}`
         : `${prop} ${typeStr}`,
   ];
 

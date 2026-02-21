@@ -4,7 +4,7 @@ import { dbConnect } from '@/lib/db';
 import EmailTemplate from '@/models/EmailTemplate';
 import { USER_ROLES } from '@/lib/constants';
 
-const KEYS = ['welcome', 'new_user_admin', 'new_listing_admin', 'contact_form', 'claim_approved', 'claim_rejected'];
+const KEYS = ['welcome', 'new_user_admin', 'new_listing_admin', 'new_claim_admin', 'contact_form', 'claim_approved', 'claim_rejected'];
 
 export async function GET(req: Request) {
   const session = await getSession(req);

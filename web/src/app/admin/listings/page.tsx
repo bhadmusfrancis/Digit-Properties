@@ -54,6 +54,7 @@ export default async function AdminListingsPage() {
                     listingId={String(l._id)}
                     status={l.status}
                     createdById={l.createdBy && typeof l.createdBy === 'object' && '_id' in l.createdBy ? String((l.createdBy as { _id: unknown })._id) : String(l.createdBy)}
+                    createdByLabel={l.createdBy && typeof l.createdBy === 'object' ? (l.createdBy as { name?: string }).name ?? (l.createdBy as { email?: string }).email ?? '—' : '—'}
                     users={userList}
                   />
                 </td>
