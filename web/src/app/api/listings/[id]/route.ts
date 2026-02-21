@@ -80,7 +80,26 @@ export async function PATCH(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    if (parsed.data.images !== undefined || parsed.data.videos !== undefined) {
+    const normalizedImages =
+      parsed.data.images !== undefined
+        ? (Array.isArray(parsed.data.images) ? parsed.data.images : [])
+            .map((img: { url?: string; public_id?: string }) => ({
+              url: typeof img?.url === 'string' ? img.url.trim() : '',
+              public_id: typeof img?.public_id === 'string' ? img.public_id.trim() : '',
+            }))
+            .filter((img) => img.url && img.public_id)
+        : undefined;
+    const normalizedVideos =
+      parsed.data.videos !== undefined
+        ? (Array.isArray(parsed.data.videos) ? parsed.data.videos : [])
+            .map((v: { url?: string; public_id?: string }) => ({
+              url: typeof v?.url === 'string' ? v.url.trim() : '',
+              public_id: typeof v?.public_id === 'string' ? v.public_id.trim() : '',
+            }))
+            .filter((v) => v.url && v.public_id)
+        : undefined;
+
+    if (normalizedImages !== undefined || normalizedVideos !== undefined) {
       const user = await User.findById(session.user.id).lean();
       const tier =
         session.user.role === USER_ROLES.ADMIN
@@ -88,8 +107,8 @@ export async function PATCH(
           : (user?.subscriptionTier as string) ||
             (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
       const limits = await getSubscriptionLimits(tier);
-      const images = Array.isArray(parsed.data.images) ? parsed.data.images : listing.images ?? [];
-      const videos = Array.isArray(parsed.data.videos) ? parsed.data.videos : listing.videos ?? [];
+      const images = normalizedImages ?? (listing.images ?? []).map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }));
+      const videos = normalizedVideos ?? (listing.videos ?? []).map((v: { url?: string; public_id?: string }) => ({ url: v?.url ?? '', public_id: v?.public_id ?? '' }));
       if (images.length > limits.maxImages) {
         return NextResponse.json(
           { error: `Maximum ${limits.maxImages} images per listing for your plan.` },
@@ -102,10 +121,13 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      if (normalizedImages !== undefined) listing.images = images;
+      if (normalizedVideos !== undefined) listing.videos = videos;
     }
 
     const wasDraft = listing.status === LISTING_STATUS.DRAFT;
-    Object.assign(listing, parsed.data);
+    const { images: _pi, videos: _pv, ...rest } = parsed.data;
+    Object.assign(listing, rest);
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);
     }
