@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { USER_ROLES } from '@/lib/constants';
 
+type Role = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+
 type User = {
   _id: string;
   name: string;
@@ -14,12 +16,14 @@ type User = {
   createdAt?: string;
 };
 
+const defaultForm = { name: '', email: '', password: '', role: USER_ROLES.GUEST as Role, phone: '' };
+
 export default function AdminUsersPageClient() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: USER_ROLES.GUEST, phone: '' });
+  const [form, setForm] = useState<typeof defaultForm>(defaultForm);
 
   const load = () => {
     fetch('/api/admin/users')
@@ -43,7 +47,7 @@ export default function AdminUsersPageClient() {
       .then((r) => {
         if (r.ok) {
           setShowAdd(false);
-          setForm({ name: '', email: '', password: '', role: USER_ROLES.GUEST, phone: '' });
+          setForm(defaultForm);
           load();
         } else return r.json().then((d) => alert(d.error || 'Failed'));
       })
@@ -67,7 +71,7 @@ export default function AdminUsersPageClient() {
       .then((r) => {
         if (r.ok) {
           setEditing(null);
-          setForm({ name: '', email: '', password: '', role: USER_ROLES.GUEST, phone: '' });
+          setForm(defaultForm);
           load();
         } else return r.json().then((d) => alert(d.error || 'Failed'));
       })
@@ -86,11 +90,12 @@ export default function AdminUsersPageClient() {
 
   const startEdit = (u: User) => {
     setEditing(u);
+    const role: Role = u.role && Object.values(USER_ROLES).includes(u.role as Role) ? (u.role as Role) : USER_ROLES.GUEST;
     setForm({
       name: u.name,
       email: u.email,
       password: '',
-      role: (u.role as string) || USER_ROLES.GUEST,
+      role,
       phone: u.phone || '',
     });
   };
@@ -140,7 +145,7 @@ export default function AdminUsersPageClient() {
           />
           <select
             value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}
             className="input mb-2 w-full"
           >
             {Object.values(USER_ROLES).map((r) => (
@@ -183,7 +188,7 @@ export default function AdminUsersPageClient() {
           />
           <select
             value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}
             className="input mb-2 w-full"
           >
             {Object.values(USER_ROLES).map((r) => (
