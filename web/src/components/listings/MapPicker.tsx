@@ -6,9 +6,14 @@ import 'leaflet/dist/leaflet.css';
 const DEFAULT_LAT = 6.5244;
 const DEFAULT_LNG = 3.3792;
 
+/** Leaflet may be default export or namespace depending on bundler. */
+function getL(leaflet: typeof import('leaflet') | { default: typeof import('leaflet') }) {
+  return (leaflet as { default?: typeof import('leaflet') }).default ?? (leaflet as typeof import('leaflet'));
+}
+
 /** Distinct map marker: teal pin (Leaflet default icon often broken in bundlers). */
-function createMarkerIcon(leaflet: typeof import('leaflet')) {
-  const L = leaflet.default;
+function createMarkerIcon(leaflet: typeof import('leaflet') | { default: typeof import('leaflet') }) {
+  const L = getL(leaflet);
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="width:28px;height:36px;position:relative;">
@@ -45,7 +50,7 @@ export function MapPicker({
 
     let cancelled = false;
     import('leaflet').then((leaflet) => {
-      const L = leaflet.default;
+      const L = getL(leaflet);
       if (cancelled || !containerRef.current) return;
       const map = L.map(containerRef.current).setView([lat, lng], 14);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
