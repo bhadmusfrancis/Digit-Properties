@@ -33,8 +33,15 @@ export async function GET(
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const likeCount = await ListingLike.countDocuments({ listingId: listing._id });
+    const images = Array.isArray(listing.images)
+      ? listing.images.map((img: { url?: string; public_id?: string }) => ({
+          url: img?.url ?? '',
+          public_id: img?.public_id ?? '',
+        })).filter((img: { url: string }) => img.url)
+      : [];
     return NextResponse.json({
       ...listing,
+      images,
       likeCount,
       isBoosted: listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date(),
     });

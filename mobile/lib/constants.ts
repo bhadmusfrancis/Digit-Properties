@@ -12,3 +12,8 @@ export const NIGERIAN_STATES = [
 ] as const;
 
 export const RENT_PERIODS = ['day', 'month', 'year'] as const;
+
+export const POPULAR_AMENITIES = [
+  'Parking', 'Security', '24hr Power', 'Generator', 'Pool', 'Gym',
+  'Fitted Kitchen', 'BQ', 'Garden', 'Water Supply', 'Elevator', 'AC', 'WiFi', 'CCTV', 'Serviced',
+] as const;

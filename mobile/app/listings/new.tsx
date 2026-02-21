@@ -15,7 +15,8 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../lib/api';
-import { NIGERIAN_STATES, PROPERTY_TYPES, RENT_PERIODS } from '../../lib/constants';
+import { NIGERIAN_STATES, PROPERTY_TYPES, RENT_PERIODS, POPULAR_AMENITIES } from '../../lib/constants';
+import { generateListingTitle } from '../../lib/listing-title';
 
 const MAX_IMAGES = 10;
 
@@ -45,6 +46,21 @@ export default function NewListingScreen() {
   const [agentEmail, setAgentEmail] = useState('');
   const [error, setError] = useState('');
 
+  const uploadUri = async (uri: string) => {
+    if (!token) return;
+    const filename = uri.split('/').pop() || 'image.jpg';
+    const formData = new FormData();
+    (formData as any).append('file', { uri, type: 'image/jpeg', name: filename });
+    formData.append('folder', 'listings');
+    const res = await fetch(getApiUrl('upload'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.url && data.public_id) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
+  };
+
   const pickImages = async () => {
     if (images.length >= MAX_IMAGES) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -64,24 +80,54 @@ export default function NewListingScreen() {
     try {
       for (const asset of result.assets) {
         if (images.length >= MAX_IMAGES) break;
-        const uri = asset.uri;
-        const filename = uri.split('/').pop() || 'image.jpg';
-        const formData = new FormData();
-        (formData as any).append('file', { uri, type: 'image/jpeg', name: filename });
-        formData.append('folder', 'listings');
-        const res = await fetch(getApiUrl('upload'), {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        const data = await res.json();
-        if (data.url && data.public_id) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
+        await uploadUri(asset.uri);
       }
     } catch {
       setError('Upload failed');
     } finally {
       setUploading(false);
     }
+  };
+
+  const takeCameraPhoto = async () => {
+    if (images.length >= MAX_IMAGES) return;
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow camera to take photos.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (result.canceled || !result.assets[0]?.uri || !token) return;
+    setUploading(true);
+    setError('');
+    try {
+      await uploadUri(result.assets[0].uri);
+    } catch {
+      setError('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const generateTitle = () => {
+    const t = generateListingTitle({
+      listingType,
+      propertyType,
+      address,
+      city,
+      state,
+      suburb,
+      bedrooms: parseInt(bedrooms, 10) || 0,
+    });
+    setTitle(t);
+  };
+
+  const toggleAmenity = (a: string) => {
+    const list = amenities.split(',').map((s) => s.trim()).filter(Boolean);
+    const set = new Set(list);
+    if (set.has(a)) set.delete(a);
+    else set.add(a);
+    setAmenities(Array.from(set).join(', '));
   };
 
   const removeImage = (index: number) => {
@@ -182,16 +228,15 @@ export default function NewListingScreen() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionTitle}>Basics</Text>
-        <Text style={styles.label}>Title *</Text>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g. 3 Bed Apartment in Lekki" />
         <Text style={styles.label}>Description * (min 20 chars)</Text>
-        <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} placeholder="Describe the property..." multiline numberOfLines={4} />
+        <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} placeholder="Describe the property in detail. Use words like luxury, modern, spacious." multiline numberOfLines={4} />
+        <Text style={styles.label}>Listing type</Text>
         <View style={styles.row}>
           <Pressable style={[styles.chip, listingType === 'sale' && styles.chipActive]} onPress={() => setListingType('sale')}>
-            <Text style={[styles.chipText, listingType === 'sale' && styles.chipTextActive]}>Sale</Text>
+            <Text style={[styles.chipText, listingType === 'sale' && styles.chipTextActive]}>For Sale</Text>
           </Pressable>
           <Pressable style={[styles.chip, listingType === 'rent' && styles.chipActive]} onPress={() => setListingType('rent')}>
-            <Text style={[styles.chipText, listingType === 'rent' && styles.chipTextActive]}>Rent</Text>
+            <Text style={[styles.chipText, listingType === 'rent' && styles.chipTextActive]}>For Rent</Text>
           </Pressable>
         </View>
         <Text style={styles.label}>Property type</Text>
@@ -210,7 +255,7 @@ export default function NewListingScreen() {
             <View style={styles.row}>
               {RENT_PERIODS.map((p) => (
                 <Pressable key={p} style={[styles.chip, rentPeriod === p && styles.chipActive]} onPress={() => setRentPeriod(p)}>
-                  <Text style={[styles.chipText, rentPeriod === p && styles.chipTextActive]}>{p}</Text>
+                  <Text style={[styles.chipText, rentPeriod === p && styles.chipTextActive]}>Per {p}</Text>
                 </Pressable>
               ))}
             </View>
@@ -227,7 +272,7 @@ export default function NewListingScreen() {
         <Text style={styles.label}>Suburb / Area (optional)</Text>
         <TextInput style={styles.input} value={suburb} onChangeText={setSuburb} placeholder="e.g. Lekki Phase 1" />
 
-        <Text style={styles.sectionTitle}>Details</Text>
+        <Text style={styles.sectionTitle}>Property details</Text>
         <View style={styles.row3}>
           <View style={styles.flex1}>
             <Text style={styles.label}>Bedrooms</Text>
@@ -244,18 +289,18 @@ export default function NewListingScreen() {
         </View>
         <Text style={styles.label}>Area (sqm, optional)</Text>
         <TextInput style={styles.input} value={area} onChangeText={setArea} placeholder="e.g. 120" keyboardType="numeric" />
-        <Text style={styles.label}>Amenities (comma-separated)</Text>
-        <TextInput style={styles.input} value={amenities} onChangeText={setAmenities} placeholder="Parking, Security, Pool" />
 
-        <Text style={styles.sectionTitle}>Contact (optional)</Text>
-        <TextInput style={styles.input} value={agentName} onChangeText={setAgentName} placeholder="Agent name" />
-        <TextInput style={styles.input} value={agentPhone} onChangeText={setAgentPhone} placeholder="Phone" keyboardType="phone-pad" />
-        <TextInput style={styles.input} value={agentEmail} onChangeText={setAgentEmail} placeholder="Email" keyboardType="email-address" />
-
-        <Text style={styles.sectionTitle}>Photos</Text>
-        <Pressable style={styles.uploadBtn} onPress={pickImages} disabled={uploading || images.length >= MAX_IMAGES}>
-          <Text style={styles.uploadBtnText}>{uploading ? 'Uploading...' : `+ Add photos (${images.length}/${MAX_IMAGES})`}</Text>
-        </Pressable>
+        <Text style={styles.sectionTitle}>Images & media</Text>
+        <Text style={styles.label}>Photos (first image used in search)</Text>
+        <View style={styles.row}>
+          <Pressable style={[styles.uploadBtn, styles.uploadBtnHalf]} onPress={takeCameraPhoto} disabled={uploading || images.length >= MAX_IMAGES}>
+            <Text style={styles.uploadBtnText}>{uploading ? '…' : 'Camera'}</Text>
+          </Pressable>
+          <Pressable style={[styles.uploadBtn, styles.uploadBtnHalf]} onPress={pickImages} disabled={uploading || images.length >= MAX_IMAGES}>
+            <Text style={styles.uploadBtnText}>{uploading ? 'Uploading...' : 'Choose photos'}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.hint}>Add multiple: use camera or choose photos repeatedly. ({images.length}/{MAX_IMAGES})</Text>
         {images.length > 0 && (
           <View style={styles.imageList}>
             {images.map((img, i) => (
@@ -268,6 +313,27 @@ export default function NewListingScreen() {
             ))}
           </View>
         )}
+
+        <Text style={styles.sectionTitle}>Amenities</Text>
+        <View style={styles.chipWrap}>
+          {POPULAR_AMENITIES.map((a) => (
+            <Pressable key={a} style={[styles.chip, amenities.includes(a) && styles.chipActive]} onPress={() => toggleAmenity(a)}>
+              <Text style={[styles.chipText, amenities.includes(a) && styles.chipTextActive]}>{a}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <TextInput style={styles.input} value={amenities} onChangeText={setAmenities} placeholder="Or type custom (comma-separated)" />
+
+        <Text style={styles.sectionTitle}>Title & contact</Text>
+        <View style={styles.row}>
+          <TextInput style={[styles.input, styles.flex1]} value={title} onChangeText={setTitle} placeholder="Title (min 5 chars)" />
+          <Pressable style={styles.genTitleBtn} onPress={generateTitle}>
+            <Text style={styles.genTitleBtnText}>Generate</Text>
+          </Pressable>
+        </View>
+        <TextInput style={styles.input} value={agentName} onChangeText={setAgentName} placeholder="Agent name (optional)" />
+        <TextInput style={styles.input} value={agentPhone} onChangeText={setAgentPhone} placeholder="Phone" keyboardType="phone-pad" />
+        <TextInput style={styles.input} value={agentEmail} onChangeText={setAgentEmail} placeholder="Email" keyboardType="email-address" />
 
         {error ? <Text style={styles.err}>{error}</Text> : null}
         <Pressable style={[styles.submitBtn, submitting && styles.submitDisabled]} onPress={handleSubmit} disabled={submitting}>
@@ -324,6 +390,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  uploadBtnHalf: { flex: 1, marginHorizontal: 4 },
+  hint: { fontSize: 12, color: '#64748b', marginBottom: 8 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
+  genTitleBtn: { backgroundColor: '#0c4a6e', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center' },
+  genTitleBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   uploadBtnText: { fontSize: 15, color: '#475569', fontWeight: '500' },
   imageList: { marginBottom: 12 },
   imageItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },

@@ -138,8 +138,11 @@ export default function ListingDetailScreen() {
 
   const loc = (listing.location as Record<string, string>) || {};
   const locationLine = [loc.suburb, loc.city, loc.state].filter(Boolean).join(', ') || '—';
-  const images = (listing.images as Array<{ url: string }>) || [];
+  const rawImages = (listing.images as Array<{ url?: string; public_id?: string }>) || [];
+  const images = rawImages.map((img) => ({ url: img?.url ?? '' })).filter((img) => img.url);
   const currentImage = images[imageIndex]?.url ? { uri: images[imageIndex].url } : null;
+  const goPrev = () => setImageIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
+  const goNext = () => setImageIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -159,15 +162,23 @@ export default function ListingDetailScreen() {
           <View style={[styles.heroImage, styles.placeholder]} />
         )}
         {images.length > 1 && (
-          <View style={styles.dots}>
-            {images.slice(0, 10).map((_, i) => (
-              <Pressable
-                key={i}
-                onPress={() => setImageIndex(i)}
-                style={[styles.dot, i === imageIndex && styles.dotActive]}
-              />
-            ))}
-          </View>
+          <>
+            <Pressable style={styles.galleryPrev} onPress={goPrev} accessibilityLabel="Previous image">
+              <Text style={styles.galleryArrow}>‹</Text>
+            </Pressable>
+            <Pressable style={styles.galleryNext} onPress={goNext} accessibilityLabel="Next image">
+              <Text style={styles.galleryArrow}>›</Text>
+            </Pressable>
+            <View style={styles.dots}>
+              {images.slice(0, 10).map((_, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => setImageIndex(i)}
+                  style={[styles.dot, i === imageIndex && styles.dotActive]}
+                />
+              ))}
+            </View>
+          </>
         )}
       </View>
 
@@ -264,6 +275,31 @@ const styles = StyleSheet.create({
   gallery: { backgroundColor: '#000', position: 'relative' },
   heroImage: { width: SCREEN_WIDTH, height: IMG_HEIGHT },
   placeholder: { backgroundColor: '#e2e8f0' },
+  galleryPrev: {
+    position: 'absolute',
+    left: 8,
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryNext: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryArrow: { color: '#fff', fontSize: 28, fontWeight: '300' },
   dots: {
     position: 'absolute',
     bottom: 12,
