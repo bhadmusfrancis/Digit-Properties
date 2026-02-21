@@ -120,25 +120,38 @@ export async function POST(req: Request) {
       );
     }
 
-    const images = Array.isArray(parsed.data.images) ? parsed.data.images : [];
-    const videos = Array.isArray(parsed.data.videos) ? parsed.data.videos : [];
-    if (images.length > limits.maxImages) {
+    const rawImages = Array.isArray(parsed.data.images) ? parsed.data.images : [];
+    const rawVideos = Array.isArray(parsed.data.videos) ? parsed.data.videos : [];
+    const images = rawImages
+      .map((img: { url?: string; public_id?: string }) => ({
+        url: typeof img?.url === 'string' ? img.url.trim() : '',
+        public_id: typeof img?.public_id === 'string' ? img.public_id.trim() : '',
+      }))
+      .filter((img) => img.url && img.public_id);
+    const videos = rawVideos
+      .map((v: { url?: string; public_id?: string }) => ({
+        url: typeof v?.url === 'string' ? v.url.trim() : '',
+        public_id: typeof v?.public_id === 'string' ? v.public_id.trim() : '',
+      }))
+      .filter((v) => v.url && v.public_id);
+    if (rawImages.length > limits.maxImages) {
       return NextResponse.json(
         { error: `Maximum ${limits.maxImages} images per listing for your plan.` },
         { status: 400 }
       );
     }
-    if (videos.length > limits.maxVideos) {
+    if (rawVideos.length > limits.maxVideos) {
       return NextResponse.json(
         { error: `Maximum ${limits.maxVideos} video(s) per listing for your plan.` },
         { status: 400 }
       );
     }
 
+    const { images: _i, videos: _v, ...rest } = parsed.data;
     const listing = await Listing.create({
-      ...parsed.data,
+      ...rest,
       images,
-      videos: videos.length ? videos : undefined,
+      videos: videos.length > 0 ? videos : [],
       status: parsed.data.status || LISTING_STATUS.DRAFT,
       createdBy: session.user.id,
       createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : 'user',
@@ -157,7 +170,8 @@ export async function POST(req: Request) {
       notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
     }
 
-    return NextResponse.json(listing);
+    const doc = listing.toObject ? listing.toObject() : listing;
+    return NextResponse.json({ ...doc, images: (doc as { images?: unknown[] }).images ?? images });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 });
