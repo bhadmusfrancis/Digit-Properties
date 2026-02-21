@@ -111,6 +111,7 @@ export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
     const title = generateListingTitle({
       listingType: watched.listingType,
       propertyType: watched.propertyType,
+      address: watched.address,
       state: watched.state,
       city: watched.city,
       suburb: watched.suburb,

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
+import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
@@ -64,35 +64,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
+    const images = Array.isArray(listing.images)
+      ? listing.images
+          .map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }))
+          .filter((img: { url: string }) => img.url)
+      : [];
 
     return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">
-            <div className="relative aspect-video bg-gray-200">
-              {listing.images?.[0]?.url ? (
-                <Image
-                  src={listing.images[0].url}
-                  alt={listing.title}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 66vw"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-gray-400">
-                  <svg className="h-24 w-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                </div>
-              )}
-              {isBoosted && (
-                <span className="absolute left-4 top-4 rounded bg-amber-500 px-3 py-1 text-sm font-medium text-white">
-                  Sponsored
-                </span>
-              )}
-            </div>
+            <ListingImageGallery images={images} title={listing.title} isBoosted={isBoosted} />
             <div className="p-6">
               <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
               <p className="mt-2 text-2xl font-bold text-primary-600">

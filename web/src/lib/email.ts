@@ -1,10 +1,19 @@
 import { Resend } from 'resend';
+import { getEmailTemplate } from '@/lib/email-templates';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contact@digitproperties.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Digit Properties <noreply@digitproperties.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
 const APP_NAME = 'Digit Properties';
+
+function applyTemplate(template: string, vars: Record<string, string>): string {
+  let out = template;
+  for (const [k, v] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v ?? '');
+  }
+  return out;
+}
 
 function canSend(): boolean {
   return !!resend;
@@ -59,32 +68,27 @@ function wrapBody(title: string, body: string): string {
 }
 
 export async function sendWelcomeEmail(to: string, name: string): Promise<{ ok: boolean }> {
-  const body = `
-    <p>Hi ${name || 'there'},</p>
+  const vars = { name: name || 'there', appName: APP_NAME, appUrl: APP_URL };
+  const t = await getEmailTemplate('welcome');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `Welcome to ${APP_NAME}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
+    <p>Hi ${vars.name},</p>
     <p>Welcome to ${APP_NAME}! Your account has been created.</p>
     <p>You can now browse properties, save alerts, claim listings, and more.</p>
     <p><a href="${APP_URL}" style="color: #0d9488; text-decoration: underline;">Go to ${APP_NAME}</a></p>`;
-  const result = await sendEmail({
-    to,
-    subject: `Welcome to ${APP_NAME}`,
-    html: wrapBody('Welcome!', body),
-  });
+  const result = await sendEmail({ to, subject, html: wrapBody('Welcome!', body) });
   return { ok: result.ok };
 }
 
 export async function sendAdminNewUser(name: string, email: string): Promise<{ ok: boolean }> {
-  const body = `
+  const vars = { name, email, appName: APP_NAME, appUrl: APP_URL };
+  const t = await getEmailTemplate('new_user_admin');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New user: ${name}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>A new user has registered:</p>
-    <ul>
-      <li><strong>Name:</strong> ${name}</li>
-      <li><strong>Email:</strong> ${email}</li>
-    </ul>
+    <ul><li><strong>Name:</strong> ${name}</li><li><strong>Email:</strong> ${email}</li></ul>
     <p><a href="${APP_URL}/admin" style="color: #0d9488;">View in admin</a></p>`;
-  const result = await sendEmail({
-    to: ADMIN_EMAIL,
-    subject: `[${APP_NAME}] New user: ${name}`,
-    html: wrapBody('New User Registration', body),
-  });
+  const result = await sendEmail({ to: ADMIN_EMAIL, subject, html: wrapBody('New User Registration', body) });
   return { ok: result.ok };
 }
 
@@ -92,21 +96,16 @@ export async function sendAdminNewClaim(
   listingTitle: string,
   claimantName: string,
   claimantEmail: string,
-  claimId: string
+  _claimId: string
 ): Promise<{ ok: boolean }> {
-  const reviewUrl = `${APP_URL}/dashboard/claims`;
-  const body = `
+  const vars = { listingTitle, claimantName, claimantEmail, appName: APP_NAME, appUrl: APP_URL };
+  const t = await getEmailTemplate('new_claim_admin');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New claim: ${listingTitle}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>A new listing claim has been submitted:</p>
-    <ul>
-      <li><strong>Listing:</strong> ${listingTitle}</li>
-      <li><strong>Claimant:</strong> ${claimantName} (${claimantEmail})</li>
-    </ul>
-    <p><a href="${reviewUrl}" style="color: #0d9488;">Review claim</a></p>`;
-  const result = await sendEmail({
-    to: ADMIN_EMAIL,
-    subject: `[${APP_NAME}] New claim: ${listingTitle}`,
-    html: wrapBody('New Listing Claim', body),
-  });
+    <ul><li><strong>Listing:</strong> ${listingTitle}</li><li><strong>Claimant:</strong> ${claimantName} (${claimantEmail})</li></ul>
+    <p><a href="${APP_URL}/dashboard/claims" style="color: #0d9488;">Review claim</a></p>`;
+  const result = await sendEmail({ to: ADMIN_EMAIL, subject, html: wrapBody('New Listing Claim', body) });
   return { ok: result.ok };
 }
 
@@ -115,16 +114,14 @@ export async function sendClaimApproved(
   listingTitle: string,
   listingId: string
 ): Promise<{ ok: boolean }> {
-  const url = `${APP_URL}/listings/${listingId}`;
-  const body = `
+  const vars = { listingTitle, listingId, appName: APP_NAME, appUrl: APP_URL };
+  const t = await getEmailTemplate('claim_approved');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] Claim approved: ${listingTitle}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>Good news! Your claim for <strong>${listingTitle}</strong> has been approved.</p>
     <p>You now own this listing and can manage it from your dashboard.</p>
-    <p><a href="${url}" style="color: #0d9488;">View listing</a></p>`;
-  const result = await sendEmail({
-    to,
-    subject: `[${APP_NAME}] Claim approved: ${listingTitle}`,
-    html: wrapBody('Claim Approved', body),
-  });
+    <p><a href="${APP_URL}/listings/${listingId}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to, subject, html: wrapBody('Claim Approved', body) });
   return { ok: result.ok };
 }
 
@@ -133,16 +130,15 @@ export async function sendClaimRejected(
   listingTitle: string,
   reason?: string
 ): Promise<{ ok: boolean }> {
-  const body = `
+  const vars = { listingTitle, reason: reason ? `Reason: ${reason}` : '', appName: APP_NAME, appUrl: APP_URL };
+  const t = await getEmailTemplate('claim_rejected');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] Claim update: ${listingTitle}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>Your claim for <strong>${listingTitle}</strong> was not approved.</p>
-    ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+    ${vars.reason ? `<p>${vars.reason}</p>` : ''}
     <p>If you have questions, please contact us at ${ADMIN_EMAIL}.</p>
     <p><a href="${APP_URL}" style="color: #0d9488;">Browse listings</a></p>`;
-  const result = await sendEmail({
-    to,
-    subject: `[${APP_NAME}] Claim update: ${listingTitle}`,
-    html: wrapBody('Claim Not Approved', body),
-  });
+  const result = await sendEmail({ to, subject, html: wrapBody('Claim Not Approved', body) });
   return { ok: result.ok };
 }
 
@@ -153,26 +149,15 @@ export async function sendAdminNewListing(
   listingType: string,
   price: number
 ): Promise<{ ok: boolean }> {
-  const url = `${APP_URL}/listings/${listingId}`;
-  const priceStr = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(price);
-  const body = `
+  const priceStr = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(price);
+  const vars = { listingTitle, listingId, createdByName, listingType, price: priceStr, appName: APP_NAME, appUrl: APP_URL };
+  const t = await getEmailTemplate('new_listing_admin');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New listing: ${listingTitle}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>A new listing has been published:</p>
-    <ul>
-      <li><strong>Title:</strong> ${listingTitle}</li>
-      <li><strong>Type:</strong> ${listingType}</li>
-      <li><strong>Price:</strong> ${priceStr}</li>
-      <li><strong>By:</strong> ${createdByName}</li>
-    </ul>
-    <p><a href="${url}" style="color: #0d9488;">View listing</a></p>`;
-  const result = await sendEmail({
-    to: ADMIN_EMAIL,
-    subject: `[${APP_NAME}] New listing: ${listingTitle}`,
-    html: wrapBody('New Listing Published', body),
-  });
+    <ul><li><strong>Title:</strong> ${listingTitle}</li><li><strong>Type:</strong> ${listingType}</li><li><strong>Price:</strong> ${priceStr}</li><li><strong>By:</strong> ${createdByName}</li></ul>
+    <p><a href="${APP_URL}/listings/${listingId}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: ADMIN_EMAIL, subject, html: wrapBody('New Listing Published', body) });
   return { ok: result.ok };
 }
 
@@ -209,16 +194,15 @@ export async function sendContactFormEmail(
   subject: string,
   message: string
 ): Promise<{ ok: boolean }> {
-  const body = `
+  const vars = { fromName, fromEmail, subject, message: message.replace(/\n/g, '<br />'), appName: APP_NAME };
+  const t = await getEmailTemplate('contact_form');
+  const emailSubject = t?.subject ? applyTemplate(t.subject, { ...vars, subject }) : `[${APP_NAME} Contact] ${subject}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
     <p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
     <p><strong>Subject:</strong> ${subject}</p>
     <hr />
-    <p>${message.replace(/\n/g, '<br />')}</p>`;
-  const result = await sendEmail({
-    to: ADMIN_EMAIL,
-    subject: `[${APP_NAME} Contact] ${subject}`,
-    html: wrapBody('Contact form submission', body),
-  });
+    <p>${vars.message}</p>`;
+  const result = await sendEmail({ to: ADMIN_EMAIL, subject: emailSubject, html: wrapBody('Contact form submission', body) });
   return { ok: result.ok };
 }
 
