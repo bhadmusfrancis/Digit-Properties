@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
 type ImageItem = { url: string; public_id?: string };
@@ -17,6 +17,29 @@ export function ListingImageGallery({
   const [index, setIndex] = useState(0);
   const list = images?.filter((img) => img?.url) ?? [];
   const current = list[index] ?? list[0];
+  const total = list.length;
+
+  const goPrev = useCallback(() => {
+    setIndex((i) => (i <= 0 ? total - 1 : i - 1));
+  }, [total]);
+  const goNext = useCallback(() => {
+    setIndex((i) => (i >= total - 1 ? 0 : i + 1));
+  }, [total]);
+
+  useEffect(() => {
+    if (total <= 1) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [total, goPrev, goNext]);
 
   if (list.length === 0) {
     return (
@@ -36,10 +59,10 @@ export function ListingImageGallery({
   }
 
   return (
-    <div className="relative aspect-video bg-gray-200">
+    <div className="relative aspect-video bg-gray-200" tabIndex={0}>
       <Image
         src={current.url}
-        alt={title}
+        alt={`${title} – image ${index + 1} of ${total}`}
         fill
         className="object-cover"
         priority
@@ -51,38 +74,45 @@ export function ListingImageGallery({
           Sponsored
         </span>
       )}
-      {list.length > 1 && (
+      {/* Prev / Next – always show when more than one image */}
+      {total > 1 && (
         <>
           <button
             type="button"
-            onClick={() => setIndex((i) => (i <= 0 ? list.length - 1 : i - 1))}
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+            onClick={goPrev}
+            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white shadow hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/50"
             aria-label="Previous image"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
             type="button"
-            onClick={() => setIndex((i) => (i >= list.length - 1 ? 0 : i + 1))}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+            onClick={goNext}
+            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white shadow hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/50"
             aria-label="Next image"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-            {list.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setIndex(i)}
-                className={`h-2 w-2 rounded-full ${i === index ? 'bg-white' : 'bg-white/50'}`}
-                aria-label={`Image ${i + 1}`}
-              />
-            ))}
+          {/* Counter and dots */}
+          <div className="absolute bottom-3 left-0 right-0 flex flex-col items-center gap-2">
+            <span className="rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white">
+              {index + 1} / {total}
+            </span>
+            <div className="flex justify-center gap-1.5">
+              {list.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  className={`h-2.5 w-2.5 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'}`}
+                  aria-label={`Go to image ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </>
       )}
