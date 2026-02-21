@@ -1,6 +1,6 @@
 /**
  * Generate SEO-friendly listing title from form data (web + mobile).
- * Mix: listing type, property type, state, city, suburb, bedrooms, bathrooms, toilets, area, amenities, description keywords.
+ * Uses several formats randomly: e.g. "{bedrooms} Bed {propertyType} in {location}", "{propertyType} for {listingType} – {location}".
  */
 export interface TitleInput {
   listingType: string;
@@ -26,6 +26,14 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
+function locationStr(input: TitleInput): string {
+  const parts: string[] = [];
+  if (input.suburb?.trim()) parts.push(input.suburb.trim());
+  if (input.city?.trim()) parts.push(input.city.trim());
+  if (input.state?.trim()) parts.push(input.state.trim());
+  return parts.join(', ');
+}
+
 function pickFromDescription(description: string, maxWords = 2): string[] {
   if (!description || !description.trim()) return [];
   const lower = description.toLowerCase();
@@ -37,45 +45,41 @@ function pickFromDescription(description: string, maxWords = 2): string[] {
   return found;
 }
 
+/** Build title using one of several formats at random. */
 export function generateListingTitle(input: TitleInput): string {
-  const parts: string[] = [];
-
   const beds = input.bedrooms ?? 0;
   const prop = capitalize((input.propertyType || '').replace(/_/g, ' '));
-  const type = input.listingType === 'rent' ? 'for Rent' : 'for Sale';
+  const typeStr = input.listingType === 'rent' ? 'for Rent' : 'for Sale';
+  const loc = locationStr(input);
 
-  if (beds > 0) {
-    parts.push(`${beds}-Bedroom ${prop} ${type}`);
-  } else {
-    parts.push(`${prop} ${type}`);
-  }
+  const formats: Array<() => string> = [
+    () =>
+      beds > 0
+        ? `${beds} Bed ${prop} in ${loc || 'Nigeria'}`
+        : `${prop} in ${loc || 'Nigeria'}`,
+    () =>
+      loc
+        ? `${prop} ${typeStr} – ${loc}`
+        : `${prop} ${typeStr}`,
+    () =>
+      beds > 0 && loc
+        ? `${beds}-Bedroom ${prop} ${typeStr} in ${loc}`
+        : beds > 0
+          ? `${beds}-Bedroom ${prop} ${typeStr}`
+          : `${prop} ${typeStr}`,
+    () => {
+      const parts: string[] = beds > 0 ? [`${beds}-Bedroom ${prop}`, typeStr] : [`${prop}`, typeStr];
+      if (loc) parts.push('in', loc);
+      return parts.join(' ');
+    },
+    () =>
+      loc
+        ? `${prop} in ${loc} – ${typeStr}`
+        : `${prop} ${typeStr}`,
+  ];
 
-  const locationParts: string[] = [];
-  if (input.suburb?.trim()) locationParts.push(input.suburb.trim());
-  if (input.city?.trim()) locationParts.push(input.city.trim());
-  if (input.state?.trim()) locationParts.push(input.state.trim());
-  if (locationParts.length > 0) {
-    parts.push('in');
-    parts.push(locationParts.join(', '));
-  }
-
-  const extras: string[] = [];
-  if ((input.bathrooms ?? 0) > 0) extras.push(`${input.bathrooms} baths`);
-  if ((input.toilets ?? 0) > 0) extras.push(`${input.toilets} toilets`);
-  if ((input.area ?? 0) > 0) extras.push(`${input.area} sqm`);
-  if (input.amenities?.length) {
-    const top = input.amenities.slice(0, 2).join(', ');
-    if (top) extras.push(top);
-  }
-  const fromDesc = pickFromDescription(input.description || '', 1);
-  if (fromDesc.length) extras.push(fromDesc[0]);
-
-  if (extras.length > 0) {
-    parts.push('—');
-    parts.push(extras.slice(0, 3).join(' · '));
-  }
-
-  let title = parts.join(' ');
+  const fn = formats[Math.floor(Math.random() * formats.length)];
+  let title = fn();
   if (title.length > 200) title = title.slice(0, 197) + '...';
   return title.trim() || 'Property Listing';
 }

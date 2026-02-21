@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 
 export async function GET(
@@ -20,13 +21,18 @@ export async function GET(
     }
 
     await dbConnect();
-    const listing = await Listing.findById(id).select('agentName agentPhone agentEmail title').lean();
+    const listing = await Listing.findById(id)
+      .select('agentName agentPhone agentEmail title createdBy')
+      .populate('createdBy', 'name phone email')
+      .lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+    const creator = listing.createdBy as { name?: string; phone?: string; email?: string } | null;
+    const hasAgent = [listing.agentName, listing.agentPhone, listing.agentEmail].some(Boolean);
     return NextResponse.json({
-      agentName: listing.agentName,
-      agentPhone: listing.agentPhone,
-      agentEmail: listing.agentEmail,
+      agentName: hasAgent ? listing.agentName : (creator?.name ?? listing.agentName),
+      agentPhone: hasAgent ? listing.agentPhone : (creator?.phone ?? listing.agentPhone),
+      agentEmail: hasAgent ? listing.agentEmail : (creator?.email ?? listing.agentEmail),
       title: listing.title,
     });
   } catch (e) {

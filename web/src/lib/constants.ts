@@ -74,3 +74,19 @@ export const PAYMENT_PURPOSE = {
   BOOST_LISTING: 'boost_listing',
   BANNER_AD: 'banner_ad',
 } as const;
+
+/** Subscription tiers for listing/media limits. Guest = unauthenticated-style limits. */
+export const SUBSCRIPTION_TIERS = {
+  GUEST: 'guest',
+  FREE: 'free',
+  GOLD: 'gold',
+  PREMIUM: 'premium',
+} as const;
+
+/** Default limits per tier when no admin config exists. */
+export const DEFAULT_SUBSCRIPTION_LIMITS: Record<string, { maxListings: number; maxImages: number; maxVideos: number; canFeatured: boolean; canHighlighted: boolean }> = {
+  guest: { maxListings: 5, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false },
+  free: { maxListings: 5, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false },
+  gold: { maxListings: 20, maxImages: 15, maxVideos: 3, canFeatured: true, canHighlighted: true },
+  premium: { maxListings: 100, maxImages: 30, maxVideos: 5, canFeatured: true, canHighlighted: true },
+};
