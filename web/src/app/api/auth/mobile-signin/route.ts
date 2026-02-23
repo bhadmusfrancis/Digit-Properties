@@ -23,6 +23,12 @@ export async function POST(req: Request) {
     if (!valid) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
+    if (!user.verifiedAt && user.emailVerificationToken) {
+      return NextResponse.json(
+        { error: 'Please verify your email before signing in.', code: 'NEED_VERIFICATION', email: user.email },
+        { status: 403 }
+      );
+    }
     const role = user.role ?? USER_ROLES.GUEST;
     const token = signToken({
       id: user._id.toString(),

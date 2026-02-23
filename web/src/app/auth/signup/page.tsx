@@ -28,12 +28,19 @@ function SignUpForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Registration failed');
+        const err = data.error;
+        setError(typeof err === 'object' ? 'Invalid input' : err?.message || err || 'Registration failed');
+        setLoading(false);
+        return;
+      }
+      if (data.needVerification) {
+        router.push(`/auth/verify-required?email=${encodeURIComponent(data.email || email)}`);
         setLoading(false);
         return;
       }
       const signInRes = await signIn('credentials', { email, password, redirect: false });
       if (signInRes?.ok) router.push(callbackUrl);
+      else if (signInRes?.error) setError(signInRes.error);
       else router.push('/auth/signin');
     } catch {
       setError('Registration failed');

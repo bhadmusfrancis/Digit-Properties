@@ -67,6 +67,14 @@ const TEMPLATES = [
 <p><a href="{{appUrl}}/listings/{{listingId}}" style="color: #0d9488;">View listing</a></p>`,
   },
   {
+    key: 'email_verification',
+    subject: 'Verify your email – {{appName}}',
+    body: `<p>Hi {{name}},</p>
+<p>Please verify your email address to activate your {{appName}} account.</p>
+<p><a href="{{verifyUrl}}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">Verify my email</a></p>
+<p>This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>`,
+  },
+  {
     key: 'claim_rejected',
     subject: '[{{appName}}] Claim update: {{listingTitle}}',
     body: `<p>Your claim for <strong>{{listingTitle}}</strong> was not approved.</p>

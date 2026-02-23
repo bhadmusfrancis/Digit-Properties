@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../lib/api';
 import { SocialAuthButtons } from '../../components/SocialAuthButtons';
@@ -40,7 +41,12 @@ export default function SignInScreen() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data as { error?: string }).error || 'Sign in failed');
+        const err = data as { error?: string; code?: string };
+        if (res.status === 403 && err.code === 'NEED_VERIFICATION') {
+          setError(err.error || 'Please verify your email before signing in. Check your inbox for the link.');
+        } else {
+          setError(err.error || 'Sign in failed');
+        }
         return;
       }
       if (data.token && data.user) {
@@ -57,11 +63,12 @@ export default function SignInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
@@ -95,13 +102,15 @@ export default function SignInScreen() {
         <Pressable style={styles.link} onPress={() => router.push('/auth/signup')}>
           <Text style={styles.linkText}>Don't have an account? Sign up</Text>
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1 },
   scroll: { padding: 24, paddingTop: 16 },
   label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6 },
   input: {

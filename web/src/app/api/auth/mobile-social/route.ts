@@ -111,7 +111,11 @@ export async function POST(req: Request) {
         email,
         name: name || email.split('@')[0],
         role: USER_ROLES.GUEST,
+        verifiedAt: new Date(),
       });
+    } else if (!user.verifiedAt) {
+      user.verifiedAt = new Date();
+      await user.save();
     }
     const role = user.role ?? USER_ROLES.GUEST;
     const token = signToken({

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
@@ -11,9 +12,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     await dbConnect();
+    const userId = new mongoose.Types.ObjectId(session.user.id);
     const [listingsCount, claimsCount] = await Promise.all([
-      Listing.countDocuments({ createdBy: session.user.id }),
-      Claim.countDocuments({ userId: session.user.id, status: 'pending' }),
+      Listing.countDocuments({ createdBy: userId }),
+      Claim.countDocuments({ userId, status: 'pending' }),
     ]);
     return NextResponse.json({ listingsCount, claimsCount });
   } catch (e) {
