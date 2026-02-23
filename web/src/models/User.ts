@@ -10,7 +10,11 @@ export interface IUser {
   role: (typeof USER_ROLES)[keyof typeof USER_ROLES];
   subscriptionTier?: (typeof SUBSCRIPTION_TIERS)[keyof typeof SUBSCRIPTION_TIERS];
   phone?: string;
+  /** Set when user verified their email (credentials signup or after verify-email link). */
   verifiedAt?: Date;
+  /** One-time token for email verification link; cleared after verify. */
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   fcmTokens: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -26,6 +30,8 @@ const UserSchema = new Schema<IUser>(
     subscriptionTier: { type: String, enum: Object.values(SUBSCRIPTION_TIERS) },
     phone: String,
     verifiedAt: Date,
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
     fcmTokens: [{ type: String }],
   },
   { timestamps: true }

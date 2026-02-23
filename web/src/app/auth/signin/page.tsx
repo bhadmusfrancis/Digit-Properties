@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -10,9 +10,13 @@ function SignInForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  useEffect(() => {
+    if (searchParams.get('verified') === '1') setSuccess('Your email is verified. You can sign in now.');
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +25,7 @@ function SignInForm() {
     const res = await signIn('credentials', { email, password, redirect: false, callbackUrl });
     setLoading(false);
     if (res?.error) {
-      setError('Invalid email or password');
+      setError(typeof res.error === 'string' ? res.error : 'Invalid email or password');
       return;
     }
     if (res?.ok) window.location.href = callbackUrl;
@@ -33,6 +37,11 @@ function SignInForm() {
       <p className="mt-2 text-gray-600">Sign in to view contact details and manage your listings.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        {success && (
+          <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+            {success}
+          </div>
+        )}
         {error && (
           <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
             {error}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../lib/api';
 
@@ -11,11 +12,15 @@ type Claim = {
   createdAt?: string;
 };
 
+const TOP_PADDING_EXTRA = 24;
+
 export default function MyClaimsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { token } = useAuth();
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
+  const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
 
   useEffect(() => {
     if (!token) {
@@ -40,8 +45,8 @@ export default function MyClaimsScreen() {
   const pending = claims.filter((c) => c.status === 'pending');
 
   return (
-    <View style={styles.container}>
-      <Pressable style={styles.header} onPress={() => router.back()}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <Pressable style={[styles.header, { paddingTop: topPad }]} onPress={() => router.back()}>
         <Text style={styles.backText}>← Back</Text>
       </Pressable>
       {loading ? (
@@ -67,7 +72,7 @@ export default function MyClaimsScreen() {
           }}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
