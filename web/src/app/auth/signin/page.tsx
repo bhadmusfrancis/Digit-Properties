@@ -18,6 +18,9 @@ function SignInForm() {
     if (searchParams.get('verified') === '1') setSuccess('Your email is verified. You can sign in now.');
   }, [searchParams]);
 
+  const verificationError = searchParams.get('error');
+  const isVerificationError = verificationError === 'InvalidOrExpired' || verificationError === 'InvalidVerification' || verificationError === 'VerificationFailed';
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -40,6 +43,14 @@ function SignInForm() {
         {success && (
           <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
             {success}
+          </div>
+        )}
+        {isVerificationError && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            That verification link is invalid or expired.{' '}
+            <Link href="/auth/resend-verification" className="font-medium text-primary-600 underline">
+              Send a new verification email
+            </Link>
           </div>
         )}
         {error && (

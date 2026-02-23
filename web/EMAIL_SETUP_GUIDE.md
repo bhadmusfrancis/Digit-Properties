@@ -37,6 +37,9 @@ RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Optional (defaults shown)
 ADMIN_EMAIL=contact@digitproperties.com
 FROM_EMAIL=Digit Properties <noreply@digitproperties.com>
+
+# Use this until your domain is verified (no DNS needed):
+RESEND_FROM_OVERRIDE=Digit Properties <onboarding@resend.dev>
 ```
 
 - **RESEND_API_KEY**: **Required** for sending emails. Without it, emails are skipped (no errors in the API, but admin and new members will not receive any emails, and new users will not receive the verification link and cannot sign in until you set it and they request a new link or you mark them verified in the DB).
@@ -72,6 +75,8 @@ For `digitproperties.com`:
 ## Troubleshooting
 
 - **Emails not sending**: Check `RESEND_API_KEY` is set in **web** `.env.local` (or production env). Restart the dev server after changing env. Then go to **Admin → Emails** and click **Send test email** to see the exact error (e.g. domain not verified).
-- **"Domain not verified"**: The address in `FROM_EMAIL` (e.g. `noreply@digitproperties.com`) must use a **verified domain** in Resend. Go to [Resend → Domains](https://resend.com/domains), add `digitproperties.com`, add the DNS records they show (MX + DKIM), and wait for verification. Until then, Resend will reject sends with an error like: *"The digitproperties.com domain is not verified."*
+- **"Domain not verified"**: The address in `FROM_EMAIL` (e.g. `noreply@digitproperties.com`) must use a **verified domain** in Resend. You have two options:
+  1. **Quick fix (no DNS):** In `.env.local` add `RESEND_FROM_OVERRIDE=Digit Properties <onboarding@resend.dev>`. Restart the server. Emails will send from Resend’s test address until you verify your domain.
+  2. **Production:** Go to [Resend → Domains](https://resend.com/domains), add `digitproperties.com`, add the DNS records they show (MX + DKIM), wait for verification, then remove `RESEND_FROM_OVERRIDE` so the app uses `FROM_EMAIL`.
 - **Admin not receiving**: Ensure `ADMIN_EMAIL` is correct (default: contact@digitproperties.com) and that your inbox isn’t filtering the test/signup emails.
 - **Logs**: Check server logs for `[email] Resend error:` or `[email] Send failed:` to see the raw Resend response.
