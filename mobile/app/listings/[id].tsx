@@ -11,17 +11,22 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiUrl } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMG_HEIGHT = 260;
 
+const TOP_PADDING_EXTRA = 24;
+
 export default function ListingDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : '';
   const router = useRouter();
   const { token } = useAuth();
+  const insets = useSafeAreaInsets();
+  const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
   const [listing, setListing] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +150,7 @@ export default function ListingDetailScreen() {
   const goNext = () => setImageIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: topPad }]} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerBack}>
           <Text style={styles.headerBackText}>← Back</Text>

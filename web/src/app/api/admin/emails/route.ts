@@ -3,8 +3,18 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import EmailTemplate from '@/models/EmailTemplate';
 import { USER_ROLES } from '@/lib/constants';
+import { canSend } from '@/lib/email';
 
-const KEYS = ['welcome', 'new_user_admin', 'new_listing_admin', 'new_claim_admin', 'contact_form', 'claim_approved', 'claim_rejected'];
+const KEYS = [
+  'welcome',
+  'email_verification',
+  'new_user_admin',
+  'new_listing_admin',
+  'new_claim_admin',
+  'contact_form',
+  'claim_approved',
+  'claim_rejected',
+];
 
 export async function GET(req: Request) {
   const session = await getSession(req);
@@ -18,7 +28,7 @@ export async function GET(req: Request) {
     const t = list.find((x) => x.key === k);
     map[k] = t ? { subject: t.subject, body: t.body } : { subject: '', body: '' };
   });
-  return NextResponse.json(map);
+  return NextResponse.json({ templates: map, emailConfigured: canSend() });
 }
 
 export async function PUT(req: Request) {

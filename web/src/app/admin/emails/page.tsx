@@ -13,10 +13,29 @@ export default function AdminEmailsPage() {
   const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [emailConfigured, setEmailConfigured] = useState(true);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; errorDetail?: string } | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+
+  const sendTest = () => {
+    setTestResult(null);
+    setTestLoading(true);
+    fetch('/api/admin/emails/test', { method: 'POST' })
+      .then((r) => r.json())
+      .then((d) => setTestResult({ ok: d.ok, message: d.message, errorDetail: d.errorDetail }))
+      .catch(() => setTestResult({ ok: false, message: 'Request failed', errorDetail: 'Network or server error' }))
+      .finally(() => setTestLoading(false));
+  };
+
   useEffect(() => {
     fetch('/api/admin/emails')
       .then((r) => r.json())
-      .then((d) => typeof d === 'object' && setTemplates(d))
+      .then((d) => {
+        if (typeof d === 'object') {
+          setTemplates(d.templates || d);
+          if (typeof d.emailConfigured === 'boolean') setEmailConfigured(d.emailConfigured);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -38,7 +57,7 @@ export default function AdminEmailsPage() {
     })
       .then((r) => r.ok && fetch('/api/admin/emails').then((r2) => r2.json()))
       .then((d) => {
-        if (typeof d === 'object') setTemplates(d);
+        if (typeof d === 'object') setTemplates(d.templates || d);
         setEditing(null);
       })
       .finally(() => setSaving(false));
@@ -48,6 +67,36 @@ export default function AdminEmailsPage() {
 
   return (
     <div>
+      {!emailConfigured && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <strong>Emails are not configured.</strong> Set <code className="bg-amber-100 px-1">RESEND_API_KEY</code> in your environment so welcome, verification, and admin notification emails are sent. See <code className="bg-amber-100 px-1">EMAIL_SETUP_GUIDE.md</code>.
+        </div>
+      )}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={sendTest}
+          disabled={testLoading || !emailConfigured}
+          className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+        >
+          {testLoading ? 'Sending...' : 'Send test email'}
+        </button>
+        <span className="text-sm text-gray-500">Sends one email to ADMIN_EMAIL so you can see if Resend works.</span>
+      </div>
+      {testResult && (
+        <div
+          className={`mb-4 rounded-lg border p-3 text-sm ${
+            testResult.ok
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+          }`}
+        >
+          <p className="font-medium">{testResult.message}</p>
+          {testResult.errorDetail && (
+            <p className="mt-2 font-mono text-xs break-all">{testResult.errorDetail}</p>
+          )}
+        </div>
+      )}
       <h2 className="text-lg font-semibold text-gray-900">Email templates</h2>
       <p className="mt-1 text-sm text-gray-500">
         Edit subject and body for: new user welcome, new subscription, contact form, etc. Use HTML in body.

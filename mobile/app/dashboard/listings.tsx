@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Image, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../lib/api';
 
@@ -20,11 +21,15 @@ function formatPrice(n: number, rentPeriod?: string) {
   return rentPeriod ? `${fmt}/${rentPeriod}` : fmt;
 }
 
+const TOP_PADDING_EXTRA = 24;
+
 export default function MyListingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { token } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
 
   const load = () => {
     if (!token) return;
@@ -69,8 +74,8 @@ export default function MyListingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={[styles.header, { paddingTop: topPad }]}>
         <Pressable onPress={() => router.back()}><Text style={styles.backText}>← Back</Text></Pressable>
         <Pressable style={styles.addBtn} onPress={() => router.push('/listings/new')}>
           <Text style={styles.addBtnText}>+ Add listing</Text>
@@ -111,7 +116,7 @@ export default function MyListingsScreen() {
           )}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

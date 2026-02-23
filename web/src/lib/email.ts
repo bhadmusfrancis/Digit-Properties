@@ -38,12 +38,16 @@ async function sendEmail(options: {
       html: options.html,
     });
     if (error) {
-      console.error('[email] Resend error:', error);
+      const errMsg = typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as { message?: unknown }).message)
+        : JSON.stringify(error);
+      console.error('[email] Resend error:', errMsg, error);
       return { ok: false, error };
     }
     return { ok: true, id: data?.id };
   } catch (e) {
-    console.error('[email] Send failed:', e);
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.error('[email] Send failed:', errMsg, e);
     return { ok: false, error: e };
   }
 }
@@ -77,6 +81,22 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<{ ok: 
     <p>You can now browse properties, save alerts, claim listings, and more.</p>
     <p><a href="${APP_URL}" style="color: #0d9488; text-decoration: underline;">Go to ${APP_NAME}</a></p>`;
   const result = await sendEmail({ to, subject, html: wrapBody('Welcome!', body) });
+  if (!result.ok) console.error('[email] sendWelcomeEmail failed for', to, result.error);
+  return { ok: result.ok };
+}
+
+/** Send verification link for new signups (credentials only). */
+export async function sendVerificationEmail(to: string, name: string, verifyUrl: string): Promise<{ ok: boolean }> {
+  const vars = { name: name || 'there', appName: APP_NAME, appUrl: APP_URL, verifyUrl };
+  const t = await getEmailTemplate('email_verification');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `Verify your email – ${APP_NAME}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
+    <p>Hi ${vars.name},</p>
+    <p>Please verify your email address to activate your ${APP_NAME} account.</p>
+    <p><a href="${verifyUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">Verify my email</a></p>
+    <p>This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>`;
+  const result = await sendEmail({ to, subject, html: wrapBody('Verify your email', body) });
+  if (!result.ok) console.error('[email] sendVerificationEmail failed for', to, result.error);
   return { ok: result.ok };
 }
 
@@ -89,6 +109,7 @@ export async function sendAdminNewUser(name: string, email: string): Promise<{ o
     <ul><li><strong>Name:</strong> ${name}</li><li><strong>Email:</strong> ${email}</li></ul>
     <p><a href="${APP_URL}/admin" style="color: #0d9488;">View in admin</a></p>`;
   const result = await sendEmail({ to: ADMIN_EMAIL, subject, html: wrapBody('New User Registration', body) });
+  if (!result.ok) console.error('[email] sendAdminNewUser failed to', ADMIN_EMAIL, result.error);
   return { ok: result.ok };
 }
 
@@ -204,6 +225,35 @@ export async function sendContactFormEmail(
     <p>${vars.message}</p>`;
   const result = await sendEmail({ to: ADMIN_EMAIL, subject: emailSubject, html: wrapBody('Contact form submission', body) });
   return { ok: result.ok };
+}
+
+/** Send a single test email to ADMIN_EMAIL. Returns detailed result for admin diagnostics. */
+export async function sendTestEmail(): Promise<{
+  ok: boolean;
+  message: string;
+  id?: string;
+  errorDetail?: string;
+}> {
+  if (!resend) {
+    return { ok: false, message: 'RESEND_API_KEY is not set.', errorDetail: 'Add RESEND_API_KEY to .env.local and restart the server.' };
+  }
+  const to = ADMIN_EMAIL;
+  const from = FROM_EMAIL;
+  const subject = `[${APP_NAME}] Test email`;
+  const html = wrapBody('Test email', `<p>This is a test from ${APP_NAME}. If you received this, Resend is working.</p><p>From: <code>${from}</code></p>`);
+  try {
+    const { data, error } = await resend.emails.send({ from, to: [to], subject, html });
+    if (error) {
+      const errMsg = typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as { message?: unknown }).message)
+        : JSON.stringify(error);
+      return { ok: false, message: 'Resend returned an error.', errorDetail: errMsg };
+    }
+    return { ok: true, message: `Test email sent to ${to}.`, id: data?.id };
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    return { ok: false, message: 'Send failed.', errorDetail: errMsg };
+  }
 }
 
 export { canSend, ADMIN_EMAIL, FROM_EMAIL };

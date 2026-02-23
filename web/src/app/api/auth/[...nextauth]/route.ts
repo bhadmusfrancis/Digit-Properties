@@ -19,6 +19,9 @@ const providers: NextAuthOptions['providers'] = [
       if (!user?.password) return null;
       const valid = await bcrypt.compare(credentials.password, user.password);
       if (!valid) return null;
+      if (!user.verifiedAt && user.emailVerificationToken) {
+        throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
+      }
       return {
         id: user._id.toString(),
         email: user.email,
@@ -74,6 +77,7 @@ export const authOptions: NextAuthOptions = {
             name: token.name,
             image: token.picture,
             role: USER_ROLES.GUEST,
+            verifiedAt: new Date(),
           });
           token.id = newUser._id.toString();
           token.role = newUser.role;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../lib/api';
 import { SocialAuthButtons } from '../../components/SocialAuthButtons';
@@ -42,6 +43,10 @@ export default function SignUpScreen() {
         setError(msg || 'Sign up failed');
         return;
       }
+      if (data.needVerification) {
+        router.replace({ pathname: '/auth/verify-required', params: { email: data.email || email } });
+        return;
+      }
       if (data.token && data.user) {
         await setAuth(data.token, data.user);
         router.replace('/');
@@ -56,11 +61,12 @@ export default function SignUpScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Name</Text>
         <TextInput
           style={styles.input}
@@ -105,13 +111,15 @@ export default function SignUpScreen() {
         <Pressable style={styles.link} onPress={() => router.push('/auth/signin')}>
           <Text style={styles.linkText}>Already have an account? Sign in</Text>
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
+  flex: { flex: 1 },
   scroll: { padding: 24, paddingTop: 16 },
   label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6 },
   input: {

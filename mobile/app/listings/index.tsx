@@ -1,15 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, Image, Pressable, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiUrl } from '../../lib/api';
 
+const TOP_PADDING_EXTRA = 28;
+
 export default function ListingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { listingType } = useLocalSearchParams<{ listingType?: string }>();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQ, setSearchQ] = useState('');
   const [searchSubmit, setSearchSubmit] = useState('');
+  const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
 
   const loadListings = useCallback(() => {
     const params: Record<string, string> = { limit: '20' };
@@ -38,17 +44,18 @@ export default function ListingsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
         <Text>Loading...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <FlatList
+    <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+      <FlatList
       data={listings}
       keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, { paddingTop: topPad }]}
       ListHeaderComponent={
         <>
           <View style={styles.searchRow}>
@@ -99,11 +106,13 @@ export default function ListingsScreen() {
           <Text style={styles.empty}>No listings yet. Create one or pull to refresh.</Text>
         </View>
       }
-    />
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   list: { padding: 16, paddingBottom: 32 },
   searchRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
