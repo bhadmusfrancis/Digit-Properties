@@ -8,6 +8,7 @@ import { canSend } from '@/lib/email';
 const KEYS = [
   'welcome',
   'email_verification',
+  'password_reset',
   'new_user_admin',
   'new_listing_admin',
   'new_claim_admin',

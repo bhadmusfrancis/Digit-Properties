@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { extractSuburbFromDisplayName, matchKnownSuburb } from '@/lib/nigeria-suburbs';
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
-const UA = 'DigitProperties/1.0 (contact@digitproperties.com)';
+const UA = 'DigitProperties/1.0';
 
 function getSuburb(addr: Record<string, string>, displayName: string, city: string, state: string): string {
   const fromAddr =

@@ -12,6 +12,11 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+});
+
 const listingBaseSchema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(20).max(5000),

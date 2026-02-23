@@ -105,7 +105,6 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
               <h4 className="font-medium text-gray-900">Contact details</h4>
               {contact.agentName && <p className="mt-1">{contact.agentName}</p>}
               {contact.agentPhone && <p className="mt-1">{contact.agentPhone}</p>}
-              {contact.agentEmail && <p className="mt-1">{contact.agentEmail}</p>}
               {contact.agentPhone && (
                 <a
                   href={getWhatsAppUrl(contact.agentPhone, whatsappMessage)}
