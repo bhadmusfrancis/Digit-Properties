@@ -9,11 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
-import { getApiUrl } from '../../lib/api';
+import { getApiUrl, API_URL } from '../../lib/api';
 import { SocialAuthButtons } from '../../components/SocialAuthButtons';
 
 export default function SignInScreen() {
@@ -80,7 +81,12 @@ export default function SignInScreen() {
           keyboardType="email-address"
           editable={!loading}
         />
-        <Text style={styles.label}>Password</Text>
+        <View style={styles.passwordRow}>
+          <Text style={styles.label}>Password</Text>
+          <Pressable onPress={() => Linking.openURL(`${API_URL.replace(/\/$/, '')}/auth/forgot-password`)}>
+            <Text style={styles.forgotLink}>Forgot password?</Text>
+          </Pressable>
+        </View>
         <TextInput
           style={styles.input}
           value={password}
@@ -112,7 +118,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   flex: { flex: 1 },
   scroll: { padding: 24, paddingTop: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6 },
+  passwordRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  label: { fontSize: 14, fontWeight: '600', color: '#334155' },
+  forgotLink: { fontSize: 14, color: '#0d9488', fontWeight: '500' },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1.5,

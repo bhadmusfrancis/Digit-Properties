@@ -82,8 +82,7 @@ export default function DashboardScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={[styles.container, { paddingTop: topPad }]} showsVerticalScrollIndicator={false}>
       <View style={styles.heroCard}>
         <Text style={styles.greeting}>Welcome back</Text>
-        <Text style={styles.userName}>{user.name || user.email}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <Text style={styles.userName}>{user.name || 'User'}</Text>
       </View>
 
       {loading ? (

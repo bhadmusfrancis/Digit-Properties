@@ -52,15 +52,15 @@ export function Footer() {
             <h3 className="font-semibold text-white">Support</h3>
             <ul className="mt-4 space-y-2">
               <li>
-                <a href="mailto:support@digitproperties.com" className="hover:text-white">
-                  support@digitproperties.com
-                </a>
+                <Link href="/contact" className="hover:text-white">
+                  Contact us
+                </Link>
               </li>
             </ul>
           </div>
         </div>
         <div className="mt-12 border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
-          {new Date().getFullYear()} Digit Properties. digitproperties.com
+          {new Date().getFullYear()} Digit Properties
         </div>
       </div>
     </footer>

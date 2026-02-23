@@ -16,6 +16,7 @@ function SignInForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   useEffect(() => {
     if (searchParams.get('verified') === '1') setSuccess('Your email is verified. You can sign in now.');
+    if (searchParams.get('reset') === '1') setSuccess('Your password has been reset. You can sign in now.');
   }, [searchParams]);
 
   const verificationError = searchParams.get('error');
@@ -73,9 +74,14 @@ function SignInForm() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <Link href="/auth/forgot-password" className="text-sm font-medium text-primary-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"

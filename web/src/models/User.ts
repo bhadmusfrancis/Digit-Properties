@@ -15,6 +15,9 @@ export interface IUser {
   /** One-time token for email verification link; cleared after verify. */
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
+  /** One-time token for password reset link; cleared after reset. */
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   fcmTokens: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +35,8 @@ const UserSchema = new Schema<IUser>(
     verifiedAt: Date,
     emailVerificationToken: String,
     emailVerificationExpires: Date,
+    passwordResetToken: String,
+    passwordResetExpires: Date,
     fcmTokens: [{ type: String }],
   },
   { timestamps: true }

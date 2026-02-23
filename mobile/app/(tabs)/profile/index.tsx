@@ -39,10 +39,6 @@ export default function ProfileScreen() {
         <Text style={styles.value}>{user.name || '-'}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{user.email}</Text>
-      </View>
-      <View style={styles.card}>
         <Text style={styles.label}>Role</Text>
         <Text style={styles.value}>{user.role || 'user'}</Text>
       </View>

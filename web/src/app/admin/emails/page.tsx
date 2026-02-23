@@ -81,7 +81,7 @@ export default function AdminEmailsPage() {
         >
           {testLoading ? 'Sending...' : 'Send test email'}
         </button>
-        <span className="text-sm text-gray-500">Sends one email to ADMIN_EMAIL so you can see if Resend works.</span>
+        <span className="text-sm text-gray-500">Sends one test email to the configured admin address so you can verify Resend works.</span>
       </div>
       {testResult && (
         <div
