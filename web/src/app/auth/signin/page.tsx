@@ -28,7 +28,8 @@ function SignInForm() {
     const res = await signIn('credentials', { email, password, redirect: false, callbackUrl });
     setLoading(false);
     if (res?.error) {
-      setError(typeof res.error === 'string' ? res.error : 'Invalid email or password');
+      const msg = typeof res.error === 'string' ? res.error : '';
+      setError(msg === 'CredentialsSignin' ? 'Invalid Credentials' : msg || 'Invalid Credentials');
       return;
     }
     if (res?.ok) window.location.href = callbackUrl;

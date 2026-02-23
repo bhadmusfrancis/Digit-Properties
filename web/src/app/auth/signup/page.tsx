@@ -40,7 +40,7 @@ function SignUpForm() {
       }
       const signInRes = await signIn('credentials', { email, password, redirect: false });
       if (signInRes?.ok) router.push(callbackUrl);
-      else if (signInRes?.error) setError(signInRes.error);
+      else if (signInRes?.error) setError(signInRes.error === 'CredentialsSignin' ? 'Invalid Credentials' : signInRes.error);
       else router.push('/auth/signin');
     } catch {
       setError('Registration failed');
