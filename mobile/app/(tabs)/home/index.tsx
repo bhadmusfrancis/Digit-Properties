@@ -63,7 +63,7 @@ export default function HomeScreen() {
       <View style={styles.accountRow}>
         {isLoaded && user ? (
           <>
-            <Text style={styles.accountLabel}>Signed in as {user.name || user.email}</Text>
+            <Text style={styles.accountLabel}>Signed in as {user.name || 'User'}</Text>
             <Pressable style={styles.signOutBtn} onPress={() => signOut()}>
               <Text style={styles.signOutText}>Sign out</Text>
             </Pressable>

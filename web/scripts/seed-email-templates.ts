@@ -75,6 +75,14 @@ const TEMPLATES = [
 <p>This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>`,
   },
   {
+    key: 'password_reset',
+    subject: 'Reset your password – {{appName}}',
+    body: `<p>Hi {{name}},</p>
+<p>You requested a password reset. Click the link below to set a new password.</p>
+<p><a href="{{resetUrl}}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">Reset my password</a></p>
+<p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`,
+  },
+  {
     key: 'claim_rejected',
     subject: '[{{appName}}] Claim update: {{listingTitle}}',
     body: `<p>Your claim for <strong>{{listingTitle}}</strong> was not approved.</p>

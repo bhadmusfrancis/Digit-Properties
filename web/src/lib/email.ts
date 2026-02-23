@@ -104,6 +104,21 @@ export async function sendVerificationEmail(to: string, name: string, verifyUrl:
   return { ok: result.ok };
 }
 
+/** Send password reset link. */
+export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string): Promise<{ ok: boolean }> {
+  const vars = { name: name || 'there', appName: APP_NAME, appUrl: APP_URL, resetUrl };
+  const t = await getEmailTemplate('password_reset');
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `Reset your password – ${APP_NAME}`;
+  const body = t?.body ? applyTemplate(t.body, vars) : `
+    <p>Hi ${vars.name},</p>
+    <p>You requested a password reset. Click the link below to set a new password.</p>
+    <p><a href="${resetUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">Reset my password</a></p>
+    <p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`;
+  const result = await sendEmail({ to, subject, html: wrapBody('Reset your password', body) });
+  if (!result.ok) console.error('[email] sendPasswordResetEmail failed for', to, result.error);
+  return { ok: result.ok };
+}
+
 export async function sendAdminNewUser(name: string, email: string): Promise<{ ok: boolean }> {
   const vars = { name, email, appName: APP_NAME, appUrl: APP_URL };
   const t = await getEmailTemplate('new_user_admin');
@@ -161,7 +176,7 @@ export async function sendClaimRejected(
   const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>Your claim for <strong>${listingTitle}</strong> was not approved.</p>
     ${vars.reason ? `<p>${vars.reason}</p>` : ''}
-    <p>If you have questions, please contact us at ${ADMIN_EMAIL}.</p>
+    <p>If you have questions, please use the contact form on our website.</p>
     <p><a href="${APP_URL}" style="color: #0d9488;">Browse listings</a></p>`;
   const result = await sendEmail({ to, subject, html: wrapBody('Claim Not Approved', body) });
   return { ok: result.ok };
