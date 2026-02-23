@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
 const CAPTCHA_CONTAINER_ID = 'contact-recaptcha-container';
@@ -19,6 +20,7 @@ declare global {
 }
 
 export default function ContactPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -28,6 +30,17 @@ export default function ContactPage() {
   const [captchaReady, setCaptchaReady] = useState(!RECAPTCHA_SITE_KEY);
   const captchaWidgetId = useRef<number | null>(null);
   const captchaContainerRef = useRef<HTMLDivElement>(null);
+
+  const isLoggedIn = !!session?.user;
+  const nameReadOnly = isLoggedIn;
+  const emailReadOnly = isLoggedIn;
+
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated' || !session?.user) return;
+    const u = session.user as { name?: string | null; email?: string | null };
+    if (u.name) setName(u.name);
+    if (u.email) setEmail(u.email);
+  }, [sessionStatus, session?.user]);
 
   useEffect(() => {
     if (!RECAPTCHA_SITE_KEY || typeof window === 'undefined') return;
@@ -89,8 +102,10 @@ export default function ContactPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setStatus('sent');
-        setName('');
-        setEmail('');
+        if (!isLoggedIn) {
+          setName('');
+          setEmail('');
+        }
         setSubject('');
         setMessage('');
         if (RECAPTCHA_SITE_KEY && window.grecaptcha && captchaWidgetId.current !== null) {
@@ -123,7 +138,9 @@ export default function ContactPage() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="input mt-1 w-full"
+            readOnly={nameReadOnly}
+            className={`input mt-1 w-full ${nameReadOnly ? 'cursor-not-allowed bg-gray-100' : ''}`}
+            aria-readonly={nameReadOnly}
           />
         </div>
         <div>
@@ -134,7 +151,9 @@ export default function ContactPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input mt-1 w-full"
+            readOnly={emailReadOnly}
+            className={`input mt-1 w-full ${emailReadOnly ? 'cursor-not-allowed bg-gray-100' : ''}`}
+            aria-readonly={emailReadOnly}
           />
         </div>
         <div>
