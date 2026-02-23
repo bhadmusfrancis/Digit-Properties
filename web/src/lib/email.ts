@@ -3,7 +3,11 @@ import { getEmailTemplate } from '@/lib/email-templates';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contact@digitproperties.com';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Digit Properties <noreply@digitproperties.com>';
+/** Use RESEND_FROM_OVERRIDE to send from Resend's test address until your domain is verified. Example: Digit Properties <onboarding@resend.dev> */
+const FROM_EMAIL =
+  process.env.RESEND_FROM_OVERRIDE ||
+  process.env.FROM_EMAIL ||
+  'Digit Properties <noreply@digitproperties.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
 const APP_NAME = 'Digit Properties';
 
