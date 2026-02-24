@@ -10,6 +10,9 @@ type TierConfig = {
   maxVideos: number;
   canFeatured: boolean;
   canHighlighted: boolean;
+  maxFeatured: number;
+  maxHighlighted: number;
+  priceMonthly: number;
 };
 
 export default function AdminConfigPage() {
@@ -28,11 +31,13 @@ export default function AdminConfigPage() {
   }, []);
 
   const updateTier = (tier: string, data: Partial<TierConfig>) => {
+    const current = configs.find((c) => c.tier === tier);
+    if (!current) return;
     setSaving(tier);
     fetch('/api/admin/config/subscription', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier, ...data }),
+      body: JSON.stringify({ ...current, ...data }),
     })
       .then((r) => r.ok && fetch('/api/admin/config/subscription').then((r2) => r2.json()))
       .then((d) => {
@@ -53,13 +58,24 @@ export default function AdminConfigPage() {
     <div>
       <h2 className="text-lg font-semibold text-gray-900">Subscription & listing config</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Set per tier: max listings, max images/videos per listing, Featured (home carousel), Highlighted (search).
+        Set per tier: price (NGN/month), max listings, images/videos per listing, max Featured & Highlighted slots. Shown on the new listing page.
       </p>
       <div className="mt-6 space-y-6">
         {configs.map((c) => (
           <div key={c.tier} className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="font-medium text-gray-900 capitalize">{c.tier}</h3>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <h3 className="font-medium text-gray-900 capitalize">{c.tier === 'guest' ? 'Guest / Free' : c.tier}</h3>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Price (NGN/mo)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={c.priceMonthly ?? 0}
+                  onChange={(e) => updateTier(c.tier, { priceMonthly: parseInt(e.target.value, 10) || 0 })}
+                  className="input mt-1"
+                  disabled={!!saving}
+                />
+              </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">Max listings</label>
                 <input
@@ -89,6 +105,28 @@ export default function AdminConfigPage() {
                   min={0}
                   value={c.maxVideos}
                   onChange={(e) => updateTier(c.tier, { maxVideos: parseInt(e.target.value, 10) || 0 })}
+                  className="input mt-1"
+                  disabled={!!saving}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Max Featured</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={c.maxFeatured ?? 0}
+                  onChange={(e) => updateTier(c.tier, { maxFeatured: parseInt(e.target.value, 10) || 0 })}
+                  className="input mt-1"
+                  disabled={!!saving}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Max Highlighted</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={c.maxHighlighted ?? 0}
+                  onChange={(e) => updateTier(c.tier, { maxHighlighted: parseInt(e.target.value, 10) || 0 })}
                   className="input mt-1"
                   disabled={!!saving}
                 />
