@@ -73,6 +73,7 @@ export const CLAIM_STATUS = {
 export const PAYMENT_PURPOSE = {
   BOOST_LISTING: 'boost_listing',
   BANNER_AD: 'banner_ad',
+  SUBSCRIPTION_TIER: 'subscription_tier',
 } as const;
 
 /** Subscription tiers for listing/media limits. Guest = unauthenticated-style limits. */
