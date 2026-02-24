@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ListingForm } from '@/components/listings/ListingForm';
+import { ListingPackages } from '@/components/listings/ListingPackages';
 
 export default function NewListingPage() {
   const { data: session, status } = useSession();
@@ -27,7 +28,7 @@ export default function NewListingPage() {
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50/40">
       {/* Header */}
       <header className="border-b border-sky-100/80 bg-white/70 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <Link
             href="/listings"
             className="text-sm font-medium text-sky-700 hover:text-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 rounded-lg px-2 py-1 -ml-2"
@@ -37,8 +38,8 @@ export default function NewListingPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <div className="mb-10 text-center">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             List a property
           </h1>
@@ -46,6 +47,8 @@ export default function NewListingPage() {
             Fill in the details below. Required fields are marked with <span className="text-red-500">*</span>.
           </p>
         </div>
+
+        <ListingPackages />
 
         <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-lg shadow-sky-100/30 sm:p-8">
           <ListingForm />

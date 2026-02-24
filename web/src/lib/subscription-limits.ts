@@ -8,6 +8,9 @@ export type SubscriptionLimits = {
   maxVideos: number;
   canFeatured: boolean;
   canHighlighted: boolean;
+  maxFeatured: number;
+  maxHighlighted: number;
+  priceMonthly: number;
 };
 
 export async function getSubscriptionLimits(tier: string): Promise<SubscriptionLimits> {
@@ -22,6 +25,9 @@ export async function getSubscriptionLimits(tier: string): Promise<SubscriptionL
         maxVideos: config.maxVideos,
         canFeatured: config.canFeatured,
         canHighlighted: config.canHighlighted,
+        maxFeatured: config.maxFeatured ?? (config.canFeatured ? 5 : 0),
+        maxHighlighted: config.maxHighlighted ?? (config.canHighlighted ? 5 : 0),
+        priceMonthly: config.priceMonthly ?? 0,
       };
     }
   } catch (e) {

@@ -25,6 +25,9 @@ export async function GET(req: Request) {
         maxVideos: found?.maxVideos ?? def?.maxVideos ?? 1,
         canFeatured: found?.canFeatured ?? def?.canFeatured ?? false,
         canHighlighted: found?.canHighlighted ?? def?.canHighlighted ?? false,
+        maxFeatured: found?.maxFeatured ?? def?.maxFeatured ?? 0,
+        maxHighlighted: found?.maxHighlighted ?? def?.maxHighlighted ?? 0,
+        priceMonthly: found?.priceMonthly ?? def?.priceMonthly ?? 0,
       };
     });
     return NextResponse.json(result);
@@ -41,19 +44,23 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json();
-    const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted } = body;
+    const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted, maxFeatured, maxHighlighted, priceMonthly } = body;
     if (!tier || !Object.values(SUBSCRIPTION_TIERS).includes(tier)) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
     await dbConnect();
+    const def = DEFAULT_SUBSCRIPTION_LIMITS[tier];
     await SubscriptionConfig.findOneAndUpdate(
       { tier },
       {
-        maxListings: Number(maxListings) || 5,
-        maxImages: Number(maxImages) || 5,
-        maxVideos: Number(maxVideos) || 1,
+        maxListings: Number(maxListings) ?? def?.maxListings ?? 5,
+        maxImages: Number(maxImages) ?? def?.maxImages ?? 5,
+        maxVideos: Number(maxVideos) ?? def?.maxVideos ?? 1,
         canFeatured: Boolean(canFeatured),
         canHighlighted: Boolean(canHighlighted),
+        maxFeatured: Number(maxFeatured) >= 0 ? Number(maxFeatured) : (def?.maxFeatured ?? 0),
+        maxHighlighted: Number(maxHighlighted) >= 0 ? Number(maxHighlighted) : (def?.maxHighlighted ?? 0),
+        priceMonthly: Number(priceMonthly) >= 0 ? Number(priceMonthly) : (def?.priceMonthly ?? 0),
       },
       { upsert: true, new: true }
     );
