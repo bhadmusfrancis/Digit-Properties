@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { dbConnect } from '@/lib/db';
 import Payment from '@/models/Payment';
 import Listing from '@/models/Listing';
+import User from '@/models/User';
 
 export async function POST(req: Request) {
   try {
@@ -26,12 +27,33 @@ export async function POST(req: Request) {
     if (!ref) return NextResponse.json({ received: true });
 
     await dbConnect();
-    const payment = await Payment.findOne({ gatewayRef: ref });
-    if (!payment) return NextResponse.json({ received: true });
-    if (payment.status === 'success') return NextResponse.json({ received: true }); // idempotency
+    let payment = await Payment.findOne({ gatewayRef: ref });
 
-    payment.status = 'success';
-    await payment.save();
+    if (!payment) {
+      const meta = (event.data?.metadata || {}) as Record<string, string | undefined>;
+      if (meta.purpose === 'subscription_tier' && meta.userId && (meta.tier === 'gold' || meta.tier === 'premium')) {
+        const amountKobo = event.data?.amount;
+        const amount = typeof amountKobo === 'number' ? Math.round(amountKobo / 100) : 10000;
+        const mongoose = await import('mongoose');
+        payment = await Payment.create({
+          userId: new mongoose.Types.ObjectId(meta.userId),
+          amount,
+          currency: 'NGN',
+          gateway: 'paystack',
+          gatewayRef: ref,
+          purpose: 'subscription_tier',
+          status: 'success',
+          metadata: { tier: meta.tier },
+        });
+      } else {
+        return NextResponse.json({ received: true });
+      }
+    } else if (payment.status === 'success') {
+      return NextResponse.json({ received: true }); // idempotency
+    } else {
+      payment.status = 'success';
+      await payment.save();
+    }
 
     if (payment.purpose === 'boost_listing' && payment.listingId) {
       const days = (payment.metadata as { boostDays?: number })?.boostDays || 7;
@@ -42,6 +64,13 @@ export async function POST(req: Request) {
       const newExpiry = new Date(base);
       newExpiry.setDate(newExpiry.getDate() + days);
       await Listing.findByIdAndUpdate(payment.listingId, { boostExpiresAt: newExpiry });
+    }
+
+    if (payment.purpose === 'subscription_tier' && payment.userId) {
+      const tier = (payment.metadata as { tier?: string })?.tier;
+      if (tier === 'gold' || tier === 'premium') {
+        await User.findByIdAndUpdate(payment.userId, { subscriptionTier: tier });
+      }
     }
 
     return NextResponse.json({ received: true });

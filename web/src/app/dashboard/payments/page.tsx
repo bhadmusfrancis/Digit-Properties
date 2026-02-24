@@ -1,4 +1,5 @@
 import { getServerSession } from 'next-auth';
+import Link from 'next/link';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Payment from '@/models/Payment';
@@ -18,6 +19,11 @@ export default async function PaymentsPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
       <p className="mt-1 text-gray-600">Your boost and ad payments.</p>
+      <p className="mt-4">
+        <Link href="/dashboard/payments/upgrade" className="text-primary-600 font-medium hover:underline">
+          Upgrade your listing plan (Gold / Premium) →
+        </Link>
+      </p>
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
