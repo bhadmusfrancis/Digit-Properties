@@ -185,16 +185,14 @@ export default function ContactPage() {
               <p className="text-xs text-gray-500">
                 This site is protected by reCAPTCHA. Google Privacy Policy and Terms apply.
               </p>
-              {typeof window !== 'undefined' && window.location?.hostname === 'localhost' && (
-                <p className="text-xs text-blue-600">
-                  On localhost: add <strong>localhost</strong> to your key&apos;s domains at{' '}
-                  <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener noreferrer" className="underline">google.com/recaptcha/admin</a> → edit your key → Domains.
-                </p>
-              )}
+              <p className="text-xs text-blue-600">
+                Add this site&apos;s domain (e.g. <strong>localhost</strong> or your production domain) at{' '}
+                <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener noreferrer" className="underline">google.com/recaptcha/admin</a> → edit your key → Domains.
+              </p>
             </>
           ) : (
             <p className="text-xs text-amber-600">
-              reCAPTCHA is not configured. Add <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_RECAPTCHA_SITE_KEY</code> and <code className="bg-amber-100 px-1 rounded">RECAPTCHA_SECRET_KEY</code> to <code className="bg-amber-100 px-1 rounded">.env.local</code> (reCAPTCHA v2 Checkbox keys from google.com/recaptcha/admin). Then <strong>restart the dev server</strong>. For localhost, add <strong>localhost</strong> to the key&apos;s domains in the reCAPTCHA admin.
+              reCAPTCHA is not configured. Set <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_RECAPTCHA_SITE_KEY</code> and <code className="bg-amber-100 px-1 rounded">RECAPTCHA_SECRET_KEY</code> in your environment. Local: add to <code className="bg-amber-100 px-1 rounded">.env.local</code> and restart the dev server. Production: set in your host&apos;s dashboard (e.g. Vercel → Environment Variables) and redeploy. Add this site&apos;s domain (e.g. localhost or your domain) at google.com/recaptcha/admin.
             </p>
           )}
         </div>
