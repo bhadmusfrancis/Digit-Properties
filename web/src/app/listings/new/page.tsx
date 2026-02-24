@@ -3,11 +3,27 @@
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { ListingForm } from '@/components/listings/ListingForm';
 import { ListingPackages } from '@/components/listings/ListingPackages';
 
 export default function NewListingPage() {
   const { data: session, status } = useSession();
+  const [showPackages, setShowPackages] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    fetch('/api/dashboard/stats')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && typeof data.listingsCount === 'number' && typeof data.maxListings === 'number') {
+          setShowPackages(data.listingsCount === data.maxListings - 1);
+        } else {
+          setShowPackages(false);
+        }
+      })
+      .catch(() => setShowPackages(false));
+  }, [session?.user?.id]);
 
   if (status === 'loading') {
     return (
@@ -48,7 +64,7 @@ export default function NewListingPage() {
           </p>
         </div>
 
-        <ListingPackages />
+        {showPackages === true && <ListingPackages />}
 
         <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-lg shadow-sky-100/30 sm:p-8">
           <ListingForm />

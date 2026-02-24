@@ -26,7 +26,7 @@ export default function UpgradePage() {
 
   const [pkg, setPkg] = useState<PackageDisplay | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState<'paystack' | 'flutterwave' | 'test' | null>(null);
+  const [paying, setPaying] = useState<'paystack' | 'test' | null>(null);
   const [error, setError] = useState('');
 
   const tier = tierParam === 'gold' || tierParam === 'premium' ? tierParam : null;
@@ -52,7 +52,7 @@ export default function UpgradePage() {
       .finally(() => setLoading(false));
   }, [tier]);
 
-  const startPayment = async (gateway: 'paystack' | 'flutterwave' | 'test') => {
+  const startPayment = async (gateway: 'paystack' | 'test') => {
     if (!tier) return;
     setError('');
     setPaying(gateway);
@@ -62,7 +62,7 @@ export default function UpgradePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tier, gateway }),
       });
-      let data: { error?: string; test?: boolean; authorization_url?: string; link?: string } = {};
+      let data: { error?: string; test?: boolean; authorization_url?: string } = {};
       try {
         data = await res.json();
       } catch {
@@ -81,10 +81,6 @@ export default function UpgradePage() {
       }
       if (data.authorization_url) {
         window.location.href = data.authorization_url;
-        return;
-      }
-      if (data.link) {
-        window.location.href = data.link;
         return;
       }
       setError('No payment link received');
@@ -153,7 +149,7 @@ export default function UpgradePage() {
           <p className="mt-1 text-sm text-red-700">{error}</p>
           <p className="mt-2 text-xs text-red-600">
             {error.toLowerCase().includes('paystack') || error.toLowerCase().includes('not configured')
-              ? 'Set PAYSTACK_SECRET_KEY (and FLUTTERWAVE_SECRET_KEY if using Flutterwave) in .env.local and restart the dev server (npm run dev).'
+              ? 'Set PAYSTACK_SECRET_KEY in .env.local and restart the dev server (npm run dev).'
               : error.includes('ECONNREFUSED') || error.toLowerCase().includes('mongodb')
                 ? 'Database connection failed. Check MONGODB_URI and network.'
                 : 'Check the message above and try again.'}
@@ -169,14 +165,6 @@ export default function UpgradePage() {
           className="rounded-xl bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
         >
           {paying === 'paystack' ? 'Redirecting…' : 'Pay with Paystack'}
-        </button>
-        <button
-          type="button"
-          onClick={() => startPayment('flutterwave')}
-          disabled={!!paying}
-          className="rounded-xl bg-orange-600 px-6 py-3 font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
-        >
-          {paying === 'flutterwave' ? 'Redirecting…' : 'Pay with Flutterwave'}
         </button>
         {isAdmin && (
           <button
