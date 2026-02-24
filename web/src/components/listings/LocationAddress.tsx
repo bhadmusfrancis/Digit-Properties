@@ -25,7 +25,7 @@ export function LocationAddress() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const applyResult = useCallback(

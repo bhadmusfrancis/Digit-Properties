@@ -147,7 +147,7 @@ export function ListingPackages() {
               {!isCurrent && pkg.priceMonthly > 0 && (
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <Link
-                    href="/dashboard"
+                    href={`/dashboard/payments/upgrade?tier=${pkg.tier}`}
                     className="block w-full rounded-xl bg-gray-900 py-2.5 text-center text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
                   >
                     Upgrade to {pkg.label}
