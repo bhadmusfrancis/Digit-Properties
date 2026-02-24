@@ -24,7 +24,7 @@ export async function GET() {
     const result: PackageDisplay[] = tiers.map((tier) => {
       const found = configs.find((c) => c.tier === tier);
       const def = DEFAULT_SUBSCRIPTION_LIMITS[tier] ?? DEFAULT_SUBSCRIPTION_LIMITS.free;
-      const isGuestOrFree = tier === SUBSCRIPTION_TIERS.GUEST || tier === SUBSCRIPTION_TIERS.FREE;
+      const isGuestOrFree = tier === SUBSCRIPTION_TIERS.GUEST;
       const maxListings = found?.maxListings ?? def.maxListings ?? 5;
       const maxImages = found?.maxImages ?? def.maxImages ?? 5;
       const maxVideos = found?.maxVideos ?? def.maxVideos ?? 1;
