@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { ListingGrid } from './ListingGrid';
 
 async function fetchListings() {
-  const res = await fetch(`/api/listings?limit=8&_t=${Date.now()}`);
-  if (!res.ok) throw new Error('Failed to fetch');
-  return res.json();
+  const res = await fetch(`/api/listings?featured=1&limit=8&_t=${Date.now()}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { error?: string })?.error || res.statusText || 'Failed to fetch');
+  return data as { listings?: unknown[]; pagination?: unknown };
 }
 
 export function FeaturedListings() {

@@ -27,6 +27,8 @@ export async function GET(req: Request) {
     const bedrooms = searchParams.get('bedrooms');
     const tags = searchParams.get('tags')?.split(',').filter(Boolean);
     const q = searchParams.get('q');
+    const featured = searchParams.get('featured') === '1';
+    const highlighted = searchParams.get('highlighted') === '1';
 
     let filter: Record<string, unknown>;
     if (mine) {
@@ -38,6 +40,8 @@ export async function GET(req: Request) {
     } else {
       filter = { status: LISTING_STATUS.ACTIVE };
     }
+    if (featured) filter.featured = true;
+    if (highlighted) filter.highlighted = true;
     if (listingType) filter.listingType = listingType;
     if (propertyType) filter.propertyType = propertyType;
     if (rentPeriod) filter.rentPeriod = rentPeriod;
@@ -83,7 +87,11 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 });
+    const limit = Math.min(50, parseInt(new URL(req.url).searchParams.get('limit') || '12', 10));
+    return NextResponse.json({
+      listings: [],
+      pagination: { page: 1, limit, total: 0, pages: 0 },
+    });
   }
 }
 

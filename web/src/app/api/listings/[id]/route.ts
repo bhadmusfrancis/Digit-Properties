@@ -125,6 +125,35 @@ export async function PATCH(
       if (normalizedVideos !== undefined) listing.videos = videos;
     }
 
+    if (parsed.data.featured === true || parsed.data.highlighted === true) {
+      const user = await User.findById(session.user.role === USER_ROLES.ADMIN ? listing.createdBy : session.user.id).lean();
+      const tier =
+        session.user.role === USER_ROLES.ADMIN
+          ? SUBSCRIPTION_TIERS.PREMIUM
+          : (user?.subscriptionTier as string) ||
+            (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
+      const limits = await getSubscriptionLimits(tier);
+      const ownerId = listing.createdBy;
+      if (parsed.data.featured === true && !listing.featured) {
+        if (!limits.canFeatured || limits.maxFeatured <= 0) {
+          return NextResponse.json({ error: 'Featured listings not available on your plan. Upgrade to Gold or Premium.' }, { status: 400 });
+        }
+        const featuredCount = await Listing.countDocuments({ createdBy: ownerId, featured: true });
+        if (featuredCount >= limits.maxFeatured) {
+          return NextResponse.json({ error: `You can have up to ${limits.maxFeatured} Featured listing(s). Upgrade for more.` }, { status: 400 });
+        }
+      }
+      if (parsed.data.highlighted === true && !listing.highlighted) {
+        if (!limits.canHighlighted || limits.maxHighlighted <= 0) {
+          return NextResponse.json({ error: 'Highlighted listings not available on your plan. Upgrade to Gold or Premium.' }, { status: 400 });
+        }
+        const highlightedCount = await Listing.countDocuments({ createdBy: ownerId, highlighted: true });
+        if (highlightedCount >= limits.maxHighlighted) {
+          return NextResponse.json({ error: `You can have up to ${limits.maxHighlighted} Highlighted listing(s). Upgrade for more.` }, { status: 400 });
+        }
+      }
+    }
+
     const wasDraft = listing.status === LISTING_STATUS.DRAFT;
     const { images: _pi, videos: _pv, ...rest } = parsed.data;
     Object.assign(listing, rest);

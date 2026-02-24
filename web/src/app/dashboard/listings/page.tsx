@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
-import { formatPrice } from '@/lib/utils';
-import { MyListingActions } from '@/components/listings/MyListingActions';
+import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
+import { MyListingsTable } from '@/components/listings/MyListingsTable';
 
 export default async function MyListingsPage() {
   const session = await getServerSession(authOptions);
@@ -13,7 +13,22 @@ export default async function MyListingsPage() {
   await dbConnect();
   const listings = await Listing.find({ createdBy: session.user.id })
     .sort({ createdAt: -1 })
+    .select('title price status listingType rentPeriod images featured highlighted')
     .lean();
+
+  const rows = listings.map((l) => ({
+    _id: String(l._id),
+    title: l.title,
+    price: Number(l.price),
+    status: String(l.status),
+    listingType: String(l.listingType),
+    rentPeriod: l.rentPeriod != null ? String(l.rentPeriod) : undefined,
+    images: Array.isArray(l.images)
+      ? l.images.map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }))
+      : [],
+    featured: Boolean(l.featured),
+    highlighted: Boolean(l.highlighted),
+  }));
 
   return (
     <div>
@@ -23,51 +38,11 @@ export default async function MyListingsPage() {
           Add listing
         </Link>
       </div>
-      <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Title</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Price</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {listings.map((l) => (
-              <tr key={l._id.toString()}>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{l.title}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                      l.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : l.status === 'draft'
-                        ? 'bg-gray-100 text-gray-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
-                    {l.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <MyListingActions listingId={String(l._id)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {listings.length === 0 && (
-          <div className="py-12 text-center text-gray-500">
-            No listings yet.{' '}
-            <Link href="/listings/new" className="text-primary-600 hover:underline">
-              Create one
-            </Link>
-          </div>
-        )}
+
+      <ListingPackagesSection />
+
+      <div className="mt-6">
+        <MyListingsTable listings={rows} />
       </div>
     </div>
   );

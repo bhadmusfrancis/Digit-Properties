@@ -35,6 +35,10 @@ export interface IListing {
   rentPeriod?: 'day' | 'month' | 'year';
   leaseDuration?: string;
   boostExpiresAt?: Date;
+  /** Shown in home carousel when true (respects subscription maxFeatured). */
+  featured?: boolean;
+  /** Highlighted in search when true (respects subscription maxHighlighted). */
+  highlighted?: boolean;
   viewCount: number;
   soldAt?: Date;
   rentedAt?: Date;
@@ -91,6 +95,8 @@ const ListingSchema = new Schema<IListing>(
     rentPeriod: { type: String, enum: ['day', 'month', 'year'] },
     leaseDuration: String,
     boostExpiresAt: Date,
+    featured: { type: Boolean, default: false },
+    highlighted: { type: Boolean, default: false },
     viewCount: { type: Number, default: 0 },
     soldAt: Date,
     rentedAt: Date,
@@ -103,6 +109,8 @@ ListingSchema.index({ 'location.state': 1, status: 1 });
 ListingSchema.index({ price: 1, status: 1 });
 ListingSchema.index({ boostExpiresAt: 1 });
 ListingSchema.index({ listingType: 1, status: 1 });
+ListingSchema.index({ featured: 1, status: 1 });
+ListingSchema.index({ highlighted: 1, status: 1 });
 ListingSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 const Listing: Model<IListing> = mongoose.models.Listing ?? mongoose.model<IListing>('Listing', ListingSchema);
