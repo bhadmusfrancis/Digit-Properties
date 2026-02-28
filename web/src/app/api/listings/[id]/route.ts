@@ -140,7 +140,7 @@ export async function PATCH(
         }
         const featuredCount = await Listing.countDocuments({ createdBy: ownerId, featured: true });
         if (featuredCount >= limits.maxFeatured) {
-          return NextResponse.json({ error: `You can have up to ${limits.maxFeatured} Featured listing(s). Upgrade for more.` }, { status: 400 });
+          return NextResponse.json({ error: `You can have maximum ${limits.maxFeatured} Featured listing(s). Upgrade for more.` }, { status: 400 });
         }
       }
       if (parsed.data.highlighted === true && !listing.highlighted) {
@@ -149,7 +149,7 @@ export async function PATCH(
         }
         const highlightedCount = await Listing.countDocuments({ createdBy: ownerId, highlighted: true });
         if (highlightedCount >= limits.maxHighlighted) {
-          return NextResponse.json({ error: `You can have up to ${limits.maxHighlighted} Highlighted listing(s). Upgrade for more.` }, { status: 400 });
+          return NextResponse.json({ error: `You can have maximum of ${limits.maxHighlighted} Highlighted listing(s). Upgrade for more.` }, { status: 400 });
         }
       }
     }

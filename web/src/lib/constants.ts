@@ -84,6 +84,25 @@ export const SUBSCRIPTION_TIERS = {
   PREMIUM: 'premium',
 } as const;
 
+/** Trend post categories (Nigeria-focused). */
+export const TREND_CATEGORIES = [
+  'Market Trends',
+  'Policy & Regulation',
+  'Lagos Focus',
+  'Abuja & FCT',
+  'Port Harcourt & Niger Delta',
+  'Events & Exhibitions',
+  'Industry Reports',
+  'Investment & Finance',
+  'Housing & Affordability',
+  'Land & Titling',
+] as const;
+
+export const TREND_STATUS = {
+  DRAFT: 'draft',
+  PUBLISHED: 'published',
+} as const;
+
 /** Default limits per tier when no admin config exists. */
 export const DEFAULT_SUBSCRIPTION_LIMITS: Record<string, {
   maxListings: number;

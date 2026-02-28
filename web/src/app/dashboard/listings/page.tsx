@@ -33,7 +33,7 @@ export default async function MyListingsPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">My Listings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Properties</h1>
         <Link href="/listings/new" className="btn-primary">
           Add listing
         </Link>

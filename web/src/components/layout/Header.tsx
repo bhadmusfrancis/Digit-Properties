@@ -29,6 +29,9 @@ export function Header() {
           <Link href="/listings/new" className="text-sm font-medium text-gray-700 hover:text-primary-600">
             Sell
           </Link>
+          <Link href="/trends" className="text-sm font-medium text-gray-700 hover:text-primary-600">
+            Trends
+          </Link>
           {status === 'loading' ? (
             <div className="h-8 w-20 animate-pulse rounded bg-gray-200" />
           ) : session ? (
@@ -70,7 +73,7 @@ export function Header() {
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setUserMenuOpen(false)}
                     >
-                      My Listings
+                      My Properties
                     </Link>
                     <Link
                       href="/dashboard/alerts"
@@ -136,6 +139,9 @@ export function Header() {
             </Link>
             <Link href="/listings/new" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
               Sell
+            </Link>
+            <Link href="/trends" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+              Trends
             </Link>
             {session ? (
               <>

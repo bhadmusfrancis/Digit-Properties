@@ -1,26 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendContactFormEmail } from '@/lib/email';
-
-const RECAPTCHA_MIN_SCORE = 0.5;
-
-async function verifyRecaptcha(token: string): Promise<{ success: boolean }> {
-  const secret = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secret) {
-    console.warn('[contact] RECAPTCHA_SECRET_KEY not set');
-    return { success: false };
-  }
-  const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ secret, response: token }),
-  });
-  const data = (await res.json()) as { success?: boolean; score?: number; 'error-codes'?: string[] };
-  if (!data.success) return { success: false };
-  // v2 checkbox: no score; v3: check score
-  const score = data.score;
-  if (score !== undefined && score < RECAPTCHA_MIN_SCORE) return { success: false };
-  return { success: true };
-}
+import { verifyRecaptcha } from '@/lib/recaptcha';
 
 export async function POST(req: Request) {
   try {

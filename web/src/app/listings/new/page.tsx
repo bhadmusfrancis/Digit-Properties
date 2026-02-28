@@ -3,27 +3,11 @@
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { ListingForm } from '@/components/listings/ListingForm';
-import { ListingPackages } from '@/components/listings/ListingPackages';
+import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
 
 export default function NewListingPage() {
   const { data: session, status } = useSession();
-  const [showPackages, setShowPackages] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    fetch('/api/dashboard/stats')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data && typeof data.listingsCount === 'number' && typeof data.maxListings === 'number') {
-          setShowPackages(data.listingsCount === data.maxListings - 1);
-        } else {
-          setShowPackages(false);
-        }
-      })
-      .catch(() => setShowPackages(false));
-  }, [session?.user?.id]);
 
   if (status === 'loading') {
     return (
@@ -57,16 +41,16 @@ export default function NewListingPage() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            List a property
+            Add a property
           </h1>
           <p className="mt-2 text-base text-gray-600">
             Fill in the details below. Required fields are marked with <span className="text-red-500">*</span>.
           </p>
         </div>
 
-        {showPackages === true && <ListingPackages />}
+        <ListingPackagesSection />
 
-        <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-lg shadow-sky-100/30 sm:p-8">
+        <div className="mt-6 rounded-2xl border border-gray-200/80 bg-white p-6 shadow-lg shadow-sky-100/30 sm:p-8">
           <ListingForm />
         </div>
 

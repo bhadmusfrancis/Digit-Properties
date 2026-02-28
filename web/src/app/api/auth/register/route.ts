@@ -6,14 +6,51 @@ import User from '@/models/User';
 import { registerSchema } from '@/lib/validations';
 import { USER_ROLES } from '@/lib/constants';
 import { sendWelcomeEmail, sendAdminNewUser, sendVerificationEmail } from '@/lib/email';
+import { verifyRecaptcha } from '@/lib/recaptcha';
+import { consumeRateLimit } from '@/lib/rate-limit';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
 const VERIFY_EXPIRY_HOURS = 24;
+const REGISTER_RATE_PREFIX = 'register';
 
 export async function POST(req: Request) {
   try {
+    const rate = consumeRateLimit(req, REGISTER_RATE_PREFIX);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429, headers: rate.retryAfter ? { 'Retry-After': String(rate.retryAfter) } : undefined }
+      );
+    }
+
     const body = await req.json();
-    const parsed = registerSchema.safeParse(body);
+    const honeypot = typeof body.website === 'string' ? body.website.trim() : '';
+    if (honeypot) {
+      return NextResponse.json({ error: 'Registration failed' }, { status: 400 });
+    }
+
+    const captchaToken = typeof body.captchaToken === 'string' ? body.captchaToken.trim() : '';
+    if (process.env.RECAPTCHA_SECRET_KEY) {
+      if (!captchaToken) {
+        return NextResponse.json(
+          { error: 'Security check required. Please complete the verification and try again.' },
+          { status: 400 }
+        );
+      }
+      const captcha = await verifyRecaptcha(captchaToken);
+      if (!captcha.success) {
+        return NextResponse.json(
+          { error: 'Security check failed. Please try again.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const parsed = registerSchema.safeParse({
+      email: body.email,
+      name: body.name,
+      password: body.password,
+    });
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
