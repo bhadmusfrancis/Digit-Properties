@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-gray-900 text-gray-300">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-3">
           <div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white font-bold">
               DP
@@ -37,6 +37,16 @@ export function Footer() {
             <h3 className="font-semibold text-white">Company</h3>
             <ul className="mt-4 space-y-2">
               <li>
+                <Link href="/trends" className="hover:text-white">
+                  Trends
+                </Link>
+              </li>
+              <li>
+                <Link href="/trends" className="hover:text-white">
+                  Trends
+                </Link>
+              </li>
+              <li>
                 <Link href="/about" className="hover:text-white">
                   About Us
                 </Link>
@@ -44,16 +54,6 @@ export function Footer() {
               <li>
                 <Link href="/contact" className="hover:text-white">
                   Contact
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Support</h3>
-            <ul className="mt-4 space-y-2">
-              <li>
-                <Link href="/contact" className="hover:text-white">
-                  Contact us
                 </Link>
               </li>
             </ul>

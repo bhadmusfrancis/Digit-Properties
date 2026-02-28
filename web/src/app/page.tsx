@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { FeaturedListings } from '@/components/listings/FeaturedListings';
+import { TrendingListings } from '@/components/listings/TrendingListings';
+import { TrendHighlights } from '@/components/trends/TrendHighlights';
 
 export default function HomePage() {
 
@@ -26,13 +28,26 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Featured Listings</h2>
-          <Link href="/listings" className="text-primary-600 font-medium hover:underline">
+          <h2 className="text-2xl font-bold text-gray-900">Featured Properties</h2>
+          <Link href="/listings?featured=1" className="text-primary-600 font-medium hover:underline">
             View all →
           </Link>
         </div>
         <FeaturedListings />
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Trending Properties</h2>
+          <Link href="/listings" className="text-primary-600 font-medium hover:underline">
+            View all →
+          </Link>
+        </div>
+        <p className="text-sm text-gray-500">Top 20 by views — ordered by your area when location is available.</p>
+        <TrendingListings />
+      </section>
+
+      <TrendHighlights />
 
       <section className="border-t border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

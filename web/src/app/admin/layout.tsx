@@ -37,6 +37,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin/emails" className="whitespace-nowrap rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 sm:px-0 sm:py-0 sm:bg-transparent">
           Email templates
         </Link>
+        <Link href="/admin/trends" className="whitespace-nowrap rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 sm:px-0 sm:py-0 sm:bg-transparent">
+          Trends
+        </Link>
       </nav>
       <main className="min-w-0">{children}</main>
     </div>

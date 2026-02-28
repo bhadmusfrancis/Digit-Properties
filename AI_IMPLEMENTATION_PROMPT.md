@@ -17,7 +17,7 @@ You are building **Digit Properties** (digitproperties.com), a Zillow-standard, 
 5. **Ratings & feedback:** After a listing is marked Sold/Rented, allow counterparty to rate and review the lister; show aggregate rating and reviews on profiles/listings.
 6. **Alerts & push:** Users create saved searches (filters + tags). When **new listings** match, send **push notification** (FCM) and/or **email**.
 7. **SEO:** 100% optimized — meta tags, Open Graph, JSON-LD (RealEstateAgent, listing schema), sitemaps, Core Web Vitals, Nigeria-focused.
-8. **Dashboards:** **User:** profile, my listings, saved searches/alerts, claims, payments, ratings. **Admin:** users, listings, claims, ads, payments, moderation.
+8. **Dashboards:** **User:** profile, My Properties, saved searches/alerts, claims, payments, ratings. **Admin:** users, listings, claims, ads, payments, moderation.
 9. **Monetization:** (a) **Boost listing** — pay via Paystack/Flutterwave; listing gets “Sponsored” and higher rank until expiry. (b) **Banner ads** — admin-assigned slots. (c) **Google AdSense** in policy-compliant slots.
 10. **Security:** Input validation (Zod), parameterized DB, bcrypt/argon2, httpOnly cookies, rate limiting, CORS, security headers, no secrets in repo. Enforce role checks on every sensitive API and page.
 

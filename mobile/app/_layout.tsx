@@ -20,6 +20,8 @@ export default function RootLayout() {
           <Stack.Screen name="admin/users/[id]/edit" />
           <Stack.Screen name="admin/listings" />
           <Stack.Screen name="admin/claims" />
+          <Stack.Screen name="trends/index" options={{ title: 'Trends' }} />
+          <Stack.Screen name="trends/[slug]" options={{ title: 'Post' }} />
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>

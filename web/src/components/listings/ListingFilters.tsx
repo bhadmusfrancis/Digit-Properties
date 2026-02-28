@@ -10,6 +10,8 @@ export function ListingFilters() {
   const [listingType, setListingType] = useState(searchParams.get('listingType') || '');
   const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') || '');
   const [state, setState] = useState(searchParams.get('state') || '');
+  const [city, setCity] = useState(searchParams.get('city') || '');
+  const [suburb, setSuburb] = useState(searchParams.get('suburb') || '');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
   const [rentPeriod, setRentPeriod] = useState(searchParams.get('rentPeriod') || '');
@@ -20,6 +22,8 @@ export function ListingFilters() {
     if (listingType) params.set('listingType', listingType);
     if (propertyType) params.set('propertyType', propertyType);
     if (state) params.set('state', state);
+    if (city) params.set('city', city);
+    if (suburb) params.set('suburb', suburb);
     if (minPrice) params.set('minPrice', minPrice);
     if (maxPrice) params.set('maxPrice', maxPrice);
     if (rentPeriod) params.set('rentPeriod', rentPeriod);
@@ -58,6 +62,20 @@ export function ListingFilters() {
             </option>
           ))}
         </select>
+        <input
+          type="text"
+          placeholder="City"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          className="input"
+        />
+        <input
+          type="text"
+          placeholder="Suburb"
+          value={suburb}
+          onChange={(e) => setSuburb(e.target.value)}
+          className="input"
+        />
         <input
           type="number"
           placeholder="Min price (NGN)"

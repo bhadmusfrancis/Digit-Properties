@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               href="/dashboard/listings"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
-              My Listings
+              My Properties
             </Link>
             <Link
               href="/dashboard/alerts"

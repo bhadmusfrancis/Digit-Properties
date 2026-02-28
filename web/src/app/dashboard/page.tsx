@@ -22,7 +22,7 @@ export default async function DashboardPage() {
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Link href="/dashboard/listings" className="card p-6 hover:shadow-md">
-          <h3 className="font-semibold text-gray-900">My Listings</h3>
+          <h3 className="font-semibold text-gray-900">My Properties</h3>
           <p className="mt-2 text-3xl font-bold text-primary-600">{listingsCount}</p>
           <p className="mt-1 text-sm text-gray-500">View and manage your listings</p>
         </Link>
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-gray-500">Track your property claims</p>
         </Link>
         <Link href="/listings/new" className="card flex flex-col justify-center p-6 hover:shadow-md">
-          <h3 className="font-semibold text-gray-900">List a property</h3>
+          <h3 className="font-semibold text-gray-900">Add a property</h3>
           <p className="mt-2 text-sm text-gray-500">Create a new listing</p>
           <span className="mt-4 text-primary-600 font-medium">+ Add listing →</span>
         </Link>

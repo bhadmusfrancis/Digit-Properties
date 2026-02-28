@@ -22,6 +22,8 @@ export async function GET(req: Request) {
     const propertyType = searchParams.get('propertyType');
     const rentPeriod = searchParams.get('rentPeriod');
     const state = searchParams.get('state');
+    const city = searchParams.get('city')?.trim();
+    const suburb = searchParams.get('suburb')?.trim();
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
     const bedrooms = searchParams.get('bedrooms');
@@ -29,6 +31,7 @@ export async function GET(req: Request) {
     const q = searchParams.get('q');
     const featured = searchParams.get('featured') === '1';
     const highlighted = searchParams.get('highlighted') === '1';
+    const random = searchParams.get('random') === '1';
 
     let filter: Record<string, unknown>;
     if (mine) {
@@ -46,6 +49,8 @@ export async function GET(req: Request) {
     if (propertyType) filter.propertyType = propertyType;
     if (rentPeriod) filter.rentPeriod = rentPeriod;
     if (state) filter['location.state'] = state;
+    if (city) filter['location.city'] = new RegExp(city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    if (suburb) filter['location.suburb'] = new RegExp(suburb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     if (minPrice && maxPrice) {
       filter.price = { $gte: parseInt(minPrice, 10), $lte: parseInt(maxPrice, 10) };
     } else if (minPrice) {
@@ -65,15 +70,31 @@ export async function GET(req: Request) {
     }
 
     const skip = (page - 1) * limit;
-    const [listings, total] = await Promise.all([
-      Listing.find(filter)
+    let listings: Awaited<ReturnType<typeof Listing.find>> extends Promise<infer U> ? U : never;
+    let total: number;
+
+    if (featured && random) {
+      const all = await Listing.find(filter)
         .sort({ boostExpiresAt: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
+        .limit(Math.min(50, limit * 3))
         .populate('createdBy', 'name image role')
-        .lean(),
-      Listing.countDocuments(filter),
-    ]);
+        .lean();
+      const shuffled = [...all].sort(() => Math.random() - 0.5);
+      listings = shuffled.slice(0, limit);
+      total = all.length;
+    } else {
+      const [listingsRes, totalRes] = await Promise.all([
+        Listing.find(filter)
+          .sort({ boostExpiresAt: -1, createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate('createdBy', 'name image role')
+          .lean(),
+        Listing.countDocuments(filter),
+      ]);
+      listings = listingsRes;
+      total = totalRes;
+    }
 
     return NextResponse.json({
       listings: listings.map((l) => ({

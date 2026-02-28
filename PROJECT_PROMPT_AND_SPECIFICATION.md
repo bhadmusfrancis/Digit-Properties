@@ -87,7 +87,7 @@ Display badges clearly on listing cards, listing detail, and author/profile page
 
 ### 3.8 Dashboards
 
-- **User dashboard:** Profile, my listings (draft/active/closed), saved searches/alerts, saved listings, my claims (status), payment history (boosts, ads), ratings received, settings (notification prefs, social account linking).
+- **User dashboard:** Profile, My Properties (draft/active/closed), saved searches/alerts, saved listings, my claims (status), payment history (boosts, ads), ratings received, settings (notification prefs, social account linking).
 - **Admin dashboard:** Users (list, verify, suspend), listings (moderate, feature, close), claims (approve/reject), ads (banner slots, boost requests), payments (Flutterwave/Paystack logs), ratings moderation, reports, basic analytics (views, top listings). Role-based access (admin only).
 
 ### 3.9 Monetization & Ads

@@ -20,7 +20,7 @@ export default async function PaymentsPage() {
       <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
       <p className="mt-1 text-gray-600">Your boost and ad payments.</p>
       <p className="mt-4">
-        <Link href="/dashboard/payments/upgrade" className="text-primary-600 font-medium hover:underline">
+        <Link href="/dashboard/payments/plans" className="text-primary-600 font-medium hover:underline">
           Upgrade your listing plan (Gold / Premium) →
         </Link>
       </p>
