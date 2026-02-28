@@ -134,7 +134,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   Edit listing
                 </Link>
                 <Link href="/dashboard/listings" className="btn-secondary flex-1 text-center">
-                  My listings
+                  My Properties
                 </Link>
               </div>
             )}

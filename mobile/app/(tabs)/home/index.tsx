@@ -24,6 +24,42 @@ function formatPrice(n: number, rentPeriod?: string) {
   return formatted;
 }
 
+type TrendItem = { _id: string; title: string; slug: string; excerpt: string; category: string; imageUrl?: string };
+function TrendsSection() {
+  const router = useRouter();
+  const [posts, setPosts] = useState<TrendItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch(getApiUrl('trends', { limit: '6' }))
+      .then((r) => r.json())
+      .then((d) => setPosts(d.posts || []))
+      .catch(() => setPosts([]))
+      .finally(() => setLoading(false));
+  }, []);
+  if (loading || posts.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Trends</Text>
+        <Pressable onPress={() => router.push('/trends')}>
+          <Text style={styles.viewAll}>View all →</Text>
+        </Pressable>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
+        {posts.slice(0, 6).map((p) => (
+          <Pressable key={p._id} style={styles.trendCard} onPress={() => router.push({ pathname: '/trends/[slug]', params: { slug: p.slug } })}>
+            {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={styles.trendCardImage} /> : <View style={[styles.trendCardImage, styles.placeholder]} />}
+            <View style={styles.trendCardContent}>
+              <Text style={styles.trendCategory}>{p.category}</Text>
+              <Text style={styles.trendTitle} numberOfLines={2}>{p.title}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -97,7 +133,7 @@ export default function HomeScreen() {
           </View>
         ) : featured.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No listings yet. Be the first to list a property!</Text>
+            <Text style={styles.emptyText}>No listings yet. Be the first to Add a property!</Text>
             <Link href="/auth/signup" asChild>
               <Pressable style={styles.emptyLink}>
                 <Text style={styles.emptyLinkText}>Sign up to list</Text>
@@ -131,6 +167,8 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
+
+      <TrendsSection />
 
       <View style={styles.ctaSection}>
         <Link href="/listings" asChild>
@@ -282,4 +320,9 @@ const styles = StyleSheet.create({
   footerSteps: { gap: 6 },
   footerStep: { fontSize: 14, color: '#475569', lineHeight: 20 },
   footerCopy: { marginTop: 16, fontSize: 12, color: '#64748b', textAlign: 'center' },
+  trendCard: { width: 260, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 },
+  trendCardImage: { width: '100%', aspectRatio: 16 / 9 },
+  trendCardContent: { padding: 12 },
+  trendCategory: { fontSize: 11, fontWeight: '600', color: '#0d9488' },
+  trendTitle: { fontSize: 14, fontWeight: '600', color: '#0f172a', marginTop: 4 },
 });
