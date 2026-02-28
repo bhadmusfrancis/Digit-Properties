@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
-import { ListingCarousel } from './ListingCarousel';
+import { ListingCarousel, type Listing } from './ListingCarousel';
 
 const SHUFFLE_INTERVAL_MS = 10_000;
 const AUTO_SCROLL_INTERVAL_MS = 10_000;
@@ -21,7 +21,7 @@ async function fetchListings() {
   const res = await fetch(`/api/listings?featured=1&limit=12&random=1&_t=${Date.now()}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string })?.error || res.statusText || 'Failed to fetch');
-  return data as { listings?: unknown[]; pagination?: unknown };
+  return data as { listings?: Listing[]; pagination?: unknown };
 }
 
 export function FeaturedListings() {
@@ -32,8 +32,8 @@ export function FeaturedListings() {
     refetchOnMount: 'always',
   });
 
-  const rawListings = useMemo(() => (data?.listings ?? []) as unknown[], [data?.listings]);
-  const [displayListings, setDisplayListings] = useState(rawListings);
+  const rawListings = useMemo(() => (data?.listings ?? []) as Listing[], [data?.listings]);
+  const [displayListings, setDisplayListings] = useState<Listing[]>(rawListings);
 
   useEffect(() => {
     if (rawListings.length === 0) return;

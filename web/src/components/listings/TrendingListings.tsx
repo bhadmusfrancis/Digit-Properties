@@ -7,6 +7,22 @@ import { ListingGrid } from './ListingGrid';
 
 type LocationParams = { suburb?: string; city?: string; state?: string } | null;
 
+type ListingRow = {
+  _id: string;
+  title: string;
+  price: number;
+  listingType: string;
+  rentPeriod?: 'day' | 'month' | 'year';
+  propertyType: string;
+  location: { city?: string; state?: string; suburb?: string };
+  bedrooms: number;
+  bathrooms: number;
+  toilets?: number;
+  images?: { url: string }[];
+  isBoosted?: boolean;
+  createdBy?: { name?: string; role?: string };
+};
+
 async function fetchTrending(location: LocationParams) {
   const params = new URLSearchParams({ limit: '20' });
   if (location?.suburb) params.set('suburb', location.suburb);
@@ -15,7 +31,7 @@ async function fetchTrending(location: LocationParams) {
   const res = await fetch(`/api/listings/trending?${params.toString()}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string })?.error || res.statusText || 'Failed to fetch');
-  return data as { listings?: unknown[] };
+  return data as { listings?: ListingRow[] };
 }
 
 function getLocationFromCoords(lat: number, lon: number): Promise<LocationParams> {
@@ -56,7 +72,7 @@ export function TrendingListings() {
     staleTime: 60 * 1000,
   });
 
-  const listings = data?.listings ?? [];
+  const listings: ListingRow[] = data?.listings ?? [];
 
   if (isLoading) {
     return (

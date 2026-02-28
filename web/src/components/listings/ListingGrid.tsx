@@ -12,7 +12,7 @@ interface Listing {
   listingType: string;
   rentPeriod?: 'day' | 'month' | 'year';
   propertyType: string;
-  location: { city: string; state: string };
+  location: { city?: string; state?: string; suburb?: string };
   bedrooms: number;
   bathrooms: number;
   toilets?: number;

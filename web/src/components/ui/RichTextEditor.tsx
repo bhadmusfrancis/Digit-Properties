@@ -45,7 +45,7 @@ export function RichTextEditor({
     if (next !== lastValueRef.current) {
       lastValueRef.current = next;
       const current = editor.getHTML();
-      if (next !== current) editor.commands.setContent(next, false);
+      if (next !== current) editor.commands.setContent(next, { emitUpdate: false });
     }
   }, [value, editor]);
 
@@ -60,7 +60,9 @@ export function RichTextEditor({
   useEffect(() => {
     if (!editor) return;
     editor.on('update', onUpdate);
-    return () => editor.off('update', onUpdate);
+    return () => {
+      editor.off('update', onUpdate);
+    };
   }, [editor, onUpdate]);
 
   useEffect(() => {
