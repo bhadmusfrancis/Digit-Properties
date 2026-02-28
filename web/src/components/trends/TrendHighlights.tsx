@@ -11,7 +11,7 @@ export function TrendHighlights() {
     queryFn: () => fetch('/api/trends?limit=4').then((r) => r.json()),
     staleTime: 60 * 1000,
   });
-  const posts = data?.posts ?? [];
+  const posts: Post[] = data?.posts ?? [];
   if (posts.length === 0) return null;
 
   return (

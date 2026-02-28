@@ -13,10 +13,10 @@ export default function AdminTrendNewPage() {
   const [slug, setSlug] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState(TREND_CATEGORIES[0]);
+  const [category, setCategory] = useState<(typeof TREND_CATEGORIES)[number]>(TREND_CATEGORIES[0]);
   const [imageUrl, setImageUrl] = useState('');
   const [author, setAuthor] = useState('');
-  const [status, setStatus] = useState(TREND_STATUS.DRAFT);
+  const [status, setStatus] = useState<(typeof TREND_STATUS)[keyof typeof TREND_STATUS]>(TREND_STATUS.DRAFT);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -74,7 +74,7 @@ export default function AdminTrendNewPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Category *</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="input mt-1 w-full">
+            <select value={category} onChange={(e) => setCategory(e.target.value as (typeof TREND_CATEGORIES)[number])} className="input mt-1 w-full">
               {TREND_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -104,7 +104,7 @@ export default function AdminTrendNewPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Status</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1 w-full max-w-xs">
+          <select value={status} onChange={(e) => setStatus(e.target.value as (typeof TREND_STATUS)[keyof typeof TREND_STATUS])} className="input mt-1 w-full max-w-xs">
             <option value={TREND_STATUS.DRAFT}>Draft</option>
             <option value={TREND_STATUS.PUBLISHED}>Published</option>
           </select>

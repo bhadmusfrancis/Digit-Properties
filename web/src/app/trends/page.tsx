@@ -7,6 +7,8 @@ import { TREND_CATEGORIES } from '@/lib/constants';
 import { Suspense } from 'react';
 import { TrendImage } from '@/components/trends/TrendImage';
 
+type TrendPost = { _id: string; slug: string; title: string; excerpt: string; category: string; imageUrl?: string; createdAt: string; publishedAt?: string };
+
 function buildQuery(params: URLSearchParams) {
   const q = new URLSearchParams();
   params.forEach((v, k) => { if (v) q.set(k, v); });
@@ -21,7 +23,7 @@ function TrendsContent() {
     queryFn: () => fetch(`/api/trends?${query}`).then((r) => r.json()),
     staleTime: 60 * 1000,
   });
-  const posts = data?.posts ?? [];
+  const posts: TrendPost[] = data?.posts ?? [];
   const pagination = data?.pagination ?? { page: 1, pages: 1 };
   const category = searchParams.get('category') || '';
 
