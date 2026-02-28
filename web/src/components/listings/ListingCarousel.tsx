@@ -10,7 +10,7 @@ const CARD_WIDTH = 280;
 const GAP = 16;
 const SCROLL_AMOUNT = CARD_WIDTH + GAP;
 
-interface Listing {
+export interface Listing {
   _id: string;
   title: string;
   price: number;

@@ -52,7 +52,7 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
       .catch(() => {});
   }, []);
 
-  const toggle = async (e: React.MouseEvent, listingId: string, field: 'featured' | 'highlighted', current: boolean) => {
+  const toggle = async (e: React.SyntheticEvent, listingId: string, field: 'featured' | 'highlighted', current: boolean) => {
     e.preventDefault();
     e.stopPropagation();
     const next = !current;

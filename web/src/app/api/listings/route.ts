@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
-import Listing from '@/models/Listing';
+import Listing, { type IListing } from '@/models/Listing';
 import User from '@/models/User';
 import { listingSchema } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
@@ -70,7 +70,8 @@ export async function GET(req: Request) {
     }
 
     const skip = (page - 1) * limit;
-    let listings: Awaited<ReturnType<typeof Listing.find>> extends Promise<infer U> ? U : never;
+    type ListingRow = Omit<IListing, 'createdBy'> & { createdBy?: IListing['createdBy'] | { name?: string; image?: string; role?: string } };
+    let listings: ListingRow[];
     let total: number;
 
     if (featured && random) {

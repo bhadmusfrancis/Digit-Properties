@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { PipelineStage } from 'mongoose';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { LISTING_STATUS } from '@/lib/constants';
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const aggPipeline: unknown[] = [
+    const aggPipeline: PipelineStage[] = [
       { $match: match },
       {
         $addFields: {
