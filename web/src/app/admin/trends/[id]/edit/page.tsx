@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
 import { TrendImageUpload } from '@/components/trends/TrendImageUpload';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
 
 export default function AdminTrendEditPage() {
   const router = useRouter();
@@ -68,6 +69,11 @@ export default function AdminTrendEditPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const textOnly = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!textOnly) {
+      setError('Content is required.');
+      return;
+    }
     setError('');
     setSaving(true);
     try {
@@ -148,9 +154,14 @@ export default function AdminTrendEditPage() {
           <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={3} className="input mt-1 w-full" placeholder="Short summary, 150–160 chars for SEO" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Content (HTML) *</label>
-          <p className="mt-1 text-xs text-gray-500">Use significant section headings: e.g. &quot;Lagos Price Trends and Demand&quot;, &quot;How to Verify Title&quot;. Avoid generic headings like &quot;Conclusion&quot; or &quot;Summary&quot;. Use &lt;p&gt;, &lt;h2&gt;, &lt;h3&gt; for structure.</p>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={18} className="input mt-2 w-full font-mono text-sm" placeholder="<p>Intro...</p>&#10;<h2>Section heading</h2>&#10;<p>...</p>" />
+          <label className="block text-sm font-medium text-gray-700">Content *</label>
+          <p className="mt-1 text-xs text-gray-500">Use the toolbar for bold, headings (H2, H3), and lists. Use significant section headings for SEO.</p>
+          <div className="mt-2">
+            <RichTextEditor value={content} onChange={setContent} minHeight="280px" disabled={saving} />
+          </div>
+          {!content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() && (
+            <p className="mt-1 text-xs text-red-600">Content is required.</p>
+          )}
         </div>
         <div>
           <TrendImageUpload imageUrl={imageUrl} onImageUrlChange={setImageUrl} disabled={saving} />
