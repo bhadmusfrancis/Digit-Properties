@@ -1,11 +1,11 @@
-export function formatPrice(amount: number, rentPeriod?: 'day' | 'month' | 'year'): string {
+export function formatPrice(amount: number, rentPeriod?: 'day' | 'month' | 'year' | string): string {
   const formatted = new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
-  if (rentPeriod) {
+  if (rentPeriod && ['day', 'month', 'year'].includes(rentPeriod)) {
     const suffix = rentPeriod === 'day' ? '/day' : rentPeriod === 'month' ? '/month' : '/year';
     return `${formatted}${suffix}`;
   }
