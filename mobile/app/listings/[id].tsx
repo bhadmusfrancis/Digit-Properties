@@ -221,7 +221,14 @@ export default function ListingDetailScreen() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.description}>{(listing.description as string) || '—'}</Text>
+        <Text style={styles.description}>
+          {(() => {
+            const d = (listing.description as string) || '';
+            if (!d) return '—';
+            if (/<[a-z][\s\S]*>/i.test(d)) return d.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || '—';
+            return d;
+          })()}
+        </Text>
       </View>
 
       {Array.isArray(listing.amenities) && (listing.amenities as string[]).length > 0 && (

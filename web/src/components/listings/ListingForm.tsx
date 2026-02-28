@@ -2,16 +2,17 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES } from '@/lib/constants';
 import { LocationAddress } from '@/components/listings/LocationAddress';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { generateListingTitle } from '@/lib/listing-title';
 
 const schema = z.object({
   title: z.string().min(5).max(200),
-  description: z.string().min(20).max(5000),
+  description: z.string().min(20).max(20000),
   listingType: z.enum(['sale', 'rent']),
   propertyType: z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]),
   price: z.number().positive(),
@@ -84,6 +85,7 @@ export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -232,11 +234,18 @@ export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
           <label className="block text-sm font-medium text-gray-700">
             Description <span className="text-red-500">*</span>
           </label>
-          <textarea
-            {...register('description')}
-            rows={5}
-            className="input mt-1"
-            placeholder="Describe the property in detail. Use words like luxury, modern, spacious for better SEO. Minimum 20 characters."
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value}
+                onChange={field.onChange}
+                minHeight="180px"
+                disabled={uploading}
+                placeholder="Describe the property in detail. Use words like luxury, modern, spacious for better SEO."
+              />
+            )}
           />
           {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
         </div>

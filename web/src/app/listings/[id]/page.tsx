@@ -94,7 +94,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <span className="capitalize">{listing.propertyType}</span>
                 <span className="capitalize">{listing.listingType}</span>
               </div>
-              <p className="mt-4 text-gray-700">{listing.description}</p>
+              <div className="mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0">
+                {listing.description && /<[a-z][\s\S]*>/i.test(listing.description) ? (
+                  <div dangerouslySetInnerHTML={{ __html: listing.description }} />
+                ) : (
+                  <p>{listing.description}</p>
+                )}
+              </div>
               {listing.amenities?.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold text-gray-900">Amenities</h3>
