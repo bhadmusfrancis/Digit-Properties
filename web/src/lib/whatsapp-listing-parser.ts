@@ -79,12 +79,18 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
   let value = 0;
   let rentPeriod: 'day' | 'month' | 'year' | undefined;
 
-  // per year / per month / per annum / p.a. / p.m. / yearly / monthly
-  const periodMatch = text.match(/\b(per\s*(?:year|annum|month|day)|p\.?\s*a\.?|p\.?\s*m\.?|yearly|monthly|/year|/month|/day)\b/i);
+  // per year / per month / per annum / p.a. / p.m. / yearly / monthly (use RegExp to avoid / in literal)
+  const periodRe = new RegExp(
+    '\\b(per\\s*(?:year|annum|month|day)|p\\.?\\s*a\\.?|p\\.?\\s*m\\.?|yearly|monthly|/year|/month|/day)\\b',
+    'i'
+  );
+  const periodMatch = text.match(periodRe);
   if (periodMatch) {
     const p = periodMatch[1].toLowerCase();
-    if (/\b(per\s*month|p\.?\s*m\.?|monthly|/month)\b/.test(p)) rentPeriod = 'month';
-    else if (/\b(per\s*day|/day)\b/.test(p)) rentPeriod = 'day';
+    const monthRe = new RegExp('\\b(per\\s*month|p\\.?\\s*m\\.?|monthly|/month)\\b');
+    const dayRe = new RegExp('\\b(per\\s*day|/day)\\b');
+    if (monthRe.test(p)) rentPeriod = 'month';
+    else if (dayRe.test(p)) rentPeriod = 'day';
     else rentPeriod = 'year';
   }
 

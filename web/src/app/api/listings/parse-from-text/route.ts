@@ -5,7 +5,7 @@
  * Does not create listings; returns parsed data for the form to pre-fill.
  */
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
+import { getSession } from '@/lib/get-session';
 import {
   parseWhatsAppListingText,
   parseMultipleWhatsAppListings,
