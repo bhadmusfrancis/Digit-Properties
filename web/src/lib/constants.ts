@@ -27,6 +27,7 @@ export const RENT_PERIOD = {
 
 export const PROPERTY_TYPES = [
   'apartment',
+  'bungalow',
   'house',
   'land',
   'commercial',
@@ -115,7 +116,7 @@ export const DEFAULT_SUBSCRIPTION_LIMITS: Record<string, {
   priceMonthly: number;
 }> = {
   guest: { maxListings: 5, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
-  free: { maxListings: 5, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
-  gold: { maxListings: 20, maxImages: 15, maxVideos: 3, canFeatured: true, canHighlighted: true, maxFeatured: 5, maxHighlighted: 5, priceMonthly: 10000 },
-  premium: { maxListings: 100, maxImages: 25, maxVideos: 5, canFeatured: true, canHighlighted: true, maxFeatured: 15, maxHighlighted: 15, priceMonthly: 30000 },
+  free: { maxListings: 99999, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
+  gold: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: true, canHighlighted: true, maxFeatured: 5, maxHighlighted: 5, priceMonthly: 10000 },
+  premium: { maxListings: 99999, maxImages: 25, maxVideos: 5, canFeatured: true, canHighlighted: true, maxFeatured: 15, maxHighlighted: 15, priceMonthly: 30000 },
 };

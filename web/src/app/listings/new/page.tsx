@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ListingForm } from '@/components/listings/ListingForm';
-import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
 
 export default function NewListingPage() {
   const { data: session, status } = useSession();
@@ -47,8 +46,6 @@ export default function NewListingPage() {
             Fill in the details below. Required fields are marked with <span className="text-red-500">*</span>.
           </p>
         </div>
-
-        <ListingPackagesSection />
 
         <div className="mt-6 rounded-2xl border border-gray-200/80 bg-white p-6 shadow-lg shadow-sky-100/30 sm:p-8">
           <ListingForm />

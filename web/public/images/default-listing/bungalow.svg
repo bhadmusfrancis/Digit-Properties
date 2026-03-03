@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs><linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0f766e"/><stop offset="100%" style="stop-color:#134e4a"/></linearGradient></defs>
+  <rect width="1200" height="630" fill="url(#b)"/>
+  <g fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1">
+    <path d="M350 350 L850 350 L850 520 L350 520 Z"/>
+    <path d="M550 350 L550 250 L650 250 L650 350"/>
+    <rect x="400" y="400" width="120" height="120" rx="4"/>
+    <rect x="680" y="400" width="120" height="120" rx="4"/>
+  </g>
+  <text x="600" y="300" text-anchor="middle" fill="white" font-family="system-ui,sans-serif" font-size="72" font-weight="700">Bungalow</text>
+  <text x="600" y="560" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="system-ui,sans-serif" font-size="24">Digit Properties</text>
+</svg>
