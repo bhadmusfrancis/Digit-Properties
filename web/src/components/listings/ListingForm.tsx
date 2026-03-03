@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,12 +40,19 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+export type ListingFormRef = {
+  getValues: () => FormData;
+  getImages: () => { url: string; public_id: string }[];
+};
+
 type ListingFormProps = {
   editId?: string;
   editInitial?: Partial<FormData> & { images?: { url: string; public_id: string }[] };
+  /** When set, parent can read current form values and images (e.g. for multi-listing import next/prev). */
+  getFormRef?: React.MutableRefObject<ListingFormRef | null>;
 };
 
-export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
+export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProps = {}) {
   const router = useRouter();
   const [images, setImages] = useState<{ url: string; public_id: string }[]>(editInitial?.images ?? []);
   const [uploading, setUploading] = useState(false);
@@ -89,8 +96,21 @@ export function ListingForm({ editId, editInitial }: ListingFormProps = {}) {
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors, isSubmitting },
   } = methods;
+
+  useEffect(() => {
+    if (getFormRef) {
+      getFormRef.current = {
+        getValues: () => getValues() as FormData,
+        getImages: () => images,
+      };
+    }
+    return () => {
+      if (getFormRef) getFormRef.current = null;
+    };
+  }, [getFormRef, getValues, images]);
 
   const watched = watch();
 

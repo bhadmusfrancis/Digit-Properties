@@ -28,6 +28,19 @@ export type ParseResult = {
   missing: string[];
 };
 
+/** Sender info when import is from WhatsApp Business API webhook */
+export type SenderDetails = {
+  name?: string;
+  phone?: string;
+  waId?: string;
+};
+
+/** Parsed listing with optional media URLs (from webhook) */
+export type ParsedListingWithMeta = ParseResult & {
+  /** Media URLs from the same message (images/videos) */
+  mediaUrls?: string[];
+};
+
 const STATE_ALIASES: Record<string, string> = {
   'fct': 'FCT', 'abuja': 'FCT',
   'lagos': 'Lagos', 'rivers': 'Rivers', 'ph': 'Rivers', 'portharcourt': 'Rivers',
@@ -243,4 +256,53 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
   if (suburb) parsed.location.suburb = suburb;
 
   return { parsed, confidence, missing };
+}
+
+/** Splits raw text into segments that may each be one listing (double newlines, numbered items, or dividers). */
+function splitIntoListingBlocks(raw: string): string[] {
+  const normalized = raw.replace(/\r\n/g, '\n').trim();
+  if (!normalized) return [];
+
+  // Split by double newline or more
+  let segments = normalized.split(/\n\s*\n+/).map((s) => s.trim()).filter(Boolean);
+
+  // If we got a single long segment, try splitting by numbered list: "1." "2." or "1)" "2)" or "•" / "-" at start of line with price-like content
+  if (segments.length <= 1 && normalized.length > 200) {
+    const byNumbered = normalized.split(/\n\s*(?=\d+[.)]\s|\d+\)\s|[-•]\s*(?=.*\d\s*(?:m|k|million|k)\b|.*for\s*(?:rent|sale)))/i);
+    if (byNumbered.length > 1) {
+      segments = byNumbered.map((s) => s.replace(/^\d+[.)]\s*|\n\s*[-•]\s*/i, '').trim()).filter((s) => s.length >= 20);
+    }
+  }
+
+  // Also split by common dividers (---, ___, ***)
+  const result: string[] = [];
+  for (const seg of segments) {
+    const parts = seg.split(/\n\s*[-*_]{2,}\s*\n/).map((s) => s.trim()).filter(Boolean);
+    result.push(...(parts.length > 1 ? parts : [seg]));
+  }
+
+  return result.filter((s) => s.length >= 15);
+}
+
+/**
+ * Detect multiple listings in a single post and parse each.
+ * Uses block splits (double newline, numbered list, dividers) then runs single-listing parser on each block.
+ */
+export function parseMultipleWhatsAppListings(raw: string): ParseResult[] {
+  const blocks = splitIntoListingBlocks(raw);
+  if (blocks.length === 0) {
+    const single = parseWhatsAppListingText(raw);
+    return single.parsed.price > 0 || single.parsed.bedrooms > 0 ? [single] : [];
+  }
+  const results: ParseResult[] = [];
+  for (const block of blocks) {
+    const result = parseWhatsAppListingText(block);
+    // Skip blocks that don't look like a listing (no price and no beds and very short)
+    const looksLikeListing =
+      result.parsed.price > 0 ||
+      result.parsed.bedrooms > 0 ||
+      (block.length >= 40 && (/\b(rent|sale|bed|bath|₦|m\b|k\b)/i.test(block)));
+    if (looksLikeListing) results.push(result);
+  }
+  return results.length > 0 ? results : [parseWhatsAppListingText(raw)];
 }
