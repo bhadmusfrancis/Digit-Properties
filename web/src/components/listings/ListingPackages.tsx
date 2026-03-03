@@ -115,10 +115,6 @@ export function ListingPackages() {
               <ul className="mt-6 flex-1 space-y-3 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="mt-0.5 text-emerald-600 shrink-0" aria-hidden>✓</span>
-                  <span><strong>{pkg.maxListings}</strong> listings per month</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 text-emerald-600 shrink-0" aria-hidden>✓</span>
                   <span><strong>{pkg.maxImages}</strong> images per listing</span>
                 </li>
                 <li className="flex items-start gap-2">

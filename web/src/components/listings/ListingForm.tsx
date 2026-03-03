@@ -237,6 +237,13 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     });
     if (!res.ok) {
       const err = await res.json();
+      if (err.code === 'GUEST_LIMIT_VERIFY') {
+        const goVerify = window.confirm(
+          err.error + '\n\nWould you like to go to verification now?'
+        );
+        if (goVerify) window.location.href = '/dashboard/verification';
+        return;
+      }
       alert(err.error || 'Failed to create listing');
       return;
     }
