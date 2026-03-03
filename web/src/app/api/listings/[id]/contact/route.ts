@@ -3,6 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
+import { hasBaseVerification } from '@/lib/verification';
 import mongoose from 'mongoose';
 
 export async function GET(
@@ -14,13 +15,27 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Login required to view contact details' }, { status: 401 });
     }
+    await dbConnect();
+    const user = await User.findById(session.user.id)
+      .select('verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt role')
+      .lean();
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!hasBaseVerification(user)) {
+      return NextResponse.json(
+        {
+          error: 'Complete verification to view contact details',
+          code: 'VERIFICATION_REQUIRED',
+          verificationUrl: '/dashboard/verification',
+        },
+        { status: 403 }
+      );
+    }
 
     const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    await dbConnect();
     const listing = await Listing.findById(id)
       .select('agentName agentPhone agentEmail title createdBy')
       .populate('createdBy', 'name phone email')

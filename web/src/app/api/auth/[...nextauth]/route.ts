@@ -64,6 +64,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role ?? USER_ROLES.GUEST;
+        await dbConnect();
+        const dbUser = await User.findById(user.id).select('verifiedAt emailVerificationToken emailVerificationExpires').lean();
+        if (dbUser && !dbUser.verifiedAt) {
+          const tokenExpired = !dbUser.emailVerificationExpires || new Date() > dbUser.emailVerificationExpires;
+          const noPendingToken = !dbUser.emailVerificationToken || tokenExpired;
+          if (noPendingToken) {
+            await User.findByIdAndUpdate(user.id, { $set: { verifiedAt: new Date() } });
+          }
+        }
       }
       if (account?.provider && account.provider !== 'credentials') {
         await dbConnect();
@@ -71,6 +80,9 @@ export const authOptions: NextAuthOptions = {
         if (existing) {
           token.id = existing._id.toString();
           token.role = existing.role;
+          if (!existing.verifiedAt) {
+            await User.findByIdAndUpdate(existing._id, { $set: { verifiedAt: new Date() } });
+          }
         } else {
           const newUser = await User.create({
             email: token.email,

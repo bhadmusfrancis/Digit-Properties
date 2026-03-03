@@ -7,6 +7,7 @@ import User from '@/models/User';
 import { claimSchema } from '@/lib/validations';
 import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
 import { sendAdminNewClaim } from '@/lib/email';
+import { hasBaseVerification } from '@/lib/verification';
 import mongoose from 'mongoose';
 
 const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -37,6 +38,21 @@ export async function POST(req: Request) {
     if (!session?.user?.id || !CAN_CLAIM.includes(session.user.role as (typeof CAN_CLAIM)[number])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    await dbConnect();
+    const user = await User.findById(session.user.id)
+      .select('verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt role')
+      .lean();
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!hasBaseVerification(user)) {
+      return NextResponse.json(
+        {
+          error: 'Complete verification to submit a claim',
+          code: 'VERIFICATION_REQUIRED',
+          verificationUrl: '/dashboard/verification',
+        },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
     const parsed = claimSchema.safeParse(body);
@@ -44,7 +60,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    await dbConnect();
     const listing = await Listing.findById(parsed.data.listingId);
     if (!listing) return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     if (!['admin', 'ai'].includes(listing.createdByType)) {

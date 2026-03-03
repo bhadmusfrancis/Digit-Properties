@@ -58,10 +58,10 @@ export default function AdminTrendNewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl px-1 sm:px-0">
       <h2 className="text-xl font-semibold text-gray-900">New trend post</h2>
       <p className="mt-1 text-sm text-gray-500">Create a news, trend, or journal post for the Trends section.</p>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
         {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -110,8 +110,8 @@ export default function AdminTrendNewPage() {
           </select>
         </div>
         <div className="flex flex-wrap gap-3 border-t border-gray-200 pt-4">
-          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Creating…' : 'Create post'}</button>
-          <Link href="/admin/trends" className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Cancel</Link>
+          <button type="submit" disabled={saving} className="btn-primary min-h-[44px] touch-manipulation">{saving ? 'Creating…' : 'Create post'}</button>
+          <Link href="/admin/trends" className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 min-h-[44px] inline-flex items-center touch-manipulation">Cancel</Link>
         </div>
       </form>
     </div>

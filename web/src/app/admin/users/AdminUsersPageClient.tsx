@@ -109,7 +109,7 @@ export default function AdminUsersPageClient() {
       <button
         type="button"
         onClick={() => setShowAdd(!showAdd)}
-        className="mt-4 rounded bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+        className="mt-4 min-h-[44px] w-full sm:w-auto rounded bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 touch-manipulation"
       >
         {showAdd ? 'Cancel' : 'Add user'}
       </button>
@@ -201,34 +201,34 @@ export default function AdminUsersPageClient() {
           </div>
         </form>
       )}
-      <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm -mx-1 px-1 sm:mx-0 sm:px-0">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Email</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Role</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Tier</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Joined</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Actions</th>
+              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Name</th>
+              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Email</th>
+              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Role</th>
+              <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Tier</th>
+              <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Joined</th>
+              <th className="px-3 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {users.map((u) => (
               <tr key={u._id}>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{u.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{u.email}</td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3 text-sm font-medium text-gray-900 max-w-[120px] sm:max-w-none truncate sm:whitespace-normal" title={u.name}>{u.name}</td>
+                <td className="px-3 py-3 text-sm text-gray-600 max-w-[140px] sm:max-w-none truncate" title={u.email}>{u.email}</td>
+                <td className="px-3 py-3">
                   <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">{u.role}</span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">{u.subscriptionTier || '—'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">{u.subscriptionTier || '—'}</td>
+                <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-600">
                   {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-NG') : '—'}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <button type="button" onClick={() => startEdit(u)} className="text-primary-600 hover:underline">Edit</button>
-                  {' · '}
-                  <button type="button" onClick={() => deleteUser(u._id)} className="text-red-600 hover:underline">Delete</button>
+                <td className="px-3 py-3 text-right whitespace-nowrap">
+                  <button type="button" onClick={() => startEdit(u)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-primary-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Edit</button>
+                  <span className="text-gray-300 mx-1">|</span>
+                  <button type="button" onClick={() => deleteUser(u._id)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Delete</button>
                 </td>
               </tr>
             ))}

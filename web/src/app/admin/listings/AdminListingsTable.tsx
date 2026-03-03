@@ -42,16 +42,16 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 w-20">Image</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Title</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Price</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 hidden sm:table-cell">Created by</th>
-            <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Actions</th>
+            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 w-16 sm:w-20">Image</th>
+            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Title</th>
+            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4 whitespace-nowrap">Price</th>
+            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Status</th>
+            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Created by</th>
+            <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">

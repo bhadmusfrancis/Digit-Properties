@@ -64,7 +64,7 @@ export default function AdminConfigPage() {
         {configs.map((c) => (
           <div key={c.tier} className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="font-medium text-gray-900 capitalize">{c.tier === 'guest' ? 'Guest / Free' : c.tier}</h3>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+            <div className="mt-4 grid gap-4 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
               <div>
                 <label className="block text-xs font-medium text-gray-500">Price (NGN/mo)</label>
                 <input
@@ -72,7 +72,7 @@ export default function AdminConfigPage() {
                   min={0}
                   value={c.priceMonthly ?? 0}
                   onChange={(e) => updateTier(c.tier, { priceMonthly: parseInt(e.target.value, 10) || 0 })}
-                  className="input mt-1"
+                  className="input mt-1 w-full"
                   disabled={!!saving}
                 />
               </div>
@@ -83,7 +83,7 @@ export default function AdminConfigPage() {
                   min={1}
                   value={c.maxListings}
                   onChange={(e) => updateTier(c.tier, { maxListings: parseInt(e.target.value, 10) || 1 })}
-                  className="input mt-1"
+                  className="input mt-1 w-full"
                   disabled={!!saving}
                 />
               </div>
@@ -94,7 +94,7 @@ export default function AdminConfigPage() {
                   min={1}
                   value={c.maxImages}
                   onChange={(e) => updateTier(c.tier, { maxImages: parseInt(e.target.value, 10) || 1 })}
-                  className="input mt-1"
+                  className="input mt-1 w-full"
                   disabled={!!saving}
                 />
               </div>
@@ -105,7 +105,7 @@ export default function AdminConfigPage() {
                   min={0}
                   value={c.maxVideos}
                   onChange={(e) => updateTier(c.tier, { maxVideos: parseInt(e.target.value, 10) || 0 })}
-                  className="input mt-1"
+                  className="input mt-1 w-full"
                   disabled={!!saving}
                 />
               </div>
@@ -116,7 +116,7 @@ export default function AdminConfigPage() {
                   min={0}
                   value={c.maxFeatured ?? 0}
                   onChange={(e) => updateTier(c.tier, { maxFeatured: parseInt(e.target.value, 10) || 0 })}
-                  className="input mt-1"
+                  className="input mt-1 w-full"
                   disabled={!!saving}
                 />
               </div>
@@ -127,7 +127,7 @@ export default function AdminConfigPage() {
                   min={0}
                   value={c.maxHighlighted ?? 0}
                   onChange={(e) => updateTier(c.tier, { maxHighlighted: parseInt(e.target.value, 10) || 0 })}
-                  className="input mt-1"
+                  className="input mt-1 w-full"
                   disabled={!!saving}
                 />
               </div>

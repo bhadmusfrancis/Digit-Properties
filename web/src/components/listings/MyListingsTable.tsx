@@ -116,15 +116,15 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="w-16 px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:w-20 sm:px-3">Image</th>
+            <th className="w-14 sm:w-20 px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-3">Image</th>
             <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Title</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Price</th>
+            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4 whitespace-nowrap">Price</th>
             <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Status</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Featured / Highlighted</th>
+            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Featured / Highlighted</th>
             <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
           </tr>
         </thead>
@@ -140,8 +140,8 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
               <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                 {thumb(l)}
               </td>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">{l.title}</td>
-              <td className="px-4 py-3 text-sm text-gray-600">
+              <td className="px-2 py-3 sm:px-4 text-sm font-medium text-gray-900 max-w-[120px] sm:max-w-none truncate sm:whitespace-normal" title={l.title}>{l.title}</td>
+              <td className="px-2 py-3 sm:px-4 text-sm text-gray-600 whitespace-nowrap">
                 {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
               </td>
               <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -153,7 +153,7 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
                   {l.status}
                 </span>
               </td>
-              <td className="px-2 py-3 sm:px-4" onClick={(e) => e.stopPropagation()}>
+              <td className="hidden md:table-cell px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
@@ -201,7 +201,7 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
                   </label>
                 </div>
               </td>
-              <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+              <td className="px-2 py-3 text-right sm:px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <MyListingActions listingId={l._id} />
               </td>
             </tr>
