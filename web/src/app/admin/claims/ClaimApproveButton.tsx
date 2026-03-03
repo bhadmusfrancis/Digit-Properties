@@ -19,18 +19,18 @@ export function ClaimApproveButton({ claimId }: { claimId: string }) {
   }
 
   return (
-    <span className="flex justify-end gap-2">
+    <span className="flex flex-wrap justify-end gap-1 sm:gap-2">
       <button
         onClick={() => handle(true)}
         disabled={loading}
-        className="text-sm text-green-600 hover:underline disabled:opacity-50"
+        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 rounded text-sm text-green-600 hover:underline disabled:opacity-50 touch-manipulation"
       >
         Approve
       </button>
       <button
         onClick={() => handle(false)}
         disabled={loading}
-        className="text-sm text-red-600 hover:underline disabled:opacity-50"
+        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 rounded text-sm text-red-600 hover:underline disabled:opacity-50 touch-manipulation"
       >
         Reject
       </button>

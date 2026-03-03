@@ -47,15 +47,15 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
   };
 
   return (
-    <span className="flex flex-wrap items-center gap-2">
-      <Link href={`/listings/${listingId}`} className="text-primary-600 hover:underline">View</Link>
-      <Link href={`/listings/${listingId}/edit`} className="text-primary-600 hover:underline">Edit</Link>
+    <span className="flex flex-wrap items-center gap-1 sm:gap-2">
+      <Link href={`/listings/${listingId}`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
+      <Link href={`/listings/${listingId}/edit`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
       {status === 'draft' && (
         <button
           type="button"
           onClick={approve}
           disabled={approving}
-          className="text-sm text-green-600 hover:underline disabled:opacity-50"
+          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-sm text-green-600 hover:underline disabled:opacity-50 touch-manipulation"
         >
           {approving ? '…' : 'Approve'}
         </button>
@@ -65,13 +65,13 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
           type="button"
           onClick={() => setShowAssign((v) => !v)}
           disabled={assigning}
-          className="rounded border border-gray-300 py-1 pl-2 pr-6 text-xs text-left min-w-[120px]"
+          className="min-h-[44px] rounded border border-gray-300 py-2 pl-2 pr-8 text-xs text-left min-w-[120px] touch-manipulation"
         >
           {createdByLabel || 'Assign…'}
         </button>
         {showAssign && (
           <>
-            <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded border border-gray-200 bg-white p-2 shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded border border-gray-200 bg-white p-2 shadow-lg">
               <input
                 type="text"
                 placeholder="Search by name or email"

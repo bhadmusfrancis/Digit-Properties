@@ -20,7 +20,6 @@ export default function AdminTrendEditPage() {
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<(typeof TREND_STATUS)[keyof typeof TREND_STATUS]>(TREND_STATUS.DRAFT);
   const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -47,25 +46,6 @@ export default function AdminTrendEditPage() {
       .catch(() => setError('Failed to load'))
       .finally(() => setLoading(false));
   }, [id]);
-
-  async function handleGenerateImage() {
-    setError('');
-    setGenerating(true);
-    try {
-      const res = await fetch(`/api/admin/trends/${id}/generate-image`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Generate image failed');
-        setGenerating(false);
-        return;
-      }
-      if (data.url) setImageUrl(data.url);
-    } catch {
-      setError('Request failed');
-    } finally {
-      setGenerating(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -122,7 +102,7 @@ export default function AdminTrendEditPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-gray-900">Edit trend post</h2>
         {slug && (
@@ -131,7 +111,7 @@ export default function AdminTrendEditPage() {
           </Link>
         )}
       </div>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
         {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -165,17 +145,6 @@ export default function AdminTrendEditPage() {
         </div>
         <div>
           <TrendImageUpload imageUrl={imageUrl} onImageUrlChange={setImageUrl} disabled={saving} />
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={handleGenerateImage}
-              disabled={saving || generating}
-              className="rounded-lg border border-primary-300 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-800 hover:bg-primary-100 disabled:opacity-50"
-            >
-              {generating ? 'Generating…' : 'Generate image from post content'}
-            </button>
-            <p className="mt-1 text-xs text-gray-500">Assigns a unique photo (Picsum) and uploads to Cloudinary. No API key needed.</p>
-          </div>
         </div>
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
@@ -191,8 +160,8 @@ export default function AdminTrendEditPage() {
           </select>
         </div>
         <div className="flex flex-wrap gap-3 border-t border-gray-200 pt-4">
-          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save changes'}</button>
-          <Link href="/admin/trends" className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Cancel</Link>
+          <button type="submit" disabled={saving} className="btn-primary min-h-[44px] touch-manipulation">{saving ? 'Saving…' : 'Save changes'}</button>
+          <Link href="/admin/trends" className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 min-h-[44px] inline-flex items-center touch-manipulation">Cancel</Link>
         </div>
       </form>
     </div>

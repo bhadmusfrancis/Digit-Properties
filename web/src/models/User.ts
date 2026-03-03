@@ -12,9 +12,28 @@ export interface IUser {
   phone?: string;
   /** Set when user verified their email (credentials signup or after verify-email link). */
   verifiedAt?: Date;
+  /** Set when phone (WhatsApp/SMS) OTP or link verified. */
+  phoneVerifiedAt?: Date;
+  /** Set when ID document approved (all roles). */
+  identityVerifiedAt?: Date;
+  /** Set when agent/developer professional doc approved. */
+  professionalVerifiedAt?: Date;
+  /** Set when liveness challenge passed; profile picture from liveness until Agent/Developer. */
+  livenessVerifiedAt?: Date;
+  /** True until role is registered_agent or registered_developer; then user can change profile picture. */
+  profilePictureLocked?: boolean;
+  /** Position in company (Agent/Developer only), e.g. "Agent", "Director". */
+  companyPosition?: string;
   /** One-time token for email verification link; cleared after verify. */
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
+  /** One-time token for phone verification link; cleared after verify. */
+  phoneVerificationToken?: string;
+  phoneVerificationExpires?: Date;
+  /** Hashed OTP for phone verification (alternative to link). */
+  phoneVerificationCode?: string;
+  /** When 'twilio', confirm-phone uses Twilio Verify Check API instead of stored code. */
+  phoneVerificationProvider?: 'twilio';
   /** One-time token for password reset link; cleared after reset. */
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -33,8 +52,18 @@ const UserSchema = new Schema<IUser>(
     subscriptionTier: { type: String, enum: Object.values(SUBSCRIPTION_TIERS) },
     phone: String,
     verifiedAt: Date,
+    phoneVerifiedAt: Date,
+    identityVerifiedAt: Date,
+    professionalVerifiedAt: Date,
+    livenessVerifiedAt: Date,
+    profilePictureLocked: { type: Boolean, default: false },
+    companyPosition: String,
     emailVerificationToken: String,
     emailVerificationExpires: Date,
+    phoneVerificationToken: String,
+    phoneVerificationExpires: Date,
+    phoneVerificationCode: String,
+    phoneVerificationProvider: String,
     passwordResetToken: String,
     passwordResetExpires: Date,
     fcmTokens: [{ type: String }],

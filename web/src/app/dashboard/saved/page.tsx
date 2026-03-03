@@ -13,7 +13,7 @@ export default function SavedListingsPage() {
   if (isLoading) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Saved Listings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Saved Properties</h1>
         <div className="mt-6 h-48 animate-pulse rounded bg-gray-100" />
       </div>
     );
@@ -23,7 +23,7 @@ export default function SavedListingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Saved Listings</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Saved Properties</h1>
       <p className="mt-1 text-gray-600">Properties you have saved.</p>
       <div className="mt-6 space-y-4">
         {list.map((l: { _id: string; title: string; price: number; listingType?: string; rentPeriod?: 'day'|'month'|'year'; location?: { city: string; state: string } }) => (
@@ -38,7 +38,7 @@ export default function SavedListingsPage() {
         ))}
         {list.length === 0 && (
           <div className="rounded-lg border-2 border-dashed border-gray-200 py-16 text-center text-gray-500">
-            No saved listings. Browse and save properties you like.
+            No Saved Properties. Browse and save properties you like.
           </div>
         )}
       </div>

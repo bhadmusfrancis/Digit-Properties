@@ -14,20 +14,20 @@ export default async function AdminClaimsPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900">Pending Claims</h2>
-      <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm -mx-1 px-1 sm:mx-0 sm:px-0">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Listing</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Claimant</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Date</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Actions</th>
+              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Listing</th>
+              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Claimant</th>
+              <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Date</th>
+              <th className="px-3 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {claims.map((c) => (
               <tr key={c._id.toString()}>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3 sm:px-4">
                   <Link
                     href={`/listings/${String(typeof c.listingId === 'object' && c.listingId && '_id' in c.listingId ? (c.listingId as { _id: unknown })._id : c.listingId)}`}
                     className="text-primary-600 hover:underline"
@@ -35,13 +35,13 @@ export default async function AdminClaimsPage() {
                     {(c.listingId as { title?: string })?.title || '—'}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-3 py-3 text-sm sm:px-4 max-w-[180px] sm:max-w-none truncate sm:whitespace-normal" title={`${(c.userId as { name?: string })?.name} (${(c.userId as { email?: string })?.email})`}>
                   {(c.userId as { name?: string })?.name} ({(c.userId as { email?: string })?.email})
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="hidden sm:table-cell px-4 py-3 text-sm text-gray-600">
                   {new Date(c.createdAt).toLocaleDateString('en-NG')}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 py-3 text-right sm:px-4 whitespace-nowrap">
                   <ClaimApproveButton claimId={c._id.toString()} />
                 </td>
               </tr>

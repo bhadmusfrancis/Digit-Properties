@@ -1,0 +1,214 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+type RequestItem = {
+  _id: string;
+  type: string;
+  status: string;
+  documentUrls: string[];
+  companyPosition?: string;
+  message?: string;
+  rejectionReason?: string;
+  documentVerificationMethod?: string;
+  createdAt: string;
+  reviewedAt?: string;
+  userId: { _id: string; name?: string; email?: string; phone?: string; role?: string };
+  reviewedBy?: { name?: string };
+};
+
+export default function AdminVerificationPage() {
+  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [actioning, setActioning] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+
+  function load() {
+    const q = statusFilter ? `?status=${statusFilter}` : '';
+    fetch(`/api/admin/verification-requests${q}`)
+      .then((r) => r.json())
+      .then((data) => setRequests(Array.isArray(data) ? data : []))
+      .catch(() => setRequests([]))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    setLoading(true);
+    load();
+  }, [statusFilter]);
+
+  async function handleApprove(id: string) {
+    setActioning(id);
+    try {
+      const res = await fetch(`/api/admin/verification-requests/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentVerificationMethod: 'manual' }),
+      });
+      if (res.ok) load();
+    } catch {
+      //
+    }
+    setActioning(null);
+  }
+
+  async function handleReject(id: string) {
+    const reason = rejectReason[id] ?? '';
+    setActioning(id);
+    try {
+      const res = await fetch(`/api/admin/verification-requests/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) {
+        setRejectReason((prev) => ({ ...prev, [id]: '' }));
+        load();
+      }
+    } catch {
+      //
+    }
+    setActioning(null);
+  }
+
+  const typeLabel = (type: string) =>
+    type === 'verified_individual'
+      ? 'Verified Individual'
+      : type === 'registered_agent'
+        ? 'Registered Agent'
+        : 'Registered Developer';
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold text-gray-900">Verification requests</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        Review ID and professional documents; approve or reject. On approve, user role and profile
+        picture lock are updated.
+      </p>
+      <div className="mt-4 flex gap-2">
+        {['pending', 'approved', 'rejected'].map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setStatusFilter(s)}
+            className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+              statusFilter === s
+                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      {loading ? (
+        <p className="mt-4 text-gray-500">Loading...</p>
+      ) : requests.length === 0 ? (
+        <p className="mt-4 text-gray-500">No requests found.</p>
+      ) : (
+        <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 font-medium text-gray-700">User</th>
+                <th className="px-4 py-3 font-medium text-gray-700">Type</th>
+                <th className="px-4 py-3 font-medium text-gray-700">Position</th>
+                <th className="px-4 py-3 font-medium text-gray-700">Documents</th>
+                <th className="px-4 py-3 font-medium text-gray-700">Status</th>
+                {statusFilter === 'pending' && (
+                  <th className="px-4 py-3 font-medium text-gray-700">Actions</th>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {requests.map((r) => (
+                <tr key={r._id}>
+                  <td className="px-4 py-3">
+                    <div>
+                      <span className="font-medium">{r.userId?.name ?? '—'}</span>
+                      <br />
+                      <span className="text-gray-500">{r.userId?.email}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{typeLabel(r.type)}</td>
+                  <td className="px-4 py-3">{r.companyPosition ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    {r.documentUrls?.length
+                      ? r.documentUrls.map((url, i) => (
+                          <a
+                            key={i}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-primary-600 hover:underline"
+                          >
+                            Doc {i + 1}
+                          </a>
+                        ))
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={
+                        r.status === 'approved'
+                          ? 'text-green-600'
+                          : r.status === 'rejected'
+                            ? 'text-red-600'
+                            : 'text-amber-600'
+                      }
+                    >
+                      {r.status}
+                    </span>
+                    {r.rejectionReason && (
+                      <span className="ml-1 text-gray-500">— {r.rejectionReason}</span>
+                    )}
+                  </td>
+                  {statusFilter === 'pending' && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          placeholder="Rejection reason (optional)"
+                          value={rejectReason[r._id] ?? ''}
+                          onChange={(e) =>
+                            setRejectReason((prev) => ({ ...prev, [r._id]: e.target.value }))
+                          }
+                          className="input w-48 text-xs"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(r._id)}
+                            disabled={actioning === r._id}
+                            className="rounded bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {actioning === r._id ? '…' : 'Approve'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReject(r._id)}
+                            disabled={actioning === r._id}
+                            className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {actioning === r._id ? '…' : 'Reject'}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-4">
+        <Link href="/admin" className="text-sm text-primary-600 hover:underline">
+          ← Admin
+        </Link>
+      </p>
+    </div>
+  );
+}
