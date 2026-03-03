@@ -22,6 +22,9 @@ export async function POST(req: Request) {
     if (folder === 'trends' && session.user.role !== USER_ROLES.ADMIN) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    if (folder === 'verification' || folder === 'liveness') {
+      // Any logged-in user may upload to verification/liveness (for ID docs and liveness photo)
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });

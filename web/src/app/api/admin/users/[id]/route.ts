@@ -19,7 +19,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
     await dbConnect();
-    const user = await User.findById(id).select('name email role phone image subscriptionTier createdAt').lean();
+    const user = await User.findById(id).select('name email role phone image subscriptionTier companyPosition createdAt verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked').lean();
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(user);
   } catch (e) {
@@ -55,6 +55,7 @@ export async function PATCH(
     }
     if (typeof body.phone === 'string') update.phone = body.phone.trim() || undefined;
     if (typeof body.image === 'string') update.image = body.image.trim() || undefined;
+    if (typeof body.companyPosition === 'string') update.companyPosition = body.companyPosition.trim() || undefined;
     if (Object.values(USER_ROLES).includes(body.role)) update.role = body.role;
     if (Object.values(SUBSCRIPTION_TIERS).includes(body.subscriptionTier)) update.subscriptionTier = body.subscriptionTier;
     if (body.password && typeof body.password === 'string' && body.password.length >= 8) {
@@ -62,7 +63,7 @@ export async function PATCH(
       update.password = await bcrypt.default.hash(body.password, 12);
     }
     const user = await User.findByIdAndUpdate(id, { $set: update }, { new: true })
-      .select('name email role phone image subscriptionTier createdAt')
+      .select('name email role phone image subscriptionTier companyPosition createdAt verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked')
       .lean();
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(user);

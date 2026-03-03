@@ -72,12 +72,12 @@ export default function AdminEmailsPage() {
           <strong>Emails are not configured.</strong> Set <code className="bg-amber-100 px-1">RESEND_API_KEY</code> in your environment so welcome, verification, and admin notification emails are sent. See <code className="bg-amber-100 px-1">EMAIL_SETUP_GUIDE.md</code>.
         </div>
       )}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <button
           type="button"
           onClick={sendTest}
           disabled={testLoading || !emailConfigured}
-          className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+          className="min-h-[44px] rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 touch-manipulation w-full sm:w-auto"
         >
           {testLoading ? 'Sending...' : 'Send test email'}
         </button>

@@ -13,28 +13,22 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="grid gap-6 sm:grid-cols-3">
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-3">
+      <Link href="/admin/users" className="rounded-lg border border-gray-200 bg-white p-5 sm:p-6 hover:shadow-md transition-shadow min-h-[44px] flex flex-col">
         <h3 className="font-semibold text-gray-900">Users</h3>
         <p className="mt-2 text-3xl font-bold text-primary-600">{usersCount}</p>
-        <Link href="/admin/users" className="mt-2 text-sm text-primary-600 hover:underline">
-          Manage →
-        </Link>
-      </div>
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <span className="mt-2 text-sm text-primary-600 hover:underline">Manage →</span>
+      </Link>
+      <Link href="/admin/listings" className="rounded-lg border border-gray-200 bg-white p-5 sm:p-6 hover:shadow-md transition-shadow min-h-[44px] flex flex-col">
         <h3 className="font-semibold text-gray-900">Listings</h3>
         <p className="mt-2 text-3xl font-bold text-primary-600">{listingsCount}</p>
-        <Link href="/admin/listings" className="mt-2 text-sm text-primary-600 hover:underline">
-          Manage →
-        </Link>
-      </div>
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <span className="mt-2 text-sm text-primary-600 hover:underline">Manage →</span>
+      </Link>
+      <Link href="/admin/claims" className="rounded-lg border border-gray-200 bg-white p-5 sm:p-6 hover:shadow-md transition-shadow min-h-[44px] flex flex-col">
         <h3 className="font-semibold text-gray-900">Pending Claims</h3>
         <p className="mt-2 text-3xl font-bold text-amber-600">{pendingClaims}</p>
-        <Link href="/admin/claims" className="mt-2 text-sm text-primary-600 hover:underline">
-          Review →
-        </Link>
-      </div>
+        <span className="mt-2 text-sm text-primary-600 hover:underline">Review →</span>
+      </Link>
     </div>
   );
 }

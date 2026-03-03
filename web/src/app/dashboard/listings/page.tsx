@@ -32,11 +32,16 @@ export default async function MyListingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">My Properties</h1>
-        <Link href="/listings/new" className="btn-primary">
-          Add listing
-        </Link>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">My Properties</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/listings/import" className="btn-secondary w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center touch-manipulation">
+            Import from WhatsApp
+          </Link>
+          <Link href="/listings/new" className="btn-primary w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center touch-manipulation">
+            Add listing
+          </Link>
+        </div>
       </div>
 
       <ListingPackagesSection />

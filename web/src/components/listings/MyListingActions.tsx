@@ -21,23 +21,19 @@ export function MyListingActions({ listingId }: { listingId: string }) {
   }
 
   return (
-    <>
-      <Link href={`/listings/${listingId}`} className="text-primary-600 hover:underline">
-        View
-      </Link>
-      {' · '}
-      <Link href={`/listings/${listingId}/edit`} className="text-primary-600 hover:underline">
-        Edit
-      </Link>
-      {' · '}
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <Link href={`/listings/${listingId}`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
+      <span className="text-gray-300">|</span>
+      <Link href={`/listings/${listingId}/edit`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
+      <span className="text-gray-300">|</span>
       <button
         type="button"
         onClick={handleDelete}
         disabled={deleting}
-        className="text-red-600 hover:underline disabled:opacity-50"
+        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-red-600 hover:underline text-sm disabled:opacity-50 touch-manipulation"
       >
-        {deleting ? 'Deleting...' : 'Delete'}
+        {deleting ? '…' : 'Delete'}
       </button>
-    </>
+    </span>
   );
 }

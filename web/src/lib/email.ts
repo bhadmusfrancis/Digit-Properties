@@ -89,6 +89,26 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<{ ok: 
   return { ok: result.ok };
 }
 
+/** Send phone verification link by email (when SMS/WhatsApp provider not used). User opens link on phone to verify. */
+export async function sendPhoneVerificationEmail(
+  to: string,
+  name: string,
+  verifyUrl: string
+): Promise<{ ok: boolean }> {
+  const body = `
+    <p>Hi ${name || 'there'},</p>
+    <p>Click the link below to verify your phone number for ${APP_NAME}. Open this link on your phone, or copy the link and paste it into WhatsApp to open on your phone.</p>
+    <p><a href="${verifyUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">Verify my phone</a></p>
+    <p>This link expires in 10 minutes. If you didn't request this, you can ignore this email.</p>`;
+  const result = await sendEmail({
+    to,
+    subject: `Verify your phone – ${APP_NAME}`,
+    html: wrapBody('Verify your phone', body),
+  });
+  if (!result.ok) console.error('[email] sendPhoneVerificationEmail failed for', to, result.error);
+  return { ok: result.ok };
+}
+
 /** Send verification link for new signups (credentials only). */
 export async function sendVerificationEmail(to: string, name: string, verifyUrl: string): Promise<{ ok: boolean }> {
   const vars = { name: name || 'there', appName: APP_NAME, appUrl: APP_URL, verifyUrl };
@@ -225,6 +245,71 @@ export async function sendAlertMatchEmail(
     subject: `[${APP_NAME}] New listings matching "${alertName}"`,
     html: wrapBody('Alert: New Listings', body),
   });
+  return { ok: result.ok };
+}
+
+export async function sendVerificationApproved(
+  to: string,
+  name: string,
+  verificationType: string
+): Promise<{ ok: boolean }> {
+  const vars = { name: name || 'there', verificationType, appName: APP_NAME, appUrl: APP_URL };
+  const body = `
+    <p>Hi ${vars.name},</p>
+    <p>Your verification request for <strong>${verificationType}</strong> has been approved.</p>
+    <p>You now have access to the benefits of your verified status on ${APP_NAME}.</p>
+    <p><a href="${APP_URL}/dashboard" style="color: #0d9488;">Go to dashboard</a></p>`;
+  const result = await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Verification approved: ${verificationType}`,
+    html: wrapBody('Verification Approved', body),
+  });
+  if (!result.ok) console.error('[email] sendVerificationApproved failed for', to, result.error);
+  return { ok: result.ok };
+}
+
+export async function sendVerificationRejected(
+  to: string,
+  name: string,
+  verificationType: string,
+  reason?: string
+): Promise<{ ok: boolean }> {
+  const reasonBlock = reason ? `<p><strong>Reason:</strong> ${reason}</p>` : '';
+  const body = `
+    <p>Hi ${name || 'there'},</p>
+    <p>Your verification request for <strong>${verificationType}</strong> was not approved.</p>
+    ${reasonBlock}
+    <p>You may re-apply after 30 days with updated documents.</p>
+    <p><a href="${APP_URL}/dashboard/verification" style="color: #0d9488;">View verification</a></p>`;
+  const result = await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Verification update: ${verificationType}`,
+    html: wrapBody('Verification Not Approved', body),
+  });
+  if (!result.ok) console.error('[email] sendVerificationRejected failed for', to, result.error);
+  return { ok: result.ok };
+}
+
+export async function sendAdminNewVerificationRequest(
+  userName: string,
+  userEmail: string,
+  requestType: string,
+  requestId: string
+): Promise<{ ok: boolean }> {
+  const vars = { userName, userEmail, requestType, requestId, appName: APP_NAME, appUrl: APP_URL };
+  const body = `
+    <p>A new verification request has been submitted:</p>
+    <ul>
+      <li><strong>User:</strong> ${userName} (${userEmail})</li>
+      <li><strong>Type:</strong> ${requestType}</li>
+    </ul>
+    <p><a href="${APP_URL}/admin/verification" style="color: #0d9488;">Review verification requests</a></p>`;
+  const result = await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `[${APP_NAME}] New verification request: ${requestType}`,
+    html: wrapBody('New Verification Request', body),
+  });
+  if (!result.ok) console.error('[email] sendAdminNewVerificationRequest failed to', ADMIN_EMAIL, result.error);
   return { ok: result.ok };
 }
 

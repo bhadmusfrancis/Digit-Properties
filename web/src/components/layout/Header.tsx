@@ -130,34 +130,39 @@ export function Header() {
 
       {mobileOpen && (
         <div className="border-t border-gray-200 bg-white px-4 py-4 md:hidden">
-          <div className="flex flex-col gap-2">
-            <Link href="/listings" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+          <div className="flex flex-col gap-1">
+            <Link href="/listings" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
               Buy
             </Link>
-            <Link href="/listings?listingType=rent" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+            <Link href="/listings?listingType=rent" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
               Rent
             </Link>
-            <Link href="/listings/new" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+            <Link href="/listings/new" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
               Sell
             </Link>
-            <Link href="/trends" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+            <Link href="/trends" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
               Trends
             </Link>
             {session ? (
               <>
-                <Link href="/dashboard" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+                <Link href="/dashboard" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Dashboard
                 </Link>
-                <button onClick={() => signOut()} className="py-2 text-left text-red-600">
+                {session.user?.role === 'admin' && (
+                  <Link href="/admin" className="min-h-[44px] flex items-center text-primary-600 font-medium touch-manipulation" onClick={() => setMobileOpen(false)}>
+                    Admin
+                  </Link>
+                )}
+                <button onClick={() => signOut()} className="min-h-[44px] w-full flex items-center text-left text-red-600 touch-manipulation">
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link href="/auth/signin" className="py-2 text-gray-700" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/signin" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Sign in
                 </Link>
-                <Link href="/auth/signup" className="py-2 text-primary-600 font-medium" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/signup" className="min-h-[44px] flex items-center text-primary-600 font-medium touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Sign up
                 </Link>
               </>
