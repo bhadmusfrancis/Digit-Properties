@@ -44,7 +44,7 @@ export type ParsedListingWithMeta = ParseResult & {
 const STATE_ALIASES: Record<string, string> = {
   'fct': 'FCT', 'abuja': 'FCT',
   'lagos': 'Lagos', 'rivers': 'Rivers', 'ph': 'Rivers', 'portharcourt': 'Rivers',
-  'oyo': 'Oyo', 'ibadan': 'Oyo', 'ogun': 'Ogun', 'abuja': 'FCT',
+  'oyo': 'Oyo', 'ibadan': 'Oyo', 'ogun': 'Ogun',
 };
 const COMMON_AREAS: Record<string, { city: string; state: string }> = {
   'lekki': { city: 'Lekki', state: 'Lagos' },
