@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs><linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0d9488"/><stop offset="100%" style="stop-color:#0f766e"/></linearGradient></defs>
+  <rect width="1200" height="630" fill="url(#b)"/>
+  <g fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"><path d="M600 180 L950 400 L950 520 L250 520 L250 400 Z"/><rect x="450" y="350" width="300" height="170" rx="8"/></g>
+  <text x="600" y="300" text-anchor="middle" fill="white" font-family="system-ui,sans-serif" font-size="72" font-weight="700">House</text>
+  <text x="600" y="560" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="system-ui,sans-serif" font-size="24">Digit Properties</text>
+</svg>

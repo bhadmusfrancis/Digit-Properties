@@ -19,6 +19,7 @@ export type EditInitialShape = {
   bedrooms: number;
   bathrooms: number;
   toilets: number;
+  area?: number;
   agentName: string;
   agentPhone: string;
   agentEmail: string;
@@ -42,6 +43,7 @@ function parsedToEditInitial(parsed: ParsedListing, images?: { url: string; publ
     bedrooms: parsed.bedrooms,
     bathrooms: parsed.bathrooms,
     toilets: parsed.toilets ?? 0,
+    area: parsed.area,
     agentName: parsed.agentName ?? '',
     agentPhone: parsed.agentPhone ?? '',
     agentEmail: parsed.agentEmail ?? '',
@@ -71,6 +73,7 @@ function buildListingPayload(
     bedrooms: item.bedrooms,
     bathrooms: item.bathrooms,
     toilets: item.toilets,
+    area: item.area,
     agentName: item.agentName || undefined,
     agentPhone: item.agentPhone || undefined,
     agentEmail: item.agentEmail || undefined,
@@ -84,14 +87,21 @@ function buildListingPayload(
 
 type SenderDetails = { name?: string; phone?: string; waId?: string };
 
+type ImportMode = 'single' | 'multiple';
+
+/** Per-index list of possible duplicate existing listings (from check-duplicates API). */
+type DuplicateMap = Record<number, { _id: string; title: string }[]>;
+
 export default function ImportFromWhatsAppPage() {
   const [text, setText] = useState('');
+  const [importMode, setImportMode] = useState<ImportMode>('single');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listings, setListings] = useState<EditInitialShape[] | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [senderDetails, setSenderDetails] = useState<SenderDetails | null>(null);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [duplicateMap, setDuplicateMap] = useState<DuplicateMap>({});
   const [saveAllStatus, setSaveAllStatus] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
   const formRef = useRef<ListingFormRef | null>(null);
@@ -107,10 +117,11 @@ export default function ImportFromWhatsAppPage() {
     setSaveError(null);
     setLoading(true);
     try {
+      const multiple = importMode === 'multiple';
       const res = await fetch('/api/listings/parse-from-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed, multiple: true }),
+        body: JSON.stringify({ text: trimmed, multiple }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -118,7 +129,16 @@ export default function ImportFromWhatsAppPage() {
         setLoading(false);
         return;
       }
-      const items = (data.listings ?? [data]) as { parsed: ParsedListing; confidence?: string; missing?: string[] }[];
+      const items = data.listings
+        ? (data.listings as { parsed: ParsedListing; confidence?: string; missing?: string[] }[])
+        : data.parsed
+          ? [{ parsed: data.parsed, confidence: data.confidence, missing: data.missing }]
+          : [];
+      if (items.length === 0) {
+        setError('Could not extract any listing from the text. Try adjusting the message or import type.');
+        setLoading(false);
+        return;
+      }
       const withMedia = data.mediaUrls && Array.isArray(data.mediaUrls) && data.mediaUrls.length > 0;
       const firstImages = withMedia
         ? (data.mediaUrls as string[]).map((url: string) => ({ url, public_id: '' }))
@@ -130,6 +150,29 @@ export default function ImportFromWhatsAppPage() {
       setCurrentIndex(0);
       setSenderDetails(data.senderDetails ?? null);
       setMediaUrls(data.mediaUrls ?? []);
+      setDuplicateMap({});
+
+      const checkRes = await fetch('/api/listings/check-duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listings: initialListings.map((l) => ({
+            title: l.title,
+            price: l.price,
+            city: l.city,
+            state: l.state,
+            agentPhone: l.agentPhone || undefined,
+          })),
+        }),
+      });
+      if (checkRes.ok) {
+        const dupData = await checkRes.json();
+        const map: DuplicateMap = {};
+        for (const r of dupData.results ?? []) {
+          if (r.duplicates?.length) map[r.index] = r.duplicates;
+        }
+        setDuplicateMap(map);
+      }
     } catch {
       setError('Network error. Try again.');
     } finally {
@@ -154,6 +197,7 @@ export default function ImportFromWhatsAppPage() {
       bedrooms: values.bedrooms,
       bathrooms: values.bathrooms,
       toilets: values.toilets ?? 0,
+      area: values.area,
       agentName: values.agentName ?? '',
       agentPhone: values.agentPhone ?? '',
       agentEmail: values.agentEmail ?? '',
@@ -202,6 +246,7 @@ export default function ImportFromWhatsAppPage() {
         bedrooms: v.bedrooms,
         bathrooms: v.bathrooms,
         toilets: v.toilets ?? 0,
+        area: v.area,
         agentName: v.agentName ?? '',
         agentPhone: v.agentPhone ?? '',
         agentEmail: v.agentEmail ?? '',
@@ -251,16 +296,46 @@ export default function ImportFromWhatsAppPage() {
       </div>
       <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Import from WhatsApp</h1>
       <p className="mt-1 text-sm text-gray-600">
-        Paste a property message (or several in one post). We’ll detect multiple listings and let you edit each before saving.
+        Paste a property message below. Choose whether it’s one listing or several so we can parse it accurately.
       </p>
 
       {!listings ? (
         <div className="mt-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">What are you pasting?</label>
+            <div className="flex flex-wrap gap-4" role="radiogroup" aria-label="Import type">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="importMode"
+                  checked={importMode === 'single'}
+                  onChange={() => setImportMode('single')}
+                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm font-medium text-gray-800">Single listing</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="importMode"
+                  checked={importMode === 'multiple'}
+                  onChange={() => setImportMode('multiple')}
+                  className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm font-medium text-gray-800">Multiple listings</span>
+              </label>
+            </div>
+            <p className="mt-1.5 text-xs text-gray-500">
+              {importMode === 'single'
+                ? 'One property only — we’ll parse the whole message as a single listing for better accuracy.'
+                : 'Several properties in one message (e.g. numbered list or separated by lines) — we’ll split and parse each.'}
+            </p>
+          </div>
           <label className="block text-sm font-medium text-gray-700">Pasted message</label>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="e.g. 3bed flat for rent in Lekki 500k per year call 080...&#10;&#10;---&#10;&#10;Duplex for sale at Chevron 45m, 5 bed..."
+            placeholder={importMode === 'single' ? 'e.g. 3bed flat for rent in Lekki 500k per year call 08012345678' : 'e.g. (1) 500sqm at Ikoyi 2.7bn\n(2) 847sqm front plot...'}
             className="w-full min-h-[140px] rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             rows={8}
           />
@@ -271,7 +346,7 @@ export default function ImportFromWhatsAppPage() {
             disabled={loading}
             className="btn-primary min-h-[44px] px-4"
           >
-            {loading ? 'Parsing…' : 'Parse listings'}
+            {loading ? 'Parsing…' : importMode === 'single' ? 'Parse listing' : 'Parse listings'}
           </button>
         </div>
       ) : (
@@ -288,10 +363,37 @@ export default function ImportFromWhatsAppPage() {
             </p>
           )}
 
+          {duplicateMap[currentIndex]?.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+              <p className="font-medium text-amber-800">Possible duplicate of existing listing(s)</p>
+              <p className="mt-1 text-amber-700">
+                This import may match listings you already have. Review before saving to avoid duplicates.
+              </p>
+              <ul className="mt-2 space-y-1">
+                {duplicateMap[currentIndex].map((dup) => (
+                  <li key={dup._id}>
+                    <a
+                      href={`/listings/${dup._id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 hover:underline"
+                    >
+                      {dup.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {isMulti && (
             <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
               <span className="text-sm font-medium text-gray-700">
                 Listing {currentIndex + 1} of {listings.length}
+                {duplicateMap[currentIndex]?.length > 0 && (
+                  <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    Possible duplicate
+                  </span>
+                )}
               </span>
               <div className="flex gap-2">
                 <button
@@ -350,6 +452,7 @@ export default function ImportFromWhatsAppPage() {
               setCurrentIndex(0);
               setSenderDetails(null);
               setMediaUrls([]);
+              setDuplicateMap({});
               setSaveAllStatus('idle');
               setSaveError(null);
             }}

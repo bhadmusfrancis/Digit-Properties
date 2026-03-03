@@ -5,6 +5,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { dbConnect } from '@/lib/db';
+import { getDefaultListingImageUrl, getListingImagesForDisplay } from '@/lib/listing-default-image';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
@@ -27,6 +28,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const listing = await Listing.findById(id).lean();
     if (!listing) return {};
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    const ogImage = listing.images?.[0]?.url ?? getDefaultListingImageUrl(listing.propertyType ?? 'apartment');
+    const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`;
     return {
       title: listing.title,
       description: listing.description?.slice(0, 160),
@@ -34,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         title: listing.title,
         description: listing.description?.slice(0, 160),
         url: `${baseUrl}/listings/${id}`,
-        images: listing.images?.[0]?.url ? [{ url: listing.images[0].url }] : undefined,
+        images: [{ url: ogImageUrl }],
       },
     };
   } catch (e) {
@@ -64,11 +67,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
-    const images = Array.isArray(listing.images)
-      ? listing.images
-          .map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }))
-          .filter((img: { url: string }) => img.url)
-      : [];
+    const images = getListingImagesForDisplay(listing.images, listing.propertyType ?? 'apartment');
 
     return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

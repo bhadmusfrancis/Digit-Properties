@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#15803d"/>
+      <stop offset="100%" style="stop-color:#166534"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1">
+    <path d="M200 500 L400 350 L600 450 L800 300 L1000 420 L1000 530 L200 530 Z"/>
+    <circle cx="350" cy="400" r="8"/>
+    <circle cx="550" cy="380" r="8"/>
+    <circle cx="750" cy="350" r="8"/>
+  </g>
+  <text x="600" y="300" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="72" font-weight="700">Land</text>
+  <text x="600" y="560" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="system-ui, sans-serif" font-size="24">Digit Properties</text>
+</svg>
