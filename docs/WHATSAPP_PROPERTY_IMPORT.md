@@ -1,6 +1,35 @@
 # Getting Property from WhatsApp (Groups / Status) into Digit Properties
 
-This document describes how **agents** (or staff) can get property information from **WhatsApp group messages** or **WhatsApp status**, format it, and load it into Digit Properties.
+This document describes how **agents** (or staff) can get property information from **WhatsApp group messages** or **WhatsApp status**, format it, and load it into Digit Properties. It also covers the **best API** for importing with **media and sender details**, and **multi-listing detection** with next/previous edit before saving.
+
+---
+
+## Best API for WhatsApp import (media + sender details)
+
+**Recommended: WhatsApp Business Cloud API** (Meta), or **Twilio for WhatsApp**, both of which support:
+
+- **Incoming message webhooks** – Your server receives every message sent to your business number.
+- **Message content** – Full text body.
+- **Media** – Images, video, documents with download URLs and metadata (MIME type, filename). You fetch the URL and optionally upload to Cloudinary for Digit Properties.
+- **Sender details** – In the webhook payload:
+  - `from` – Sender’s phone number (E.164).
+  - `contacts[].profile.name` – Sender’s display name (when available).
+  - `wa_id` – WhatsApp user ID.
+
+So you get **listings with media** and **post sender details** (name, phone) for attribution or pre-filling agent/contact.
+
+| Provider | API | Media | Sender (name, phone) | Use case |
+|--------|-----|--------|----------------------|----------|
+| **Meta WhatsApp Cloud API** | Webhooks | Yes (URL + metadata) | Yes (`from`, `profile.name`) | Full control, direct integration |
+| **Twilio WhatsApp** | Webhooks | Yes | Yes | Simpler setup if you already use Twilio (e.g. Verify) |
+| **360dialog / MessageBird** | Same Cloud API under the hood | Yes | Yes | Alternative BSPs |
+
+**Implementation:** Add a webhook route (e.g. `POST /api/webhooks/whatsapp`) that:
+
+1. Verifies the webhook (GET with `hub.mode`, `hub.verify_token`, `hub.challenge`) for Meta.
+2. On POST, reads `entry[].changes[].value.messages[]`: `from`, `contacts`, `type`, `text.body`, and for media messages `image`/`video`/`document` with `id` (then call Media API to get URL).
+3. Normalizes to `{ text, senderDetails: { name, phone, waId }, mediaUrls: [] }`.
+4. Calls the same **parse** logic (single or multiple) and either creates draft listings with `createdByType: 'ai'` and optional `agentPhone`/`agentName` from sender, or pushes to a queue for an agent to review in the **Import from WhatsApp** UI (with next/previous edit and save all).
 
 ---
 
@@ -103,10 +132,10 @@ Parsing options:
   - Input: raw string (e.g. from WhatsApp).  
   - Output: object that matches your listing payload (title, description, listingType, propertyType, price, location, bedrooms, bathrooms, agentPhone, etc.) plus optional `confidence` and `missing` fields.
 
-- **API:** `POST /api/listings/parse-from-text` (or under `/api/admin/...` if you prefer).  
-  - Body: `{ "text": "3bed flat for rent in Lekki 500k..." }`.  
-  - Response: `{ "parsed": { ... }, "confidence": "high"|"medium"|"low", "missing": ["state", "city"] }`.  
-  - No listing is created; use this so the frontend can pre-fill the listing form for review.
+- **API:** `POST /api/listings/parse-from-text`.  
+  - **Single:** Body `{ "text": "..." }`. Response: `{ "parsed", "confidence", "missing" }`.  
+  - **Multiple (and sender/media):** Body `{ "text": "...", "multiple": true, "senderDetails": { "name", "phone", "waId" }, "mediaUrls": ["https://..."] }`. Response: `{ "listings": [ { "parsed", "confidence", "missing" }, ... ], "senderDetails", "mediaUrls" }`.  
+  - No listing is created; use this so the frontend can pre-fill the form(s) and support next/previous edit before saving.
 
 ### 4.2 Create listing from parsed data
 
@@ -120,8 +149,9 @@ Parsing options:
 
 - In dashboard (or admin), add a page/section **“Import from WhatsApp”**.
 - One big **text area** for pasted message (and optional image uploads; images can be uploaded via existing upload API and URLs added to the listing).
-- Button **“Parse”** → call `POST /api/listings/parse-from-text` → show parsed fields in the same listing form (or a simplified one) for editing.
-- Button **“Save as draft”** / **“Publish”** → submit to `POST /api/listings` (or admin import endpoint) to load into Digit Properties.
+- Button **“Parse”** → call `POST /api/listings/parse-from-text` with `multiple: true` → backend detects **multiple listings** in one post (by double newlines, numbered list, or dividers like `---`) and returns `listings[]` plus optional `senderDetails` and `mediaUrls`.
+- User can **edit all posts** by pressing **Previous** / **Next** to move between listings; current form values are stored so nothing is lost.
+- **Save all as drafts** → each listing is submitted to `POST /api/listings` (all as drafts). Optional sender details are shown at the top; media from the message can be attached to the first (or any) listing.
 
 ---
 
@@ -140,8 +170,23 @@ If you later add a WhatsApp Business number and webhook:
 
 ---
 
-## 6. References
+## 6. Multiple listings in one post
 
+The parser **splits one post** into blocks by:
+
+- Double newlines (`\n\n`),
+- Numbered lines (e.g. `1.` `2.` or `1)` `2)`),
+- Dividers (`---`, `***`, `___`),
+
+then runs the single-listing parser on each block. Low-confidence blocks (no price, no beds, very short) are dropped. Implemented in `parseMultipleWhatsAppListings()` in `web/src/lib/whatsapp-listing-parser.ts`.
+
+The **Import from WhatsApp** UI always calls the API with `multiple: true`, shows “Listing 1 of N” with **Previous** / **Next**, and **Save all as drafts** to create every listing after the user has edited each one.
+
+---
+
+## 7. References
+
+- [WhatsApp Cloud API – Webhooks](https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks) – payload examples (message, media, contacts).
 - [Twilio WhatsApp](https://www.twilio.com/docs/whatsapp) – receiving messages via webhook.
 - [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp/cloud-api) – Cloud API for business accounts.
 - Existing Digit Properties: `web/src/models/Listing.ts`, `POST /api/listings`, `web/src/lib/validations.ts` (listing schema).
