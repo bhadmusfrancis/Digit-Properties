@@ -60,6 +60,10 @@ export interface IUser {
   /** One-time token for password reset link; cleared after reset. */
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  /** Set when user accepted the Terms of Service (required at signup / first use). */
+  termsAcceptedAt?: Date;
+  /** Set when user accepted the Privacy Policy (required at signup / first use). */
+  privacyAcceptedAt?: Date;
   fcmTokens: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -103,6 +107,8 @@ const UserSchema = new Schema<IUser>(
     phoneVerificationProvider: String,
     passwordResetToken: String,
     passwordResetExpires: Date,
+    termsAcceptedAt: Date,
+    privacyAcceptedAt: Date,
     fcmTokens: [{ type: String }],
   },
   { timestamps: true }
