@@ -19,7 +19,7 @@ export async function GET(req: Request) {
       filter.status = status;
     }
     const list = await VerificationRequest.find(filter)
-      .populate('userId', 'name email phone role companyPosition')
+      .populate('userId', 'name email phone role companyPosition idFrontUrl idBackUrl livenessCentreImageUrl')
       .populate('reviewedBy', 'name')
       .sort({ createdAt: -1 })
       .limit(100)

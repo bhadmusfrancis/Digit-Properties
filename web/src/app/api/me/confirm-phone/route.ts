@@ -5,6 +5,7 @@ import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { consumeRateLimit } from '@/lib/rate-limit';
 import { checkTwilioVerifyCode } from '@/lib/phone-verify';
+import { confirmPhoneSchema } from '@/lib/validations';
 
 /** POST /api/me/confirm-phone — verify OTP code (WhatsApp/SMS) and set phoneVerifiedAt */
 export async function POST(req: Request) {
@@ -20,11 +21,13 @@ export async function POST(req: Request) {
         { status: 429 }
       );
     }
-    const body = await req.json();
-    const code = typeof body.code === 'string' ? body.code.replace(/\D/g, '') : '';
-    if (!code || code.length < 4) {
-      return NextResponse.json({ error: 'Verification code required' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = confirmPhoneSchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      return NextResponse.json({ error: first?.message ?? 'Invalid code' }, { status: 400 });
     }
+    const code = parsed.data.code;
     await dbConnect();
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });

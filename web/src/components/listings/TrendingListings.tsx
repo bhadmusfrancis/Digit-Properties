@@ -24,7 +24,7 @@ type ListingRow = {
 };
 
 async function fetchTrending(location: LocationParams) {
-  const params = new URLSearchParams({ limit: '20' });
+  const params = new URLSearchParams({ limit: '10' });
   if (location?.suburb) params.set('suburb', location.suburb);
   if (location?.city) params.set('city', location.city);
   if (location?.state) params.set('state', location.state);

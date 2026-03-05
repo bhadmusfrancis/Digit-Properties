@@ -1,10 +1,25 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import { USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
 
+/** Scanned data from ID document (OCR or user consent). */
+export interface IIdScannedData {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+}
+
 export interface IUser {
   _id: mongoose.Types.ObjectId;
   email: string;
   name: string;
+  /** Preferred for verification and display. */
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  dateOfBirth?: Date;
+  /** Full address / location. */
+  address?: string;
   image?: string;
   password?: string;
   role: (typeof USER_ROLES)[keyof typeof USER_ROLES];
@@ -14,8 +29,16 @@ export interface IUser {
   verifiedAt?: Date;
   /** Set when phone (WhatsApp/SMS) OTP or link verified. */
   phoneVerifiedAt?: Date;
-  /** Set when ID document approved (all roles). */
+  /** ID document front image URL (upload only, no link). */
+  idFrontUrl?: string;
+  /** ID document back image URL (upload only, no link). */
+  idBackUrl?: string;
+  /** Scanned ID data when OCR did not match; user consented to save. */
+  idScannedData?: IIdScannedData;
+  /** Set when ID step done (OCR match or consent) and optionally admin-approved. */
   identityVerifiedAt?: Date;
+  /** Liveness "centre your head" capture URL for admin review. */
+  livenessCentreImageUrl?: string;
   /** Set when agent/developer professional doc approved. */
   professionalVerifiedAt?: Date;
   /** Set when liveness challenge passed; profile picture from liveness until Agent/Developer. */
@@ -46,6 +69,11 @@ const UserSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    firstName: String,
+    middleName: String,
+    lastName: String,
+    dateOfBirth: Date,
+    address: String,
     image: String,
     password: String,
     role: { type: String, enum: Object.values(USER_ROLES), default: USER_ROLES.GUEST },
@@ -53,7 +81,16 @@ const UserSchema = new Schema<IUser>(
     phone: String,
     verifiedAt: Date,
     phoneVerifiedAt: Date,
+    idFrontUrl: String,
+    idBackUrl: String,
+    idScannedData: {
+      firstName: String,
+      middleName: String,
+      lastName: String,
+      dateOfBirth: String,
+    },
     identityVerifiedAt: Date,
+    livenessCentreImageUrl: String,
     professionalVerifiedAt: Date,
     livenessVerifiedAt: Date,
     profilePictureLocked: { type: Boolean, default: false },

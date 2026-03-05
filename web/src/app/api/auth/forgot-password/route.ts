@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { sendPasswordResetEmail } from '@/lib/email';
+import { forgotPasswordSchema } from '@/lib/validations';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
 const RESET_EXPIRY_HOURS = 1;
@@ -15,11 +16,13 @@ const RESET_EXPIRY_HOURS = 1;
  */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const email = typeof body.email === 'string' ? body.email.trim() : '';
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = forgotPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      return NextResponse.json({ error: first?.message ?? 'Invalid input' }, { status: 400 });
     }
+    const { email } = parsed.data;
     await dbConnect();
     const user = await User.findOne({ email });
     const message = 'If an account exists with this email, you will receive a password reset link.';

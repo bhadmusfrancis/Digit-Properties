@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
-import { Badge } from '@/components/ui/Badge';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 const CARD_WIDTH = 280;
 const GAP = 16;
@@ -109,7 +109,7 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
             </div>
             {listing.createdBy?.role && listing.createdBy.role !== 'guest' && (
               <div className="mt-2">
-                <Badge role={listing.createdBy.role} />
+                <VerifiedBadge role={listing.createdBy.role} />
               </div>
             )}
           </div>

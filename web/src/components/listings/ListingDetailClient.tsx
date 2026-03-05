@@ -1,11 +1,11 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { getWhatsAppUrl } from '@/lib/utils';
-import { Badge } from '@/components/ui/Badge';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 interface Props {
   listingId: string;
@@ -23,7 +23,14 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
   const [claimOpen, setClaimOpen] = useState(false);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [liked, setLiked] = useState(false);
+  const viewRecorded = useRef(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!listingId || viewRecorded.current) return;
+    viewRecorded.current = true;
+    fetch(`/api/listings/${listingId}/view`, { method: 'POST' }).catch(() => {});
+  }, [listingId]);
 
   const { data: contact } = useQuery({
     queryKey: ['contact', listingId],
@@ -78,7 +85,7 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
         <span>{viewCount} view{viewCount !== 1 ? 's' : ''}</span>
         <span>{likeCount} like{likeCount !== 1 ? 's' : ''}</span>
       </div>
-      {session && (
+      {session && !isOwner && (
         <button
           type="button"
           onClick={() => toggleLike.mutate()}
@@ -91,8 +98,21 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
       {createdBy && (
         <div>
           <p className="text-sm text-gray-500">Listed by</p>
-          <p className="font-medium">{createdBy.name}</p>
-          {createdBy.role && <Badge role={createdBy.role} />}
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {createdBy._id ? (
+              <Link href={`/authors/${createdBy._id}`} className="font-medium text-primary-600 hover:underline">
+                {createdBy.name}
+              </Link>
+            ) : (
+              <span className="font-medium">{createdBy.name}</span>
+            )}
+            {createdBy.role && <VerifiedBadge role={createdBy.role} showCaveat />}
+            {createdBy._id && (
+              <Link href={`/authors/${createdBy._id}`} className="text-sm text-gray-500 hover:text-primary-600">
+                View profile →
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
@@ -121,12 +141,14 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
             </div>
           )}
 
-          <button
-            onClick={() => toggleSaved.mutate()}
-            className="btn-secondary w-full"
-          >
-            {isSaved ? 'Unsave' : 'Save listing'}
-          </button>
+          {!isOwner && (
+            <button
+              onClick={() => toggleSaved.mutate()}
+              className="btn-secondary w-full"
+            >
+              {isSaved ? 'Unsave' : 'Save listing'}
+            </button>
+          )}
         </>
       ) : (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">

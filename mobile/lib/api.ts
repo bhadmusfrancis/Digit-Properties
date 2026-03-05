@@ -1,3 +1,8 @@
+/**
+ * API client for Digit Properties. All endpoints validate input server-side;
+ * invalid input returns 400 with { error: string }. Validate/sanitize input
+ * in the app where possible for better UX. See docs/INPUT_VALIDATION.md.
+ */
 const API_URL = (typeof process !== 'undefined' && (process as any).env?.EXPO_PUBLIC_API_URL) || 'https://digitproperties.com';
 
 export function getApiUrl(path: string, params?: Record<string, string>): string {

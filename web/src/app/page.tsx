@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FeaturedListings } from '@/components/listings/FeaturedListings';
+import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { TrendingListings } from '@/components/listings/TrendingListings';
 import { TrendHighlights } from '@/components/trends/TrendHighlights';
 
@@ -33,7 +33,7 @@ export default function HomePage() {
             View all →
           </Link>
         </div>
-        <FeaturedListings />
+        <FeaturedSlot />
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 border-t border-gray-200">

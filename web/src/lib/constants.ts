@@ -36,6 +36,9 @@ export const PROPERTY_TYPES = [
   'studio',
   'terrace',
   'villa',
+  'warehouse',
+  'farm',
+  'factory',
 ] as const;
 
 export const NIGERIAN_STATES = [
@@ -75,7 +78,23 @@ export const PAYMENT_PURPOSE = {
   BOOST_LISTING: 'boost_listing',
   BANNER_AD: 'banner_ad',
   SUBSCRIPTION_TIER: 'subscription_tier',
+  USER_AD: 'user_ad',
 } as const;
+
+/** Ad placement slots (homescreen, search, listings). */
+export const AD_PLACEMENTS = ['home_featured', 'search', 'listings'] as const;
+
+/** User ad lifecycle status. */
+export const USER_AD_STATUS = {
+  PENDING_APPROVAL: 'pending_approval',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  ACTIVE: 'active',
+  EXPIRED: 'expired',
+} as const;
+
+/** Recommended ad image size for SEO/social (og:image). */
+export const AD_MEDIA_RECOMMENDED = { width: 1200, height: 630 };
 
 /** Subscription tiers for listing/media limits. Guest = unauthenticated-style limits. */
 export const SUBSCRIPTION_TIERS = {
