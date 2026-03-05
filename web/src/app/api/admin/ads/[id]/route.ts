@@ -20,7 +20,7 @@ export async function PATCH(
     }
     const body = await req.json();
     const { status, rejectionReason } = body as { status?: string; rejectionReason?: string };
-    if (!status || ![USER_AD_STATUS.APPROVED, USER_AD_STATUS.REJECTED].includes(status as keyof typeof USER_AD_STATUS)) {
+    if (!status || (status !== USER_AD_STATUS.APPROVED && status !== USER_AD_STATUS.REJECTED)) {
       return NextResponse.json({ error: 'status must be approved or rejected' }, { status: 400 });
     }
     await dbConnect();
