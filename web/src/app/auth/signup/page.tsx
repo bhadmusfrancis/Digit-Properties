@@ -26,6 +26,7 @@ function SignUpForm() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [website, setWebsite] = useState(''); // honeypot
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [captchaReady, setCaptchaReady] = useState(!RECAPTCHA_SITE_KEY);
@@ -72,6 +73,10 @@ function SignUpForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    if (!acceptTerms) {
+      setError('You must accept the Terms of Service and Privacy Policy to sign up.');
+      return;
+    }
     if (!captchaReady) return;
     if (RECAPTCHA_SITE_KEY && window.grecaptcha && captchaWidgetId.current !== null) {
       const token = window.grecaptcha.getResponse(captchaWidgetId.current);
@@ -89,7 +94,7 @@ function SignUpForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password, website, captchaToken }),
+        body: JSON.stringify({ email, name, password, website, captchaToken, acceptTermsAndPrivacy: true }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -167,6 +172,28 @@ function SignUpForm() {
             className="input mt-1"
           />
         </div>
+        <div className="flex items-start gap-3">
+          <input
+            id="acceptTerms"
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            required
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            aria-describedby="acceptTerms-desc"
+          />
+          <label id="acceptTerms-desc" htmlFor="acceptTerms" className="text-sm text-gray-700">
+            I agree to the{' '}
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-primary-600 hover:underline">
+              Terms of Service
+            </Link>
+            {' '}and{' '}
+            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-primary-600 hover:underline">
+              Privacy Policy
+            </Link>
+            . You must accept both to create an account.
+          </label>
+        </div>
         <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
           <label htmlFor="website">Website</label>
           <input
@@ -186,7 +213,7 @@ function SignUpForm() {
             </p>
           </div>
         )}
-        <button type="submit" disabled={loading || !captchaReady} className="btn-primary w-full">
+        <button type="submit" disabled={loading || !captchaReady || !acceptTerms} className="btn-primary w-full">
           {loading ? 'Creating account...' : 'Sign up'}
         </button>
       </form>
