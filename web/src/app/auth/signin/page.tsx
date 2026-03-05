@@ -40,6 +40,9 @@ function SignInForm() {
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-4 py-12">
       <h1 className="text-2xl font-bold text-gray-900">Sign in</h1>
       <p className="mt-2 text-gray-600">Sign in to view contact details and manage your listings.</p>
+      <p className="mt-1 text-xs text-gray-500">
+        By signing in you agree to our <Link href="/terms" className="text-primary-600 hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link>.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {success && (

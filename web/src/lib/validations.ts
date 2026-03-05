@@ -15,6 +15,7 @@ export const registerSchema = z.object({
   email: z.string().email().max(MAX_EMAIL),
   name: z.string().min(2).max(100),
   password: z.string().min(8).max(200).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+  acceptTermsAndPrivacy: z.literal(true, { errorMap: () => ({ message: 'You must accept the Terms of Service and Privacy Policy to sign up.' }) }),
 });
 
 export const loginSchema = z.object({

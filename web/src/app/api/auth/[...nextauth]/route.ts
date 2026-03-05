@@ -68,7 +68,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as { role?: string }).role ?? USER_ROLES.GUEST;
         await dbConnect();
-        const dbUser = await User.findById(user.id).select('verifiedAt emailVerificationToken emailVerificationExpires').lean();
+        const dbUser = await User.findById(user.id).select('verifiedAt emailVerificationToken emailVerificationExpires termsAcceptedAt privacyAcceptedAt').lean();
         if (dbUser && !dbUser.verifiedAt) {
           const tokenExpired = !dbUser.emailVerificationExpires || new Date() > dbUser.emailVerificationExpires;
           const noPendingToken = !dbUser.emailVerificationToken || tokenExpired;
@@ -76,15 +76,19 @@ export const authOptions: NextAuthOptions = {
             await User.findByIdAndUpdate(user.id, { $set: { verifiedAt: new Date() } });
           }
         }
+        const u = dbUser as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
+        token.needsLegalAcceptance = !u?.termsAcceptedAt || !u?.privacyAcceptedAt;
       }
       if (account?.provider && account.provider !== 'credentials') {
         await dbConnect();
-        const existing = await User.findOne({ email: token.email });
+        const existing = await User.findOne({ email: token.email }).select('role verifiedAt termsAcceptedAt privacyAcceptedAt').lean();
         if (existing) {
-          token.id = existing._id.toString();
-          token.role = existing.role;
-          if (!existing.verifiedAt) {
-            await User.findByIdAndUpdate(existing._id, { $set: { verifiedAt: new Date() } });
+          const ex = existing as { _id: unknown; role?: string; verifiedAt?: Date; termsAcceptedAt?: Date; privacyAcceptedAt?: Date };
+          token.id = ex._id?.toString?.() ?? token.id;
+          token.role = ex.role ?? token.role;
+          token.needsLegalAcceptance = !ex.termsAcceptedAt || !ex.privacyAcceptedAt;
+          if (!ex.verifiedAt) {
+            await User.findByIdAndUpdate(ex._id, { $set: { verifiedAt: new Date() } });
           }
         } else {
           const newUser = await User.create({
@@ -96,6 +100,7 @@ export const authOptions: NextAuthOptions = {
           });
           token.id = newUser._id.toString();
           token.role = newUser.role;
+          token.needsLegalAcceptance = true;
         }
       }
       return token;
@@ -104,14 +109,17 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as { id: string }).id = token.id;
         (session.user as { role: string }).role = token.role;
-        // Guests (not yet liveness-verified) see generic avatar; verified users see their profile image
+        (session.user as { needsLegalAcceptance?: boolean }).needsLegalAcceptance = !!token.needsLegalAcceptance;
+        // Guests (not yet liveness-verified) see generic avatar; verified users see their profile image. Refresh legal acceptance from DB so it updates after user accepts.
         if (token.id) {
           await dbConnect();
-          const u = await User.findById(token.id).select('image livenessVerifiedAt').lean();
+          const u = await User.findById(token.id).select('image livenessVerifiedAt termsAcceptedAt privacyAcceptedAt').lean();
           const image = u && (u as { livenessVerifiedAt?: Date }).livenessVerifiedAt && (u as { image?: string }).image
             ? (u as { image: string }).image
             : GUEST_AVATAR_PATH;
           (session.user as { image: string | null }).image = image;
+          const terms = u as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
+          (session.user as { needsLegalAcceptance?: boolean }).needsLegalAcceptance = !terms?.termsAcceptedAt || !terms?.privacyAcceptedAt;
         } else {
           (session.user as { image: string | null }).image = GUEST_AVATAR_PATH;
         }

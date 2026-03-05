@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     const hashed = await bcrypt.hash(password, 12);
     const emailVerificationToken = crypto.randomBytes(32).toString('hex');
     const emailVerificationExpires = new Date(Date.now() + VERIFY_EXPIRY_HOURS * 60 * 60 * 1000);
+    const now = new Date();
     const user = await User.create({
       email,
       name,
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
       role: USER_ROLES.GUEST,
       emailVerificationToken,
       emailVerificationExpires,
+      termsAcceptedAt: now,
+      privacyAcceptedAt: now,
     });
     const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${encodeURIComponent(emailVerificationToken)}`;
     await sendVerificationEmail(email, name, verifyUrl).catch((e) =>
