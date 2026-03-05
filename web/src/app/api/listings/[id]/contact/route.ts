@@ -25,7 +25,7 @@ export async function GET(
         {
           error: 'Complete verification to view contact details',
           code: 'VERIFICATION_REQUIRED',
-          verificationUrl: '/dashboard/verification',
+          verificationUrl: '/dashboard/profile',
         },
         { status: 403 }
       );

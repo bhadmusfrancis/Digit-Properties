@@ -8,6 +8,9 @@ import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
 
+/** Shown for all users until they complete liveness verification. */
+export const GUEST_AVATAR_PATH = '/avatar-guest.svg';
+
 const providers: NextAuthOptions['providers'] = [
   CredentialsProvider({
     name: 'Credentials',
@@ -101,6 +104,17 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as { id: string }).id = token.id;
         (session.user as { role: string }).role = token.role;
+        // Guests (not yet liveness-verified) see generic avatar; verified users see their profile image
+        if (token.id) {
+          await dbConnect();
+          const u = await User.findById(token.id).select('image livenessVerifiedAt').lean();
+          const image = u && (u as { livenessVerifiedAt?: Date }).livenessVerifiedAt && (u as { image?: string }).image
+            ? (u as { image: string }).image
+            : GUEST_AVATAR_PATH;
+          (session.user as { image: string | null }).image = image;
+        } else {
+          (session.user as { image: string | null }).image = GUEST_AVATAR_PATH;
+        }
       }
       return session;
     },

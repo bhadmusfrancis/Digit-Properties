@@ -25,6 +25,9 @@ export async function POST(req: Request) {
     if (folder === 'verification' || folder === 'liveness') {
       // Any logged-in user may upload to verification/liveness (for ID docs and liveness photo)
     }
+    if (folder === 'ads') {
+      // User ad media: images only, recommended 1200×630 for SEO
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });

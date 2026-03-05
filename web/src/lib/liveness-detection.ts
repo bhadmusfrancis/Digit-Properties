@@ -150,14 +150,14 @@ export function checkSmile(landmarks: { positions: Array<{ x: number; y: number 
   return getMouthOpenness(landmarks) >= SMILE_THRESHOLD;
 }
 
-/** Head turn: face box center x in video (0–1). Left = face left in frame (user turned right), right = face right (user turned left). */
+/** Head turn: face box center x in video (0–1). Left = face left in frame (user turned right), right = face right (user turned left). Wider bands so a moderate turn registers. */
 export function getHeadTurnPhase(
   box: { x: number; width: number },
   videoWidth: number
 ): 'left' | 'centre' | 'right' {
   const cx = (box.x + box.width / 2) / videoWidth;
-  if (cx < 0.44) return 'left';
-  if (cx > 0.56) return 'right';
+  if (cx < 0.38) return 'left';
+  if (cx > 0.62) return 'right';
   return 'centre';
 }
 

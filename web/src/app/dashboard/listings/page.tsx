@@ -46,7 +46,7 @@ export default async function MyListingsPage() {
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <p className="font-medium">You&apos;ve reached the limit of {guestLimit} listings.</p>
           <p className="mt-1">Verify your account to add more listings and unlock more features.</p>
-          <Link href="/dashboard/verification" className="mt-2 inline-block font-medium text-amber-900 underline hover:no-underline">
+          <Link href="/dashboard/profile" className="mt-2 inline-block font-medium text-amber-900 underline hover:no-underline">
             Verify my account →
           </Link>
         </div>

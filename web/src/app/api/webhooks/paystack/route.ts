@@ -31,10 +31,10 @@ export async function POST(req: Request) {
 
     if (!payment) {
       const meta = (event.data?.metadata || {}) as Record<string, string | undefined>;
+      const mongoose = await import('mongoose');
       if (meta.purpose === 'subscription_tier' && meta.userId && (meta.tier === 'gold' || meta.tier === 'premium')) {
         const amountKobo = event.data?.amount;
         const amount = typeof amountKobo === 'number' ? Math.round(amountKobo / 100) : 10000;
-        const mongoose = await import('mongoose');
         payment = await Payment.create({
           userId: new mongoose.Types.ObjectId(meta.userId),
           amount,
@@ -44,6 +44,19 @@ export async function POST(req: Request) {
           purpose: 'subscription_tier',
           status: 'success',
           metadata: { tier: meta.tier },
+        });
+      } else if (meta.purpose === 'user_ad' && meta.userId && meta.adId) {
+        const amountKobo = event.data?.amount;
+        const amount = typeof amountKobo === 'number' ? Math.round(amountKobo / 100) : 0;
+        payment = await Payment.create({
+          userId: new mongoose.Types.ObjectId(meta.userId),
+          amount,
+          currency: 'NGN',
+          gateway: 'paystack',
+          gatewayRef: ref,
+          purpose: 'user_ad',
+          status: 'success',
+          metadata: { adId: meta.adId },
         });
       } else {
         return NextResponse.json({ received: true });
@@ -70,6 +83,14 @@ export async function POST(req: Request) {
       const tier = (payment.metadata as { tier?: string })?.tier;
       if (tier === 'gold' || tier === 'premium') {
         await User.findByIdAndUpdate(payment.userId, { subscriptionTier: tier });
+      }
+    }
+
+    if (payment.purpose === 'user_ad' && payment.metadata) {
+      const UserAd = (await import('@/models/UserAd')).default;
+      const adId = (payment.metadata as { adId?: string }).adId;
+      if (adId) {
+        await UserAd.findByIdAndUpdate(adId, { paymentId: payment._id });
       }
     }
 

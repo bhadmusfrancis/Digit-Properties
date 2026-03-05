@@ -19,7 +19,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
     await dbConnect();
-    const user = await User.findById(id).select('name email role phone image subscriptionTier companyPosition createdAt verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked').lean();
+    const user = await User.findById(id).select('name email role phone image subscriptionTier companyPosition createdAt verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked firstName lastName dateOfBirth address idFrontUrl idBackUrl livenessCentreImageUrl').lean();
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(user);
   } catch (e) {

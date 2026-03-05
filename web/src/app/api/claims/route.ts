@@ -4,7 +4,7 @@ import { dbConnect } from '@/lib/db';
 import Claim from '@/models/Claim';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
-import { claimSchema } from '@/lib/validations';
+import { claimSchema, objectIdSchema } from '@/lib/validations';
 import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
 import { sendAdminNewClaim } from '@/lib/email';
 import { hasBaseVerification } from '@/lib/verification';
@@ -19,10 +19,13 @@ export async function GET(req: Request) {
 
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const listingId = searchParams.get('listingId');
+    const listingIdParam = searchParams.get('listingId');
+    if (listingIdParam && !objectIdSchema.safeParse(listingIdParam).success) {
+      return NextResponse.json({ error: 'Invalid listingId' }, { status: 400 });
+    }
     const filter: Record<string, unknown> =
       session.user.role === USER_ROLES.ADMIN ? {} : { userId: new mongoose.Types.ObjectId(session.user.id) };
-    if (listingId) filter.listingId = new mongoose.Types.ObjectId(listingId);
+    if (listingIdParam) filter.listingId = new mongoose.Types.ObjectId(listingIdParam);
 
     const claims = await Claim.find(filter).populate('listingId userId').sort({ createdAt: -1 }).lean();
     return NextResponse.json(claims);
@@ -48,7 +51,7 @@ export async function POST(req: Request) {
         {
           error: 'Complete verification to submit a claim',
           code: 'VERIFICATION_REQUIRED',
-          verificationUrl: '/dashboard/verification',
+          verificationUrl: '/dashboard/profile',
         },
         { status: 403 }
       );

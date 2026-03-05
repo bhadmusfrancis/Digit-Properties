@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const limit = Math.min(20, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '10', 10)));
     const suburb = searchParams.get('suburb')?.trim();
     const city = searchParams.get('city')?.trim();
     const state = searchParams.get('state')?.trim();

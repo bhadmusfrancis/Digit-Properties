@@ -6,13 +6,13 @@ import { useState } from 'react';
 
 const links = [
   { href: '/dashboard', label: 'Overview' },
-  { href: '/dashboard/verification', label: 'Verification' },
   { href: '/dashboard/listings', label: 'My Properties' },
   { href: '/dashboard/alerts', label: 'Saved Searches' },
   { href: '/dashboard/saved', label: 'Saved Properties' },
   { href: '/dashboard/claims', label: 'My Claims' },
   { href: '/dashboard/payments', label: 'Payments' },
-  { href: '/dashboard/profile', label: 'Profile' },
+  { href: '/dashboard/ads', label: 'Advertise' },
+  { href: '/dashboard/profile', label: 'Profile & Verification' },
 ];
 
 export function DashboardSidebar() {
