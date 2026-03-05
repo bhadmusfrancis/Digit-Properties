@@ -142,7 +142,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         title: typeof doc.title === 'string' ? doc.title : '',
         price: typeof doc.price === 'number' ? doc.price : 0,
         listingType: typeof doc.listingType === 'string' ? doc.listingType : 'sale',
-        rentPeriod: typeof doc.rentPeriod === 'string' ? doc.rentPeriod : undefined,
+        rentPeriod:
+          typeof doc.rentPeriod === 'string' && ['day', 'month', 'year'].includes(doc.rentPeriod)
+            ? (doc.rentPeriod as 'day' | 'month' | 'year')
+            : undefined,
         propertyType: typeof doc.propertyType === 'string' ? doc.propertyType : 'apartment',
         location,
         bedrooms: typeof doc.bedrooms === 'number' ? doc.bedrooms : 0,
