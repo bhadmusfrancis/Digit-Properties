@@ -216,7 +216,7 @@ export function LivenessCamera({ onSuccess, onCancel, onError, isUploading }: Pr
   useEffect(() => {
     if (stepStartCountdown === null || stepStartCountdown <= 0) return;
     const t = setInterval(() => {
-      setStepStartCountdown((c) => (c <= 1 ? null : c - 1));
+      setStepStartCountdown((c) => (c === null || c <= 1 ? null : c - 1));
     }, 1000);
     return () => clearInterval(t);
   }, [stepStartCountdown]);
