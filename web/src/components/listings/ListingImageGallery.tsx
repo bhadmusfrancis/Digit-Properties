@@ -105,13 +105,24 @@ export function ListingImageGallery({
     );
   }
 
+  const handleFullscreenKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openFullscreen();
+      }
+    },
+    [openFullscreen]
+  );
+
   return (
     <>
-      <button
-        type="button"
-        onClick={openFullscreen}
-        className="relative aspect-video w-full cursor-zoom-in bg-gray-200 text-left outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+      <div
+        role="button"
         tabIndex={0}
+        onClick={openFullscreen}
+        onKeyDown={handleFullscreenKeyDown}
+        className="relative aspect-video w-full cursor-zoom-in bg-gray-200 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         aria-label="View media fullscreen"
       >
         <Image
@@ -184,7 +195,7 @@ export function ListingImageGallery({
             </div>
           </>
         )}
-      </button>
+      </div>
 
       {/* Fullscreen lightbox */}
       {fullscreenOpen && (
