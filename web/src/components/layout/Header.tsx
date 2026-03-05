@@ -44,7 +44,7 @@ export function Header() {
                   <img
                     src={session.user.image}
                     alt=""
-                    className="h-8 w-8 rounded-full object-cover"
+                    className={`h-8 w-8 rounded-full ${session.user.image === '/avatar-guest.svg' ? 'bg-gray-200 p-1.5 object-contain' : 'object-cover'}`}
                   />
                 ) : (
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-700 font-medium">

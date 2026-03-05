@@ -3,7 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing, { type IListing } from '@/models/Listing';
 import User from '@/models/User';
-import { listingSchema } from '@/lib/validations';
+import { listingSchema, listingQuerySchema } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
@@ -15,23 +15,26 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const mine = searchParams.get('mine') === '1';
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(50, parseInt(searchParams.get('limit') || '12', 10));
-    const listingType = searchParams.get('listingType');
-    const propertyType = searchParams.get('propertyType');
-    const rentPeriod = searchParams.get('rentPeriod');
-    const state = searchParams.get('state');
-    const city = searchParams.get('city')?.trim();
-    const suburb = searchParams.get('suburb')?.trim();
-    const minPrice = searchParams.get('minPrice');
-    const maxPrice = searchParams.get('maxPrice');
-    const bedrooms = searchParams.get('bedrooms');
-    const tags = searchParams.get('tags')?.split(',').filter(Boolean);
-    const q = searchParams.get('q');
-    const featured = searchParams.get('featured') === '1';
-    const highlighted = searchParams.get('highlighted') === '1';
-    const random = searchParams.get('random') === '1';
+    const raw = Object.fromEntries(searchParams.entries());
+    const parsed = listingQuerySchema.safeParse(raw);
+    const mine = parsed.success ? parsed.data.mine === '1' : searchParams.get('mine') === '1';
+    const page = parsed.success ? parsed.data.page : Math.max(1, Math.min(100, parseInt(searchParams.get('page') || '1', 10) || 1));
+    const limit = parsed.success ? parsed.data.limit : Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '12', 10) || 12));
+    const listingType = parsed.success ? parsed.data.listingType : searchParams.get('listingType')?.slice(0, 50);
+    const propertyType = parsed.success ? parsed.data.propertyType : searchParams.get('propertyType')?.slice(0, 50);
+    const rentPeriod = parsed.success ? parsed.data.rentPeriod : searchParams.get('rentPeriod')?.slice(0, 20);
+    const state = parsed.success ? parsed.data.state : searchParams.get('state')?.slice(0, 100);
+    const city = (parsed.success ? parsed.data.city : searchParams.get('city')?.trim())?.slice(0, 100);
+    const suburb = (parsed.success ? parsed.data.suburb : searchParams.get('suburb')?.trim())?.slice(0, 100);
+    const minPrice = parsed.success ? parsed.data.minPrice : searchParams.get('minPrice')?.slice(0, 20);
+    const maxPrice = parsed.success ? parsed.data.maxPrice : searchParams.get('maxPrice')?.slice(0, 20);
+    const bedrooms = parsed.success ? parsed.data.bedrooms : searchParams.get('bedrooms')?.slice(0, 10);
+    const tagsRaw = parsed.success ? parsed.data.tags : searchParams.get('tags');
+    const tags = tagsRaw?.split(',').filter(Boolean).slice(0, 20) ?? [];
+    const q = (parsed.success ? parsed.data.q : searchParams.get('q'))?.trim()?.slice(0, 200);
+    const featured = parsed.success ? parsed.data.featured === '1' : searchParams.get('featured') === '1';
+    const highlighted = parsed.success ? parsed.data.highlighted === '1' : searchParams.get('highlighted') === '1';
+    const random = parsed.success ? parsed.data.random === '1' : searchParams.get('random') === '1';
 
     let filter: Record<string, unknown>;
     if (mine) {
@@ -101,7 +104,12 @@ export async function GET(req: Request) {
       listings: listings.map((l) => ({
         ...l,
         createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
-          ? { name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
+          ? {
+              _id: (l.createdBy as { _id?: unknown })._id != null ? String((l.createdBy as { _id: unknown })._id) : undefined,
+              name: (l.createdBy as { name?: string }).name,
+              image: (l.createdBy as { image?: string }).image,
+              role: (l.createdBy as { role?: string }).role,
+            }
           : l.createdBy,
         isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
       })),

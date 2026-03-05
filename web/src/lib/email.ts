@@ -280,7 +280,7 @@ export async function sendVerificationRejected(
     <p>Your verification request for <strong>${verificationType}</strong> was not approved.</p>
     ${reasonBlock}
     <p>You may re-apply after 30 days with updated documents.</p>
-    <p><a href="${APP_URL}/dashboard/verification" style="color: #0d9488;">View verification</a></p>`;
+    <p><a href="${APP_URL}/dashboard/profile" style="color: #0d9488;">View verification</a></p>`;
   const result = await sendEmail({
     to,
     subject: `[${APP_NAME}] Verification update: ${verificationType}`,

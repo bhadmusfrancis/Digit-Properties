@@ -21,8 +21,13 @@ export async function POST(
     }
 
     await dbConnect();
-    const listing = await Listing.findById(listingId).select('_id').lean();
+    const listing = await Listing.findById(listingId).select('_id createdBy').lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    const createdById = listing.createdBy != null ? String(listing.createdBy) : '';
+    if (createdById === session.user.id) {
+      return NextResponse.json({ error: 'You cannot like your own listing' }, { status: 403 });
+    }
 
     const userId = new mongoose.Types.ObjectId(session.user.id);
     const lid = new mongoose.Types.ObjectId(listingId);

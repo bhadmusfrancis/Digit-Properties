@@ -4,7 +4,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
+import { ListingGrid } from '@/components/listings/ListingGrid';
+import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
+import { LISTING_STATUS } from '@/lib/constants';
 import { getDefaultListingImageUrl, getListingImagesForDisplay } from '@/lib/listing-default-image';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
@@ -30,14 +33,24 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const ogImage = listing.images?.[0]?.url ?? getDefaultListingImageUrl(listing.propertyType ?? 'apartment');
     const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`;
+    const description = listing.description?.slice(0, 160) ?? listing.title;
     return {
       title: listing.title,
-      description: listing.description?.slice(0, 160),
+      description,
       openGraph: {
+        type: 'website',
         title: listing.title,
-        description: listing.description?.slice(0, 160),
+        description,
         url: `${baseUrl}/listings/${id}`,
-        images: [{ url: ogImageUrl }],
+        siteName: 'Digit Properties',
+        locale: 'en_NG',
+        images: [{ url: ogImageUrl, width: 1200, height: 630, alt: listing.title }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: listing.title,
+        description,
+        images: [ogImageUrl],
       },
     };
   } catch (e) {
@@ -60,6 +73,89 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     ]);
     if (!listing) notFound();
 
+    const currentCity = listing.location?.city ?? '';
+    const currentState = listing.location?.state ?? '';
+    const listingIdOid = new mongoose.Types.ObjectId(id);
+    const similarAgg = await Listing.aggregate([
+      {
+        $match: {
+          _id: { $ne: listingIdOid },
+          status: LISTING_STATUS.ACTIVE,
+          propertyType: listing.propertyType ?? '',
+        },
+      },
+      {
+        $addFields: {
+          proximityScore: {
+            $cond: {
+              if: {
+                $and: [
+                  { $eq: ['$location.city', currentCity] },
+                  { $eq: ['$location.state', currentState] },
+                ],
+              },
+              then: 2,
+              else: {
+                $cond: {
+                  if: { $eq: ['$location.state', currentState] },
+                  then: 1,
+                  else: 0,
+                },
+              },
+            },
+          },
+        },
+      },
+      { $sort: { proximityScore: -1, createdAt: -1 } },
+      { $limit: 3 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdByDoc',
+        },
+      },
+    ]).exec();
+    const similarListings = similarAgg.map((doc: Record<string, unknown>) => {
+      const createdByDoc = Array.isArray(doc.createdByDoc) ? doc.createdByDoc[0] : null;
+      const cb = createdByDoc && typeof createdByDoc === 'object' ? createdByDoc as { _id?: unknown; name?: string; role?: string } : null;
+      const loc = doc.location as Record<string, unknown> | undefined;
+      const location = loc && typeof loc === 'object'
+        ? {
+            address: typeof loc.address === 'string' ? loc.address : '',
+            city: typeof loc.city === 'string' ? loc.city : '',
+            state: typeof loc.state === 'string' ? loc.state : '',
+            suburb: typeof loc.suburb === 'string' ? loc.suburb : undefined,
+          }
+        : { address: '', city: '', state: '' };
+      const rawImages = Array.isArray(doc.images) ? doc.images : [];
+      const images = rawImages.map((img: unknown) => {
+        const o = img && typeof img === 'object' && img !== null ? img as Record<string, unknown> : {};
+        return {
+          url: typeof o.url === 'string' ? o.url : '',
+          public_id: o.public_id != null ? String(o.public_id) : undefined,
+        };
+      });
+      return {
+        _id: String(doc._id),
+        title: typeof doc.title === 'string' ? doc.title : '',
+        price: typeof doc.price === 'number' ? doc.price : 0,
+        listingType: typeof doc.listingType === 'string' ? doc.listingType : 'sale',
+        rentPeriod: typeof doc.rentPeriod === 'string' ? doc.rentPeriod : undefined,
+        propertyType: typeof doc.propertyType === 'string' ? doc.propertyType : 'apartment',
+        location,
+        bedrooms: typeof doc.bedrooms === 'number' ? doc.bedrooms : 0,
+        bathrooms: typeof doc.bathrooms === 'number' ? doc.bathrooms : 0,
+        toilets: typeof doc.toilets === 'number' ? doc.toilets : undefined,
+        images,
+        isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
+        createdBy: cb
+          ? { _id: cb._id != null ? String(cb._id) : undefined, name: cb.name, role: cb.role }
+          : undefined,
+      };
+    });
+
     const createdById = listing.createdBy && typeof listing.createdBy === 'object' && '_id' in listing.createdBy
       ? String((listing.createdBy as { _id: unknown })._id)
       : String(listing.createdBy);
@@ -67,7 +163,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
-    const images = getListingImagesForDisplay(listing.images, listing.propertyType ?? 'apartment');
+    const rawImages = getListingImagesForDisplay(listing.images, listing.propertyType ?? 'apartment');
+    const images = rawImages.map((img) => ({
+      url: typeof img.url === 'string' ? img.url : '',
+      public_id: img.public_id != null ? String(img.public_id) : undefined,
+    }));
 
     return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -112,6 +212,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
               )}
+              <div className="mt-6 border-t border-gray-200 pt-6">
+                <SocialShareButtons
+                  url={`${baseUrl}/listings/${id}`}
+                  title={listing.title}
+                  text={listing.description?.slice(0, 100)}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -149,6 +256,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       </div>
+
+      {similarListings.length > 0 && (
+        <section className="mt-12 border-t border-gray-200 pt-10">
+          <h2 className="text-xl font-semibold text-gray-900">Similar properties</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Same property type · closest to this listing first
+          </p>
+          <ListingGrid listings={similarListings} />
+        </section>
+      )}
     </div>
     );
   } catch (e) {

@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import SavedListing from '@/models/SavedListing';
+import Listing from '@/models/Listing';
 import mongoose from 'mongoose';
+import { savedListingSchema } from '@/lib/validations';
 
 export async function GET(req: Request) {
   try {
@@ -25,13 +27,22 @@ export async function POST(req: Request) {
     const session = await getSession(req);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { listingId } = body as { listingId?: string };
-    if (!listingId || !mongoose.Types.ObjectId.isValid(listingId)) {
-      return NextResponse.json({ error: 'Invalid listingId' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = savedListingSchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      return NextResponse.json({ error: first?.message ?? 'Invalid listingId' }, { status: 400 });
     }
+    const { listingId } = parsed.data;
 
     await dbConnect();
+    const listing = await Listing.findById(listingId).select('createdBy').lean();
+    if (listing) {
+      const createdById = listing.createdBy != null ? String(listing.createdBy) : '';
+      if (createdById === session.user.id) {
+        return NextResponse.json({ error: 'You cannot save your own listing' }, { status: 403 });
+      }
+    }
     const existing = await SavedListing.findOne({
       userId: session.user.id,
       listingId,

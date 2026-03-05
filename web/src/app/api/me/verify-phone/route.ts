@@ -13,6 +13,7 @@ import {
   isTwilioVerifyConfigured,
 } from '@/lib/phone-verify';
 import { sendPhoneVerificationEmail } from '@/lib/email';
+import { phoneVerifySchema } from '@/lib/validations';
 
 const RATE_PREFIX = 'verify-phone';
 
@@ -30,12 +31,13 @@ export async function POST(req: Request) {
         { status: 429, headers: rate.retryAfter ? { 'Retry-After': String(rate.retryAfter) } : undefined }
       );
     }
-    const body = await req.json();
-    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
-    if (!phone) {
-      return NextResponse.json({ error: 'Phone number required' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = phoneVerifySchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      return NextResponse.json({ error: first?.message ?? 'Invalid phone' }, { status: 400 });
     }
-    const normalized = normalizePhone(phone);
+    const normalized = normalizePhone(parsed.data.phone);
     if (normalized.length < 12) {
       return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 });
     }

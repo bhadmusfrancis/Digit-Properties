@@ -3,7 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Review from '@/models/Review';
 import Listing from '@/models/Listing';
-import { reviewSchema } from '@/lib/validations';
+import { reviewSchema, objectIdSchema } from '@/lib/validations';
 import mongoose from 'mongoose';
 
 export async function GET(req: Request) {
@@ -14,6 +14,12 @@ export async function GET(req: Request) {
 
     if (!revieweeId && !listingId) {
       return NextResponse.json({ error: 'revieweeId or listingId required' }, { status: 400 });
+    }
+    if (revieweeId && !objectIdSchema.safeParse(revieweeId).success) {
+      return NextResponse.json({ error: 'Invalid revieweeId' }, { status: 400 });
+    }
+    if (listingId && !objectIdSchema.safeParse(listingId).success) {
+      return NextResponse.json({ error: 'Invalid listingId' }, { status: 400 });
     }
 
     await dbConnect();

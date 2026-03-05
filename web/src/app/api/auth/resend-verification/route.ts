@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { sendVerificationEmail } from '@/lib/email';
+import { resendVerificationSchema } from '@/lib/validations';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
 const VERIFY_EXPIRY_HOURS = 24;
@@ -14,11 +15,13 @@ const VERIFY_EXPIRY_HOURS = 24;
  */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const email = typeof body.email === 'string' ? body.email.trim() : '';
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = resendVerificationSchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      return NextResponse.json({ error: first?.message ?? 'Invalid input' }, { status: 400 });
     }
+    const { email } = parsed.data;
     await dbConnect();
     const user = await User.findOne({ email });
     if (!user) {

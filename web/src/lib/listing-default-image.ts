@@ -16,6 +16,9 @@ const PROPERTY_TYPE_TO_FILENAME: Record<string, string> = {
   studio: 'studio',
   terrace: 'terrace',
   villa: 'villa',
+  warehouse: 'warehouse',
+  farm: 'farm',
+  factory: 'factory',
 };
 
 /**

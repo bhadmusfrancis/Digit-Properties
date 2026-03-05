@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
+import { meUpdateSchema } from '@/lib/validations';
 
 const ME_SELECT =
-  'name email image phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked';
+  'name email image phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked firstName middleName lastName dateOfBirth address idFrontUrl idBackUrl idScannedData livenessCentreImageUrl';
 
 export async function GET(req: Request) {
   try {
@@ -26,19 +28,31 @@ export async function GET(req: Request) {
         user = await User.findById(session.user.id).select(ME_SELECT).lean() ?? user;
       }
     }
-    const canChangeProfilePicture =
-      (user as { role?: string }).role === USER_ROLES.REGISTERED_AGENT ||
-      (user as { role?: string }).role === USER_ROLES.REGISTERED_DEVELOPER ||
-      (user as { role?: string }).role === USER_ROLES.ADMIN;
     const u = user as Record<string, unknown>;
+    let dateOfBirthSerialized: string | null = null;
+    if (u.dateOfBirth != null) {
+      if (u.dateOfBirth instanceof Date) {
+        dateOfBirthSerialized = (u.dateOfBirth as Date).toISOString().slice(0, 10);
+      } else if (typeof u.dateOfBirth === 'string') {
+        const s = (u.dateOfBirth as string).trim();
+        dateOfBirthSerialized = s.length >= 10 ? s.slice(0, 10) : s || null;
+      }
+    }
     return NextResponse.json({
       ...u,
+      name: u.name ?? null,
+      firstName: u.firstName ?? null,
+      middleName: u.middleName ?? null,
+      lastName: u.lastName ?? null,
+      address: u.address ?? null,
+      phone: u.phone ?? null,
+      dateOfBirth: dateOfBirthSerialized,
       verifiedAt: u.verifiedAt != null ? (u.verifiedAt instanceof Date ? u.verifiedAt.toISOString() : u.verifiedAt) : null,
       phoneVerifiedAt: u.phoneVerifiedAt != null ? (u.phoneVerifiedAt instanceof Date ? u.phoneVerifiedAt.toISOString() : u.phoneVerifiedAt) : null,
       identityVerifiedAt: u.identityVerifiedAt != null ? (u.identityVerifiedAt instanceof Date ? u.identityVerifiedAt.toISOString() : u.identityVerifiedAt) : null,
       professionalVerifiedAt: u.professionalVerifiedAt != null ? (u.professionalVerifiedAt instanceof Date ? u.professionalVerifiedAt.toISOString() : u.professionalVerifiedAt) : null,
       livenessVerifiedAt: u.livenessVerifiedAt != null ? (u.livenessVerifiedAt instanceof Date ? u.livenessVerifiedAt.toISOString() : u.livenessVerifiedAt) : null,
-      canChangeProfilePicture: !!canChangeProfilePicture,
+      canChangeProfilePicture: true,
     });
   } catch (e) {
     console.error(e);
@@ -52,48 +66,69 @@ export async function PATCH(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const body = await req.json();
-    const { name, phone, image, companyPosition } = body;
+    const body = await req.json().catch(() => ({}));
+    const parsed = meUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      return NextResponse.json({ error: first?.message ?? 'Invalid input' }, { status: 400 });
+    }
+    const data = parsed.data;
     await dbConnect();
-    const existing = await User.findById(session.user.id);
+    const existing = await User.findById(session.user.id).lean();
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    const update: Record<string, unknown> = {};
-    if (typeof name === 'string' && name.trim()) update.name = name.trim();
-    if (typeof phone === 'string') update.phone = phone.trim() || undefined;
-    const canChangeProfilePicture =
-      existing.role === USER_ROLES.REGISTERED_AGENT ||
-      existing.role === USER_ROLES.REGISTERED_DEVELOPER ||
-      existing.role === USER_ROLES.ADMIN;
-    if (typeof image === 'string' && image.trim()) {
-      if (!canChangeProfilePicture && existing.profilePictureLocked) {
-        return NextResponse.json(
-          { error: 'Profile picture is set from liveness verification. You can change it after becoming a Registered Agent or Developer.' },
-          { status: 403 }
-        );
+    /** Lock name, DOB, address once ID is verified. Lock phone once phone is verified. */
+    const identityVerified = !!(existing as { identityVerifiedAt?: Date }).identityVerifiedAt;
+    const phoneVerified = !!(existing as { phoneVerifiedAt?: Date }).phoneVerifiedAt;
+    const set: Record<string, unknown> = {};
+    if (!identityVerified) {
+      if (data.name !== undefined) {
+        set.name = data.name || ((existing as { name?: string }).name || 'User');
       }
-      update.image = image.trim();
+      if (data.firstName !== undefined) set.firstName = data.firstName || null;
+      if (data.lastName !== undefined) set.lastName = data.lastName || null;
+      if (data.middleName !== undefined) set.middleName = data.middleName || null;
+      if (data.dateOfBirth !== undefined) {
+        const d = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+        set.dateOfBirth = d && !Number.isNaN(d.getTime()) ? d : null;
+      }
+      if (data.address !== undefined) set.address = data.address || null;
     }
-    if (typeof companyPosition === 'string') {
-      if (
-        existing.role === USER_ROLES.REGISTERED_AGENT ||
-        existing.role === USER_ROLES.REGISTERED_DEVELOPER
-      ) {
-        update.companyPosition = companyPosition.trim() || undefined;
+    if (!phoneVerified && data.phone !== undefined) {
+      set.phone = data.phone || null;
+    }
+    if (data.image !== undefined) set.image = data.image;
+    if (data.companyPosition !== undefined && ((existing as { role?: string }).role === USER_ROLES.REGISTERED_AGENT || (existing as { role?: string }).role === USER_ROLES.REGISTERED_DEVELOPER)) {
+      set.companyPosition = data.companyPosition || null;
+    }
+    const id = typeof session.user.id === 'string' ? new mongoose.Types.ObjectId(session.user.id) : session.user.id;
+    if (Object.keys(set).length > 0) {
+      const updateResult = await User.updateOne({ _id: id }, { $set: set });
+      if (updateResult.matchedCount === 0) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
     }
-    const user = await User.findByIdAndUpdate(
-      session.user.id,
-      { $set: update },
-      { new: true }
-    )
-      .select(ME_SELECT)
-      .lean();
+    const user = await User.findById(id).select(ME_SELECT).lean();
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    const canChange =
-      (user as { role?: string }).role === USER_ROLES.REGISTERED_AGENT ||
-      (user as { role?: string }).role === USER_ROLES.REGISTERED_DEVELOPER ||
-      (user as { role?: string }).role === USER_ROLES.ADMIN;
-    return NextResponse.json({ ...user, canChangeProfilePicture: !!canChange });
+    const u = user as Record<string, unknown>;
+    let dobSerialized: string | null = null;
+    if (u.dateOfBirth != null) {
+      if (u.dateOfBirth instanceof Date) {
+        dobSerialized = (u.dateOfBirth as Date).toISOString().slice(0, 10);
+      } else if (typeof u.dateOfBirth === 'string') {
+        const s = (u.dateOfBirth as string).trim();
+        dobSerialized = s.length >= 10 ? s.slice(0, 10) : s || null;
+      }
+    }
+    return NextResponse.json({
+      ...u,
+      firstName: u.firstName ?? null,
+      middleName: u.middleName ?? null,
+      lastName: u.lastName ?? null,
+      address: u.address ?? null,
+      phone: u.phone ?? null,
+      dateOfBirth: dobSerialized,
+      canChangeProfilePicture: true,
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });

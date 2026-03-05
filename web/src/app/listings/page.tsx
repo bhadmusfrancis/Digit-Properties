@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
+import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 
 function buildQuery(params: URLSearchParams) {
   const q = new URLSearchParams();
@@ -32,6 +33,9 @@ function ListingsContent() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-bold text-gray-900">Property Listings</h1>
       <ListingFilters />
+      <div className="mt-6">
+        <FeaturedSlot placement="listings" />
+      </div>
       {isLoading ? (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(8)].map((_, i) => (

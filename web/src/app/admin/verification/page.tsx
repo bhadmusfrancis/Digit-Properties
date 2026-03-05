@@ -14,7 +14,16 @@ type RequestItem = {
   documentVerificationMethod?: string;
   createdAt: string;
   reviewedAt?: string;
-  userId: { _id: string; name?: string; email?: string; phone?: string; role?: string };
+  userId: {
+    _id: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+    idFrontUrl?: string;
+    idBackUrl?: string;
+    livenessCentreImageUrl?: string;
+  };
   reviewedBy?: { name?: string };
 };
 
@@ -135,6 +144,51 @@ export default function AdminVerificationPage() {
                   <td className="px-4 py-3">{typeLabel(r.type)}</td>
                   <td className="px-4 py-3">{r.companyPosition ?? '—'}</td>
                   <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      {r.userId?.livenessCentreImageUrl && (
+                        <span className="inline-flex flex-col items-center">
+                          <span className="text-xs text-gray-500">Liveness (centre)</span>
+                          <a
+                            href={r.userId.livenessCentreImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block h-14 w-14 overflow-hidden rounded border border-gray-200 bg-gray-100"
+                          >
+                            <img
+                              src={r.userId.livenessCentreImageUrl}
+                              alt="Liveness"
+                              className="h-full w-full object-cover"
+                            />
+                          </a>
+                        </span>
+                      )}
+                      {r.userId?.idFrontUrl && (
+                        <span className="inline-flex flex-col items-center">
+                          <span className="text-xs text-gray-500">ID front</span>
+                          <a
+                            href={r.userId.idFrontUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block h-14 w-14 overflow-hidden rounded border border-gray-200 bg-gray-100"
+                          >
+                            <img src={r.userId.idFrontUrl} alt="ID front" className="h-full w-full object-cover" />
+                          </a>
+                        </span>
+                      )}
+                      {r.userId?.idBackUrl && (
+                        <span className="inline-flex flex-col items-center">
+                          <span className="text-xs text-gray-500">ID back</span>
+                          <a
+                            href={r.userId.idBackUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block h-14 w-14 overflow-hidden rounded border border-gray-200 bg-gray-100"
+                          >
+                            <img src={r.userId.idBackUrl} alt="ID back" className="h-full w-full object-cover" />
+                          </a>
+                        </span>
+                      )}
+                    </div>
                     {r.documentUrls?.length
                       ? r.documentUrls.map((url, i) => (
                           <a
@@ -142,12 +196,12 @@ export default function AdminVerificationPage() {
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-primary-600 hover:underline"
+                            className="mt-1 block text-sm text-primary-600 hover:underline"
                           >
-                            Doc {i + 1}
+                            View doc {i + 1}
                           </a>
                         ))
-                      : '—'}
+                      : null}
                   </td>
                   <td className="px-4 py-3">
                     <span

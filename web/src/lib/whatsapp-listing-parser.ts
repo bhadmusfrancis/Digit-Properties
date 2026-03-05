@@ -184,7 +184,7 @@ function extractListingType(text: string): { listingType: 'sale' | 'rent'; rest:
 
 function extractPropertyType(text: string): string {
   const lower = text.toLowerCase();
-  const buildingTypes = ['bungalow', 'duplex', 'penthouse', 'villa', 'terrace', 'commercial', 'studio', 'house', 'apartment'];
+  const buildingTypes = ['bungalow', 'duplex', 'penthouse', 'villa', 'terrace', 'commercial', 'studio', 'house', 'apartment', 'warehouse', 'farm', 'factory'];
   for (const p of buildingTypes) {
     if (new RegExp('\\b' + p + 's?\\b').test(lower)) return p;
   }

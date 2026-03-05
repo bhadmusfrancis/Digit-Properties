@@ -10,9 +10,8 @@ import VerificationRequest, {
 import { USER_ROLES } from '@/lib/constants';
 import { consumeRateLimit } from '@/lib/rate-limit';
 import { sendAdminNewVerificationRequest } from '@/lib/email';
+import { verificationRequestSchema } from '@/lib/validations';
 
-const MAX_DOCUMENTS = 5;
-const MIN_DOCUMENTS = 1;
 const REJECT_COOLDOWN_DAYS = 30;
 
 /** GET /api/verification/request — list current user's verification requests */
@@ -47,36 +46,16 @@ export async function POST(req: Request) {
         { status: 429 }
       );
     }
-    const body = await req.json();
-    const type = body.type as VerificationRequestType | undefined;
-    if (!type || !VERIFICATION_REQUEST_TYPES.includes(type)) {
-      return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
-    }
-    const documentUrls = Array.isArray(body.documentUrls) ? body.documentUrls : [];
-    if (documentUrls.length < MIN_DOCUMENTS || documentUrls.length > MAX_DOCUMENTS) {
+    const body = await req.json().catch(() => ({}));
+    const parsed = verificationRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
       return NextResponse.json(
-        { error: `Provide between ${MIN_DOCUMENTS} and ${MAX_DOCUMENTS} document URLs` },
+        { error: first?.message ?? 'Invalid input' },
         { status: 400 }
       );
     }
-    const validUrls = documentUrls.filter(
-      (u: unknown) => typeof u === 'string' && u.startsWith('http')
-    );
-    if (validUrls.length < MIN_DOCUMENTS) {
-      return NextResponse.json({ error: 'Valid document URLs required' }, { status: 400 });
-    }
-    const companyPosition =
-      type === 'registered_agent' || type === 'registered_developer'
-        ? typeof body.companyPosition === 'string'
-          ? body.companyPosition.trim()
-          : ''
-        : undefined;
-    if (
-      (type === 'registered_agent' || type === 'registered_developer') &&
-      (!companyPosition || companyPosition.length < 2)
-    ) {
-      return NextResponse.json({ error: 'Position in company is required for Agent/Developer' }, { status: 400 });
-    }
+    const { type, documentUrls: validUrls, companyPosition, message: rawMessage } = parsed.data;
     await dbConnect();
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -116,7 +95,7 @@ export async function POST(req: Request) {
       status: VERIFICATION_REQUEST_STATUS.PENDING,
       documentUrls: validUrls,
       companyPosition: companyPosition || undefined,
-      message: typeof body.message === 'string' ? body.message.trim().slice(0, 500) : undefined,
+      message: rawMessage ?? undefined,
       documentVerificationMethod: 'manual',
     });
     const typeLabel =
