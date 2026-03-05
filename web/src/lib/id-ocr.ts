@@ -212,7 +212,7 @@ function extractName(text: string): { firstName: string; middleName: string; las
   }
 
   const noCommaRe = /\b([A-Z][A-Za-z\-']+)\s+([A-Z][A-Za-z\-']+(?:\s+[A-Z][A-Za-z\-']+)*)\b/g;
-  let noCommaMatch;
+  let noCommaMatch: RegExpExecArray | null;
   while ((noCommaMatch = noCommaRe.exec(text)) !== null) {
     const first = noCommaMatch[1];
     const rest = noCommaMatch[2].trim();
