@@ -57,7 +57,12 @@ export function Footer() {
         <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
           <Link href="/terms" className="hover:text-gray-300">Terms of Service</Link>
           <Link href="/privacy" className="hover:text-gray-300">Privacy Policy</Link>
-          <span>{new Date().getFullYear()} Digit Properties</span>
+          <span>
+            © {new Date().getFullYear()} Digit Properties · A brand of{' '}
+            <span className="font-semibold text-gray-200">
+              FABHA International
+            </span>
+          </span>
         </div>
       </div>
     </footer>

@@ -32,7 +32,7 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-gray-500">Track your property claims</p>
         </Link>
         <Link href="/listings/new" className="card flex flex-col justify-center p-5 sm:p-6 hover:shadow-md min-h-[44px]">
-          <h3 className="font-semibold text-gray-900">Add a property</h3>
+          <h3 className="font-semibold text-gray-900">Sell or Rent a property</h3>
           <p className="mt-2 text-sm text-gray-500">Create a new listing</p>
           <span className="mt-4 text-primary-600 font-medium">+ Add listing →</span>
         </Link>

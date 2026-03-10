@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { MAX_CONTACT_MESSAGE } from '@/lib/validations';
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
 const CAPTCHA_CONTAINER_ID = 'contact-recaptcha-container';
@@ -124,12 +125,13 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
       <h1 className="text-2xl font-bold text-gray-900">Contact us</h1>
       <p className="mt-2 text-gray-600">
         Send us a message and we&apos;ll get back to you as soon as we can.
       </p>
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+
+      <form onSubmit={handleSubmit} className="mt-8 max-w-xl space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
           <input
@@ -173,10 +175,15 @@ export default function ContactPage() {
             id="message"
             rows={5}
             required
+            maxLength={MAX_CONTACT_MESSAGE}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="input mt-1 w-full"
+            aria-describedby="message-hint"
           />
+          <p id="message-hint" className="mt-1 text-xs text-gray-500">
+            {message.length}/{MAX_CONTACT_MESSAGE} characters
+          </p>
         </div>
         <div className="space-y-2">
           <div id={CAPTCHA_CONTAINER_ID} ref={captchaContainerRef} className="min-h-[78px]" />
@@ -206,7 +213,80 @@ export default function ContactPage() {
           {status === 'sending' ? 'Sending...' : 'Send message'}
         </button>
       </form>
-      <p className="mt-8">
+
+      {/* Office locations — after form */}
+      <section className="mt-16 overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white shadow-2xl">
+        <div className="relative px-6 py-10 sm:px-10 sm:py-14">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.15),transparent)]" />
+          <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-500/10 blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/20 text-primary-400">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-white">Find us</h2>
+                <p className="text-sm text-gray-400">Visit our offices across Nigeria</p>
+              </div>
+            </div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-3">
+              <div className="group relative flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-all hover:border-primary-500/30 hover:bg-white/[0.08]">
+                <div className="flex shrink-0">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-500/20 text-primary-400 transition-colors group-hover:bg-primary-500/30">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary-400">Lagos</p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                    3 Atorilaye Street, off Mabinuori Street, Express View Estate, OPIC, Lagos.
+                  </p>
+                </div>
+              </div>
+              <div className="group relative flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-all hover:border-primary-500/30 hover:bg-white/[0.08]">
+                <div className="flex shrink-0">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-500/20 text-primary-400 transition-colors group-hover:bg-primary-500/30">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary-400">Ibadan</p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                    No 80, Ososami Road, off Ring Road, Ibadan.
+                  </p>
+                </div>
+              </div>
+              <div className="group relative flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-all hover:border-primary-500/30 hover:bg-white/[0.08]">
+                <div className="flex shrink-0">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-500/20 text-primary-400 transition-colors group-hover:bg-primary-500/30">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary-400">Delta</p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                    No 48, Brighthope Street, off Airport Road, Ugboroke, Warri, Delta State.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p className="mt-10">
         <Link href="/" className="text-primary-600 hover:underline">← Back to home</Link>
       </p>
     </div>

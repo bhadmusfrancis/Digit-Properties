@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LivenessCamera } from '@/components/verification/LivenessCamera';
+import { IdDocumentCamera } from '@/components/verification/IdDocumentCamera';
 
 const VERIFICATION_TYPES = [
   { value: 'registered_agent', label: 'Registered Agent' },
@@ -88,6 +89,7 @@ export default function ProfilePage() {
 
   const [idFrontFile, setIdFrontFile] = useState<File | null>(null);
   const [idBackFile, setIdBackFile] = useState<File | null>(null);
+  const [showIdCamera, setShowIdCamera] = useState<'front' | 'back' | null>(null);
   const [idUploading, setIdUploading] = useState(false);
   const [idUploadResult, setIdUploadResult] = useState<IdUploadResult | null>(null);
   const [idConfirming, setIdConfirming] = useState(false);
@@ -513,28 +515,79 @@ export default function ProfilePage() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900">Profile & Verification</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Complete profile → ID → Liveness (sent to admin) → Phone to complete Verified Individual. You can verify phone separately. Then apply for Registered Agent/Developer.
+          Verify your phone anytime (independent). For Verified Individual: complete profile → ID → Liveness (sent to admin). Then apply for Registered Agent/Developer.
         </p>
       </div>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm" aria-label="Verification order">
-        <h3 className="font-medium text-gray-900">Order</h3>
+      {!phoneOk && (
+        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm" aria-label="Verify phone">
+          <h3 className="font-medium text-gray-900">Verify phone</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Enter your Nigerian phone number (e.g. 08012345678 or +2348012345678). We&apos;ll send a 6-digit code via SMS or WhatsApp.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <input
+              type="tel"
+              value={phoneForVerify}
+              onChange={(e) => setPhoneForVerify(e.target.value)}
+              placeholder="08012345678 or +2348012345678"
+              className="input w-56 font-mono"
+              inputMode="numeric"
+              autoComplete="tel"
+              aria-label="Nigerian phone number for OTP"
+            />
+            <button type="button" onClick={handleSendPhone} disabled={phoneSending} className="btn-primary">
+              {phoneSending ? 'Sending…' : 'Send code'}
+            </button>
+          </div>
+          {phoneMessage && (
+            <p className={`mt-2 text-sm ${phoneMessage.startsWith('Phone verified') ? 'text-green-600' : 'text-gray-700'}`}>
+              {phoneMessage}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <label className="text-sm text-gray-600">Code:</label>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="000000"
+              className="input w-32"
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+            />
+            <button
+              type="button"
+              onClick={handleConfirmPhone}
+              disabled={phoneConfirming || !code.trim()}
+              className="btn-primary"
+            >
+              {phoneConfirming ? 'Verifying…' : 'Confirm'}
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm" aria-label="Verification checklist">
+        <h3 className="font-medium text-gray-900">Checklist (Verified Individual)</h3>
         <ul className="mt-3 space-y-2 text-sm" role="list">
           <li className="flex items-center gap-2">
+            {phoneOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
+            <span>Phone verified</span>
+            {!phoneOk && <span className="text-gray-500">— independent, do anytime</span>}
+          </li>
+          <li className="flex items-center gap-2">
             {profileComplete ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
-            Profile: Surname, First name, DOB, Phone, Address
+            Step 1: Profile (Surname, First name, DOB, Phone, Address)
           </li>
           <li className="flex items-center gap-2">
             {identityOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
-            ID document (upload front & back, then confirm) — profile locked after this
+            Step 2: ID document (upload front & back, then confirm) — profile locked after this
           </li>
           <li className="flex items-center gap-2">
             {livenessOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
-            Liveness (camera) — then sent to admin for approval
-          </li>
-          <li className="flex items-center gap-2">
-            {phoneOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
-            Phone verified (completes Verified Individual; can be done separately)
+            Step 3: Liveness (camera) — then sent to admin for approval
           </li>
           <li className="flex items-center gap-2">
             <span className="text-gray-400">→</span>
@@ -704,31 +757,54 @@ export default function ProfilePage() {
         ) : !identityOk ? (
           <>
           <p className="mt-1 text-sm text-gray-500">
-            Upload front and back of your photo ID (file only, no links). Your document is only saved after you compare and confirm or consent below.
+            Use your device camera to take pictures of your ID. Align the ID within the frame on screen. Your document is only saved after you compare and confirm or consent below.
           </p>
           <form onSubmit={handleIdUpload} className="mt-4 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">ID front (required)</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => setIdFrontFile(e.target.files?.[0] ?? null)}
-                className="input mt-1 block w-full text-sm"
-              />
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIdCamera('front')}
+                  className="btn-primary"
+                >
+                  {idFrontFile ? 'Retake front' : 'Capture ID front (camera)'}
+                </button>
+                {idFrontFile && (
+                  <span className="text-sm text-green-600">Front captured</span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">ID back (optional)</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => setIdBackFile(e.target.files?.[0] ?? null)}
-                className="input mt-1 block w-full text-sm"
-              />
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIdCamera('back')}
+                  className="btn-secondary"
+                >
+                  {idBackFile ? 'Retake back' : 'Capture ID back (camera)'}
+                </button>
+                {idBackFile && (
+                  <span className="text-sm text-green-600">Back captured</span>
+                )}
+              </div>
             </div>
             <button type="submit" disabled={!idFrontFile || idUploading} className="btn-primary">
               {idUploading ? 'Uploading…' : 'Upload ID'}
             </button>
           </form>
+          {showIdCamera && (
+            <IdDocumentCamera
+              side={showIdCamera}
+              onCapture={(file) => {
+                if (showIdCamera === 'front') setIdFrontFile(file);
+                else setIdBackFile(file);
+                setShowIdCamera(null);
+              }}
+              onCancel={() => setShowIdCamera(null)}
+            />
+          )}
           {idUploadResult && (
             <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
               <p className="text-sm font-medium text-gray-900">ID uploaded. Compare and continue</p>
@@ -863,53 +939,6 @@ export default function ProfilePage() {
             </div>
           )}
           {livenessMessage && <p className="mt-2 text-sm text-gray-700">{livenessMessage}</p>}
-        </section>
-      )}
-
-      {livenessOk && !phoneOk && (
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="font-medium text-gray-900">Step 4: Verify phone</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Phone verification completes your Verified Individual status. You can do this separately. Enter number with country code; we&apos;ll send a 6-digit code to your WhatsApp.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <input
-              type="tel"
-              value={phoneForVerify}
-              onChange={(e) => setPhoneForVerify(e.target.value)}
-              placeholder="08012345678 or +234..."
-              className="input w-56"
-            />
-            <button type="button" onClick={handleSendPhone} disabled={phoneSending} className="btn-primary">
-              {phoneSending ? 'Sending…' : 'Send code'}
-            </button>
-          </div>
-          {phoneMessage && (
-            <p className={`mt-2 text-sm ${phoneMessage.startsWith('Phone verified') ? 'text-green-600' : 'text-gray-700'}`}>
-              {phoneMessage}
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <label className="text-sm text-gray-600">Code:</label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="000000"
-              className="input w-32"
-              maxLength={6}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-            />
-            <button
-              type="button"
-              onClick={handleConfirmPhone}
-              disabled={phoneConfirming || !code.trim()}
-              className="btn-primary"
-            >
-              {phoneConfirming ? 'Verifying…' : 'Confirm'}
-            </button>
-          </div>
         </section>
       )}
 

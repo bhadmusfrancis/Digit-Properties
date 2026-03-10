@@ -40,7 +40,7 @@ export default function NewListingPage() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Add a property
+            Sell or Rent a property
           </h1>
           <p className="mt-2 text-base text-gray-600">
             Fill in the details below. Required fields are marked with <span className="text-red-500">*</span>.

@@ -6,13 +6,12 @@ import User from '@/models/User';
 import { consumeRateLimit } from '@/lib/rate-limit';
 import {
   normalizePhone,
+  isValidNigerianPhone,
   generatePhoneVerification,
   sendPhoneOtp,
-  sendPhoneOtpViaTwilioWhatsApp,
-  getPhoneVerificationLink,
+  sendPhoneOtpViaTwilio,
   isTwilioVerifyConfigured,
 } from '@/lib/phone-verify';
-import { sendPhoneVerificationEmail } from '@/lib/email';
 import { phoneVerifySchema } from '@/lib/validations';
 
 const RATE_PREFIX = 'verify-phone';
@@ -38,28 +37,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: first?.message ?? 'Invalid phone' }, { status: 400 });
     }
     const normalized = normalizePhone(parsed.data.phone);
-    if (normalized.length < 12) {
-      return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 });
+    if (!isValidNigerianPhone(normalized)) {
+      return NextResponse.json(
+        { error: 'Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)' },
+        { status: 400 }
+      );
     }
     await dbConnect();
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     user.phone = normalized;
 
+    let twilioError: string | undefined;
     if (isTwilioVerifyConfigured()) {
-      const twilioResult = await sendPhoneOtpViaTwilioWhatsApp(normalized);
+      const twilioResult = await sendPhoneOtpViaTwilio(normalized);
       if (twilioResult.ok) {
         user.phoneVerificationProvider = 'twilio';
         user.phoneVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
         user.phoneVerificationCode = undefined;
         user.phoneVerificationToken = undefined;
         await user.save();
+        const channel = twilioResult.channel || 'sms';
         return NextResponse.json({
           ok: true,
-          message: 'Verification code sent to your WhatsApp. Enter the code below.',
-          channel: 'whatsapp',
+          message:
+            channel === 'whatsapp'
+              ? 'Verification code sent to your WhatsApp. Enter the code below.'
+              : 'Verification code sent to your phone via SMS. Enter the code below.',
+          channel,
         });
       }
+      twilioError = twilioResult.error;
+      console.warn('[verify-phone] Twilio send failed:', twilioError);
+    } else {
+      console.warn('[verify-phone] Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID in .env.local and restart the server.');
     }
 
     const { code, token, expiresAt } = generatePhoneVerification();
@@ -78,15 +89,20 @@ export async function POST(req: Request) {
         channel: process.env.TERMII_CHANNEL || 'sms',
       });
     }
-    const verifyLink = getPhoneVerificationLink(token);
-    await sendPhoneVerificationEmail(user.email, user.name, verifyLink).catch((e) =>
-      console.error('[verify-phone] email:', e)
+
+    user.phoneVerificationCode = undefined;
+    user.phoneVerificationToken = undefined;
+    user.phoneVerificationExpires = undefined;
+    await user.save();
+
+    const errorMessage =
+      twilioError || sendResult.error
+        ? 'We couldn\'t send a verification code to this number. Check the number and try again.'
+        : 'Phone verification is not configured. Please try again later or contact support.';
+    return NextResponse.json(
+      { error: errorMessage, ...(twilioError && { twilioError }) },
+      { status: 503 }
     );
-    return NextResponse.json({
-      ok: true,
-      message: 'Verification link sent to your email. Open it on your phone, or use the link below.',
-      verifyLink,
-    });
   } catch (e) {
     console.error('[verify-phone]', e);
     return NextResponse.json({ error: 'Failed to send verification' }, { status: 500 });

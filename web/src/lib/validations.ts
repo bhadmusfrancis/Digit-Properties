@@ -10,6 +10,8 @@ const MAX_EMAIL = 254;
 const MAX_NAME = 200;
 const MAX_MESSAGE = 5000;
 const MAX_SUBJECT = 300;
+/** Contact form message: keep short so validation error is reasonable */
+export const MAX_CONTACT_MESSAGE = 1000;
 
 export const registerSchema = z.object({
   email: z.string().email().max(MAX_EMAIL),
@@ -104,8 +106,8 @@ export const contactFormSchema = z.object({
   email: z.string().email().max(MAX_EMAIL),
   name: z.string().min(2).max(MAX_NAME).trim(),
   subject: z.string().min(2).max(MAX_SUBJECT).trim(),
-  message: z.string().min(5).max(MAX_MESSAGE).trim(),
-  captchaToken: z.string().max(2000).optional(),
+  message: z.string().min(5).max(MAX_CONTACT_MESSAGE).trim(),
+  captchaToken: z.string().max(10000).optional(),
 });
 
 export const verificationRequestSchema = z.object({
@@ -126,9 +128,20 @@ export const verificationRequestSchema = z.object({
   { message: 'Position in company is required for Agent/Developer', path: ['companyPosition'] }
 );
 
-export const phoneVerifySchema = z.object({
-  phone: z.string().min(10).max(20).trim(),
-});
+/** Nigerian phone: 234 + 10 digits. Accepts 08012345678, 8012345678, 2348012345678, +234 801 234 5678. */
+export const phoneVerifySchema = z
+  .object({
+    phone: z.string().min(10).max(20).trim(),
+  })
+  .refine(
+    (data) => {
+      const digits = data.phone.replace(/\D/g, '');
+      const normalized =
+        digits.startsWith('234') ? digits.slice(0, 13) : digits.startsWith('0') ? '234' + digits.slice(1) : '234' + digits;
+      return normalized.length === 13 && normalized.startsWith('234') && /^\d+$/.test(normalized);
+    },
+    { message: 'Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)' }
+  );
 
 export const confirmPhoneSchema = z.object({
   code: z.string().min(4).max(8).regex(/^\d+$/, 'Code must be digits only'),
