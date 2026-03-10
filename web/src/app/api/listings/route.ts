@@ -9,7 +9,7 @@ import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 
-const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
+const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
 export async function GET(req: Request) {
   try {
@@ -144,7 +144,7 @@ export async function POST(req: Request) {
       session.user.role === USER_ROLES.ADMIN
         ? SUBSCRIPTION_TIERS.PREMIUM
         : (user?.subscriptionTier as string) ||
-          (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
+          (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : session.user.role === USER_ROLES.BOT ? 'bot' : SUBSCRIPTION_TIERS.FREE);
     const limits = await getSubscriptionLimits(tier);
 
     const listingCount = await Listing.countDocuments({
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
       videos: videos.length > 0 ? videos : [],
       status: parsed.data.status || LISTING_STATUS.DRAFT,
       createdBy: session.user.id,
-      createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : 'user',
+      createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : session.user.role === USER_ROLES.BOT ? 'bot' : 'user',
     });
 
     const isActive = (parsed.data.status || LISTING_STATUS.DRAFT) === LISTING_STATUS.ACTIVE;

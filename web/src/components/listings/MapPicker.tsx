@@ -42,16 +42,22 @@ export function MapPicker({
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
 
-  // Create map once on mount; avoid re-running when initialLat/initialLng/onPick change (which would destroy and recreate the map).
+  // Keep refs in sync so async map init and sync update effect both see latest position
+  const latRef = useRef(initialLat ?? DEFAULT_LAT);
+  const lngRef = useRef(initialLng ?? DEFAULT_LNG);
+  latRef.current = initialLat ?? DEFAULT_LAT;
+  lngRef.current = initialLng ?? DEFAULT_LNG;
+
+  // Create map once on mount. Use refs for position so we show latest coords even if they arrived before map was ready.
   useEffect(() => {
     if (typeof window === 'undefined' || !containerRef.current) return;
-    const lat = initialLat ?? DEFAULT_LAT;
-    const lng = initialLng ?? DEFAULT_LNG;
 
     let cancelled = false;
     import('leaflet').then((leaflet) => {
       const L = getL(leaflet);
       if (cancelled || !containerRef.current) return;
+      const lat = latRef.current;
+      const lng = lngRef.current;
       const map = L.map(containerRef.current).setView([lat, lng], 14);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap',
@@ -66,6 +72,13 @@ export function MapPicker({
 
       mapRef.current = map;
       markerRef.current = marker;
+      // If coords changed while we were loading, update now
+      const currentLat = latRef.current;
+      const currentLng = lngRef.current;
+      if (currentLat !== lat || currentLng !== lng) {
+        marker.setLatLng([currentLat, currentLng]);
+        map.setView([currentLat, currentLng], map.getZoom());
+      }
     });
 
     return () => {
@@ -76,10 +89,10 @@ export function MapPicker({
     };
   }, []);
 
-  // When initialLat/initialLng change (e.g. form updated after pick or editing existing listing), update marker and view without destroying the map.
+  // When initialLat/initialLng change (address typed, suggestion selected, or blur), move marker and map view
   useEffect(() => {
-    const lat = initialLat ?? DEFAULT_LAT;
-    const lng = initialLng ?? DEFAULT_LNG;
+    const lat = latRef.current;
+    const lng = lngRef.current;
     const map = mapRef.current;
     const marker = markerRef.current;
     if (map && marker) {

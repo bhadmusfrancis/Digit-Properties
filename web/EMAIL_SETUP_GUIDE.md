@@ -83,4 +83,5 @@ For `digitproperties.com`:
   1. **Quick fix (no DNS):** In `.env.local` add `RESEND_FROM_OVERRIDE=Digit Properties <onboarding@resend.dev>`. Restart the server. Emails will send from Resend’s test address until you verify your domain.
   2. **Production:** Go to [Resend → Domains](https://resend.com/domains), add `digitproperties.com`, add the DNS records they show (MX + DKIM), wait for verification, then remove `RESEND_FROM_OVERRIDE` so the app uses `FROM_EMAIL`.
 - **Admin not receiving**: Ensure `ADMIN_EMAIL` is correct (default: contact@digitproperties.com) and that your inbox isn’t filtering the test/signup emails.
+- **Cloudflare Email Routing**: If you use Cloudflare to receive mail at contact@ and forward to Gmail, Resend’s emails can still be dropped or filtered (different SPF/sender). **Fix:** set `ADMIN_EMAIL` to your actual inbox so Resend sends directly to Gmail, e.g. `ADMIN_EMAIL=your@gmail.com`. Set the same in production env and restart.
 - **Logs**: Check server logs for `[email] Resend error:` or `[email] Send failed:` to see the raw Resend response.

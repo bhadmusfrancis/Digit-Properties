@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { NIGERIAN_STATES } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 
@@ -20,7 +20,8 @@ type GeocodeResult = {
 };
 
 export function LocationAddress() {
-  const { register, setValue, watch } = useFormContext();
+  const { register, setValue, control } = useFormContext();
+  const coordinates = useWatch({ control, name: 'coordinates', defaultValue: undefined }) as { lat: number; lng: number } | undefined;
   const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,17 +54,45 @@ export function LocationAddress() {
     fetch('/api/geocode?q=' + encodeURIComponent(query))
       .then((res) => res.json())
       .then((data) => {
-        setSuggestions(data.results || []);
+        const results = data.results || [];
+        setSuggestions(results);
         setShowSuggestions(true);
+        // Map updates only when user selects a suggestion or blurs the address field
       })
       .catch(() => setSuggestions([]))
       .finally(() => setLoading(false));
   }, []);
 
+  /** Geocode current address string and move map marker (e.g. on blur when user typed but didn't select). */
+  const geocodeAddressForMap = useCallback(
+    (addressValue: string) => {
+      const trimmed = addressValue.trim();
+      if (trimmed.length < 5) return;
+      setLoading(true);
+      fetch('/api/geocode?q=' + encodeURIComponent(trimmed))
+        .then((res) => res.json())
+        .then((data) => {
+          const results = data.results || [];
+          if (results.length > 0) {
+            const first = results[0];
+            setValue('coordinates', { lat: first.lat, lng: first.lng }, { shouldValidate: false, shouldDirty: true });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    },
+    [setValue]
+  );
+
   const onAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchSuggestions(v), 300);
+    debounceRef.current = setTimeout(() => fetchSuggestions(v), 280);
+  };
+
+  const onAddressBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value.trim();
+    if (value.length >= 5) geocodeAddressForMap(value);
   };
 
   const useGps = () => {
@@ -103,8 +132,9 @@ export function LocationAddress() {
                 register('address').onChange(e);
                 onAddressChange(e);
               }}
+              onBlur={onAddressBlur}
               type="text"
-              placeholder="Type address, or use GPS / Map"
+              placeholder="Type address, then select from dropdown or click away to update map"
               className="input"
               autoComplete="off"
             />
@@ -155,8 +185,8 @@ export function LocationAddress() {
             Click on the map to set property location. Address will be filled automatically.
           </p>
           <MapPicker
-            initialLat={watch('coordinates?.lat')}
-            initialLng={watch('coordinates?.lng')}
+            initialLat={coordinates?.lat}
+            initialLng={coordinates?.lng}
             onPick={(lat, lng) => {
               fetch('/api/geocode?lat=' + lat + '&lon=' + lng)
                 .then((res) => res.json())
