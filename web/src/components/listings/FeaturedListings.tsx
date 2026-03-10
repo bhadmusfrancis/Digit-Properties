@@ -79,7 +79,7 @@ export function FeaturedListings() {
       />
       {displayListings.length === 0 && (
         <div className="mt-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 py-16 text-center">
-          <p className="text-gray-500">No listings yet. Be the first to Add a property!</p>
+          <p className="text-gray-500">No listings yet. Be the first to Sell or Rent a property!</p>
           <Link href="/auth/signup" className="mt-4 inline-block text-primary-600 font-medium hover:underline">
             Sign up to list
           </Link>

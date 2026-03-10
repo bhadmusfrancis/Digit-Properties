@@ -13,19 +13,45 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com'
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
+/** 'sms' or 'whatsapp'. Use sms while WhatsApp profile is pending approval. */
+const TWILIO_VERIFY_CHANNEL = (process.env.TWILIO_VERIFY_CHANNEL || 'sms').toLowerCase() as 'sms' | 'whatsapp';
 
-/** Normalize to E.164 for Twilio: +234XXXXXXXXXX. For internal (no +) use normalizePhoneNoPlus. */
+/** Nigerian phone: 234 + 10 digits = 13 digits total. Required for reliable SMS/WhatsApp delivery. */
+export const NIGERIAN_PHONE_LENGTH = 13;
+const NIGERIAN_PREFIX = '234';
+
+/**
+ * Normalize to Nigerian E.164 (no +): 234XXXXXXXXXX (13 digits).
+ * Accepts: 08012345678, 8012345678, 2348012345678, +234 801 234 5678.
+ */
 export function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('234')) return digits;
-  if (digits.startsWith('0')) return '234' + digits.slice(1);
-  if (digits.length === 10) return '234' + digits;
-  return '234' + digits;
+  if (digits.startsWith('234') && digits.length >= 13) return digits.slice(0, 13);
+  if (digits.startsWith('234')) return digits.length > 13 ? digits.slice(0, 13) : digits;
+  if (digits.startsWith('0') && digits.length === 11) return NIGERIAN_PREFIX + digits.slice(1);
+  if (digits.length === 10) return NIGERIAN_PREFIX + digits;
+  if (digits.startsWith('0')) return NIGERIAN_PREFIX + digits.slice(1);
+  return NIGERIAN_PREFIX + digits;
 }
 
-/** E.164 with + for Twilio */
+/** E.164 with + for Twilio (e.g. +2348012345678). */
 export function toE164(phone: string): string {
   return '+' + normalizePhone(phone);
+}
+
+/** True if normalized Nigerian number (234 + 10 digits). Use after normalizePhone. */
+export function isValidNigerianPhone(normalized: string): boolean {
+  return (
+    normalized.length === NIGERIAN_PHONE_LENGTH &&
+    normalized.startsWith(NIGERIAN_PREFIX) &&
+    /^\d+$/.test(normalized)
+  );
+}
+
+/** Format for display: +234 801 234 5678 */
+export function formatPhoneDisplay(normalized: string): string {
+  if (!isValidNigerianPhone(normalized)) return normalized;
+  return `+234 ${normalized.slice(3, 6)} ${normalized.slice(6, 9)} ${normalized.slice(9)}`;
 }
 
 const OTP_LENGTH = 6;
@@ -98,12 +124,13 @@ export function getPhoneVerificationLink(token: string): string {
 }
 
 /**
- * Send OTP to the user's WhatsApp number via Twilio Verify API (channel: whatsapp).
- * The code is generated and verified by Twilio; use checkTwilioVerifyCode in confirm-phone.
+ * Send OTP via Twilio Verify API (channel: sms or whatsapp from TWILIO_VERIFY_CHANNEL).
+ * Use checkTwilioVerifyCode in confirm-phone. Set TWILIO_VERIFY_CHANNEL=sms for SMS OTP.
  */
-export async function sendPhoneOtpViaTwilioWhatsApp(
-  phone: string
-): Promise<{ ok: boolean; error?: string }> {
+export async function sendPhoneOtpViaTwilio(
+  phone: string,
+  channel: 'sms' | 'whatsapp' = TWILIO_VERIFY_CHANNEL
+): Promise<{ ok: boolean; error?: string; channel?: 'sms' | 'whatsapp' }> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) {
     return { ok: false, error: 'Twilio Verify not configured' };
   }
@@ -117,22 +144,26 @@ export async function sendPhoneOtpViaTwilioWhatsApp(
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Basic ${auth}`,
       },
-      body: new URLSearchParams({ To: to, Channel: 'whatsapp' }).toString(),
+      body: new URLSearchParams({ To: to, Channel: channel }).toString(),
     });
     const data = await res.json();
     if (!res.ok) {
       const msg = (data as { message?: string }).message || JSON.stringify(data);
       return { ok: false, error: msg };
     }
-    return { ok: true };
+    return { ok: true, channel };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };
   }
 }
 
+/** @deprecated Use sendPhoneOtpViaTwilio (supports sms and whatsapp via TWILIO_VERIFY_CHANNEL). */
+export const sendPhoneOtpViaTwilioWhatsApp = (phone: string) =>
+  sendPhoneOtpViaTwilio(phone, 'whatsapp');
+
 /**
- * Verify the code the user entered against Twilio Verify (for WhatsApp OTP).
+ * Verify the code the user entered against Twilio Verify (SMS or WhatsApp OTP).
  */
 export async function checkTwilioVerifyCode(
   phone: string,

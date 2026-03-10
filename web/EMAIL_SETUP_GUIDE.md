@@ -36,6 +36,8 @@ RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Optional (defaults shown)
 ADMIN_EMAIL=contact@digitproperties.com
+# If Cloudflare doesn't forward contact form mail (same-domain), set this so form submissions go straight to your inbox:
+# CONTACT_FORM_TO=your@gmail.com
 FROM_EMAIL=Digit Properties <noreply@digitproperties.com>
 
 # Use this until your domain is verified (no DNS needed):
@@ -43,7 +45,8 @@ RESEND_FROM_OVERRIDE=Digit Properties <onboarding@resend.dev>
 ```
 
 - **RESEND_API_KEY**: **Required** for sending emails. Without it, emails are skipped (no errors in the API, but admin and new members will not receive any emails, and new users will not receive the verification link and cannot sign in until you set it and they request a new link or you mark them verified in the DB).
-- **ADMIN_EMAIL**: All admin notifications go here. Default: `contact@digitproperties.com`
+- **ADMIN_EMAIL**: All admin notifications (new user, claims, new listing, etc.) go here. Default: `contact@digitproperties.com`.
+- **CONTACT_FORM_TO**: If set, **contact form submissions** are sent here (e.g. `your@gmail.com`). Use when mail to contact@ is forwarded by Cloudflare for normal mail but not for emails sent by your app (Resend). Leave unset to use ADMIN_EMAIL.
 - **FROM_EMAIL**: Sender for all outgoing emails. Must use a verified domain (e.g. `noreply@digitproperties.com`).
 
 ## 3. Verify Domain in Resend
@@ -62,6 +65,7 @@ For `digitproperties.com`:
 2. Add:
    - `RESEND_API_KEY` (production)
    - `ADMIN_EMAIL` = `contact@digitproperties.com` (optional)
+   - `CONTACT_FORM_TO` = `fabhainternation@gmail.com` (optional; use so contact form goes straight to your Gmail)
    - `FROM_EMAIL` = `Digit Properties <noreply@digitproperties.com>` (optional)
 
 ## 5. Test Emails

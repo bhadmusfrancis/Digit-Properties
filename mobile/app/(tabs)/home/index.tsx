@@ -133,7 +133,7 @@ export default function HomeScreen() {
           </View>
         ) : featured.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No listings yet. Be the first to Add a property!</Text>
+            <Text style={styles.emptyText}>No listings yet. Be the first to Sell or Rent a property!</Text>
             <Link href="/auth/signup" asChild>
               <Pressable style={styles.emptyLink}>
                 <Text style={styles.emptyLinkText}>Sign up to list</Text>
