@@ -136,7 +136,7 @@ export default function DashboardScreen() {
             </Pressable>
             <Pressable style={[styles.menuCard, styles.menuCardPrimary]} onPress={() => router.push('/listings/new')}>
               <View style={styles.menuCardLeft}>
-                <Text style={[styles.menuTitle, styles.menuTitleWhite]}>Add a property</Text>
+                <Text style={[styles.menuTitle, styles.menuTitleWhite]}>Sell or Rent a property</Text>
                 <Text style={styles.menuSubWhite}>Create a new listing</Text>
               </View>
               <Text style={styles.menuArrowWhite}>+ Add</Text>

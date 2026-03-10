@@ -5,6 +5,7 @@ import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
 import { meUpdateSchema } from '@/lib/validations';
+import { normalizePhone, isValidNigerianPhone } from '@/lib/phone-verify';
 
 const ME_SELECT =
   'name email image phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked firstName middleName lastName dateOfBirth address idFrontUrl idBackUrl idScannedData livenessCentreImageUrl';
@@ -94,7 +95,19 @@ export async function PATCH(req: Request) {
       if (data.address !== undefined) set.address = data.address || null;
     }
     if (!phoneVerified && data.phone !== undefined) {
-      set.phone = data.phone || null;
+      const value = (data.phone || '').trim();
+      if (!value) {
+        set.phone = null;
+      } else {
+        const normalized = normalizePhone(value);
+        if (!isValidNigerianPhone(normalized)) {
+          return NextResponse.json(
+            { error: 'Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)' },
+            { status: 400 }
+          );
+        }
+        set.phone = normalized;
+      }
     }
     if (data.image !== undefined) set.image = data.image;
     if (data.companyPosition !== undefined && ((existing as { role?: string }).role === USER_ROLES.REGISTERED_AGENT || (existing as { role?: string }).role === USER_ROLES.REGISTERED_DEVELOPER)) {

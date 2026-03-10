@@ -3,6 +3,8 @@ import { getEmailTemplate } from '@/lib/email-templates';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contact@digitproperties.com';
+/** If set, contact form submissions go here (e.g. your Gmail). Use when Cloudflare doesn't forward same-domain mail. */
+const CONTACT_FORM_TO = process.env.CONTACT_FORM_TO || ADMIN_EMAIL;
 /** Use RESEND_FROM_OVERRIDE to send from Resend's test address until your domain is verified. Example: Digit Properties <onboarding@resend.dev> */
 const FROM_EMAIL =
   process.env.RESEND_FROM_OVERRIDE ||
@@ -327,7 +329,7 @@ export async function sendContactFormEmail(
     <p><strong>Subject:</strong> ${subject}</p>
     <hr />
     <p>${vars.message}</p>`;
-  const result = await sendEmail({ to: ADMIN_EMAIL, subject: emailSubject, html: wrapBody('Contact form submission', body) });
+  const result = await sendEmail({ to: CONTACT_FORM_TO, subject: emailSubject, html: wrapBody('Contact form submission', body) });
   return { ok: result.ok };
 }
 
