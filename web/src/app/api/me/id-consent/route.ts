@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import { uploadIdImage } from '@/lib/upload-id-image';
+import { findExistingVerifiedIdentity } from '@/lib/identity-dedup';
 import User from '@/models/User';
 import type { IIdScannedData } from '@/models/User';
 
@@ -25,6 +26,17 @@ export async function POST(req: Request) {
     }
     if (!firstName && !lastName && !dateOfBirth) {
       return NextResponse.json({ error: 'Provide at least one of firstName, lastName, dateOfBirth.' }, { status: 400 });
+    }
+
+    if (firstName && lastName && dateOfBirth) {
+      await dbConnect();
+      const existing = await findExistingVerifiedIdentity(firstName, lastName, dateOfBirth, session.user.id);
+      if (existing) {
+        return NextResponse.json(
+          { error: 'User already exists. An account with this identity (name and date of birth) is already verified.' },
+          { status: 400 }
+        );
+      }
     }
 
     const idFrontUrl = await uploadIdImage(idFront);

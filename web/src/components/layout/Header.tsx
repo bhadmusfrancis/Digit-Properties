@@ -20,7 +20,7 @@ export function Header() {
         </Link>
 
         <div className="hidden md:flex md:items-center md:gap-6">
-          <Link href="/listings" className="text-sm font-medium text-gray-700 hover:text-primary-600">
+          <Link href="/listings?listingType=sale" className="text-sm font-medium text-gray-700 hover:text-primary-600">
             Buy
           </Link>
           <Link href="/listings?listingType=rent" className="text-sm font-medium text-gray-700 hover:text-primary-600">
@@ -131,7 +131,7 @@ export function Header() {
       {mobileOpen && (
         <div className="border-t border-gray-200 bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-1">
-            <Link href="/listings" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+            <Link href="/listings?listingType=sale" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
               Buy
             </Link>
             <Link href="/listings?listingType=rent" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>

@@ -65,8 +65,8 @@ export async function POST(req: Request) {
 
     const listing = await Listing.findById(parsed.data.listingId);
     if (!listing) return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    if (!['admin', 'ai'].includes(listing.createdByType)) {
-      return NextResponse.json({ error: 'This listing cannot be claimed' }, { status: 400 });
+    if (listing.createdByType !== 'bot') {
+      return NextResponse.json({ error: 'Only listings created by BOT accounts can be claimed.' }, { status: 400 });
     }
 
     const existing = await Claim.findOne({

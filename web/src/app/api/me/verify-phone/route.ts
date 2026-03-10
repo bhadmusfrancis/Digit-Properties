@@ -44,6 +44,17 @@ export async function POST(req: Request) {
       );
     }
     await dbConnect();
+    const otherWithPhone = await User.findOne({
+      phone: normalized,
+      phoneVerifiedAt: { $ne: null },
+      _id: { $ne: session.user.id },
+    }).select('_id').lean();
+    if (otherWithPhone) {
+      return NextResponse.json(
+        { error: 'This phone number is already attached to a different account.' },
+        { status: 400 }
+      );
+    }
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     user.phone = normalized;

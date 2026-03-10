@@ -161,7 +161,7 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
         </div>
       )}
 
-      {createdByType && ['admin', 'ai'].includes(createdByType) && session && (
+      {createdByType === 'bot' && session && (
         <div className="border-t pt-4">
           <button onClick={() => setClaimOpen(true)} className="btn-secondary w-full text-sm">
             Claim this property
