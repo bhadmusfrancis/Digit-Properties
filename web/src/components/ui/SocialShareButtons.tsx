@@ -34,63 +34,63 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
   }, [url]);
 
   const label = 'Share';
-  const buttonClass =
-    'inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-primary-200 hover:bg-primary-50/50 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1';
+  const baseButtonClass =
+    'inline-flex items-center justify-center gap-2.5 rounded-xl border-2 bg-white px-4 py-3 text-base font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 min-h-[52px] min-w-[52px] sm:min-w-0';
 
   return (
     <div className={className}>
-      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
-      <div className="flex flex-wrap items-center gap-2">
+      <span className="mb-3 block text-base font-bold tracking-tight text-slate-800">{label}</span>
+      <div className="flex flex-wrap items-center gap-3">
         <a
           href={shareUrls.twitter}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonClass}
+          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-slate-800 hover:bg-slate-800 hover:text-white hover:shadow-lg focus:ring-slate-600`}
           aria-label="Share on X (Twitter)"
         >
-          <XIcon className="h-4 w-4" />
+          <XIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">X</span>
         </a>
         <a
           href={shareUrls.facebook}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonClass}
+          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white hover:shadow-lg focus:ring-[#1877f2]`}
           aria-label="Share on Facebook"
         >
-          <FacebookIcon className="h-4 w-4" />
+          <FacebookIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">Facebook</span>
         </a>
         <a
           href={shareUrls.whatsapp}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonClass}
+          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#25d366] hover:bg-[#25d366] hover:text-white hover:shadow-lg focus:ring-[#25d366]`}
           aria-label="Share on WhatsApp"
         >
-          <WhatsAppIcon className="h-4 w-4" />
+          <WhatsAppIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">WhatsApp</span>
         </a>
         <a
           href={shareUrls.linkedin}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonClass}
+          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#0a66c2] hover:bg-[#0a66c2] hover:text-white hover:shadow-lg focus:ring-[#0a66c2]`}
           aria-label="Share on LinkedIn"
         >
-          <LinkedInIcon className="h-4 w-4" />
+          <LinkedInIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">LinkedIn</span>
         </a>
         <button
           type="button"
           onClick={copyLink}
-          className={buttonClass}
+          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-primary-500 hover:bg-primary-500 hover:text-white hover:shadow-lg focus:ring-primary-500`}
           aria-label="Copy link"
         >
           {copied ? (
-            <CheckIcon className="h-4 w-4 text-green-600" />
+            <CheckIcon className="h-6 w-6 shrink-0 text-green-600" />
           ) : (
-            <LinkIcon className="h-4 w-4" />
+            <LinkIcon className="h-6 w-6 shrink-0" />
           )}
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy link'}</span>
         </button>

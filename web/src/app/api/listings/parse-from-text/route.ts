@@ -13,13 +13,14 @@ import {
 } from '@/lib/whatsapp-listing-parser';
 import { USER_ROLES } from '@/lib/constants';
 
-const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER, USER_ROLES.VERIFIED_INDIVIDUAL];
+/** Only BOT accounts can use Import from WhatsApp (parse-from-text). */
+const CAN_USE_IMPORT = [USER_ROLES.BOT];
 
 export async function POST(req: Request) {
   try {
     const session = await getSession(req);
-    if (!session?.user?.id || !(CAN_CREATE as readonly string[]).includes(session.user.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id || !(CAN_USE_IMPORT as readonly string[]).includes(session.user.role)) {
+      return NextResponse.json({ error: 'Only BOT accounts can use Import from WhatsApp.' }, { status: 403 });
     }
 
     const body = await req.json();

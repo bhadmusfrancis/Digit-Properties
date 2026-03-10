@@ -36,6 +36,7 @@ export default async function MyListingsPage() {
   }));
 
   const isGuest = user?.role === USER_ROLES.GUEST;
+  const isBot = user?.role === USER_ROLES.BOT;
   const activeListingCount = rows.filter((r) => ['draft', 'active', 'paused'].includes(r.status)).length;
   const guestLimit = 5;
   const atOrNearGuestLimit = isGuest && activeListingCount >= guestLimit;
@@ -54,9 +55,11 @@ export default async function MyListingsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">My Properties</h1>
         <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/listings/import" className="btn-secondary w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center touch-manipulation">
-            Import from WhatsApp
-          </Link>
+          {isBot && (
+            <Link href="/dashboard/listings/import" className="btn-secondary w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center touch-manipulation">
+              Import from WhatsApp
+            </Link>
+          )}
           <Link href="/listings/new" className="btn-primary w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center touch-manipulation">
             Add listing
           </Link>

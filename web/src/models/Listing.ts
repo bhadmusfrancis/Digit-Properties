@@ -27,7 +27,7 @@ export interface IListing {
   tags: string[];
   status: (typeof LISTING_STATUS)[keyof typeof LISTING_STATUS];
   createdBy: mongoose.Types.ObjectId;
-  createdByType: 'admin' | 'ai' | 'user';
+  createdByType: 'admin' | 'ai' | 'bot' | 'user';
   agentName?: string;
   agentPhone?: string;
   agentEmail?: string;
@@ -88,7 +88,7 @@ const ListingSchema = new Schema<IListing>(
     tags: [{ type: String }],
     status: { type: String, enum: Object.values(LISTING_STATUS), default: LISTING_STATUS.DRAFT },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    createdByType: { type: String, enum: ['admin', 'ai', 'user'], default: 'user' },
+    createdByType: { type: String, enum: ['admin', 'ai', 'bot', 'user'], default: 'user' },
     agentName: String,
     agentPhone: String,
     agentEmail: String,

@@ -32,6 +32,20 @@ export async function POST(req: Request) {
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+    if (user.phone) {
+      const otherWithPhone = await User.findOne({
+        phone: user.phone,
+        phoneVerifiedAt: { $ne: null },
+        _id: { $ne: session.user.id },
+      }).select('_id').lean();
+      if (otherWithPhone) {
+        return NextResponse.json(
+          { error: 'This phone number is already attached to a different account.' },
+          { status: 400 }
+        );
+      }
+    }
+
     if (user.phoneVerificationProvider === 'twilio') {
       if (!user.phone || !user.phoneVerificationExpires || new Date() > user.phoneVerificationExpires) {
         user.phoneVerificationProvider = undefined;

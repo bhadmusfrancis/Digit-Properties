@@ -2,9 +2,11 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { ListingForm } from '@/components/listings/ListingForm';
 import type { ListingFormRef } from '@/components/listings/ListingForm';
 import type { ParsedListing } from '@/lib/whatsapp-listing-parser';
+import { USER_ROLES } from '@/lib/constants';
 
 export type EditInitialShape = {
   title: string;
@@ -93,6 +95,7 @@ type ImportMode = 'single' | 'multiple';
 type DuplicateMap = Record<number, { _id: string; title: string }[]>;
 
 export default function ImportFromWhatsAppPage() {
+  const { data: session, status: sessionStatus } = useSession();
   const [text, setText] = useState('');
   const [importMode, setImportMode] = useState<ImportMode>('single');
   const [loading, setLoading] = useState(false);
@@ -105,6 +108,21 @@ export default function ImportFromWhatsAppPage() {
   const [saveAllStatus, setSaveAllStatus] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
   const formRef = useRef<ListingFormRef | null>(null);
+
+  if (sessionStatus === 'loading') {
+    return <p className="p-4 text-gray-500">Loading...</p>;
+  }
+  if (!session?.user || (session.user as { role?: string }).role !== USER_ROLES.BOT) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12">
+        <h1 className="text-xl font-bold text-gray-900">Import from WhatsApp</h1>
+        <p className="mt-2 text-gray-600">Only BOT accounts can use this feature.</p>
+        <Link href="/dashboard/listings" className="mt-4 inline-block text-primary-600 hover:underline">
+          ← Back to My Properties
+        </Link>
+      </div>
+    );
+  }
 
   const handleParse = async () => {
     const trimmed = text.trim();
