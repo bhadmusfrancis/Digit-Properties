@@ -155,10 +155,15 @@ export async function PATCH(
     }
 
     const wasDraft = listing.status === LISTING_STATUS.DRAFT;
+    const wasActive = listing.status === LISTING_STATUS.ACTIVE;
     const { images: _pi, videos: _pv, ...rest } = parsed.data;
     Object.assign(listing, rest);
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);
+    }
+    // Non-admin owner edit to an active listing requires approval
+    if (!isAdmin && wasActive) {
+      listing.status = LISTING_STATUS.PENDING_APPROVAL;
     }
     await listing.save();
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { NIGERIAN_STATES } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 
@@ -22,12 +23,57 @@ type GeocodeResult = {
 export function LocationAddress() {
   const { register, setValue, control } = useFormContext();
   const coordinates = useWatch({ control, name: 'coordinates', defaultValue: undefined }) as { lat: number; lng: number } | undefined;
+  const state = useWatch({ control, name: 'state', defaultValue: '' }) as string;
+  const city = useWatch({ control, name: 'city', defaultValue: '' }) as string;
   const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showMap, setShowMap] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const { data: citiesData } = useQuery({
+    queryKey: ['locations/cities', state],
+    queryFn: () => fetch(`/api/locations/cities?state=${encodeURIComponent(state)}`).then((r) => r.json()),
+    enabled: !!state,
+  });
+  const cities = (citiesData?.cities ?? []) as string[];
+
+  const { data: suburbsData } = useQuery({
+    queryKey: ['locations/suburbs', state, city],
+    queryFn: () =>
+      fetch(
+        `/api/locations/suburbs?state=${encodeURIComponent(state)}&city=${encodeURIComponent(city)}`
+      ).then((r) => r.json()),
+    enabled: !!state && !!city,
+  });
+  const suburbs = (suburbsData?.suburbs ?? []) as string[];
+
+  /** When user selects state and city, geocode and move map to that area. */
+  const stateCityGeocodeRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    const s = (state || '').trim();
+    const c = (city || '').trim();
+    if (!s || !c || c.length < 2) return;
+    if (stateCityGeocodeRef.current) clearTimeout(stateCityGeocodeRef.current);
+    stateCityGeocodeRef.current = setTimeout(() => {
+      stateCityGeocodeRef.current = undefined;
+      const query = `${c}, ${s}, Nigeria`;
+      fetch('/api/geocode?q=' + encodeURIComponent(query))
+        .then((res) => res.json())
+        .then((data) => {
+          const results = data.results || [];
+          if (results.length > 0) {
+            const first = results[0];
+            setValue('coordinates', { lat: first.lat, lng: first.lng }, { shouldValidate: false, shouldDirty: true });
+          }
+        })
+        .catch(() => {});
+    }, 400);
+    return () => {
+      if (stateCityGeocodeRef.current) clearTimeout(stateCityGeocodeRef.current);
+    };
+  }, [state, city, setValue]);
 
   const applyResult = useCallback(
     (r: GeocodeResult) => {
@@ -201,21 +247,42 @@ export function LocationAddress() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700">City <span className="text-red-500">*</span></label>
-          <input {...register('city')} className="input mt-1" placeholder="e.g. Lagos" required />
-        </div>
-        <div>
           <label className="block text-sm font-medium text-gray-700">State <span className="text-red-500">*</span></label>
-          <select {...register('state')} className="input mt-1" required>
+          <select {...register('state')} className="input mt-1 w-full" required>
             {NIGERIAN_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">City <span className="text-red-500">*</span></label>
+          <input
+            {...register('city')}
+            list="listing-cities-list"
+            className="input mt-1 w-full"
+            placeholder={state ? 'Select or type city' : 'Select state first'}
+            required
+          />
+          <datalist id="listing-cities-list">
+            {cities.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </div>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700">Suburb / Area (optional)</label>
-        <input {...register('suburb')} placeholder="e.g. Lekki Phase 1" className="input mt-1" />
+        <input
+          {...register('suburb')}
+          list="listing-suburbs-list"
+          className="input mt-1 w-full"
+          placeholder={state && city ? 'Select or type suburb/area' : 'Select state & city first'}
+        />
+        <datalist id="listing-suburbs-list">
+          {suburbs.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
       </div>
     </div>
   );

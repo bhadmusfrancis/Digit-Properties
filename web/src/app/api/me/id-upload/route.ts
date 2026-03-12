@@ -56,12 +56,12 @@ function normalizeOcrText(raw: string): string {
 async function runIdOcr(
   buffer: Buffer,
   mimeType: string
-): Promise<{ parsed: { firstName: string; middleName: string; lastName: string; dateOfBirth: string } | null; rawText: string }> {
+): Promise<{ parsed: { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate: string } | null; rawText: string }> {
   const ext = MIME_EXT[mimeType] || '.jpg';
   const tmpPath = path.join(os.tmpdir(), `id-ocr-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
   let worker;
   let bestRaw = '';
-  let bestParsed: { firstName: string; middleName: string; lastName: string; dateOfBirth: string } | null = null;
+  let bestParsed: { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate: string } | null = null;
   try {
     await fs.promises.writeFile(tmpPath, buffer);
     worker = await createWorker('eng', 1, {
@@ -76,7 +76,7 @@ async function runIdOcr(
       if (raw.length > bestRaw.length) bestRaw = raw;
       const text = normalizeOcrText(raw);
       const parsed = parseIdOcrText(text);
-      if (parsed && (parsed.firstName || parsed.middleName || parsed.lastName || parsed.dateOfBirth)) {
+      if (parsed && (parsed.firstName || parsed.middleName || parsed.lastName || parsed.dateOfBirth || parsed.expiryDate)) {
         await worker.terminate();
         await fs.promises.unlink(tmpPath).catch(() => {});
         return { parsed, rawText: raw };
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const scanned = result.parsed?.firstName || result.parsed?.middleName || result.parsed?.lastName || result.parsed?.dateOfBirth
+    const scanned = result.parsed?.firstName || result.parsed?.middleName || result.parsed?.lastName || result.parsed?.dateOfBirth || result.parsed?.expiryDate
       ? result.parsed
       : null;
     const rawOcrPreview = !scanned && result.rawText

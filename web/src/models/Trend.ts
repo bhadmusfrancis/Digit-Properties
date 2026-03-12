@@ -33,7 +33,6 @@ const TrendSchema = new Schema<ITrend>(
 
 TrendSchema.index({ status: 1, publishedAt: -1 });
 TrendSchema.index({ category: 1, status: 1 });
-TrendSchema.index({ slug: 1 });
 
 const Trend: Model<ITrend> = mongoose.models.Trend ?? mongoose.model<ITrend>('Trend', TrendSchema);
 export default Trend;

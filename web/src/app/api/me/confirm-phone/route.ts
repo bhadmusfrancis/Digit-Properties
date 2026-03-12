@@ -4,7 +4,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { consumeRateLimit } from '@/lib/rate-limit';
-import { checkTwilioVerifyCode } from '@/lib/phone-verify';
+import { checkTwilioVerifyCode, verifyTermiiPin } from '@/lib/phone-verify';
 import { confirmPhoneSchema } from '@/lib/validations';
 
 /** POST /api/me/confirm-phone — verify OTP code (WhatsApp/SMS) and set phoneVerifiedAt */
@@ -59,6 +59,27 @@ export async function POST(req: Request) {
       }
       user.phoneVerifiedAt = new Date();
       user.phoneVerificationProvider = undefined;
+      user.phoneVerificationExpires = undefined;
+      await user.save();
+      return NextResponse.json({ ok: true, message: 'Phone verified.' });
+    }
+
+    if (user.phoneVerificationProvider === 'termii') {
+      const pinId = typeof user.phoneVerificationPinId === 'string' ? user.phoneVerificationPinId.trim() : '';
+      if (!pinId || !user.phoneVerificationExpires || new Date() > user.phoneVerificationExpires) {
+        user.phoneVerificationProvider = undefined;
+        user.phoneVerificationPinId = undefined;
+        user.phoneVerificationExpires = undefined;
+        await user.save();
+        return NextResponse.json({ error: 'Verification expired. Request a new code.' }, { status: 400 });
+      }
+      const check = await verifyTermiiPin(pinId, code);
+      if (!check.ok) {
+        return NextResponse.json({ error: check.error || 'Invalid code' }, { status: 400 });
+      }
+      user.phoneVerifiedAt = new Date();
+      user.phoneVerificationProvider = undefined;
+      user.phoneVerificationPinId = undefined;
       user.phoneVerificationExpires = undefined;
       await user.save();
       return NextResponse.json({ ok: true, message: 'Phone verified.' });

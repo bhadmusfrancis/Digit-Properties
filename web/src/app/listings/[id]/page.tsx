@@ -107,7 +107,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         },
       },
       { $sort: { proximityScore: -1, createdAt: -1 } },
-      { $limit: 8 },
+      { $limit: 4 },
       {
         $lookup: {
           from: 'users',

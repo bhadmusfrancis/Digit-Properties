@@ -11,8 +11,10 @@ export interface IAlert {
     maxPrice?: number;
     state?: string;
     city?: string;
+    suburb?: string;
     bedrooms?: number;
     bathrooms?: number;
+    rentPeriod?: string;
     tags?: string[];
   };
   notifyPush: boolean;

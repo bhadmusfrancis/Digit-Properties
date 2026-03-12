@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6">
             <li><strong>Account and profile data:</strong> name, email address, phone number, profile photo, date of birth, address, and company position (where applicable) when you register or update your profile.</li>
             <li><strong>Identity and verification data:</strong> images of identity documents, liveness (face) verification images, and related data you provide for verification purposes.</li>
-            <li><strong>Listing and activity data:</strong> property listings you create, search and filter preferences, saved listings, views, likes, and communication related to listings.</li>
+            <li><strong>Listing and activity data:</strong> property listings you create, search and filter preferences, favorites, views, likes, and communication related to listings.</li>
             <li><strong>Payment data:</strong> billing information and transaction history; payment card details are processed by third-party payment providers and we do not store full card numbers.</li>
             <li><strong>Technical and usage data:</strong> IP address, device type, browser type, log data, and how you interact with the Platform.</li>
             <li><strong>Cookies and similar technologies:</strong> we use cookies and similar technologies for session management, preferences, and analytics as described in this policy.</li>

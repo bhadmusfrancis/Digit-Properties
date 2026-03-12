@@ -8,7 +8,7 @@ import { meUpdateSchema } from '@/lib/validations';
 import { normalizePhone, isValidNigerianPhone } from '@/lib/phone-verify';
 
 const ME_SELECT =
-  'name email image phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked firstName middleName lastName dateOfBirth address idFrontUrl idBackUrl idScannedData livenessCentreImageUrl';
+  'name email image phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked firstName middleName lastName dateOfBirth address idFrontUrl idBackUrl idType idScannedData livenessCentreImageUrl';
 
 export async function GET(req: Request) {
   try {

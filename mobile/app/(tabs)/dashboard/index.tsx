@@ -114,7 +114,7 @@ export default function DashboardScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>My account</Text>
-            <Pressable style={styles.menuCard} onPress={() => router.push('/dashboard/listings')}>
+            <Pressable style={styles.menuCard} onPress={() => router.replace('/(tabs)/listings')}>
               <View style={styles.menuCardLeft}>
                 <Text style={styles.menuTitle}>My Properties</Text>
                 <Text style={styles.menuSub}>View and manage your listings</Text>
@@ -123,6 +123,13 @@ export default function DashboardScreen() {
                 <Text style={styles.menuCount}>{stats?.listingsCount ?? 0}</Text>
                 <Text style={styles.menuArrow}>→</Text>
               </View>
+            </Pressable>
+            <Pressable style={styles.menuCard} onPress={() => router.push('profile')}>
+              <View style={styles.menuCardLeft}>
+                <Text style={styles.menuTitle}>Profile & Verification</Text>
+                <Text style={styles.menuSub}>Name, phone, ID, liveness</Text>
+              </View>
+              <Text style={styles.menuArrow}>→</Text>
             </Pressable>
             <Pressable style={styles.menuCard} onPress={() => router.push('/dashboard/claims')}>
               <View style={styles.menuCardLeft}>
@@ -148,7 +155,7 @@ export default function DashboardScreen() {
               <Text style={styles.linkText}>Browse all listings</Text>
               <Text style={styles.linkArrow}>→</Text>
             </Pressable>
-            <Pressable style={styles.linkRow} onPress={() => router.push('/')}>
+            <Pressable style={styles.linkRow} onPress={() => router.replace('/(tabs)/home')}>
               <Text style={styles.linkText}>Home</Text>
               <Text style={styles.linkArrow}>→</Text>
             </Pressable>
