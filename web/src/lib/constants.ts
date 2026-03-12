@@ -1,3 +1,13 @@
+/** Document type selected by user when uploading ID for verification. */
+export const ID_TYPES = {
+  DRIVERS_LICENSE: 'drivers_license',
+  NATIONAL_ID: 'national_id',
+  VOTERS_CARD: 'voters_card',
+  INTERNATIONAL_PASSPORT: 'international_passport',
+} as const;
+
+export type IdType = (typeof ID_TYPES)[keyof typeof ID_TYPES];
+
 export const USER_ROLES = {
   GUEST: 'guest',
   VERIFIED_INDIVIDUAL: 'verified_individual',
@@ -13,6 +23,8 @@ export const LISTING_STATUS = {
   ACTIVE: 'active',
   PAUSED: 'paused',
   CLOSED: 'closed',
+  /** Set when owner edits an active listing; requires admin approval to go back to active. */
+  PENDING_APPROVAL: 'pending_approval',
 } as const;
 
 export const LISTING_TYPE = {

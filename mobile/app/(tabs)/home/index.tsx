@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getApiUrl } from '../../../lib/api';
+import { AppHeader } from '../../../components/AppHeader';
 
 type ListingItem = {
   _id: string;
@@ -78,9 +79,10 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={[styles.scrollContent, { paddingTop: (insets.top || 0) + 20 }]}
+      contentContainerStyle={[styles.scrollContent, { paddingTop: (insets.top || 0) + 8 }]}
       showsVerticalScrollIndicator={false}
     >
+      <AppHeader />
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Find Your Dream Property in Nigeria</Text>
         <Text style={styles.heroSub}>
@@ -96,30 +98,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={styles.accountRow}>
-        {isLoaded && user ? (
-          <>
-            <Text style={styles.accountLabel}>Signed in as {user.name || 'User'}</Text>
-            <Pressable style={styles.signOutBtn} onPress={() => signOut()}>
-              <Text style={styles.signOutText}>Sign out</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <Link href="/auth/signin" asChild>
-              <Pressable style={styles.authBtn}>
-                <Text style={styles.authBtnText}>Sign in</Text>
-              </Pressable>
-            </Link>
-            <Link href="/auth/signup" asChild>
-              <Pressable style={[styles.authBtn, styles.authBtnPrimary]}>
-                <Text style={styles.authBtnPrimaryText}>Sign up</Text>
-              </Pressable>
-            </Link>
-          </>
-        )}
-      </View>
-
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Featured Listings</Text>
@@ -129,7 +107,7 @@ export default function HomeScreen() {
         </View>
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator size="large" color="#0ea5e9" />
+            <ActivityIndicator size="large" color="#0d9488" />
           </View>
         ) : featured.length === 0 ? (
           <View style={styles.empty}>
@@ -195,7 +173,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { paddingBottom: 48 },
   hero: {
-    backgroundColor: '#0c4a6e',
+    backgroundColor: '#0d9488',
     paddingHorizontal: 20,
     paddingTop: 28,
     paddingBottom: 32,
@@ -229,7 +207,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
   },
-  heroBtnPrimaryText: { color: '#0c4a6e', fontWeight: '600', fontSize: 15 },
+  heroBtnPrimaryText: { color: '#0d9488', fontWeight: '600', fontSize: 15 },
   heroBtnSecondary: {
     borderWidth: 2,
     borderColor: '#fff',
@@ -267,7 +245,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  viewAll: { fontSize: 15, color: '#0ea5e9', fontWeight: '500' },
+  viewAll: { fontSize: 15, color: '#0d9488', fontWeight: '500' },
   loading: { paddingVertical: 40, alignItems: 'center' },
   empty: {
     backgroundColor: '#f1f5f9',
@@ -280,7 +258,7 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: '#64748b', textAlign: 'center' },
   emptyLink: { marginTop: 12 },
-  emptyLinkText: { color: '#0ea5e9', fontWeight: '600' },
+  emptyLinkText: { color: '#0d9488', fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   card: {
     width: '47%',
@@ -297,11 +275,11 @@ const styles = StyleSheet.create({
   placeholder: { backgroundColor: '#e2e8f0' },
   cardContent: { padding: 12 },
   cardTitle: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
-  cardPrice: { fontSize: 15, fontWeight: 'bold', color: '#0ea5e9', marginTop: 4 },
+  cardPrice: { fontSize: 15, fontWeight: 'bold', color: '#0d9488', marginTop: 4 },
   cardLocation: { fontSize: 12, color: '#64748b', marginTop: 2 },
   ctaSection: { paddingHorizontal: 20, paddingTop: 28, gap: 12 },
   browseBtn: {
-    backgroundColor: '#0ea5e9',
+    backgroundColor: '#0d9488',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

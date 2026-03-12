@@ -1,13 +1,14 @@
 /**
- * Phone verification: send OTP via WhatsApp (Twilio Verify) or Termii (SMS/WhatsApp), or verification link.
- * - WhatsApp OTP: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID (Twilio Verify sends code to WhatsApp).
- * - Termii: set TERMII_API_KEY, TERMII_SENDER_ID; use TERMII_CHANNEL=whatsapp if supported.
+ * Phone verification: send OTP via Termii (SMS) or Twilio Verify (SMS/WhatsApp), or verification link.
+ * - Termii (primary for SMS): set TERMII_API_KEY, TERMII_SENDER_ID. Message: "Your Digit Properties Verification Pin is XXXXXX. It expires in 30 minutes."
+ * - Twilio: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID.
  */
 
 import crypto from 'crypto';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const TERMII_SENDER_ID = process.env.TERMII_SENDER_ID || 'DigitProp';
+const TERMII_BASE_URL = process.env.TERMII_BASE_URL || 'https://api.termii.com';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -15,6 +16,9 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
 /** 'sms' or 'whatsapp'. Use sms while WhatsApp profile is pending approval. */
 const TWILIO_VERIFY_CHANNEL = (process.env.TWILIO_VERIFY_CHANNEL || 'sms').toLowerCase() as 'sms' | 'whatsapp';
+
+/** Cooldown (ms) before user can request another OTP. Prevents multiple pins. Matches 30-minute OTP expiry. */
+export const PHONE_OTP_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 /** Nigerian phone: 234 + 10 digits = 13 digits total. Required for reliable SMS/WhatsApp delivery. */
 export const NIGERIAN_PHONE_LENGTH = 13;
@@ -56,10 +60,11 @@ export function formatPhoneDisplay(normalized: string): string {
 
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_MINUTES = 10;
+const TERMII_OTP_EXPIRY_MINUTES = 30;
 
 /**
  * Generate a numeric OTP and optional verification link (token).
- * Returns { code, token, expiresAt }. Store hashed code or token on User; send code via Termii.
+ * Returns { code, token, expiresAt }. Store hashed code or token on User; send code via fallback.
  */
 export function generatePhoneVerification(): {
   code: string;
@@ -74,9 +79,100 @@ export function generatePhoneVerification(): {
   return { code, token, expiresAt };
 }
 
+export function isTermiiConfigured(): boolean {
+  return !!(TERMII_API_KEY && TERMII_SENDER_ID);
+}
+
 /**
- * Send OTP via Termii (SMS or WhatsApp). Uses channel 'dnd' for SMS; use 'whatsapp' if Termii supports it.
- * Returns { ok, error? }. If TERMII_API_KEY not set, returns ok: false (caller can fall back to link).
+ * Send OTP via Termii Send Token API. Termii generates the PIN and sends:
+ * "Your Digit Properties Verification Pin is XXXXXX. It expires in 30 minutes."
+ * Returns { ok, pinId?, error? }. Store pinId on user for verify-phone confirmation.
+ */
+export async function sendPhoneOtpViaTermii(phone: string): Promise<{
+  ok: boolean;
+  pinId?: string;
+  error?: string;
+}> {
+  if (!TERMII_API_KEY || !TERMII_SENDER_ID) {
+    return { ok: false, error: 'Termii not configured' };
+  }
+  const to = normalizePhone(phone);
+  const channel = (process.env.TERMII_CHANNEL || 'dnd').toLowerCase();
+  const pinPlaceholder = '< 123456 >';
+  try {
+    const res = await fetch(`${TERMII_BASE_URL}/api/sms/otp/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: TERMII_API_KEY,
+        to,
+        from: TERMII_SENDER_ID,
+        pin_type: 'NUMERIC',
+        pin_length: OTP_LENGTH,
+        pin_time_to_live: TERMII_OTP_EXPIRY_MINUTES,
+        pin_attempts: 5,
+        pin_placeholder: pinPlaceholder,
+        message_text: `Your Digit Properties Verification Pin is ${pinPlaceholder}. It expires in 30 minutes.`,
+        channel,
+      }),
+    });
+    const data = (await res.json()) as { pin_id?: string; pinId?: string; message?: string };
+    if (!res.ok) {
+      const msg = data.message || JSON.stringify(data);
+      return { ok: false, error: msg };
+    }
+    const pinId = data.pin_id ?? data.pinId;
+    if (!pinId) return { ok: false, error: 'No pin_id in response' };
+    return { ok: true, pinId };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Verify user-entered PIN against Termii Verify Token API.
+ */
+export async function verifyTermiiPin(
+  pinId: string,
+  pin: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!TERMII_API_KEY) return { ok: false, error: 'Termii not configured' };
+  const pinDigits = pin.replace(/\D/g, '');
+  try {
+    const res = await fetch(`${TERMII_BASE_URL}/api/sms/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: TERMII_API_KEY,
+        pin_id: pinId,
+        pin: pinDigits,
+      }),
+    });
+    const data = (await res.json()) as { verified?: string | boolean; message?: string };
+    const verified = data.verified === true || data.verified === 'True' || data.verified === 'true';
+    if (!res.ok) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[verifyTermiiPin] Termii verify non-OK:', res.status, data);
+      }
+      return { ok: false, error: (data as { message?: string }).message || 'Invalid or expired code' };
+    }
+    if (!verified) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[verifyTermiiPin] Termii verified not true:', data);
+      }
+      return { ok: false, error: 'Invalid or expired code' };
+    }
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Send OTP via Termii with custom message (legacy: app-generated code). Prefer sendPhoneOtpViaTermii for Termii.
+ * Returns { ok, error? }. If TERMII_API_KEY not set, returns ok: false.
  */
 export async function sendPhoneOtp(
   phone: string,
@@ -86,9 +182,9 @@ export async function sendPhoneOtp(
     return { ok: false, error: 'TERMII_API_KEY not set' };
   }
   const to = normalizePhone(phone);
-  const channel = process.env.TERMII_CHANNEL || 'dnd'; // dnd = SMS; whatsapp if available
+  const channel = process.env.TERMII_CHANNEL || 'dnd';
   try {
-    const res = await fetch('https://api.termii.com/api/sms/otp/send', {
+    const res = await fetch(`${TERMII_BASE_URL}/api/sms/otp/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -100,7 +196,7 @@ export async function sendPhoneOtp(
         pin_time_to_live: OTP_EXPIRY_MINUTES,
         pin_attempts: 5,
         pin_placeholder: '< _ _ _ _ _ _ >',
-        message_text: `Your ${process.env.NEXT_PUBLIC_APP_NAME || 'Digit Properties'} verification code is: ${code}. Valid for ${OTP_EXPIRY_MINUTES} minutes.`,
+        message_text: `Your Digit Properties Verification Pin is ${code}. It expires in 30 minutes.`,
         channel,
       }),
     });

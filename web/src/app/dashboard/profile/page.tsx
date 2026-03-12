@@ -5,6 +5,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { LivenessCamera } from '@/components/verification/LivenessCamera';
 import { IdDocumentCamera } from '@/components/verification/IdDocumentCamera';
+import { ID_TYPES } from '@/lib/constants';
+
+const ID_TYPE_OPTIONS = [
+  { value: ID_TYPES.DRIVERS_LICENSE, label: "Driver's License" },
+  { value: ID_TYPES.NATIONAL_ID, label: 'National ID card' },
+  { value: ID_TYPES.VOTERS_CARD, label: 'Voters Card' },
+  { value: ID_TYPES.INTERNATIONAL_PASSPORT, label: 'International passport' },
+] as const;
 
 const VERIFICATION_TYPES = [
   { value: 'registered_agent', label: 'Registered Agent' },
@@ -55,7 +63,7 @@ type VerificationRequestItem = {
 };
 
 type IdUploadResult = {
-  scanned: { firstName: string; middleName: string; lastName: string; dateOfBirth: string } | null;
+  scanned: { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate?: string } | null;
   rawOcrPreview?: string;
 };
 
@@ -89,6 +97,7 @@ export default function ProfilePage() {
 
   const [idFrontFile, setIdFrontFile] = useState<File | null>(null);
   const [idBackFile, setIdBackFile] = useState<File | null>(null);
+  const [idType, setIdType] = useState<string>(ID_TYPES.DRIVERS_LICENSE);
   const [showIdCamera, setShowIdCamera] = useState<'front' | 'back' | null>(null);
   const [idUploading, setIdUploading] = useState(false);
   const [idUploadResult, setIdUploadResult] = useState<IdUploadResult | null>(null);
@@ -258,8 +267,8 @@ export default function ProfilePage() {
 
   async function handleIdUpload(e: React.FormEvent) {
     e.preventDefault();
-    if (!idFrontFile) {
-      setSubmitError('Select ID front image (file upload only, no links).');
+    if (!idFrontFile || !idBackFile) {
+      setSubmitError('Please capture both front and back of your ID.');
       return;
     }
     setIdUploading(true);
@@ -268,7 +277,7 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
-      if (idBackFile) formData.set('idBack', idBackFile);
+      formData.set('idBack', idBackFile);
       const res = await fetch('/api/me/id-upload', { method: 'POST', body: formData });
       const data = await res.json();
       if (res.ok) {
@@ -286,8 +295,8 @@ export default function ProfilePage() {
   }
 
   async function handleIdConfirm() {
-    if (!idFrontFile) {
-      setSubmitError('ID front image is required. Upload your ID again and confirm.');
+    if (!idFrontFile || !idBackFile) {
+      setSubmitError('Both ID front and back are required. Capture both and try again.');
       return;
     }
     setIdConfirming(true);
@@ -295,7 +304,9 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
-      if (idBackFile) formData.set('idBack', idBackFile);
+      formData.set('idBack', idBackFile);
+      formData.set('idType', idType);
+      formData.set('expiryDate', idUploadResult?.scanned?.expiryDate ?? '');
       const res = await fetch('/api/me/id-confirm', { method: 'POST', body: formData });
       const data = await res.json();
       if (res.ok) {
@@ -322,8 +333,8 @@ export default function ProfilePage() {
 
   async function handleUseScannedData() {
     const scanned = idUploadResult?.scanned;
-    if (!scanned || !idFrontFile) {
-      setSubmitError('ID front image is required. Upload your ID again and use scanned data.');
+    if (!scanned || !idFrontFile || !idBackFile) {
+      setSubmitError('Both ID front and back are required. Capture both and try again.');
       return;
     }
     setIdConsentSaving(true);
@@ -331,7 +342,9 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
-      if (idBackFile) formData.set('idBack', idBackFile);
+      formData.set('idBack', idBackFile);
+      formData.set('idType', idType);
+      formData.set('expiryDate', scanned.expiryDate ?? '');
       formData.set('firstName', scanned.firstName ?? '');
       formData.set('middleName', scanned.middleName ?? '');
       formData.set('lastName', scanned.lastName ?? '');
@@ -379,6 +392,9 @@ export default function ProfilePage() {
     normalizeForCompare(idUploadResult.scanned.middleName || '') === normalizeForCompare(user.middleName || '') &&
     normalizeForCompare(idUploadResult.scanned.lastName || '') === normalizeForCompare(user.lastName || '') &&
     dobForCompare(idUploadResult.scanned.dateOfBirth || '') === dobForCompare(user.dateOfBirth || '');
+
+  const scannedExpiry = idUploadResult?.scanned?.expiryDate;
+  const isIdExpired = Boolean(scannedExpiry && new Date(scannedExpiry) < new Date());
 
   async function handleSendPhone() {
     if (!phoneForVerify.trim()) return;
@@ -757,9 +773,21 @@ export default function ProfilePage() {
         ) : !identityOk ? (
           <>
           <p className="mt-1 text-sm text-gray-500">
-            Use your device camera to take pictures of your ID. Align the ID within the frame on screen. Your document is only saved after you compare and confirm or consent below.
+            Use your device camera to take pictures of both sides of your ID. Scan the front and back; your document is only saved after you compare and confirm or consent below.
           </p>
           <form onSubmit={handleIdUpload} className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Type of ID</label>
+              <select
+                value={idType}
+                onChange={(e) => setIdType(e.target.value)}
+                className="mt-1 block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                {ID_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">ID front (required)</label>
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -776,7 +804,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">ID back (optional)</label>
+              <label className="block text-sm font-medium text-gray-700">ID back (required)</label>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -790,7 +818,7 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
-            <button type="submit" disabled={!idFrontFile || idUploading} className="btn-primary">
+            <button type="submit" disabled={!idFrontFile || !idBackFile || idUploading} className="btn-primary">
               {idUploading ? 'Uploading…' : 'Upload ID'}
             </button>
           </form>
@@ -835,6 +863,15 @@ export default function ProfilePage() {
                         <dt className="text-gray-500">Date of birth</dt>
                         <dd className="font-medium text-gray-900">{idUploadResult.scanned.dateOfBirth || '—'}</dd>
                       </div>
+                      {idUploadResult.scanned.expiryDate ? (
+                        <div>
+                          <dt className="text-gray-500">Expiry date</dt>
+                          <dd className={`font-medium ${isIdExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                            {idUploadResult.scanned.expiryDate}
+                            {isIdExpired && ' (expired)'}
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
                   ) : (
                     <div className="mt-2">
@@ -871,7 +908,11 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="mt-4 border-t border-gray-200 pt-4">
-                {idUploadResult.scanned ? (
+                {isIdExpired ? (
+                  <p className="text-sm text-red-700">
+                    This ID has expired. Please use a valid, unexpired ID and upload both front and back again.
+                  </p>
+                ) : idUploadResult.scanned ? (
                   scannedMatches ? (
                     <>
                       <p className="text-sm text-green-700">Detected ID matches your profile. Confirm to proceed.</p>

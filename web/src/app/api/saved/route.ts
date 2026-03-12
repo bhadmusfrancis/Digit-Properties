@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     return NextResponse.json(saved.map((s) => s.listingId).filter(Boolean));
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Failed to fetch saved' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
   }
 }
 
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     if (listing) {
       const createdById = listing.createdBy != null ? String(listing.createdBy) : '';
       if (createdById === session.user.id) {
-        return NextResponse.json({ error: 'You cannot save your own listing' }, { status: 403 });
+        return NextResponse.json({ error: 'You cannot add your own listing to favorites' }, { status: 403 });
       }
     }
     const existing = await SavedListing.findOne({
@@ -55,6 +55,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ saved: true });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Failed to toggle save' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update favorites' }, { status: 500 });
   }
 }

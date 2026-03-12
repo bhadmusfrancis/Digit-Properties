@@ -26,7 +26,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = alertSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      const first = parsed.error.errors[0];
+      return NextResponse.json(
+        { error: first?.message ?? 'Invalid alert data' },
+        { status: 400 }
+      );
     }
 
     await dbConnect();

@@ -1,6 +1,7 @@
 # Termii SMS OTP Setup
 
-Use **Termii** to send phone verification OTP via SMS (Nigeria-focused). The app uses Termii when **Twilio is not configured**; if both are set, Twilio is tried first.
+Use **Termii** for phone verification via SMS (Nigeria-focused). The app sends: **"Your Digit Properties Verification Pin is XXXXXX. It expires in 30 minutes."**  
+Termii is tried **first** when configured; Twilio is used if Termii is not set. Users cannot request a new code within **30 minutes** of the last send (cooldown, same as OTP expiry).
 
 ---
 
@@ -36,26 +37,29 @@ Docs: [Termii Sender ID](https://developers.termii.com/sender-id).
 In **`web/.env.local`** (and in **Vercel** for production):
 
 ```env
-# Termii – SMS OTP (used when Twilio is not set, or after Twilio fails)
+# Termii – required for SMS verification
 TERMII_API_KEY=your_termii_api_key_here
 TERMII_SENDER_ID=DigitProp
-# Channel: dnd = SMS (default, use for OTP). Optional.
+# Optional
 # TERMII_CHANNEL=dnd
+# TERMII_BASE_URL=https://api.termii.com
 ```
 
-| Variable           | Required | Description |
-|--------------------|----------|-------------|
-| `TERMII_API_KEY`   | Yes      | Your Termii API key from the dashboard. |
-| `TERMII_SENDER_ID` | Yes      | Approved Sender ID (e.g. `DigitProp`). Default in code: `DigitProp`. |
-| `TERMII_CHANNEL`   | No       | `dnd` = SMS (default). Use for OTP. |
+| Variable            | Required | Description |
+|---------------------|----------|-------------|
+| `TERMII_API_KEY`    | **Yes**  | Your Termii API key from the [Termii dashboard](https://accounts.termii.com). |
+| `TERMII_SENDER_ID`  | **Yes**  | Approved Sender ID (e.g. `DigitProp`). Default in code: `DigitProp`. |
+| `TERMII_CHANNEL`    | No       | `dnd` = SMS (default). Use for OTP. |
+| `TERMII_BASE_URL`   | No       | API base URL. Default: `https://api.termii.com`. |
 
 ---
 
 ## 5. Flow in the app
 
 - **Verify phone:** User enters number → `POST /api/me/verify-phone`.
-- If **Twilio** is configured, Twilio (SMS/WhatsApp) is used first.
-- If Twilio is not set or fails, the app tries **Termii**: sends a 6-digit OTP via SMS using `TERMII_API_KEY` and `TERMII_SENDER_ID`.
+- If **Termii** is configured (`TERMII_API_KEY` + `TERMII_SENDER_ID`), the app sends the SMS via Termii: *"Your Digit Properties Verification Pin is XXXXXX. It expires in 30 minutes."*
+- **Cooldown:** Another code cannot be requested within 30 minutes of the previous send (same as OTP expiry).
+- If Termii is not set or fails, **Twilio** (SMS/WhatsApp) is tried next.
 - User enters the code → `POST /api/me/confirm-phone` with `{ "code": "123456" }`.
 
 Phone numbers are normalized to Nigerian format (e.g. `2348012345678`).
