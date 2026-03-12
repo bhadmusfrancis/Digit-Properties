@@ -4,7 +4,7 @@ import { NIGERIAN_STATES } from '@/lib/constants';
 
 /** GET /api/locations/areas?state=Lagos — returns suburbs/areas for the given state (for alert & search dropdowns). */
 export async function GET(req: Request) {
-  const state = req.nextUrl.searchParams.get('state')?.trim();
+  const state = new URL(req.url).searchParams.get('state')?.trim();
   if (!state) {
     return NextResponse.json({ areas: [], states: NIGERIAN_STATES });
   }
