@@ -1,6 +1,10 @@
+import { LogBox } from 'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
+
+// Expo dev client sometimes fails to activate keep-awake (e.g. on some emulators); ignore so the app doesn't show an error.
+LogBox.ignoreLogs(['Unable to activate keep awake', 'Unable to deactivate keep awake']);
 
 export default function RootLayout() {
   return (
@@ -14,7 +18,6 @@ export default function RootLayout() {
           <Stack.Screen name="listings/[id]/edit" />
           <Stack.Screen name="auth/signin" options={{ title: 'Sign in' }} />
           <Stack.Screen name="auth/signup" options={{ title: 'Sign up' }} />
-          <Stack.Screen name="dashboard/listings" />
           <Stack.Screen name="dashboard/claims" />
           <Stack.Screen name="admin/users" />
           <Stack.Screen name="admin/users/[id]/edit" />

@@ -85,14 +85,15 @@ export const reviewSchema = z.object({
 export const alertSchema = z.object({
   name: z.string().min(1).max(100),
   filters: z.object({
-    listingType: z.string().optional(),
+    listingType: z.enum(['sale', 'rent']).optional(),
     propertyType: z.string().optional(),
     minPrice: z.number().optional(),
     maxPrice: z.number().optional(),
     state: z.string().optional(),
     city: z.string().optional(),
-    bedrooms: z.number().optional(),
-    bathrooms: z.number().optional(),
+    suburb: z.string().optional(),
+    bedrooms: z.number().min(0).optional(),
+    bathrooms: z.number().min(0).optional(),
     rentPeriod: z.enum(['day', 'month', 'year']).optional(),
     tags: z.array(z.string()).optional(),
   }),

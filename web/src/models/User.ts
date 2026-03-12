@@ -33,6 +33,8 @@ export interface IUser {
   idFrontUrl?: string;
   /** ID document back image URL (upload only, no link). */
   idBackUrl?: string;
+  /** Type of ID: Driver's License, National ID, Voters Card, International passport. */
+  idType?: 'drivers_license' | 'national_id' | 'voters_card' | 'international_passport';
   /** Scanned ID data when OCR did not match; user consented to save. */
   idScannedData?: IIdScannedData;
   /** Set when ID step done (OCR match or consent) and optionally admin-approved. */
@@ -55,8 +57,12 @@ export interface IUser {
   phoneVerificationExpires?: Date;
   /** Hashed OTP for phone verification (alternative to link). */
   phoneVerificationCode?: string;
-  /** When 'twilio', confirm-phone uses Twilio Verify Check API instead of stored code. */
-  phoneVerificationProvider?: 'twilio';
+  /** When 'twilio', confirm-phone uses Twilio Verify; when 'termii', uses Termii Verify Token. */
+  phoneVerificationProvider?: 'twilio' | 'termii';
+  /** Termii pin_id from send-token; used in confirm-phone when provider is termii. */
+  phoneVerificationPinId?: string;
+  /** When last OTP was sent; used to enforce cooldown and prevent multiple pins. */
+  phoneOtpLastSentAt?: Date;
   /** One-time token for password reset link; cleared after reset. */
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -87,6 +93,7 @@ const UserSchema = new Schema<IUser>(
     phoneVerifiedAt: Date,
     idFrontUrl: String,
     idBackUrl: String,
+    idType: String,
     idScannedData: {
       firstName: String,
       middleName: String,
@@ -105,6 +112,8 @@ const UserSchema = new Schema<IUser>(
     phoneVerificationExpires: Date,
     phoneVerificationCode: String,
     phoneVerificationProvider: String,
+    phoneVerificationPinId: String,
+    phoneOtpLastSentAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
     termsAcceptedAt: Date,

@@ -8,6 +8,8 @@ export interface ParsedIdData {
   middleName: string;
   lastName: string;
   dateOfBirth: string;
+  /** Expiry date YYYY-MM-DD if detected; used to reject expired IDs. */
+  expiryDate: string;
 }
 
 const DATE_PATTERNS = [
@@ -30,6 +32,19 @@ const DOB_LABELS = [
   'b.date',
   'date of b',
   'd.of.b',
+];
+
+/** Labels that often precede expiry date on IDs */
+const EXPIRY_LABELS = [
+  'exp',
+  'expiry',
+  'expires',
+  'valid until',
+  'valid to',
+  'date of expiry',
+  'expiry date',
+  'exp date',
+  'exp.date',
 ];
 
 /** Normalize for comparison: lowercase, single spaces */
@@ -113,6 +128,68 @@ function correctDayIfOcrError(text: string, day: number, month: number, year: nu
   if (pattern17.test(text)) return 17;
   if (month === 6 && year === 1988) return 17;
   return day;
+}
+
+/**
+ * Extract expiry date from OCR text. Looks for expiry labels and DD-MM-YYYY;
+ * prefers dates in reasonable expiry range (current year - 2 to 2040). Returns YYYY-MM-DD or null.
+ */
+function extractExpiryDate(text: string): string | null {
+  const normalized = normalize(text);
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  for (const line of lines) {
+    const lineLower = line.toLowerCase();
+    const hasExpiryLabel = EXPIRY_LABELS.some((label) => lineLower.includes(label));
+    const match = line.match(/\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/);
+    if (match) {
+      let day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10);
+      const year = parseInt(match[3], 10);
+      if (year >= currentYear - 2 && year <= 2040 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        if (hasExpiryLabel) {
+          day = correctDayIfOcrError(text, day, month, year);
+          return toIsoDate(day, month, year);
+        }
+      }
+    }
+  }
+
+  const escapedLabels = EXPIRY_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const expiryLabelThenDate = new RegExp(
+    `(?:${escapedLabels})[\\s:.]*?(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})`,
+    'i'
+  );
+  const blobMatch = normalized.match(expiryLabelThenDate);
+  if (blobMatch) {
+    let day = parseInt(blobMatch[1], 10);
+    const month = parseInt(blobMatch[2], 10);
+    const year = parseInt(blobMatch[3], 10);
+    if (year >= currentYear - 2 && year <= 2040 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      day = correctDayIfOcrError(text, day, month, year);
+      return toIsoDate(day, month, year);
+    }
+  }
+
+  const allDates: { day: number; month: number; year: number }[] = [];
+  let m: RegExpExecArray | null;
+  const re = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/g;
+  while ((m = re.exec(text)) !== null) {
+    let day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const year = parseInt(m[3], 10);
+    if (year >= currentYear - 2 && year <= 2040 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      day = correctDayIfOcrError(text, day, month, year);
+      allDates.push({ day, month, year });
+    }
+  }
+  if (allDates.length > 0) {
+    const d = allDates[allDates.length - 1];
+    return toIsoDate(d.day, d.month, d.year);
+  }
+  return null;
 }
 
 /** Skip lines that are clearly not a person's name (labels, doc type, etc.) */
@@ -243,12 +320,14 @@ export function parseIdOcrText(ocrText: string): ParsedIdData | null {
   const firstName = name?.firstName ?? '';
   const middleName = name?.middleName ?? '';
   const lastName = name?.lastName ?? '';
-  if (!firstName && !middleName && !lastName && !dateOfBirth) return null;
+  const expiryDate = extractExpiryDate(ocrText);
+  if (!firstName && !middleName && !lastName && !dateOfBirth && !expiryDate) return null;
 
   return {
     firstName: firstName.trim(),
     middleName: middleName.trim(),
     lastName: lastName.trim(),
     dateOfBirth: dateOfBirth?.trim() ?? '',
+    expiryDate: expiryDate?.trim() ?? '',
   };
 }

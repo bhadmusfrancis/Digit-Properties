@@ -4,8 +4,11 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getWhatsAppUrl } from '@/lib/utils';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+
+type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
 
 interface Props {
   listingId: string;
@@ -19,8 +22,14 @@ interface Props {
 }
 
 export function ListingDetailClient({ listingId, title, createdBy, createdByType, baseUrl, isOwner, viewCount = 0, likeCount: initialLikeCount = 0 }: Props) {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [claimOpen, setClaimOpen] = useState(false);
+  const [claimStep, setClaimStep] = useState<'send' | 'verify' | 'list'>('send');
+  const [claimPinId, setClaimPinId] = useState<string | null>(null);
+  const [claimPhoneDisplay, setClaimPhoneDisplay] = useState<string>('');
+  const [claimOtp, setClaimOtp] = useState('');
+  const [claimListings, setClaimListings] = useState<ClaimListing[]>([]);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [liked, setLiked] = useState(false);
   const viewRecorded = useRef(false);
@@ -75,6 +84,63 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
       if (typeof data.likeCount === 'number') setLikeCount(data.likeCount);
     },
   });
+
+  const sendClaimOtp = useMutation({
+    mutationFn: () =>
+      fetch('/api/claims/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId }),
+      }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
+    onSuccess: (data: { pinId: string; phoneDisplay: string }) => {
+      setClaimPinId(data.pinId);
+      setClaimPhoneDisplay(data.phoneDisplay || '');
+      setClaimStep('verify');
+    },
+  });
+
+  const verifyClaimOtp = useMutation({
+    mutationFn: ({ pin, pinId }: { pin: string; pinId: string }) =>
+      fetch('/api/claims/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pinId, pin, listingId }),
+      }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
+    onSuccess: (data: { verified: boolean; listings: ClaimListing[] }) => {
+      if (data.verified && Array.isArray(data.listings)) {
+        setClaimListings(data.listings);
+        setClaimStep('list');
+      }
+    },
+  });
+
+  const claimAllMutation = useMutation({
+    mutationFn: (ids: string[]) =>
+      fetch('/api/claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingIds: ids }),
+      }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
+    onSuccess: () => {
+      setClaimOpen(false);
+      setClaimStep('send');
+      setClaimPinId(null);
+      setClaimPhoneDisplay('');
+      setClaimOtp('');
+      setClaimListings([]);
+      queryClient.invalidateQueries({ queryKey: ['contact', listingId] });
+      router.push('/dashboard/claims');
+    },
+  });
+
+  const closeClaimModal = () => {
+    setClaimOpen(false);
+    setClaimStep('send');
+    setClaimPinId(null);
+    setClaimPhoneDisplay('');
+    setClaimOtp('');
+    setClaimListings([]);
+  };
 
   const listingUrl = `${baseUrl}/listings/${listingId}`;
   const whatsappMessage = `Hi, I'm interested in this property: ${title} - ${listingUrl}`;
@@ -146,14 +212,14 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
               onClick={() => toggleSaved.mutate()}
               className="btn-secondary w-full"
             >
-              {isSaved ? 'Unsave' : 'Save listing'}
+              {isSaved ? 'Remove from Favorites' : 'Add to Favorites'}
             </button>
           )}
         </>
       ) : (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm text-amber-800">
-            Sign in to view contact details and save this listing.
+            Sign in to view contact details and add this listing to your favorites.
           </p>
           <Link href="/auth/signin" className="btn-primary mt-3 block text-center">
             Sign in
@@ -163,9 +229,121 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
 
       {createdByType === 'bot' && session && (
         <div className="border-t pt-4">
-          <button onClick={() => setClaimOpen(true)} className="btn-secondary w-full text-sm">
+          <button
+            onClick={() => {
+              setClaimStep('send');
+              setClaimPinId(null);
+              setClaimPhoneDisplay('');
+              setClaimOtp('');
+              setClaimListings([]);
+              setClaimOpen(true);
+            }}
+            className="btn-secondary w-full text-sm"
+          >
             Claim this property
           </button>
+        </div>
+      )}
+
+      {claimOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+            <h2 id="claim-modal-title" className="text-lg font-semibold text-gray-900">Claim property</h2>
+
+            {claimStep === 'send' && (
+              <>
+                <p className="mt-2 text-sm text-gray-600">
+                  Verify the listing contact number to claim. We&apos;ll send a one-time code via SMS to this number. Once verified, you can claim all listings linked to it without admin approval.
+                </p>
+                {contact?.agentPhone && (
+                  <p className="mt-2 font-medium text-gray-900">Number: {contact.agentPhone}</p>
+                )}
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => sendClaimOtp.mutate()}
+                    disabled={sendClaimOtp.isPending || !contact?.agentPhone}
+                    className="btn-primary flex-1"
+                  >
+                    {sendClaimOtp.isPending ? 'Sending…' : 'Send code'}
+                  </button>
+                  <button type="button" onClick={closeClaimModal} className="btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+                {sendClaimOtp.isError && (
+                  <p className="mt-2 text-sm text-red-600">{(sendClaimOtp.error as { error?: string })?.error || 'Failed to send code'}</p>
+                )}
+              </>
+            )}
+
+            {claimStep === 'verify' && (
+              <>
+                <p className="mt-2 text-sm text-gray-600">
+                  Enter the 6-digit code sent to {claimPhoneDisplay || 'your phone'}.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={claimOtp}
+                  onChange={(e) => setClaimOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="input mt-3 w-full text-center text-lg tracking-widest"
+                />
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => claimPinId && verifyClaimOtp.mutate({ pin: claimOtp, pinId: claimPinId })}
+                    disabled={verifyClaimOtp.isPending || claimOtp.length !== 6 || !claimPinId}
+                    className="btn-primary flex-1"
+                  >
+                    {verifyClaimOtp.isPending ? 'Verifying…' : 'Verify'}
+                  </button>
+                  <button type="button" onClick={() => { setClaimStep('send'); setClaimPinId(null); setClaimOtp(''); }} className="btn-secondary">
+                    Back
+                  </button>
+                </div>
+                {verifyClaimOtp.isError && (
+                  <p className="mt-2 text-sm text-red-600">{(verifyClaimOtp.error as { error?: string })?.error || 'Invalid or expired code'}</p>
+                )}
+              </>
+            )}
+
+            {claimStep === 'list' && (
+              <>
+                <p className="mt-2 text-sm text-gray-600">
+                  You verified this number. The following {claimListings.length} listing{claimListings.length !== 1 ? 's' : ''} use it. Claim them all at once (no admin approval needed).
+                </p>
+                <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
+                  {claimListings.map((l) => (
+                    <li key={l._id} className="flex items-center justify-between text-sm">
+                      <span className="truncate font-medium text-gray-900">{l.title}</span>
+                      <span className="shrink-0 text-gray-600">
+                        ₦{typeof l.price === 'number' ? l.price.toLocaleString() : l.price}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => claimAllMutation.mutate(claimListings.map((l) => l._id))}
+                    disabled={claimAllMutation.isPending || claimListings.length === 0}
+                    className="btn-primary flex-1"
+                  >
+                    {claimAllMutation.isPending ? 'Claiming…' : `Claim all (${claimListings.length})`}
+                  </button>
+                  <button type="button" onClick={closeClaimModal} className="btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+                {claimAllMutation.isError && (
+                  <p className="mt-2 text-sm text-red-600">{(claimAllMutation.error as { error?: string })?.error || 'Failed to claim'}</p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

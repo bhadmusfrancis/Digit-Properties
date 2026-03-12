@@ -10,7 +10,10 @@ import {
   generatePhoneVerification,
   sendPhoneOtp,
   sendPhoneOtpViaTwilio,
+  sendPhoneOtpViaTermii,
   isTwilioVerifyConfigured,
+  isTermiiConfigured,
+  PHONE_OTP_COOLDOWN_MS,
 } from '@/lib/phone-verify';
 import { phoneVerifySchema } from '@/lib/validations';
 
@@ -57,9 +60,42 @@ export async function POST(req: Request) {
     }
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    // Prevent multiple pins: enforce cooldown since last OTP send
+    const lastSent = user.phoneOtpLastSentAt ? new Date(user.phoneOtpLastSentAt).getTime() : 0;
+    const now = Date.now();
+    if (lastSent && now - lastSent < PHONE_OTP_COOLDOWN_MS) {
+      const waitMinutes = Math.ceil((PHONE_OTP_COOLDOWN_MS - (now - lastSent)) / 60000);
+      return NextResponse.json(
+        { error: `Please wait ${waitMinutes} minute(s) before requesting another code.` },
+        { status: 429 }
+      );
+    }
+
     user.phone = normalized;
 
+    // 1) Termii (primary for SMS): "Your Digit Properties Verification Pin is XXXXXX. It expires in 30 minutes."
     let twilioError: string | undefined;
+    if (isTermiiConfigured()) {
+      const termiiResult = await sendPhoneOtpViaTermii(normalized);
+      if (termiiResult.ok && termiiResult.pinId) {
+        user.phoneVerificationProvider = 'termii';
+        user.phoneVerificationPinId = termiiResult.pinId;
+        user.phoneVerificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+        user.phoneVerificationCode = undefined;
+        user.phoneVerificationToken = undefined;
+        user.phoneOtpLastSentAt = new Date();
+        await user.save();
+        return NextResponse.json({
+          ok: true,
+          message: 'Verification code sent to your phone via SMS. Enter the code below.',
+          channel: 'sms',
+        });
+      }
+      console.warn('[verify-phone] Termii send failed:', termiiResult.error);
+    }
+
+    // 2) Twilio Verify (SMS or WhatsApp)
     if (isTwilioVerifyConfigured()) {
       const twilioResult = await sendPhoneOtpViaTwilio(normalized);
       if (twilioResult.ok) {
@@ -67,6 +103,8 @@ export async function POST(req: Request) {
         user.phoneVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
         user.phoneVerificationCode = undefined;
         user.phoneVerificationToken = undefined;
+        user.phoneVerificationPinId = undefined;
+        user.phoneOtpLastSentAt = new Date();
         await user.save();
         const channel = twilioResult.channel || 'sms';
         return NextResponse.json({
@@ -80,20 +118,22 @@ export async function POST(req: Request) {
       }
       twilioError = twilioResult.error;
       console.warn('[verify-phone] Twilio send failed:', twilioError);
-    } else {
-      console.warn('[verify-phone] Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID in .env.local and restart the server.');
     }
 
+    // 3) Fallback: app-generated code + Termii send (if Termii key set but send-token failed) or link
     const { code, token, expiresAt } = generatePhoneVerification();
     const hashedCode = await bcrypt.hash(code, 10);
     user.phoneVerificationCode = hashedCode;
     user.phoneVerificationExpires = expiresAt;
     user.phoneVerificationToken = token;
     user.phoneVerificationProvider = undefined;
+    user.phoneVerificationPinId = undefined;
     await user.save();
 
     const sendResult = await sendPhoneOtp(normalized, code);
     if (sendResult.ok) {
+      user.phoneOtpLastSentAt = new Date();
+      await user.save();
       return NextResponse.json({
         ok: true,
         message: 'Verification code sent to your phone.',

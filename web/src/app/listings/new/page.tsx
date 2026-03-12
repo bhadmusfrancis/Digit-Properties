@@ -3,10 +3,21 @@
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { ListingForm } from '@/components/listings/ListingForm';
 
 export default function NewListingPage() {
   const { data: session, status } = useSession();
+
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard', 'stats'],
+    queryFn: () => fetch('/api/dashboard/stats').then((r) => r.json()),
+    enabled: !!session,
+  });
+
+  const listingsCount = typeof stats?.listingsCount === 'number' ? stats.listingsCount : 0;
+  const maxListings = typeof stats?.maxListings === 'number' ? stats.maxListings : 99999;
+  const isOneAwayFromLimit = maxListings < 100 && listingsCount === maxListings - 1;
 
   if (status === 'loading') {
     return (
@@ -38,6 +49,33 @@ export default function NewListingPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {isOneAwayFromLimit && (
+          <div
+            role="alert"
+            className="mb-6 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50/60 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" aria-hidden>
+                ✓
+              </span>
+              <div>
+                <p className="font-medium text-gray-900">
+                  You&apos;re one listing away from your current limit ({listingsCount} of {maxListings}).
+                </p>
+                <p className="mt-0.5 text-sm text-gray-700">
+                  Verify your account to enjoy <strong>unlimited listings</strong> and get more visibility with buyers and tenants.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/profile"
+              className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            >
+              Verify account
+            </Link>
+          </div>
+        )}
+
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Sell or Rent a property
