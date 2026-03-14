@@ -45,7 +45,11 @@ function SignInForm() {
         By signing in you agree to our <Link href="/terms" className="text-primary-600 hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link>.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <SocialAuthButtons callbackUrl={callbackUrl} />
+
+      <p className="mt-6 text-center text-sm text-gray-500">or continue with email</p>
+
+      <form onSubmit={handleSubmit} className="mt-4 space-y-6">
         {success && (
           <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
             {success}
@@ -113,8 +117,6 @@ function SignInForm() {
           </Link>
         </p>
       </div>
-
-      <SocialAuthButtons callbackUrl={callbackUrl} />
     </div>
   );
 }

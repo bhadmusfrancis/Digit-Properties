@@ -126,7 +126,11 @@ function SignUpForm() {
       <h1 className="text-2xl font-bold text-gray-900">Create account</h1>
       <p className="mt-2 text-gray-600">Sign up to list properties and view contact details.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <SocialAuthButtons callbackUrl={callbackUrl} />
+
+      <p className="mt-6 text-center text-sm text-gray-500">or sign up with email</p>
+
+      <form onSubmit={handleSubmit} className="mt-4 space-y-6">
         {error && (
           <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
             {error}
@@ -217,8 +221,6 @@ function SignUpForm() {
           {loading ? 'Creating account...' : 'Sign up'}
         </button>
       </form>
-
-      <SocialAuthButtons callbackUrl={callbackUrl} />
 
       <p className="mt-6 text-center text-sm text-gray-600">
         Already have an account?{' '}
