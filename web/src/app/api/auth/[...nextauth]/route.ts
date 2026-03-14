@@ -62,7 +62,6 @@ const providers: NextAuthOptions['providers'] = [
 
 export const authOptions: NextAuthOptions = {
   providers,
-  trustHost: true, // Required for OAuth callback to work on Vercel/production when host differs from NEXTAUTH_URL
   callbacks: {
     async jwt({ token, user, account }) {
       // Credentials flow: user.id is our DB _id; resolve session from DB
