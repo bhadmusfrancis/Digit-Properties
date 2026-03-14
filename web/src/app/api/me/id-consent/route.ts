@@ -5,7 +5,7 @@ import { uploadIdImage } from '@/lib/upload-id-image';
 import { findExistingVerifiedIdentity } from '@/lib/identity-dedup';
 import User from '@/models/User';
 import type { IIdScannedData } from '@/models/User';
-import { ID_TYPES } from '@/lib/constants';
+import { ID_TYPES, type IdType } from '@/lib/constants';
 
 const VALID_ID_TYPES = new Set(Object.values(ID_TYPES));
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (!idBack || !(idBack instanceof File) || idBack.size === 0) {
       return NextResponse.json({ error: 'ID back image (file) is required. Please scan both front and back of your ID.' }, { status: 400 });
     }
-    if (!idType || !VALID_ID_TYPES.has(idType)) {
+    if (!idType || !VALID_ID_TYPES.has(idType as IdType)) {
       return NextResponse.json({ error: 'Please select the type of ID (Driver\'s License, National ID card, Voters Card, or International passport).' }, { status: 400 });
     }
     if (expiryDateStr) {
