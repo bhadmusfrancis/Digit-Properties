@@ -88,14 +88,19 @@ export const authOptions: NextAuthOptions = {
 
       // OAuth flow (Google, Facebook, Apple): link to our DB user by email; create if new
       if (account?.provider && account.provider !== 'credentials') {
-        const email = (token.email as string)?.trim?.();
-        if (!email) {
+        const rawEmail = (token.email as string)?.trim?.();
+        if (!rawEmail) {
           console.error('[nextauth] OAuth missing email — provider:', account.provider);
           return token;
         }
+        const emailLower = rawEmail.toLowerCase();
+        const displayName = (token.name as string)?.trim?.() || rawEmail.split('@')[0] || 'User';
         try {
           await dbConnect();
-          const existing = await User.findOne({ email }).select('role verifiedAt termsAcceptedAt privacyAcceptedAt').lean();
+          // Find by exact or lowercase email so we match regardless of how user was created
+          const existing = await User.findOne({
+            $or: [{ email: rawEmail }, { email: emailLower }],
+          }).select('role verifiedAt termsAcceptedAt privacyAcceptedAt').lean();
           if (existing) {
             const ex = existing as { _id: unknown; role?: string; verifiedAt?: Date; termsAcceptedAt?: Date; privacyAcceptedAt?: Date };
             token.id = ex._id?.toString?.() ?? token.id;
@@ -105,20 +110,39 @@ export const authOptions: NextAuthOptions = {
               await User.findByIdAndUpdate(ex._id, { $set: { verifiedAt: new Date() } });
             }
           } else {
-            const newUser = await User.create({
-              email,
-              name: token.name ?? email.split('@')[0],
-              image: token.picture ?? undefined,
-              role: USER_ROLES.GUEST,
-              verifiedAt: new Date(),
-            });
+            let newUser;
+            try {
+              newUser = await User.create({
+                email: emailLower,
+                name: displayName,
+                image: token.picture ?? undefined,
+                role: USER_ROLES.GUEST,
+                verifiedAt: new Date(),
+                fcmTokens: [],
+              });
+            } catch (createErr: unknown) {
+              // Duplicate key (race: two OAuth callbacks for same new user) — fetch the user that was just created
+              const code = (createErr as { code?: number })?.code;
+              if (code === 11000) {
+                const raceUser = await User.findOne({ email: emailLower }).select('role').lean();
+                if (raceUser) {
+                  const r = raceUser as { _id: unknown };
+                  token.id = r._id?.toString?.() ?? token.id;
+                  token.role = (raceUser as { role?: string }).role ?? USER_ROLES.GUEST;
+                  token.needsLegalAcceptance = true;
+                  return token;
+                }
+              }
+              console.error('[nextauth] OAuth create error:', createErr);
+              throw createErr;
+            }
             token.id = newUser._id.toString();
             token.role = newUser.role;
             token.needsLegalAcceptance = true;
           }
         } catch (e) {
           console.error('[nextauth] OAuth jwt db error:', e);
-          throw e; // So NextAuth redirects with error and we see it in logs
+          throw e;
         }
       }
       return token;
