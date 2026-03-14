@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
+import { sendWelcomeEmail, sendAdminNewUser } from '@/lib/email';
 
 /** Shown for all users until they complete liveness verification. */
 export const GUEST_AVATAR_PATH = '/avatar-guest.svg';
@@ -60,8 +61,12 @@ const providers: NextAuthOptions['providers'] = [
     : []),
 ];
 
-export const authOptions: NextAuthOptions = {
+// trustHost is supported at runtime by next-auth for OAuth callback URL on Vercel; not in v4 TS types
+type AuthOptionsWithTrustHost = NextAuthOptions & { trustHost?: boolean };
+
+export const authOptions: AuthOptionsWithTrustHost = {
   providers,
+  trustHost: true,
   callbacks: {
     async jwt({ token, user, account }) {
       // Credentials flow: user.id is our DB _id; resolve session from DB
@@ -94,6 +99,10 @@ export const authOptions: NextAuthOptions = {
         }
         const emailLower = rawEmail.toLowerCase();
         const displayName = (token.name as string)?.trim?.() || rawEmail.split('@')[0] || 'User';
+        // Pre-fill first/last name from social provider (e.g. "John Doe" → firstName: John, lastName: Doe)
+        const nameParts = displayName.split(/\s+/).filter(Boolean);
+        const firstName = nameParts[0] ?? '';
+        const lastName = nameParts.slice(1).join(' ') ?? '';
         try {
           await dbConnect();
           // Find by exact or lowercase email so we match regardless of how user was created
@@ -114,6 +123,8 @@ export const authOptions: NextAuthOptions = {
               newUser = await User.create({
                 email: emailLower,
                 name: displayName,
+                firstName: firstName || undefined,
+                lastName: lastName || undefined,
                 image: token.picture ?? undefined,
                 role: USER_ROLES.GUEST,
                 verifiedAt: new Date(),
@@ -138,6 +149,13 @@ export const authOptions: NextAuthOptions = {
             token.id = newUser._id.toString();
             token.role = newUser.role;
             token.needsLegalAcceptance = true;
+            // Send registration emails (welcome to user, notification to admin) — same as credentials signup
+            sendWelcomeEmail(newUser.email, newUser.name).catch((err) =>
+              console.error('[nextauth] social signup welcome email:', err)
+            );
+            sendAdminNewUser(newUser.name, newUser.email).catch((err) =>
+              console.error('[nextauth] social signup admin email:', err)
+            );
           }
         } catch (e) {
           console.error('[nextauth] OAuth jwt db error:', e);

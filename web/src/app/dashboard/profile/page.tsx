@@ -87,6 +87,7 @@ export default function ProfilePage() {
 
   const [phoneForVerify, setPhoneForVerify] = useState('');
   const [code, setCode] = useState('');
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [phoneSending, setPhoneSending] = useState(false);
   const [phoneConfirming, setPhoneConfirming] = useState(false);
   const [phoneMessage, setPhoneMessage] = useState<string | null>(null);
@@ -118,9 +119,20 @@ export default function ProfilePage() {
       .then(([me, list]) => {
         if (me) {
           setUser(me);
-          setFirstName(me.firstName ?? '');
-          setMiddleName(me.middleName ?? '');
-          setLastName(me.lastName ?? '');
+          // Pre-fill name parts from social login when first/last are missing
+          const first = (me.firstName ?? '').trim();
+          const last = (me.lastName ?? '').trim();
+          const fullName = (me.name ?? '').trim();
+          if (!first && !last && fullName) {
+            const parts = fullName.split(/\s+/).filter(Boolean);
+            setFirstName(parts[0] ?? '');
+            setLastName(parts.slice(1).join(' ') ?? '');
+            setMiddleName(me.middleName ?? '');
+          } else {
+            setFirstName(me.firstName ?? '');
+            setMiddleName(me.middleName ?? '');
+            setLastName(me.lastName ?? '');
+          }
           setDateOfBirth(me.dateOfBirth ?? '');
           setAddress(me.address ?? '');
           setPhone(me.phone ?? '');
@@ -408,7 +420,11 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setPhoneMessage(data.message || 'Code sent.');
+        setPhoneMessage(data.message || 'Code sent. Enter it below.');
+        setPhoneCodeSent(true);
+        setCode('');
+        setPhone(phoneForVerify.trim());
+        setUser((u) => (u ? { ...u, phone: phoneForVerify.trim() } : null));
       } else {
         setPhoneMessage(data.error || 'Failed to send');
       }
@@ -432,6 +448,8 @@ export default function ProfilePage() {
       if (res.ok) {
         setPhoneMessage('Phone verified.');
         setUser((u) => (u ? { ...u, phoneVerifiedAt: new Date().toISOString() } : null));
+        setPhoneCodeSent(false);
+        setCode('');
       } else {
         setPhoneMessage(data.error || 'Invalid code');
       }
@@ -536,52 +554,79 @@ export default function ProfilePage() {
       </div>
 
       {!phoneOk && (
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm" aria-label="Verify phone">
-          <h3 className="font-medium text-gray-900">Verify phone</h3>
+        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" aria-label="Verify phone">
+          <h3 className="text-base font-semibold text-gray-900">Verify your phone</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Enter your Nigerian phone number (e.g. 08012345678 or +2348012345678). We&apos;ll send a 6-digit code via SMS or WhatsApp.
+            {!phoneCodeSent
+              ? 'Add your Nigerian number below (or in your profile first). We’ll send a 6-digit code via SMS or WhatsApp.'
+              : `Code sent to ${phoneForVerify || 'your number'}. Enter it below.`}
           </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <input
-              type="tel"
-              value={phoneForVerify}
-              onChange={(e) => setPhoneForVerify(e.target.value)}
-              placeholder="08012345678 or +2348012345678"
-              className="input w-56 font-mono"
-              inputMode="numeric"
-              autoComplete="tel"
-              aria-label="Nigerian phone number for OTP"
-            />
-            <button type="button" onClick={handleSendPhone} disabled={phoneSending} className="btn-primary">
-              {phoneSending ? 'Sending…' : 'Send code'}
-            </button>
+          <div className="mt-4">
+            {!phoneCodeSent ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="tel"
+                  value={phoneForVerify}
+                  onChange={(e) => setPhoneForVerify(e.target.value)}
+                  placeholder="08012345678 or +2348012345678"
+                  className="input max-w-xs flex-1 font-mono"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  aria-label="Phone number"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendPhone}
+                  disabled={phoneSending || !phoneForVerify.trim()}
+                  className="btn-primary shrink-0"
+                >
+                  {phoneSending ? 'Sending…' : 'Send code'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  className="input max-w-[8rem] font-mono text-lg tracking-widest"
+                  maxLength={6}
+                  aria-label="Verification code"
+                />
+                <button
+                  type="button"
+                  onClick={handleConfirmPhone}
+                  disabled={phoneConfirming || code.replace(/\D/g, '').length < 6}
+                  className="btn-primary shrink-0"
+                >
+                  {phoneConfirming ? 'Verifying…' : 'Verify'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoneCodeSent(false);
+                    setCode('');
+                    setPhoneMessage(null);
+                  }}
+                  className="text-sm text-primary-600 hover:underline shrink-0"
+                >
+                  Use a different number
+                </button>
+              </div>
+            )}
           </div>
           {phoneMessage && (
-            <p className={`mt-2 text-sm ${phoneMessage.startsWith('Phone verified') ? 'text-green-600' : 'text-gray-700'}`}>
+            <p
+              className={`mt-3 text-sm ${
+                phoneMessage.startsWith('Phone verified') ? 'text-green-600' : phoneMessage.startsWith('Invalid') || phoneMessage.startsWith('Failed') ? 'text-red-600' : 'text-gray-700'
+              }`}
+            >
               {phoneMessage}
             </p>
           )}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <label className="text-sm text-gray-600">Code:</label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="000000"
-              className="input w-32"
-              maxLength={6}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-            />
-            <button
-              type="button"
-              onClick={handleConfirmPhone}
-              disabled={phoneConfirming || !code.trim()}
-              className="btn-primary"
-            >
-              {phoneConfirming ? 'Verifying…' : 'Confirm'}
-            </button>
-          </div>
         </section>
       )}
 
