@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     const userDoc = await User.findById(session.user.id);
     if (!userDoc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     userDoc.idFrontUrl = idFrontUrl;
-    userDoc.idBackUrl = idBackUrl ?? null;
+    userDoc.idBackUrl = idBackUrl ?? undefined;
     userDoc.idType = idType as 'drivers_license' | 'national_id' | 'voters_card' | 'international_passport';
     userDoc.identityVerifiedAt = new Date();
     await userDoc.save();
