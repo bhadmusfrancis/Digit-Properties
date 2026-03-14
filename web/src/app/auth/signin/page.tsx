@@ -19,8 +19,9 @@ function SignInForm() {
     if (searchParams.get('reset') === '1') setSuccess('Your password has been reset. You can sign in now.');
   }, [searchParams]);
 
-  const verificationError = searchParams.get('error');
-  const isVerificationError = verificationError === 'InvalidOrExpired' || verificationError === 'InvalidVerification' || verificationError === 'VerificationFailed';
+  const urlError = searchParams.get('error');
+  const isVerificationError = urlError === 'InvalidOrExpired' || urlError === 'InvalidVerification' || urlError === 'VerificationFailed';
+  const isOAuthCallbackError = urlError === 'OAuthCallback';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +57,11 @@ function SignInForm() {
             <Link href="/auth/resend-verification" className="font-medium text-primary-600 underline">
               Send a new verification email
             </Link>
+          </div>
+        )}
+        {isOAuthCallbackError && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Sign-in with Google or another provider did not complete. Please try again or sign in with your email and password below.
           </div>
         )}
         {error && (
