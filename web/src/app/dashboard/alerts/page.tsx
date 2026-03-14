@@ -77,8 +77,8 @@ export default function PropertyAlertsPage() {
   const createMutation = useMutation({
     mutationFn: (body: object) =>
       fetch('/api/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
     onSuccess: () => {
@@ -159,11 +159,11 @@ export default function PropertyAlertsPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-gray-700">Alert name</label>
-            <input
-              type="text"
+        <input
+          type="text"
               placeholder="e.g. Lagos 3-bed for rent"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
               className="input mt-1 w-full"
             />
           </div>
