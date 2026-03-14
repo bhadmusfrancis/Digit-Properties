@@ -62,45 +62,63 @@ const providers: NextAuthOptions['providers'] = [
 
 export const authOptions: NextAuthOptions = {
   providers,
+  trustHost: true, // Required for OAuth callback to work on Vercel/production when host differs from NEXTAUTH_URL
   callbacks: {
     async jwt({ token, user, account }) {
-      if (user) {
+      // Credentials flow: user.id is our DB _id; resolve session from DB
+      if (user && account?.provider === 'credentials') {
         token.id = user.id;
         token.role = (user as { role?: string }).role ?? USER_ROLES.GUEST;
-        await dbConnect();
-        const dbUser = await User.findById(user.id).select('verifiedAt emailVerificationToken emailVerificationExpires termsAcceptedAt privacyAcceptedAt').lean();
-        if (dbUser && !dbUser.verifiedAt) {
-          const tokenExpired = !dbUser.emailVerificationExpires || new Date() > dbUser.emailVerificationExpires;
-          const noPendingToken = !dbUser.emailVerificationToken || tokenExpired;
-          if (noPendingToken) {
-            await User.findByIdAndUpdate(user.id, { $set: { verifiedAt: new Date() } });
+        try {
+          await dbConnect();
+          const dbUser = await User.findById(user.id).select('verifiedAt emailVerificationToken emailVerificationExpires termsAcceptedAt privacyAcceptedAt').lean();
+          if (dbUser && !dbUser.verifiedAt) {
+            const tokenExpired = !dbUser.emailVerificationExpires || new Date() > dbUser.emailVerificationExpires;
+            const noPendingToken = !dbUser.emailVerificationToken || tokenExpired;
+            if (noPendingToken) {
+              await User.findByIdAndUpdate(user.id, { $set: { verifiedAt: new Date() } });
+            }
           }
+          const u = dbUser as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
+          token.needsLegalAcceptance = !u?.termsAcceptedAt || !u?.privacyAcceptedAt;
+        } catch (e) {
+          console.error('[nextauth] jwt credentials db:', e);
         }
-        const u = dbUser as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
-        token.needsLegalAcceptance = !u?.termsAcceptedAt || !u?.privacyAcceptedAt;
       }
+
+      // OAuth flow (Google, Facebook, Apple): link to our DB user by email; create if new
       if (account?.provider && account.provider !== 'credentials') {
-        await dbConnect();
-        const existing = await User.findOne({ email: token.email }).select('role verifiedAt termsAcceptedAt privacyAcceptedAt').lean();
-        if (existing) {
-          const ex = existing as { _id: unknown; role?: string; verifiedAt?: Date; termsAcceptedAt?: Date; privacyAcceptedAt?: Date };
-          token.id = ex._id?.toString?.() ?? token.id;
-          token.role = ex.role ?? token.role;
-          token.needsLegalAcceptance = !ex.termsAcceptedAt || !ex.privacyAcceptedAt;
-          if (!ex.verifiedAt) {
-            await User.findByIdAndUpdate(ex._id, { $set: { verifiedAt: new Date() } });
+        const email = (token.email as string)?.trim?.();
+        if (!email) {
+          console.error('[nextauth] OAuth missing email — provider:', account.provider);
+          return token;
+        }
+        try {
+          await dbConnect();
+          const existing = await User.findOne({ email }).select('role verifiedAt termsAcceptedAt privacyAcceptedAt').lean();
+          if (existing) {
+            const ex = existing as { _id: unknown; role?: string; verifiedAt?: Date; termsAcceptedAt?: Date; privacyAcceptedAt?: Date };
+            token.id = ex._id?.toString?.() ?? token.id;
+            token.role = ex.role ?? token.role;
+            token.needsLegalAcceptance = !ex.termsAcceptedAt || !ex.privacyAcceptedAt;
+            if (!ex.verifiedAt) {
+              await User.findByIdAndUpdate(ex._id, { $set: { verifiedAt: new Date() } });
+            }
+          } else {
+            const newUser = await User.create({
+              email,
+              name: token.name ?? email.split('@')[0],
+              image: token.picture ?? undefined,
+              role: USER_ROLES.GUEST,
+              verifiedAt: new Date(),
+            });
+            token.id = newUser._id.toString();
+            token.role = newUser.role;
+            token.needsLegalAcceptance = true;
           }
-        } else {
-          const newUser = await User.create({
-            email: token.email,
-            name: token.name,
-            image: token.picture,
-            role: USER_ROLES.GUEST,
-            verifiedAt: new Date(),
-          });
-          token.id = newUser._id.toString();
-          token.role = newUser.role;
-          token.needsLegalAcceptance = true;
+        } catch (e) {
+          console.error('[nextauth] OAuth jwt db error:', e);
+          throw e; // So NextAuth redirects with error and we see it in logs
         }
       }
       return token;
@@ -110,16 +128,20 @@ export const authOptions: NextAuthOptions = {
         (session.user as { id: string }).id = token.id;
         (session.user as { role: string }).role = token.role;
         (session.user as { needsLegalAcceptance?: boolean }).needsLegalAcceptance = !!token.needsLegalAcceptance;
-        // Guests (not yet liveness-verified) see generic avatar; verified users see their profile image. Refresh legal acceptance from DB so it updates after user accepts.
         if (token.id) {
-          await dbConnect();
-          const u = await User.findById(token.id).select('image livenessVerifiedAt termsAcceptedAt privacyAcceptedAt').lean();
-          const image = u && (u as { livenessVerifiedAt?: Date }).livenessVerifiedAt && (u as { image?: string }).image
-            ? (u as { image: string }).image
-            : GUEST_AVATAR_PATH;
-          (session.user as { image: string | null }).image = image;
-          const terms = u as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
-          (session.user as { needsLegalAcceptance?: boolean }).needsLegalAcceptance = !terms?.termsAcceptedAt || !terms?.privacyAcceptedAt;
+          try {
+            await dbConnect();
+            const u = await User.findById(token.id).select('image livenessVerifiedAt termsAcceptedAt privacyAcceptedAt').lean();
+            const image = u && (u as { livenessVerifiedAt?: Date }).livenessVerifiedAt && (u as { image?: string }).image
+              ? (u as { image: string }).image
+              : GUEST_AVATAR_PATH;
+            (session.user as { image: string | null }).image = image;
+            const terms = u as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
+            (session.user as { needsLegalAcceptance?: boolean }).needsLegalAcceptance = !terms?.termsAcceptedAt || !terms?.privacyAcceptedAt;
+          } catch (e) {
+            console.error('[nextauth] session db:', e);
+            (session.user as { image: string | null }).image = GUEST_AVATAR_PATH;
+          }
         } else {
           (session.user as { image: string | null }).image = GUEST_AVATAR_PATH;
         }
