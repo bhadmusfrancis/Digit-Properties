@@ -7,7 +7,7 @@ import { NIGERIA_AREAS_BY_STATE } from '@/lib/nigeria-suburbs';
 
 /** GET /api/locations/cities?state=Lagos — distinct cities from active listings merged with static State→Cities (LGAs) data. */
 export async function GET(req: Request) {
-  const state = req.nextUrl.searchParams.get('state')?.trim();
+  const state = new URL(req.url).searchParams.get('state')?.trim();
   if (!state) {
     return NextResponse.json({ cities: [] });
   }
