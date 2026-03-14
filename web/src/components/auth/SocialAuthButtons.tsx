@@ -36,8 +36,23 @@ const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-export default function SocialAuthButtons({ callbackUrl = '/dashboard' }: { callbackUrl?: string }) {
-  const [providers, setProviders] = useState<{ id: string; name: string }[]>([]);
+type SocialAuthButtonsProps = {
+  callbackUrl?: string;
+  /** Optional title above the buttons (e.g. "Sign in with Google") */
+  title?: string;
+  /** Optional subtitle for users already signed into Google elsewhere (e.g. Gmail, YouTube) */
+  subtitle?: string;
+  /** If true, show a loading skeleton until providers are fetched */
+  showLoading?: boolean;
+};
+
+export default function SocialAuthButtons({
+  callbackUrl = '/dashboard',
+  title,
+  subtitle,
+  showLoading = false,
+}: SocialAuthButtonsProps) {
+  const [providers, setProviders] = useState<{ id: string; name: string }[] | null>(showLoading ? null : []);
 
   useEffect(() => {
     fetch('/api/auth/providers')
@@ -52,10 +67,21 @@ export default function SocialAuthButtons({ callbackUrl = '/dashboard' }: { call
       .catch(() => setProviders([]));
   }, []);
 
+  if (providers === null) {
+    return (
+      <div className="space-y-3">
+        {title && <p className="text-sm font-medium text-gray-700">{title}</p>}
+        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+        <div className="h-11 w-full animate-pulse rounded-lg bg-gray-100" />
+      </div>
+    );
+  }
   if (providers.length === 0) return null;
 
   return (
-    <div className="mt-8 space-y-3 border-t border-gray-200 pt-8">
+    <div className={title || subtitle ? 'space-y-3' : 'mt-8 space-y-3 border-t border-gray-200 pt-8'}>
+      {title && <p className="text-sm font-medium text-gray-700">{title}</p>}
+      {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
       {providers.map((provider) => (
         <button
           key={provider.id}
