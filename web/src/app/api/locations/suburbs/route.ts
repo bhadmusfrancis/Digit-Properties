@@ -6,8 +6,9 @@ import { getSuburbsForCity } from '@/lib/nigeria-locations';
 
 /** GET /api/locations/suburbs?state=Lagos&city=Ikeja — distinct suburbs from active listings merged with static State→City→Suburbs data. */
 export async function GET(req: Request) {
-  const state = req.nextUrl.searchParams.get('state')?.trim();
-  const city = req.nextUrl.searchParams.get('city')?.trim();
+  const searchParams = new URL(req.url).searchParams;
+  const state = searchParams.get('state')?.trim();
+  const city = searchParams.get('city')?.trim();
   if (!state || !city) {
     return NextResponse.json({ suburbs: [] });
   }
