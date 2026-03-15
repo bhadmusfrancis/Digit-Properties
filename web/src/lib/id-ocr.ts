@@ -32,6 +32,10 @@ const DOB_LABELS = [
   'b.date',
   'date of b',
   'd.of.b',
+  'birthdate',
+  'b date',
+  'born',
+  'd.o.b',
 ];
 
 /** Labels that often precede expiry date on IDs */
@@ -70,12 +74,12 @@ function extractDateOfBirth(text: string): string | null {
   for (const line of lines) {
     const lineLower = line.toLowerCase();
     const hasDobLabel = DOB_LABELS.some((label) => lineLower.includes(label));
-    const match = line.match(/\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/);
+    const match = line.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
     if (match) {
       let day = parseInt(match[1], 10);
       const month = parseInt(match[2], 10);
       const year = parseInt(match[3], 10);
-      if (year >= 1900 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
         if (hasDobLabel) {
           day = correctDayIfOcrError(text, day, month, year);
           return toIsoDate(day, month, year);
@@ -85,29 +89,31 @@ function extractDateOfBirth(text: string): string | null {
   }
 
   const escapedLabels = DOB_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const dobLabelThenDate = new RegExp(
-    `(?:${escapedLabels})[\\s:.]*?(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})`,
-    'i'
-  );
-  const blobMatch = normalized.match(dobLabelThenDate);
-  if (blobMatch) {
-    let day = parseInt(blobMatch[1], 10);
-    const month = parseInt(blobMatch[2], 10);
-    const year = parseInt(blobMatch[3], 10);
-    if (year >= 1940 && year <= 2010 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      day = correctDayIfOcrError(text, day, month, year);
-      return toIsoDate(day, month, year);
+  for (const sep of ['[-/]', '[./]']) {
+    const dobLabelThenDate = new RegExp(
+      `(?:${escapedLabels})[\\s:.]*?(\\d{1,2})${sep}(\\d{1,2})${sep}(\\d{4})`,
+      'i'
+    );
+    const blobMatch = normalized.match(dobLabelThenDate);
+    if (blobMatch) {
+      let day = parseInt(blobMatch[1], 10);
+      const month = parseInt(blobMatch[2], 10);
+      const year = parseInt(blobMatch[3], 10);
+      if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        day = correctDayIfOcrError(text, day, month, year);
+        return toIsoDate(day, month, year);
+      }
     }
   }
 
   const allDates: { day: number; month: number; year: number }[] = [];
   let m: RegExpExecArray | null;
-  const re = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/g;
+  const re = /\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/g;
   while ((m = re.exec(text)) !== null) {
     let day = parseInt(m[1], 10);
     const month = parseInt(m[2], 10);
     const year = parseInt(m[3], 10);
-    if (year >= 1940 && year <= 2010 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+    if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
       day = correctDayIfOcrError(text, day, month, year);
       allDates.push({ day, month, year });
     }
@@ -205,8 +211,8 @@ function looksLikeNamePart(s: string): boolean {
 }
 
 function looksLikeNameLine(line: string): boolean {
-  if (line.length < 4 || line.length > 90) return false;
-  if (/\d{4}/.test(line) || /\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(line)) return false;
+  if (line.length < 2 || line.length > 120) return false;
+  if (/\d{4}/.test(line) || /\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}/.test(line)) return false;
   if (SKIP_NAME_PATTERNS.some((p) => p.test(line))) return false;
   return true;
 }
@@ -280,25 +286,60 @@ function extractName(text: string): { firstName: string; middleName: string; las
     if (!looksLikeNameLine(line)) continue;
     if (line.includes(',')) continue;
     const parts = line.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2 && parts.length <= 4) {
-      const allNameLike = parts.every((p) => p.length >= 2 && /^[A-Za-z\-']+$/.test(p));
-      if (allNameLike) {
+    if (parts.length >= 2 && parts.length <= 5) {
+      const allNameLike = parts.every((p) => p.length >= 1 && /^[A-Za-z\-']+$/.test(p));
+      if (allNameLike && parts.some((p) => p.length >= 2)) {
         return { lastName: parts[0], firstName: parts[1] ?? '', middleName: parts.slice(2).join(' ') };
       }
     }
   }
 
-  const noCommaRe = /\b([A-Z][A-Za-z\-']+)\s+([A-Z][A-Za-z\-']+(?:\s+[A-Z][A-Za-z\-']+)*)\b/g;
+  // Consecutive short lines as Last / First / Middle (no comma)
+  const nameLines: string[] = [];
+  for (const line of lines) {
+    if (!looksLikeNameLine(line) || line.includes(',')) {
+      if (nameLines.length >= 2 && nameLines.length <= 4) {
+        const combined = nameLines.join(' ');
+        const parts = combined.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2 && parts.length <= 5 && parts.every((p) => /^[A-Za-z\-']+$/.test(p))) {
+          return { lastName: parts[0], firstName: parts[1] ?? '', middleName: parts.slice(2).join(' ') };
+        }
+      }
+      nameLines.length = 0;
+      continue;
+    }
+    nameLines.push(line);
+  }
+  if (nameLines.length >= 2 && nameLines.length <= 4) {
+    const combined = nameLines.join(' ');
+    const parts = combined.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2 && parts.length <= 5 && parts.every((p) => /^[A-Za-z\-']+$/.test(p))) {
+      return { lastName: parts[0], firstName: parts[1] ?? '', middleName: parts.slice(2).join(' ') };
+    }
+  }
+
+  const noCommaRe = /\b([A-Za-z][A-Za-z\-']+)\s+([A-Za-z][A-Za-z\-']+(?:\s+[A-Za-z][A-Za-z\-']+)*)\b/g;
   let noCommaMatch: RegExpExecArray | null;
   while ((noCommaMatch = noCommaRe.exec(text)) !== null) {
     const match = noCommaMatch;
     const first = match[1];
     const rest = match[2].trim();
-    if (first.length >= 2 && rest.length >= 2 && rest.split(/\s+/).length <= 3) {
+    if (first.length >= 2 && rest.length >= 1 && rest.split(/\s+/).length <= 4) {
       if (!SKIP_NAME_PATTERNS.some((p) => p.test(match[0]))) {
         const { firstName, middleName } = splitFirstAndMiddle(rest);
         return { lastName: first, firstName, middleName };
       }
+    }
+  }
+
+  // Last resort: any line that looks like "Word Word" or "Word Word Word" with only letters
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.length < 4 || t.length > 80 || t.includes(',') || /\d/.test(t)) continue;
+    if (SKIP_NAME_PATTERNS.some((p) => p.test(t))) continue;
+    const parts = t.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2 && parts.length <= 4 && parts.every((p) => p.length >= 2 && /^[A-Za-z\-']+$/.test(p))) {
+      return { lastName: parts[0], firstName: parts[1] ?? '', middleName: parts.slice(2).join(' ') };
     }
   }
 
