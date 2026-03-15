@@ -36,6 +36,12 @@ export async function POST(
     request.reviewedAt = new Date();
     request.rejectionReason = reason;
     await request.save();
+    // When rejecting Verified Individual, clear ID and liveness so user can re-edit profile and re-upload ID
+    if (request.type === 'verified_individual') {
+      await User.findByIdAndUpdate(request.userId, {
+        $unset: { identityVerifiedAt: 1, livenessVerifiedAt: 1 },
+      });
+    }
     const typeLabel =
       request.type === 'verified_individual'
         ? 'Verified Individual'
