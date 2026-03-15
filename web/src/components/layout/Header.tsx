@@ -10,26 +10,26 @@ export function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white font-bold">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
+      <nav className="mx-auto flex min-h-[56px] max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-0 sm:h-16 lg:px-8">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white text-sm font-bold shadow-md">
             DP
           </div>
-          <span className="text-xl font-semibold text-gray-900">Digit Properties</span>
+          <span className="text-lg font-bold text-gray-900 sm:text-xl">Digit Properties</span>
         </Link>
 
-        <div className="hidden md:flex md:items-center md:gap-6">
-          <Link href="/listings?listingType=sale" className="text-sm font-medium text-gray-700 hover:text-primary-600">
+        <div className="hidden md:flex md:items-center md:gap-2">
+          <Link href="/listings?listingType=sale" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Buy
           </Link>
-          <Link href="/listings?listingType=rent" className="text-sm font-medium text-gray-700 hover:text-primary-600">
+          <Link href="/listings?listingType=rent" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Rent
           </Link>
-          <Link href="/listings/new" className="text-sm font-medium text-gray-700 hover:text-primary-600">
+          <Link href="/listings/new" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Sell
           </Link>
-          <Link href="/trends" className="text-sm font-medium text-gray-700 hover:text-primary-600">
+          <Link href="/trends" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Trends
           </Link>
           {status === 'loading' ? (
@@ -114,55 +114,58 @@ export function Header() {
         </div>
 
         <button
-          className="md:hidden rounded p-2 hover:bg-gray-100"
+          className="md:hidden flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-700 hover:bg-primary-50 hover:border-primary-200 hover:text-primary-700 transition-colors touch-manipulation"
           onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {mobileOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
             )}
           </svg>
         </button>
       </nav>
 
       {mobileOpen && (
-        <div className="border-t border-gray-200 bg-white px-4 py-4 md:hidden">
-          <div className="flex flex-col gap-1">
-            <Link href="/listings?listingType=sale" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+        <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 md:hidden shadow-inner">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Menu</p>
+          <div className="flex flex-col gap-0.5">
+            <Link href="/listings?listingType=sale" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
               Buy
             </Link>
-            <Link href="/listings?listingType=rent" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+            <Link href="/listings?listingType=rent" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
               Rent
             </Link>
-            <Link href="/listings/new" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+            <Link href="/listings/new" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
               Sell
             </Link>
-            <Link href="/trends" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+            <Link href="/trends" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
               Trends
             </Link>
+            <div className="my-2 border-t border-gray-200" />
             {session ? (
               <>
-                <Link href="/dashboard" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+                <Link href="/dashboard" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Dashboard
                 </Link>
                 {session.user?.role === 'admin' && (
-                  <Link href="/admin" className="min-h-[44px] flex items-center text-primary-600 font-medium touch-manipulation" onClick={() => setMobileOpen(false)}>
+                  <Link href="/admin" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-primary-700 hover:bg-primary-50 touch-manipulation" onClick={() => setMobileOpen(false)}>
                     Admin
                   </Link>
                 )}
-                <button onClick={() => signOut()} className="min-h-[44px] w-full flex items-center text-left text-red-600 touch-manipulation">
+                <button onClick={() => signOut()} className="min-h-[48px] w-full flex items-center rounded-lg px-3 text-left font-semibold text-red-600 hover:bg-red-50 touch-manipulation">
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link href="/auth/signin" className="min-h-[44px] flex items-center text-gray-700 touch-manipulation" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/signin" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Sign in
                 </Link>
-                <Link href="/auth/signup" className="min-h-[44px] flex items-center text-primary-600 font-medium touch-manipulation" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/signup" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-primary-700 hover:bg-primary-50 touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Sign up
                 </Link>
               </>

@@ -657,12 +657,18 @@ export function LivenessCamera({ onSuccess, onCancel, onError, isUploading }: Pr
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-900 p-4 shadow-lg" role="region" aria-label="Biometric liveness verification">
-      <p className="mb-3 text-center text-xs font-medium uppercase tracking-wide text-gray-400">
+    <div className="rounded-xl border border-gray-200 bg-gray-900 p-3 sm:p-4 shadow-lg max-w-md mx-auto" role="region" aria-label="Biometric liveness verification">
+      <p className="mb-1.5 sm:mb-2 text-center text-xs font-medium uppercase tracking-wide text-gray-400">
         Device camera only · Identity proofing
       </p>
 
-      <div className="relative mx-auto aspect-[4/3] max-w-md overflow-hidden rounded-lg bg-black">
+      {/* One-line step title above video on mobile web so oval gets max space; full instruction in card below */}
+      <div className="mb-1.5 sm:mb-2 rounded-lg bg-black/80 px-2.5 py-1.5 sm:px-3 sm:py-2 text-center flex flex-col items-center justify-center min-h-[2.25rem] sm:min-h-0" aria-live="polite">
+        <p className="text-white font-semibold text-sm leading-tight">{step?.title}</p>
+        <p className="hidden sm:block text-white/90 text-xs mt-0.5 leading-snug max-w-md mx-auto">{step?.instruction}</p>
+      </div>
+
+      <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg bg-black">
         <video
           ref={videoRef}
           autoPlay
@@ -672,11 +678,6 @@ export function LivenessCamera({ onSuccess, onCancel, onError, isUploading }: Pr
           style={{ transform: 'scaleX(-1)' }}
           aria-label="Live camera feed for face verification"
         />
-        {/* Instruction bar at top – visible while looking at camera */}
-        <div className="absolute top-0 left-0 right-0 bg-black/75 px-3 py-2.5 text-center pointer-events-none z-10" aria-live="polite">
-          <p className="text-white font-semibold text-sm leading-tight">{step?.title}</p>
-          <p className="text-white/95 text-xs mt-1 leading-snug max-w-md mx-auto">{step?.instruction}</p>
-        </div>
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           aria-hidden
