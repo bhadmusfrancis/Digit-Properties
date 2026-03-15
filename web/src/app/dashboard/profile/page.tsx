@@ -143,7 +143,7 @@ export default function ProfilePage() {
   const [companyPosition, setCompanyPosition] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<'success' | 'error' | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const livenessSectionRef = useRef<HTMLElement>(null);
