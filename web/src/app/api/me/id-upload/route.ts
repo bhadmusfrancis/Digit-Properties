@@ -175,6 +175,7 @@ export async function POST(req: Request) {
     }
     const formData = await req.formData();
     const idFront = formData.get('idFront') as File | null;
+    const ocrTextFromClient = formData.get('ocrText');
     // Detection uses only the front image; idBack is sent by the client but not used for OCR here
     if (!idFront || !(idFront instanceof File) || idFront.size === 0) {
       return NextResponse.json({ error: 'Upload ID front image (file required, no links).' }, { status: 400 });
@@ -184,6 +185,16 @@ export async function POST(req: Request) {
     }
     if (idFront.size > MAX_SIZE) {
       return NextResponse.json({ error: 'ID front image max 10MB.' }, { status: 400 });
+    }
+
+    // If client sent OCR text (browser Tesseract), parse it and skip server OCR (avoids Node worker/path issues).
+    if (typeof ocrTextFromClient === 'string' && ocrTextFromClient.trim().length > 0) {
+      const parsed = parseIdOcrText(ocrTextFromClient.trim());
+      const scanned = parsed && (parsed.firstName || parsed.middleName || parsed.lastName || parsed.dateOfBirth || parsed.expiryDate)
+        ? parsed
+        : null;
+      const rawOcrPreview = ocrTextFromClient.replace(/\s+/g, ' ').trim().slice(0, 800);
+      return NextResponse.json({ scanned, rawOcrPreview });
     }
 
     const frontBytes = await idFront.arrayBuffer();
