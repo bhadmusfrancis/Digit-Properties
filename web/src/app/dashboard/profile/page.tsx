@@ -30,6 +30,41 @@ const COMPANY_POSITIONS = [
   'Other',
 ];
 
+/** POST FormData with upload progress. onProgress(percent 0–100, stage). */
+function postFormWithProgress(
+  url: string,
+  formData: FormData,
+  onProgress: (percent: number, stage: 'uploading' | 'processing') => void
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.withCredentials = true;
+    let lastPercent = 0;
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.min(100, Math.round((e.loaded / e.total) * 100));
+        lastPercent = percent;
+        onProgress(percent, 'uploading');
+        if (percent >= 100) onProgress(100, 'processing');
+      }
+    });
+    xhr.addEventListener('load', () => {
+      if (lastPercent < 100) onProgress(100, 'processing');
+      resolve(
+        new Response(xhr.responseText, {
+          status: xhr.status,
+          statusText: xhr.statusText || '',
+          headers: { 'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json' },
+        })
+      );
+    });
+    xhr.addEventListener('error', () => reject(new Error('Network error')));
+    xhr.addEventListener('abort', () => reject(new Error('Aborted')));
+    xhr.send(formData);
+  });
+}
+
 type UserMe = {
   name: string;
   email: string;
@@ -101,6 +136,9 @@ export default function ProfilePage() {
   const [idType, setIdType] = useState<string>(ID_TYPES.DRIVERS_LICENSE);
   const [showIdCamera, setShowIdCamera] = useState<'front' | 'back' | null>(null);
   const [idUploading, setIdUploading] = useState(false);
+  const [idUploadProgress, setIdUploadProgress] = useState(0);
+  const [idUploadStage, setIdUploadStage] = useState<'uploading' | 'processing' | null>(null);
+  const [idUploadStageLabel, setIdUploadStageLabel] = useState('');
   const [idUploadResult, setIdUploadResult] = useState<IdUploadResult | null>(null);
   const [idConfirming, setIdConfirming] = useState(false);
   const [idConsentSaving, setIdConsentSaving] = useState(false);
@@ -286,11 +324,18 @@ export default function ProfilePage() {
     setIdUploading(true);
     setSubmitError(null);
     setIdUploadResult(null);
+    setIdUploadProgress(0);
+    setIdUploadStage('uploading');
+    setIdUploadStageLabel('Uploading images…');
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
       formData.set('idBack', idBackFile);
-      const res = await fetch('/api/me/id-upload', { method: 'POST', body: formData });
+      const res = await postFormWithProgress('/api/me/id-upload', formData, (percent, stage) => {
+        setIdUploadProgress(percent);
+        setIdUploadStage(stage);
+        setIdUploadStageLabel(stage === 'uploading' ? 'Uploading images…' : 'Scanning ID (this may take a moment)…');
+      });
       const data = await res.json();
       if (res.ok) {
         setIdUploadResult({
@@ -304,6 +349,9 @@ export default function ProfilePage() {
       setSubmitError('Upload failed');
     }
     setIdUploading(false);
+    setIdUploadProgress(0);
+    setIdUploadStage(null);
+    setIdUploadStageLabel('');
   }
 
   async function handleIdConfirm() {
@@ -313,18 +361,28 @@ export default function ProfilePage() {
     }
     setIdConfirming(true);
     setSubmitError(null);
+    setIdUploadProgress(0);
+    setIdUploadStage('uploading');
+    setIdUploadStageLabel('Uploading…');
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
       formData.set('idBack', idBackFile);
       formData.set('idType', idType);
       formData.set('expiryDate', idUploadResult?.scanned?.expiryDate ?? '');
-      const res = await fetch('/api/me/id-confirm', { method: 'POST', body: formData });
+      const res = await postFormWithProgress('/api/me/id-confirm', formData, (percent, stage) => {
+        setIdUploadProgress(percent);
+        setIdUploadStage(stage);
+        setIdUploadStageLabel(stage === 'uploading' ? 'Uploading…' : 'Saving to secure storage…');
+      });
       const data = await res.json();
       if (res.ok) {
         setIdUploadResult(null);
         setIdFrontFile(null);
         setIdBackFile(null);
+        setIdUploadProgress(0);
+        setIdUploadStage(null);
+        setIdUploadStageLabel('');
         const refetch = await fetch('/api/me', { cache: 'no-store' });
         if (refetch.ok) {
           const me = await refetch.json();
@@ -341,6 +399,9 @@ export default function ProfilePage() {
       setSubmitError('Failed');
     }
     setIdConfirming(false);
+    setIdUploadProgress(0);
+    setIdUploadStage(null);
+    setIdUploadStageLabel('');
   }
 
   async function handleUseScannedData() {
@@ -351,6 +412,9 @@ export default function ProfilePage() {
     }
     setIdConsentSaving(true);
     setSubmitError(null);
+    setIdUploadProgress(0);
+    setIdUploadStage('uploading');
+    setIdUploadStageLabel('Uploading…');
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
@@ -361,12 +425,19 @@ export default function ProfilePage() {
       formData.set('middleName', scanned.middleName ?? '');
       formData.set('lastName', scanned.lastName ?? '');
       formData.set('dateOfBirth', scanned.dateOfBirth ?? '');
-      const res = await fetch('/api/me/id-consent', { method: 'POST', body: formData });
+      const res = await postFormWithProgress('/api/me/id-consent', formData, (percent, stage) => {
+        setIdUploadProgress(percent);
+        setIdUploadStage(stage);
+        setIdUploadStageLabel(stage === 'uploading' ? 'Uploading…' : 'Saving to secure storage…');
+      });
       const data = await res.json();
       if (res.ok) {
         setIdUploadResult(null);
         setIdFrontFile(null);
         setIdBackFile(null);
+        setIdUploadProgress(0);
+        setIdUploadStage(null);
+        setIdUploadStageLabel('');
         const refetch = await fetch('/api/me', { cache: 'no-store' });
         if (refetch.ok) {
           const me = await refetch.json();
@@ -387,6 +458,9 @@ export default function ProfilePage() {
       setSubmitError('Failed');
     }
     setIdConsentSaving(false);
+    setIdUploadProgress(0);
+    setIdUploadStage(null);
+    setIdUploadStageLabel('');
   }
 
   function normalizeForCompare(s: string) {
@@ -863,6 +937,24 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+            {idUploading && (
+              <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                    style={{
+                      width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  {idUploadStage === 'processing'
+                    ? 'Server is processing. Slow network or OCR can take 10–30 seconds.'
+                    : `${idUploadProgress}% uploaded`}
+                </p>
+              </div>
+            )}
             <button type="submit" disabled={!idFrontFile || !idBackFile || idUploading} className="btn-primary">
               {idUploading ? 'Uploading…' : 'Upload ID'}
             </button>
@@ -961,6 +1053,20 @@ export default function ProfilePage() {
                   scannedMatches ? (
                     <>
                       <p className="text-sm text-green-700">Detected ID matches your profile. Confirm to proceed.</p>
+                      {idConfirming && (
+                        <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                          <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                            <div
+                              className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                              style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            {idUploadStage === 'processing' ? 'Saving to secure storage…' : `${idUploadProgress}% uploaded`}
+                          </p>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={handleIdConfirm}
@@ -975,6 +1081,20 @@ export default function ProfilePage() {
                       <p className="text-sm text-amber-700">
                         Detected ID does not match your profile. Use scanned data to save it and proceed.
                       </p>
+                      {idConsentSaving && (
+                        <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                          <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                            <div
+                              className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                              style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            {idUploadStage === 'processing' ? 'Saving to secure storage…' : `${idUploadProgress}% uploaded`}
+                          </p>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={handleUseScannedData}
