@@ -30,7 +30,7 @@ const COMPANY_POSITIONS = [
   'Other',
 ];
 
-const ID_UPLOAD_RESPONSE_TIMEOUT_MS = 90_000; // 90s max wait for server (OCR can be slow)
+const ID_UPLOAD_RESPONSE_TIMEOUT_MS = 95_000; // 95s max wait for server (OCR can be slow)
 
 /** POST FormData with upload progress. onProgress(percent 0–100, stage). Optional timeout aborts and rejects. */
 function postFormWithProgress(
@@ -469,6 +469,66 @@ export default function ProfilePage() {
       formData.set('middleName', scanned.middleName ?? '');
       formData.set('lastName', scanned.lastName ?? '');
       formData.set('dateOfBirth', scanned.dateOfBirth ?? '');
+      const res = await postFormWithProgress('/api/me/id-consent', formData, (percent, stage) => {
+        setIdUploadProgress(percent);
+        setIdUploadStage(stage);
+        setIdUploadStageLabel(stage === 'uploading' ? 'Uploading…' : 'Saving to secure storage…');
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIdUploadResult(null);
+        setIdFrontFile(null);
+        setIdBackFile(null);
+        setIdUploadProgress(0);
+        setIdUploadStage(null);
+        setIdUploadStageLabel('');
+        const refetch = await fetch('/api/me', { cache: 'no-store' });
+        if (refetch.ok) {
+          const me = await refetch.json();
+          setUser(me);
+          setFirstName(me.firstName ?? '');
+          setMiddleName(me.middleName ?? '');
+          setLastName(me.lastName ?? '');
+          setDateOfBirth(typeof me.dateOfBirth === 'string' ? me.dateOfBirth : (me.dateOfBirth ?? ''));
+          setTimeout(() => livenessSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+        } else {
+          setUser((u) => (u ? { ...u, identityVerifiedAt: new Date().toISOString() } : null));
+          setTimeout(() => livenessSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+        }
+      } else {
+        setSubmitError(data.error || 'Failed');
+      }
+    } catch {
+      setSubmitError('Failed');
+    }
+    setIdConsentSaving(false);
+    setIdUploadProgress(0);
+    setIdUploadStage(null);
+    setIdUploadStageLabel('');
+  }
+
+  /** When OCR did not detect data, submit ID images + profile details to id-consent so user can still proceed. */
+  async function handleContinueWithProfile() {
+    if (!idFrontFile || !idBackFile) return;
+    if (!effectiveFirst.trim() && !effectiveLast.trim() && !effectiveDob.trim()) {
+      setSubmitError('Fill in at least first name, last name, or date of birth in Step 1 above, then try again.');
+      return;
+    }
+    setIdConsentSaving(true);
+    setSubmitError(null);
+    setIdUploadProgress(0);
+    setIdUploadStage('uploading');
+    setIdUploadStageLabel('Uploading…');
+    try {
+      const formData = new FormData();
+      formData.set('idFront', idFrontFile);
+      formData.set('idBack', idBackFile);
+      formData.set('idType', idType);
+      formData.set('expiryDate', '');
+      formData.set('firstName', effectiveFirst.trim());
+      formData.set('middleName', effectiveMiddle.trim());
+      formData.set('lastName', effectiveLast.trim());
+      formData.set('dateOfBirth', effectiveDob.trim());
       const res = await postFormWithProgress('/api/me/id-consent', formData, (percent, stage) => {
         setIdUploadProgress(percent);
         setIdUploadStage(stage);
@@ -1156,9 +1216,38 @@ export default function ProfilePage() {
                     </>
                   )
                 ) : (
-                  <p className="text-sm text-amber-700">
-                    Detection required. Upload a clearer image of your ID so we can detect your name and date of birth before you proceed. You cannot continue without detected data.
-                  </p>
+                  <>
+                    <p className="text-sm text-amber-700">
+                      We couldn’t auto-detect your ID details. You can retry with a clearer image or continue using your profile details below.
+                    </p>
+                    {!(effectiveFirst.trim() || effectiveLast.trim() || effectiveDob.trim()) ? (
+                      <p className="mt-2 text-sm text-gray-600">
+                        Fill in your name and date of birth in Step 1 above, then use the button below.
+                      </p>
+                    ) : (
+                      <>
+                        {idConsentSaving && (
+                          <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                            <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                              <div
+                                className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                                style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleContinueWithProfile}
+                          disabled={idConsentSaving}
+                          className="btn-primary mt-3"
+                        >
+                          {idConsentSaving ? '…' : 'Continue with my profile details'}
+                        </button>
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             </div>
