@@ -27,7 +27,7 @@ export async function GET(
       { $inc: { viewCount: 1 } },
       { new: true }
     )
-      .populate('createdBy', 'name image role verifiedAt')
+      .populate('createdBy', 'firstName name image role verifiedAt')
       .lean();
 
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });

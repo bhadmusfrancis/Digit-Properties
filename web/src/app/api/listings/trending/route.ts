@@ -20,13 +20,13 @@ export async function GET(req: Request) {
       const listings = await Listing.find(match)
         .sort({ viewCount: -1, createdAt: -1 })
         .limit(limit)
-        .populate('createdBy', 'name image role')
+        .populate('createdBy', 'firstName name image role')
         .lean();
       return NextResponse.json({
         listings: listings.map((l) => ({
           ...l,
           createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
-            ? { name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
+            ? { firstName: (l.createdBy as { firstName?: string }).firstName, name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
             : l.createdBy,
           isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
         })),
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
           localField: 'createdBy',
           foreignField: '_id',
           as: 'createdByDoc',
-          pipeline: [{ $project: { name: 1, image: 1, role: 1 } }],
+          pipeline: [{ $project: { firstName: 1, name: 1, image: 1, role: 1 } }],
         },
       },
       { $set: { createdBy: { $arrayElemAt: ['$createdByDoc', 0] } } },
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
     const mapped = listings.map((l: { createdBy?: unknown; boostExpiresAt?: Date }) => ({
       ...l,
       createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
-        ? { name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
+        ? { firstName: (l.createdBy as { firstName?: string }).firstName, name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
         : l.createdBy,
       isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
     }));

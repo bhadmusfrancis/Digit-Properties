@@ -13,7 +13,7 @@ type ClaimListing = { _id: string; title: string; price: number; listingType?: s
 interface Props {
   listingId: string;
   title: string;
-  createdBy: { _id: string; name?: string; role?: string } | null;
+  createdBy: { _id: string; firstName?: string; name?: string; role?: string } | null;
   createdByType: string;
   baseUrl: string;
   isOwner?: boolean;
@@ -167,10 +167,10 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {createdBy._id ? (
               <Link href={`/authors/${createdBy._id}`} className="font-medium text-primary-600 hover:underline">
-                {createdBy.name}
+                {createdBy.firstName ?? createdBy.name}
               </Link>
             ) : (
-              <span className="font-medium">{createdBy.name}</span>
+              <span className="font-medium">{createdBy.firstName ?? createdBy.name}</span>
             )}
             {createdBy.role && <VerifiedBadge role={createdBy.role} showCaveat />}
             {createdBy._id && (
