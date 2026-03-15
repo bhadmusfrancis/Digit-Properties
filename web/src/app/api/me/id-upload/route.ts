@@ -22,13 +22,18 @@ const MIME_EXT: Record<string, string> = {
   'image/webp': '.webp',
 };
 
-/** Preprocess image for better OCR: resize, grayscale, normalize contrast. Returns PNG buffer or null on failure. */
-async function preprocessForOcr(buffer: Buffer): Promise<Buffer | null> {
+/** Preprocess image for better OCR on ID front: resize, grayscale, normalize, sharpen. Returns PNG buffer or null on failure. */
+async function preprocessForOcr(buffer: Buffer, rotate?: number): Promise<Buffer | null> {
   try {
-    return await sharp(buffer)
-      .resize(OCR_MAX_WIDTH, undefined, { fit: 'inside', withoutEnlargement: true })
+    let pipeline = sharp(buffer)
+      .resize(OCR_MAX_WIDTH, undefined, { fit: 'inside', withoutEnlargement: true });
+    if (rotate && (rotate === 90 || rotate === 180 || rotate === 270)) {
+      pipeline = pipeline.rotate(rotate);
+    }
+    return await pipeline
       .grayscale()
       .normalize()
+      .sharpen()
       .png()
       .toBuffer();
   } catch {
@@ -120,7 +125,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 /**
- * Process ID front image: OCR only. Does NOT upload to Cloudinary or save to User.
+ * Process ID front image only: OCR runs on the FRONT of the ID (name, DOB, etc.).
+ * Does NOT upload to Cloudinary or save to User. idBack is not used for detection.
  * Documents are uploaded and saved only when the user completes Step 2 (Confirm or Consent).
  */
 export async function POST(req: Request) {
@@ -131,7 +137,7 @@ export async function POST(req: Request) {
     }
     const formData = await req.formData();
     const idFront = formData.get('idFront') as File | null;
-
+    // Detection uses only the front image; idBack is sent by the client but not used for OCR here
     if (!idFront || !(idFront instanceof File) || idFront.size === 0) {
       return NextResponse.json({ error: 'Upload ID front image (file required, no links).' }, { status: 400 });
     }
@@ -146,20 +152,31 @@ export async function POST(req: Request) {
     const frontBuffer = Buffer.from(frontBytes);
     const mimeType = idFront.type || 'image/jpeg';
 
-    const runOcr = async () => {
-      let result = await runIdOcr(frontBuffer, mimeType);
-      if (!result.parsed?.firstName && !result.parsed?.middleName && !result.parsed?.lastName && !result.parsed?.dateOfBirth) {
-        const preprocessed = await preprocessForOcr(frontBuffer);
-        if (preprocessed) {
-          const fallback = await runIdOcr(preprocessed, 'image/png');
-          if (fallback.parsed && (fallback.parsed.firstName || fallback.parsed.middleName || fallback.parsed.lastName || fallback.parsed.dateOfBirth)) {
-            result = fallback;
-          } else if (fallback.rawText.length > result.rawText.length) {
-            result = fallback;
-          }
+    const runOcr = async (): Promise<{ parsed: { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate: string } | null; rawText: string }> => {
+      // OCR runs on the ID FRONT image only. Try preprocessed first (grayscale + sharpen often works better for ID text).
+      let best = { parsed: null as { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate: string } | null, rawText: '' };
+      const hasUsableParsed = (p: typeof best.parsed) =>
+        p && (p.firstName || p.middleName || p.lastName || p.dateOfBirth || p.expiryDate);
+
+      const preprocessed = await preprocessForOcr(frontBuffer);
+      if (preprocessed) {
+        const preResult = await runIdOcr(preprocessed, 'image/png');
+        if (hasUsableParsed(preResult.parsed)) return preResult;
+        best = preResult;
+      }
+      const rawResult = await runIdOcr(frontBuffer, mimeType);
+      if (hasUsableParsed(rawResult.parsed)) return rawResult;
+      if (rawResult.rawText.length > best.rawText.length) best = rawResult;
+      if (best.rawText.length < 30 && preprocessed) {
+        for (const rot of [90, 270] as const) {
+          const rotated = await preprocessForOcr(frontBuffer, rot);
+          if (!rotated) continue;
+          const rotResult = await runIdOcr(rotated, 'image/png');
+          if (hasUsableParsed(rotResult.parsed)) return rotResult;
+          if (rotResult.rawText.length > best.rawText.length) best = rotResult;
         }
       }
-      return result;
+      return best;
     };
 
     let result;

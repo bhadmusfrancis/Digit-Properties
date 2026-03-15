@@ -374,7 +374,7 @@ export default function ProfilePage() {
         (percent, stage) => {
           setIdUploadProgress(percent);
           setIdUploadStage(stage);
-          setIdUploadStageLabel(stage === 'uploading' ? 'Uploading images…' : 'Scanning ID (this may take a moment)…');
+          setIdUploadStageLabel(stage === 'uploading' ? 'Uploading images…' : 'Scanning ID front (name, DOB)…');
         },
         { timeoutMs: ID_UPLOAD_RESPONSE_TIMEOUT_MS }
       );
