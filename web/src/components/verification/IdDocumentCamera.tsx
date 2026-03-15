@@ -123,7 +123,6 @@ export function IdDocumentCamera({ side, onCapture, onCancel }: Props) {
           playsInline
           muted
           className="h-full w-full object-cover"
-          style={{ transform: 'scaleX(-1)' }}
         />
         {!cameraError && (
           <div

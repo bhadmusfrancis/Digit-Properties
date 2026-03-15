@@ -640,7 +640,7 @@ export default function ProfilePage() {
           </li>
           <li className="flex items-center gap-2">
             {profileComplete ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
-            Step 1: Profile (Surname, First name, DOB, Phone, Address)
+            Step 1: Profile (Surname / Last name, First name, DOB, Phone, Address)
           </li>
           <li className="flex items-center gap-2">
             {identityOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
@@ -728,14 +728,14 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Last name</label>
+              <label className="block text-sm font-medium text-gray-700">Last name (surname)</label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 disabled={!canEditNameDobAddress}
                 className="input mt-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Last name"
+                placeholder="Surname / family name"
               />
             </div>
           </div>
@@ -804,7 +804,7 @@ export default function ProfilePage() {
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
           <h3 className="font-medium text-gray-900">Step 1: Complete your information above</h3>
           <p className="mt-1 text-sm text-gray-700">
-            Fill Surname, First name, Date of birth, Phone and Office address, then Save profile. Then you can proceed to ID upload.
+            Fill Surname (last name), First name, Date of birth, Phone and Office address, then Save profile. Then you can proceed to ID upload.
           </p>
         </section>
       )}
@@ -889,11 +889,11 @@ export default function ProfilePage() {
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Detected on uploaded ID
                   </h4>
-                  <p className="mt-0.5 text-xs text-gray-400">Format: Surname, First name (Middle name)</p>
+                  <p className="mt-0.5 text-xs text-gray-400">Format: Surname (last name), First name (Middle name)</p>
                   {idUploadResult.scanned ? (
                     <dl className="mt-2 space-y-1 text-sm">
                       <div>
-                        <dt className="text-gray-500">Surname</dt>
+                        <dt className="text-gray-500">Surname (last name)</dt>
                         <dd className="font-medium text-gray-900">{idUploadResult.scanned.lastName || '—'}</dd>
                       </div>
                       <div>
@@ -934,7 +934,7 @@ export default function ProfilePage() {
                   </h4>
                   <dl className="mt-2 space-y-1 text-sm">
                     <div>
-                      <dt className="text-gray-500">Surname</dt>
+                      <dt className="text-gray-500">Surname (last name)</dt>
                       <dd className="font-medium text-gray-900">{effectiveLast || '—'}</dd>
                     </div>
                     <div>
