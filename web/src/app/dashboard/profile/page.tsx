@@ -30,14 +30,27 @@ const COMPANY_POSITIONS = [
   'Other',
 ];
 
-/** POST FormData with upload progress. onProgress(percent 0–100, stage). */
+const ID_UPLOAD_RESPONSE_TIMEOUT_MS = 90_000; // 90s max wait for server (OCR can be slow)
+
+/** POST FormData with upload progress. onProgress(percent 0–100, stage). Optional timeout aborts and rejects. */
 function postFormWithProgress(
   url: string,
   formData: FormData,
-  onProgress: (percent: number, stage: 'uploading' | 'processing') => void
+  onProgress: (percent: number, stage: 'uploading' | 'processing') => void,
+  options?: { timeoutMs?: number }
 ): Promise<Response> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    const timeoutMs = options?.timeoutMs ?? ID_UPLOAD_RESPONSE_TIMEOUT_MS;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const clearTimer = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
     xhr.open('POST', url);
     xhr.withCredentials = true;
     let lastPercent = 0;
@@ -50,6 +63,7 @@ function postFormWithProgress(
       }
     });
     xhr.addEventListener('load', () => {
+      clearTimer();
       if (lastPercent < 100) onProgress(100, 'processing');
       resolve(
         new Response(xhr.responseText, {
@@ -59,9 +73,23 @@ function postFormWithProgress(
         })
       );
     });
-    xhr.addEventListener('error', () => reject(new Error('Network error')));
-    xhr.addEventListener('abort', () => reject(new Error('Aborted')));
+    xhr.addEventListener('error', () => {
+      clearTimer();
+      reject(new Error('Network error'));
+    });
+    xhr.addEventListener('abort', () => {
+      clearTimer();
+      reject(new Error('Aborted'));
+    });
     xhr.send(formData);
+
+    if (timeoutMs > 0) {
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        xhr.abort();
+        reject(new Error('Scanning timed out. Try again or use a smaller, clearer image.'));
+      }, timeoutMs);
+    }
   });
 }
 
@@ -139,6 +167,7 @@ export default function ProfilePage() {
   const [idUploadProgress, setIdUploadProgress] = useState(0);
   const [idUploadStage, setIdUploadStage] = useState<'uploading' | 'processing' | null>(null);
   const [idUploadStageLabel, setIdUploadStageLabel] = useState('');
+  const [idUploadProcessingSeconds, setIdUploadProcessingSeconds] = useState(0);
   const [idUploadResult, setIdUploadResult] = useState<IdUploadResult | null>(null);
   const [idConfirming, setIdConfirming] = useState(false);
   const [idConsentSaving, setIdConsentSaving] = useState(false);
@@ -193,6 +222,13 @@ export default function ProfilePage() {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, []);
+
+  // Show "Still scanning… (Xs)" so user knows server is working during OCR
+  useEffect(() => {
+    if (!idUploading || idUploadStage !== 'processing') return;
+    const id = setInterval(() => setIdUploadProcessingSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [idUploading, idUploadStage]);
 
   const effectiveFirst = ((firstName || user?.firstName) ?? '').trim();
   const effectiveMiddle = ((middleName || user?.middleName) ?? '').trim();
@@ -327,17 +363,24 @@ export default function ProfilePage() {
     setIdUploadProgress(0);
     setIdUploadStage('uploading');
     setIdUploadStageLabel('Uploading images…');
+    setIdUploadProcessingSeconds(0);
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
       formData.set('idBack', idBackFile);
-      const res = await postFormWithProgress('/api/me/id-upload', formData, (percent, stage) => {
-        setIdUploadProgress(percent);
-        setIdUploadStage(stage);
-        setIdUploadStageLabel(stage === 'uploading' ? 'Uploading images…' : 'Scanning ID (this may take a moment)…');
-      });
+      const res = await postFormWithProgress(
+        '/api/me/id-upload',
+        formData,
+        (percent, stage) => {
+          setIdUploadProgress(percent);
+          setIdUploadStage(stage);
+          setIdUploadStageLabel(stage === 'uploading' ? 'Uploading images…' : 'Scanning ID (this may take a moment)…');
+        },
+        { timeoutMs: ID_UPLOAD_RESPONSE_TIMEOUT_MS }
+      );
       const data = await res.json();
       if (res.ok) {
+        if (data.error) setSubmitError(data.error);
         setIdUploadResult({
           scanned: data.scanned ?? null,
           rawOcrPreview: data.rawOcrPreview,
@@ -345,13 +388,14 @@ export default function ProfilePage() {
       } else {
         setSubmitError(data.error || 'Upload failed');
       }
-    } catch {
-      setSubmitError('Upload failed');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Upload failed');
     }
     setIdUploading(false);
     setIdUploadProgress(0);
     setIdUploadStage(null);
     setIdUploadStageLabel('');
+    setIdUploadProcessingSeconds(0);
   }
 
   async function handleIdConfirm() {
@@ -949,9 +993,15 @@ export default function ProfilePage() {
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  {idUploadStage === 'processing'
-                    ? 'Server is processing. Slow network or OCR can take 10–30 seconds.'
-                    : `${idUploadProgress}% uploaded`}
+                  {idUploadStage === 'processing' ? (
+                    idUploadProcessingSeconds > 0 ? (
+                      <>Still scanning… ({idUploadProcessingSeconds}s). First-time OCR can take up to 60s. If it takes longer, try a smaller or clearer image.</>
+                    ) : (
+                      'Server is processing. Slow network or OCR can take 10–30 seconds.'
+                    )
+                  ) : (
+                    `${idUploadProgress}% uploaded`
+                  )}
                 </p>
               </div>
             )}
