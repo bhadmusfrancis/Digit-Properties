@@ -282,6 +282,30 @@ function extractName(text: string): { firstName: string; middleName: string; las
     }
   }
 
+  // IDs with separate "Surname:" / "First name:" / "Middle name:" lines
+  let foundSurname = '';
+  let foundFirst = '';
+  let foundMiddle = '';
+  const surnameRe = /(?:surname|last name|lastname)\s*[:.]?\s*(.+)/i;
+  const firstRe = /(?:first name|firstname|given name)\s*[:.]?\s*(.+)/i;
+  const middleRe = /(?:middle name|middlename)\s*[:.]?\s*(.+)/i;
+  for (const line of lines) {
+    const s = line.match(surnameRe);
+    if (s && s[1].trim().length >= 2 && /^[A-Za-z\-'\s]+$/.test(s[1].trim())) foundSurname = s[1].replace(/\s+/g, ' ').trim();
+    const f = line.match(firstRe);
+    if (f && f[1].trim().length >= 1 && /^[A-Za-z\-'\s]+$/.test(f[1].trim())) foundFirst = f[1].replace(/\s+/g, ' ').trim();
+    const m = line.match(middleRe);
+    if (m && m[1].trim().length >= 1 && /^[A-Za-z\-'\s]+$/.test(m[1].trim())) foundMiddle = m[1].replace(/\s+/g, ' ').trim();
+  }
+  if (foundSurname || foundFirst) {
+    const { firstName, middleName } = splitFirstAndMiddle(foundFirst);
+    return {
+      lastName: foundSurname,
+      firstName,
+      middleName: foundMiddle || middleName,
+    };
+  }
+
   for (const line of lines) {
     if (!looksLikeNameLine(line)) continue;
     if (line.includes(',')) continue;

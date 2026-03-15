@@ -18,6 +18,9 @@ export function IdDocumentCamera({ side, onCapture, onCancel }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
+  /** Preview: show captured image before confirming. When set, camera is stopped and user sees image + Use / Retake. */
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -27,6 +30,7 @@ export function IdDocumentCamera({ side, onCapture, onCancel }: Props) {
   }, []);
 
   useEffect(() => {
+    if (previewUrl) return;
     let mounted = true;
     setCameraError(null);
     const constraints: MediaStreamConstraints = {
@@ -69,7 +73,7 @@ export function IdDocumentCamera({ side, onCapture, onCancel }: Props) {
       mounted = false;
       stopCamera();
     };
-  }, [stopCamera]);
+  }, [stopCamera, previewUrl]);
 
   function capture() {
     const video = videoRef.current;
@@ -118,14 +122,67 @@ export function IdDocumentCamera({ side, onCapture, onCancel }: Props) {
           { type: 'image/jpeg' }
         );
         stopCamera();
-        onCapture(file);
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        setPreviewFile(file);
+        setCapturing(false);
       },
       'image/jpeg',
       0.92
     );
   }
 
+  function confirmUsePhoto() {
+    if (previewFile) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      onCapture(previewFile);
+      setPreviewFile(null);
+    }
+  }
+
+  function retakePhoto() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewFile(null);
+  }
+
   const label = side === 'front' ? 'ID front' : 'ID back';
+
+  if (previewUrl && previewFile) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+          <img
+            src={previewUrl}
+            alt={`Preview of ${label}`}
+            className="max-h-full max-w-full object-contain rounded-lg"
+          />
+        </div>
+        <div className="p-4 bg-gray-900 text-white safe-area-pb">
+          <p className="text-center text-sm text-gray-300 mb-4">
+            Use this photo or retake to capture again.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              type="button"
+              onClick={retakePhoto}
+              className="px-4 py-2 rounded-lg bg-gray-700 text-white"
+            >
+              Retake
+            </button>
+            <button
+              type="button"
+              onClick={confirmUsePhoto}
+              className="px-6 py-2 rounded-lg bg-primary-600 text-white"
+            >
+              Use this photo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">

@@ -13,6 +13,8 @@ export const maxDuration = 90;
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const OCR_MAX_WIDTH = 1600;
+/** Tesseract needs text ~10–20px x-height; ensure short side at least this so ID text is readable. */
+const OCR_MIN_SHORT_SIDE = 600;
 /** Max time for OCR so the request does not hang (Tesseract can be slow on first run). */
 const OCR_TIMEOUT_MS = 85_000;
 
@@ -22,11 +24,32 @@ const MIME_EXT: Record<string, string> = {
   'image/webp': '.webp',
 };
 
-/** Preprocess image for better OCR on ID front: resize, grayscale, normalize, sharpen. Returns PNG buffer or null on failure. */
+/** Ensure image has minimum size for OCR (Tesseract needs text ~10–20px height). Upscale if too small. */
+async function ensureMinResolution(buffer: Buffer): Promise<Buffer> {
+  try {
+    const meta = await sharp(buffer).metadata();
+    const w = meta.width ?? 0;
+    const h = meta.height ?? 0;
+    if (w < OCR_MIN_SHORT_SIDE && h < OCR_MIN_SHORT_SIDE) return buffer;
+    const short = Math.min(w, h);
+    if (short >= OCR_MIN_SHORT_SIDE) return buffer;
+    const scale = OCR_MIN_SHORT_SIDE / short;
+    const newW = Math.round(w * scale);
+    const newH = Math.round(h * scale);
+    return await sharp(buffer).resize(newW, newH).toBuffer();
+  } catch {
+    return buffer;
+  }
+}
+
+/** Preprocess for OCR: normalize size (upscale if small), grayscale, normalize contrast, sharpen. Optional rotate. */
 async function preprocessForOcr(buffer: Buffer, rotate?: number): Promise<Buffer | null> {
   try {
-    let pipeline = sharp(buffer)
-      .resize(OCR_MAX_WIDTH, undefined, { fit: 'inside', withoutEnlargement: true });
+    const withResolution = await ensureMinResolution(buffer);
+    let pipeline = sharp(withResolution).resize(OCR_MAX_WIDTH, undefined, {
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
     if (rotate && (rotate === 90 || rotate === 180 || rotate === 270)) {
       pipeline = pipeline.rotate(rotate);
     }
@@ -34,6 +57,22 @@ async function preprocessForOcr(buffer: Buffer, rotate?: number): Promise<Buffer
       .grayscale()
       .normalize()
       .sharpen()
+      .png()
+      .toBuffer();
+  } catch {
+    return null;
+  }
+}
+
+/** Binarized (black/white) version for low-contrast or faint ID text. */
+async function preprocessBinarized(buffer: Buffer): Promise<Buffer | null> {
+  try {
+    const withResolution = await ensureMinResolution(buffer);
+    return await sharp(withResolution)
+      .resize(OCR_MAX_WIDTH, undefined, { fit: 'inside', withoutEnlargement: true })
+      .grayscale()
+      .normalize()
+      .threshold(128)
       .png()
       .toBuffer();
   } catch {
@@ -78,8 +117,8 @@ async function runIdOcr(
       logger: () => {},
       workerPath: getTesseractWorkerPath(),
     });
-    // Try SINGLE_BLOCK first (best for one block of text like an ID); return as soon as we get usable data.
-    const psms = [PSM.SINGLE_BLOCK, PSM.AUTO, PSM.SPARSE_TEXT];
+    // PSM 6 = uniform block of text (good for IDs); SINGLE_BLOCK; AUTO; SPARSE_TEXT.
+    const psms = [PSM.SINGLE_BLOCK, 6 as PSM, PSM.AUTO, PSM.SPARSE_TEXT];
     for (const psm of psms) {
       await worker.setParameters({ tessedit_pageseg_mode: psm });
       const { data } = await worker.recognize(tmpPath);
@@ -153,27 +192,34 @@ export async function POST(req: Request) {
     const mimeType = idFront.type || 'image/jpeg';
 
     const runOcr = async (): Promise<{ parsed: { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate: string } | null; rawText: string }> => {
-      // OCR runs on the ID FRONT image only. Try preprocessed first (grayscale + sharpen often works better for ID text).
+      // OCR runs on the ID FRONT only. Try multiple pipelines: preprocessed (grayscale+sharpen), binarized, raw, then rotations.
       let best = { parsed: null as { firstName: string; middleName: string; lastName: string; dateOfBirth: string; expiryDate: string } | null, rawText: '' };
       const hasUsableParsed = (p: typeof best.parsed) =>
         p && (p.firstName || p.middleName || p.lastName || p.dateOfBirth || p.expiryDate);
+      const tryResult = (res: { parsed: typeof best.parsed; rawText: string }) => {
+        if (hasUsableParsed(res.parsed)) return res;
+        if (res.rawText.length > best.rawText.length) best = { ...best, rawText: res.rawText };
+        if (res.parsed) best = { ...best, parsed: res.parsed };
+      };
 
       const preprocessed = await preprocessForOcr(frontBuffer);
       if (preprocessed) {
-        const preResult = await runIdOcr(preprocessed, 'image/png');
-        if (hasUsableParsed(preResult.parsed)) return preResult;
-        best = preResult;
+        tryResult(await runIdOcr(preprocessed, 'image/png'));
+        if (hasUsableParsed(best.parsed)) return best;
       }
-      const rawResult = await runIdOcr(frontBuffer, mimeType);
-      if (hasUsableParsed(rawResult.parsed)) return rawResult;
-      if (rawResult.rawText.length > best.rawText.length) best = rawResult;
+      const binarized = await preprocessBinarized(frontBuffer);
+      if (binarized) {
+        tryResult(await runIdOcr(binarized, 'image/png'));
+        if (hasUsableParsed(best.parsed)) return best;
+      }
+      tryResult(await runIdOcr(frontBuffer, mimeType));
+      if (hasUsableParsed(best.parsed)) return best;
       if (best.rawText.length < 30 && preprocessed) {
         for (const rot of [90, 270] as const) {
           const rotated = await preprocessForOcr(frontBuffer, rot);
           if (!rotated) continue;
-          const rotResult = await runIdOcr(rotated, 'image/png');
-          if (hasUsableParsed(rotResult.parsed)) return rotResult;
-          if (rotResult.rawText.length > best.rawText.length) best = rotResult;
+          tryResult(await runIdOcr(rotated, 'image/png'));
+          if (hasUsableParsed(best.parsed)) return best;
         }
       }
       return best;
@@ -197,7 +243,7 @@ export async function POST(req: Request) {
     const scanned = result.parsed?.firstName || result.parsed?.middleName || result.parsed?.lastName || result.parsed?.dateOfBirth || result.parsed?.expiryDate
       ? result.parsed
       : null;
-    const rawOcrPreview = !scanned && result.rawText
+    const rawOcrPreview = result.rawText
       ? result.rawText.replace(/\s+/g, ' ').trim().slice(0, 800)
       : undefined;
 
