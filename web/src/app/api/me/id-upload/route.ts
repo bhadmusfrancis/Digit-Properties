@@ -7,14 +7,14 @@ import sharp from 'sharp';
 import { getSession } from '@/lib/get-session';
 import { parseIdOcrText } from '@/lib/id-ocr';
 
-/** Allow up to 60s so OCR can complete (Vercel etc. may limit by default). */
-export const maxDuration = 60;
+/** Allow up to 90s so OCR can complete (Vercel etc. may limit by default). */
+export const maxDuration = 90;
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const OCR_MAX_WIDTH = 1600;
 /** Max time for OCR so the request does not hang (Tesseract can be slow on first run). */
-const OCR_TIMEOUT_MS = 55_000;
+const OCR_TIMEOUT_MS = 85_000;
 
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -57,7 +57,7 @@ function normalizeOcrText(raw: string): string {
     .trim();
 }
 
-/** Run OCR on image; use temp file path so Tesseract worker can read reliably. */
+/** Run OCR on image; use temp file path so Tesseract worker can read reliably. Tries SINGLE_BLOCK first (fastest for ID cards), then others. */
 async function runIdOcr(
   buffer: Buffer,
   mimeType: string
@@ -73,7 +73,8 @@ async function runIdOcr(
       logger: () => {},
       workerPath: getTesseractWorkerPath(),
     });
-    const psms = [PSM.AUTO, PSM.SINGLE_BLOCK, PSM.SPARSE_TEXT];
+    // Try SINGLE_BLOCK first (best for one block of text like an ID); return as soon as we get usable data.
+    const psms = [PSM.SINGLE_BLOCK, PSM.AUTO, PSM.SPARSE_TEXT];
     for (const psm of psms) {
       await worker.setParameters({ tessedit_pageseg_mode: psm });
       const { data } = await worker.recognize(tmpPath);
