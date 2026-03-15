@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
-import { ListingGrid } from '@/components/listings/ListingGrid';
+import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS } from '@/lib/constants';
@@ -15,12 +15,12 @@ import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
 
-function serializeCreatedBy(createdBy: unknown): { _id: string; name?: string; role?: string } | null {
+function serializeCreatedBy(createdBy: unknown): { _id: string; firstName?: string; name?: string; role?: string } | null {
   if (!createdBy || typeof createdBy !== 'object') return null;
-  const obj = createdBy as { _id?: unknown; name?: string; role?: string };
+  const obj = createdBy as { _id?: unknown; firstName?: string; name?: string; role?: string };
   const id = obj._id != null ? String(obj._id) : null;
   if (!id) return null;
-  return { _id: id, name: obj.name, role: obj.role };
+  return { _id: id, firstName: obj.firstName, name: obj.name, role: obj.role };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -68,7 +68,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     void User; // Ensure User model is registered for populate
     const [session, listing, likeCount] = await Promise.all([
       getServerSession(authOptions),
-      Listing.findById(id).populate('createdBy', 'name image role').lean(),
+      Listing.findById(id).populate('createdBy', 'firstName name image role').lean(),
       ListingLike.countDocuments({ listingId: new mongoose.Types.ObjectId(id) }),
     ]);
     if (!listing) notFound();
@@ -107,7 +107,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         },
       },
       { $sort: { proximityScore: -1, createdAt: -1 } },
-      { $limit: 4 },
+      { $limit: 12 },
       {
         $lookup: {
           from: 'users',
@@ -119,7 +119,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     ]).exec();
     const similarListings = similarAgg.map((doc: Record<string, unknown>) => {
       const createdByDoc = Array.isArray(doc.createdByDoc) ? doc.createdByDoc[0] : null;
-      const cb = createdByDoc && typeof createdByDoc === 'object' ? createdByDoc as { _id?: unknown; name?: string; role?: string } : null;
+      const cb = createdByDoc && typeof createdByDoc === 'object' ? createdByDoc as { _id?: unknown; firstName?: string; name?: string; role?: string } : null;
       const loc = doc.location as Record<string, unknown> | undefined;
       const location = loc && typeof loc === 'object'
         ? {
@@ -154,7 +154,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         images,
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
         createdBy: cb
-          ? { _id: cb._id != null ? String(cb._id) : undefined, name: cb.name, role: cb.role }
+          ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }
           : undefined,
       };
     });
@@ -261,13 +261,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       </div>
 
       {similarListings.length > 0 && (
-        <section className="mt-12 border-t border-gray-200 pt-10">
-          <h2 className="text-xl font-semibold text-gray-900">Similar properties</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Same property type · closest to this listing first
-          </p>
-          <ListingGrid listings={similarListings} />
-        </section>
+        <SimilarListingsInfinite listingId={id} initialListings={similarListings} />
       )}
     </div>
     );

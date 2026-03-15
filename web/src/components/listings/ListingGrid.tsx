@@ -19,7 +19,7 @@ interface Listing {
   toilets?: number;
   images?: { url: string }[];
   isBoosted?: boolean;
-  createdBy?: { _id?: string; name?: string; role?: string };
+  createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 }
 
 export function ListingGrid({ listings }: { listings: Listing[] }) {
@@ -83,7 +83,7 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                   href={`/authors/${listing.createdBy._id}`}
                   className="text-sm text-gray-500 hover:text-primary-600"
                 >
-                  By {listing.createdBy.name ?? 'Author'}
+                  By {listing.createdBy.firstName ?? listing.createdBy.name ?? 'Author'}
                 </Link>
               )}
             </div>

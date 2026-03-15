@@ -73,7 +73,7 @@ export async function GET(req: Request) {
     }
 
     const skip = (page - 1) * limit;
-    type ListingRow = Omit<IListing, 'createdBy'> & { createdBy?: IListing['createdBy'] | { name?: string; image?: string; role?: string } };
+    type ListingRow = Omit<IListing, 'createdBy'> & { createdBy?: IListing['createdBy'] | { firstName?: string; name?: string; image?: string; role?: string } };
     let listings: ListingRow[];
     let total: number;
 
@@ -81,7 +81,7 @@ export async function GET(req: Request) {
       const all = await Listing.find(filter)
         .sort({ boostExpiresAt: -1, createdAt: -1 })
         .limit(Math.min(50, limit * 3))
-        .populate('createdBy', 'name image role')
+        .populate('createdBy', 'firstName name image role')
         .lean();
       const shuffled = [...all].sort(() => Math.random() - 0.5);
       listings = shuffled.slice(0, limit);
@@ -92,7 +92,7 @@ export async function GET(req: Request) {
           .sort({ boostExpiresAt: -1, createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .populate('createdBy', 'name image role')
+          .populate('createdBy', 'firstName name image role')
           .lean(),
         Listing.countDocuments(filter),
       ]);
@@ -106,6 +106,7 @@ export async function GET(req: Request) {
         createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
           ? {
               _id: (l.createdBy as { _id?: unknown })._id != null ? String((l.createdBy as { _id: unknown })._id) : undefined,
+              firstName: (l.createdBy as { firstName?: string }).firstName,
               name: (l.createdBy as { name?: string }).name,
               image: (l.createdBy as { image?: string }).image,
               role: (l.createdBy as { role?: string }).role,
