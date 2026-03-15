@@ -40,6 +40,9 @@ const DOB_LABELS = [
   'd 0f birth',
   'dofb',
   'd ofb',
+  'd o f b',     // spaces between each letter
+  'b of d',      // reversed
+  'date of b',
 ];
 
 /** Labels that often precede expiry date on IDs */
@@ -75,20 +78,26 @@ function extractDateOfBirth(text: string): string | null {
   const normalized = normalize(text);
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
+  const dateInLine = (line: string): { day: number; month: number; year: number } | null => {
+    let match = line.match(/\b(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{4})\b/);
+    if (!match) match = line.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
+    if (!match) return null;
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return { day, month, year };
+    }
+    return null;
+  };
+
   for (const line of lines) {
     const lineLower = line.toLowerCase();
     const hasDobLabel = DOB_LABELS.some((label) => lineLower.includes(label));
-    const match = line.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
-    if (match) {
-      let day = parseInt(match[1], 10);
-      const month = parseInt(match[2], 10);
-      const year = parseInt(match[3], 10);
-      if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-        if (hasDobLabel) {
-          day = correctDayIfOcrError(text, day, month, year);
-          return toIsoDate(day, month, year);
-        }
-      }
+    const d = dateInLine(line);
+    if (d && hasDobLabel) {
+      let day = correctDayIfOcrError(text, d.day, d.month, d.year);
+      return toIsoDate(day, d.month, d.year);
     }
   }
 
@@ -97,7 +106,8 @@ function extractDateOfBirth(text: string): string | null {
     const lineLower = lines[i].toLowerCase();
     if (!DOB_LABELS.some((label) => lineLower.includes(label))) continue;
     const nextLine = lines[i + 1].trim();
-    const dateMatch = nextLine.match(/^\s*(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
+    let dateMatch = nextLine.match(/^\s*(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{4})\b/);
+    if (!dateMatch) dateMatch = nextLine.match(/^\s*(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
     if (dateMatch) {
       let day = parseInt(dateMatch[1], 10);
       const month = parseInt(dateMatch[2], 10);
@@ -110,9 +120,12 @@ function extractDateOfBirth(text: string): string | null {
   }
 
   const escapedLabels = DOB_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  for (const sep of ['[-/]', '[./]']) {
+  for (const datePart of [
+    '(\\d{1,2})\\s*[-/.]\\s*(\\d{1,2})\\s*[-/.]\\s*(\\d{4})',
+    '(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})',
+  ]) {
     const dobLabelThenDate = new RegExp(
-      `(?:${escapedLabels})[\\s:.]*?(\\d{1,2})${sep}(\\d{1,2})${sep}(\\d{4})`,
+      `(?:${escapedLabels})[\\s:.]*?${datePart}`,
       'i'
     );
     const blobMatch = normalized.match(dobLabelThenDate);
@@ -127,9 +140,24 @@ function extractDateOfBirth(text: string): string | null {
     }
   }
 
+  // DDMMYYYY (8 digits) when DOB label is nearby (OCR sometimes drops separators)
+  const dobLabelThen8Digits = new RegExp(
+    `(?:${escapedLabels})[\\s:.]*?(\\d{2})(\\d{2})(\\d{4})`,
+    'i'
+  );
+  const m8 = normalized.match(dobLabelThen8Digits);
+  if (m8) {
+    const day = parseInt(m8[1], 10);
+    const month = parseInt(m8[2], 10);
+    const year = parseInt(m8[3], 10);
+    if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return toIsoDate(day, month, year);
+    }
+  }
+
   const allDates: { day: number; month: number; year: number }[] = [];
   let m: RegExpExecArray | null;
-  const re = /\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/g;
+  const re = /\b(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{4})\b/g;
   while ((m = re.exec(text)) !== null) {
     let day = parseInt(m[1], 10);
     const month = parseInt(m[2], 10);
