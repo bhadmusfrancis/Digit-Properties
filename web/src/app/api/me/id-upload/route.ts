@@ -117,8 +117,8 @@ async function runIdOcr(
       logger: () => {},
       workerPath: getTesseractWorkerPath(),
     });
-    // PSM 6 = uniform block of text (good for IDs); SINGLE_BLOCK; AUTO; SPARSE_TEXT.
-    const psms = [PSM.SINGLE_BLOCK, 6 as PSM, PSM.AUTO, PSM.SPARSE_TEXT];
+    // SINGLE_BLOCK and AUTO are best for ID-style blocks; SPARSE_TEXT as fallback.
+    const psms = [PSM.SINGLE_BLOCK, PSM.AUTO, PSM.SPARSE_TEXT];
     for (const psm of psms) {
       await worker.setParameters({ tessedit_pageseg_mode: psm });
       const { data } = await worker.recognize(tmpPath);
