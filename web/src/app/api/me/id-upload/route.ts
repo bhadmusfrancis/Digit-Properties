@@ -7,9 +7,14 @@ import sharp from 'sharp';
 import { getSession } from '@/lib/get-session';
 import { parseIdOcrText } from '@/lib/id-ocr';
 
+/** Allow up to 60s so OCR can complete (Vercel etc. may limit by default). */
+export const maxDuration = 60;
+
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const OCR_MAX_WIDTH = 1600;
+/** Max time for OCR so the request does not hang (Tesseract can be slow on first run). */
+const OCR_TIMEOUT_MS = 55_000;
 
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -97,6 +102,22 @@ async function runIdOcr(
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('OCR_TIMEOUT')), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(t);
+        reject(err);
+      }
+    );
+  });
+}
+
 /**
  * Process ID front image: OCR only. Does NOT upload to Cloudinary or save to User.
  * Documents are uploaded and saved only when the user completes Step 2 (Confirm or Consent).
@@ -123,17 +144,36 @@ export async function POST(req: Request) {
     const frontBytes = await idFront.arrayBuffer();
     const frontBuffer = Buffer.from(frontBytes);
     const mimeType = idFront.type || 'image/jpeg';
-    let result = await runIdOcr(frontBuffer, mimeType);
-    if (!result.parsed?.firstName && !result.parsed?.middleName && !result.parsed?.lastName && !result.parsed?.dateOfBirth) {
-      const preprocessed = await preprocessForOcr(frontBuffer);
-      if (preprocessed) {
-        const fallback = await runIdOcr(preprocessed, 'image/png');
-        if (fallback.parsed && (fallback.parsed.firstName || fallback.parsed.middleName || fallback.parsed.lastName || fallback.parsed.dateOfBirth)) {
-          result = fallback;
-        } else if (fallback.rawText.length > result.rawText.length) {
-          result = fallback;
+
+    const runOcr = async () => {
+      let result = await runIdOcr(frontBuffer, mimeType);
+      if (!result.parsed?.firstName && !result.parsed?.middleName && !result.parsed?.lastName && !result.parsed?.dateOfBirth) {
+        const preprocessed = await preprocessForOcr(frontBuffer);
+        if (preprocessed) {
+          const fallback = await runIdOcr(preprocessed, 'image/png');
+          if (fallback.parsed && (fallback.parsed.firstName || fallback.parsed.middleName || fallback.parsed.lastName || fallback.parsed.dateOfBirth)) {
+            result = fallback;
+          } else if (fallback.rawText.length > result.rawText.length) {
+            result = fallback;
+          }
         }
       }
+      return result;
+    };
+
+    let result;
+    try {
+      result = await withTimeout(runOcr(), OCR_TIMEOUT_MS);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'OCR_TIMEOUT') {
+        console.warn('[id-upload] OCR timed out');
+        return NextResponse.json({
+          scanned: null,
+          rawOcrPreview: undefined,
+          error: 'Scanning timed out. Try a smaller or clearer image and try again.',
+        }, { status: 200 });
+      }
+      throw e;
     }
 
     const scanned = result.parsed?.firstName || result.parsed?.middleName || result.parsed?.lastName || result.parsed?.dateOfBirth || result.parsed?.expiryDate
