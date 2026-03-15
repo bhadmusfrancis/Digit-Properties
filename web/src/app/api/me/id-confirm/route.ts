@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     userDoc.idType = idType as 'drivers_license' | 'national_id' | 'voters_card' | 'international_passport';
     userDoc.identityVerifiedAt = new Date();
     await userDoc.save();
-    return NextResponse.json({ ok: true, message: 'ID verified. You can proceed to Liveness.' });
+    return NextResponse.json({ ok: true, message: 'ID submitted. You can proceed to Liveness.' });
   } catch (e) {
     console.error('[id-confirm]', e);
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed' }, { status: 500 });

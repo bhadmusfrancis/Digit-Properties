@@ -247,7 +247,7 @@ export default function ProfilePage() {
   const identityOk = !!user?.identityVerifiedAt;
   const livenessOk = !!user?.livenessVerifiedAt;
   const phoneOk = !!user?.phoneVerifiedAt;
-  /** Verified Individual = ID + Liveness + Phone. Profile (name, DOB, address) locks once ID is verified; phone editable until verified. */
+  /** Verified Individual = ID + Liveness + Phone. Profile (name, DOB, address) locks once ID is submitted (admin approves later); phone editable until verified. */
   const verificationComplete = !!(identityOk && livenessOk && phoneOk);
   const canEditNameDobAddress = !identityOk;
   const canEditPhone = !phoneOk;
@@ -256,6 +256,20 @@ export default function ProfilePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSaveProfile) return;
+    if (canEditNameDobAddress) {
+      if (!firstName.trim()) {
+        setMessage('First name is required.');
+        return;
+      }
+      if (!lastName.trim()) {
+        setMessage('Last name is required.');
+        return;
+      }
+      if (!dateOfBirth.trim()) {
+        setMessage('Date of birth is required.');
+        return;
+      }
+    }
     setSaving(true);
     setMessage(null);
     try {
@@ -517,11 +531,19 @@ export default function ProfilePage() {
     setIdUploadStageLabel('');
   }
 
-  /** When OCR did not detect data, submit ID images + profile details to id-consent so user can still proceed. */
+  /** Submit ID images + profile details (user chose profile over scanned). Requires first name, last name, DOB. */
   async function handleContinueWithProfile() {
     if (!idFrontFile || !idBackFile) return;
-    if (!effectiveFirst.trim() && !effectiveLast.trim() && !effectiveDob.trim()) {
-      setSubmitError('Fill in at least first name, last name, or date of birth in Step 1 above, then try again.');
+    if (!effectiveFirst.trim()) {
+      setSubmitError('First name is required. Fill it in Step 1 above, then try again.');
+      return;
+    }
+    if (!effectiveLast.trim()) {
+      setSubmitError('Last name is required. Fill it in Step 1 above, then try again.');
+      return;
+    }
+    if (!effectiveDob.trim()) {
+      setSubmitError('Date of birth is required. Fill it in Step 1 above, then try again.');
       return;
     }
     setIdConsentSaving(true);
@@ -576,22 +598,6 @@ export default function ProfilePage() {
     setIdUploadStage(null);
     setIdUploadStageLabel('');
   }
-
-  function normalizeForCompare(s: string) {
-    return s.toLowerCase().replace(/\s+/g, ' ').trim();
-  }
-  function dobForCompare(d: string) {
-    const parsed = d.replace(/\D/g, '');
-    if (parsed.length >= 8) return parsed.slice(0, 8);
-    return d;
-  }
-  const scannedMatches =
-    idUploadResult?.scanned &&
-    user &&
-    normalizeForCompare(idUploadResult.scanned.firstName || '') === normalizeForCompare(user.firstName || '') &&
-    normalizeForCompare(idUploadResult.scanned.middleName || '') === normalizeForCompare(user.middleName || '') &&
-    normalizeForCompare(idUploadResult.scanned.lastName || '') === normalizeForCompare(user.lastName || '') &&
-    dobForCompare(idUploadResult.scanned.dateOfBirth || '') === dobForCompare(user.dateOfBirth || '');
 
   const scannedExpiry = idUploadResult?.scanned?.expiryDate;
   const isIdExpired = Boolean(scannedExpiry && new Date(scannedExpiry) < new Date());
@@ -832,7 +838,7 @@ export default function ProfilePage() {
           </li>
           <li className="flex items-center gap-2">
             {identityOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
-            Step 2: ID document (upload front & back, then confirm) — profile locked after this
+            Step 2: ID document (upload front & back, then submit) — pending admin approval; profile locked until then
           </li>
           <li className="flex items-center gap-2">
             {livenessOk ? <span className="text-green-600">✓</span> : <span className="text-amber-600">○</span>}
@@ -849,7 +855,7 @@ export default function ProfilePage() {
         <h3 className="font-medium text-gray-900">Your information</h3>
         {identityOk && (
           <p className="mt-1 text-sm text-amber-700">
-            ID verified. Name, date of birth and address can no longer be edited. You can still update phone until it is verified. Profile picture can be changed after upgrading to Registered Agent or Developer.
+            ID submitted. Name, date of birth and address can no longer be edited until admin completes verification (you can re-update or upload another ID if denied). You can still update phone until it is verified. Profile picture can be changed after upgrading to Registered Agent or Developer.
           </p>
         )}
         {verificationComplete && (
@@ -894,7 +900,7 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700">First name</label>
+              <label className="block text-sm font-medium text-gray-700">First name <span className="text-red-600">*</span></label>
               <input
                 type="text"
                 value={firstName}
@@ -902,21 +908,23 @@ export default function ProfilePage() {
                 disabled={!canEditNameDobAddress}
                 className="input mt-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="First name"
+                required
+                aria-required="true"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Middle name</label>
+              <label className="block text-sm font-medium text-gray-700">Middle name <span className="text-gray-400">(optional)</span></label>
               <input
                 type="text"
                 value={middleName}
                 onChange={(e) => setMiddleName(e.target.value)}
                 disabled={!canEditNameDobAddress}
                 className="input mt-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Middle name (optional)"
+                placeholder="Middle name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Last name (surname)</label>
+              <label className="block text-sm font-medium text-gray-700">Last name (surname) <span className="text-red-600">*</span></label>
               <input
                 type="text"
                 value={lastName}
@@ -924,17 +932,21 @@ export default function ProfilePage() {
                 disabled={!canEditNameDobAddress}
                 className="input mt-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Surname / family name"
+                required
+                aria-required="true"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Date of birth</label>
+            <label className="block text-sm font-medium text-gray-700">Date of birth <span className="text-red-600">*</span></label>
             <input
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
               disabled={!canEditNameDobAddress}
               className="input mt-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+              required
+              aria-required="true"
             />
           </div>
           <div>
@@ -992,7 +1004,7 @@ export default function ProfilePage() {
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
           <h3 className="font-medium text-gray-900">Step 1: Complete your information above</h3>
           <p className="mt-1 text-sm text-gray-700">
-            Fill Surname (last name), First name, Date of birth, Phone and Office address, then Save profile. Then you can proceed to ID upload.
+            Fill First name, Last name (surname), Date of birth (required), Phone and Office address, then Save profile. Middle name is optional. Then you can proceed to ID upload.
           </p>
         </section>
       )}
@@ -1170,93 +1182,67 @@ export default function ProfilePage() {
                     This ID has expired. Please use a valid, unexpired ID and upload both front and back again.
                   </p>
                 ) : idUploadResult.scanned ? (
-                  scannedMatches ? (
-                    <>
-                      <p className="text-sm text-green-700">Detected ID matches your profile. Confirm to proceed.</p>
-                      {idConfirming && (
-                        <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                          <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                            <div
-                              className="h-full rounded-full bg-primary-600 transition-all duration-300"
-                              style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {idUploadStage === 'processing' ? 'Saving to secure storage…' : `${idUploadProgress}% uploaded`}
-                          </p>
+                  <>
+                    <p className="text-sm text-gray-700">
+                      Choose whether to submit with the data detected from your ID or with your profile details.
+                    </p>
+                    {(idConsentSaving || idConfirming) && (
+                      <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                            style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
+                          />
                         </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleIdConfirm}
-                        disabled={idConfirming}
-                        className="btn-primary mt-3"
-                      >
-                        {idConfirming ? '…' : 'Confirm and proceed to Liveness'}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm text-amber-700">
-                        Detected ID does not match your profile. Use scanned data to save it and proceed.
-                      </p>
-                      {idConsentSaving && (
-                        <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                          <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                            <div
-                              className="h-full rounded-full bg-primary-600 transition-all duration-300"
-                              style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {idUploadStage === 'processing' ? 'Saving to secure storage…' : `${idUploadProgress}% uploaded`}
-                          </p>
-                        </div>
-                      )}
+                        <p className="text-xs text-gray-500">
+                          {idUploadStage === 'processing' ? 'Saving to secure storage…' : `${idUploadProgress}% uploaded`}
+                        </p>
+                      </div>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={handleUseScannedData}
-                        disabled={idConsentSaving}
-                        className="btn-secondary mt-2"
+                        disabled={idConsentSaving || idConfirming}
+                        className="btn-primary"
                       >
-                        {idConsentSaving ? '…' : 'Use scanned data and proceed'}
+                        {idConsentSaving ? '…' : 'Use scanned data and submit'}
                       </button>
-                    </>
-                  )
+                      <button
+                        type="button"
+                        onClick={handleContinueWithProfile}
+                        disabled={idConsentSaving || idConfirming}
+                        className="btn-secondary"
+                      >
+                        {idConsentSaving ? '…' : 'Use my profile details and submit'}
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <p className="text-sm text-amber-700">
-                      We couldn’t auto-detect your ID details. You can retry with a clearer image or continue using your profile details below.
+                      We couldn’t auto-detect your ID details. You can retry with a clearer image or continue using your profile details (First name, Last name, Date of birth required in Step 1).
                     </p>
-                    {!(effectiveFirst.trim() || effectiveLast.trim() || effectiveDob.trim()) ? (
-                      <p className="mt-2 text-sm text-gray-600">
-                        Fill in your name and date of birth in Step 1 above, then use the button below.
-                      </p>
-                    ) : (
-                      <>
-                        {idConsentSaving && (
-                          <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                            <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                              <div
-                                className="h-full rounded-full bg-primary-600 transition-all duration-300"
-                                style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={handleContinueWithProfile}
-                          disabled={idConsentSaving}
-                          className="btn-primary mt-3"
-                        >
-                          {idConsentSaving ? '…' : 'Continue with my profile details'}
-                        </button>
-                      </>
+                    {idConsentSaving && (
+                      <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-sm font-medium text-gray-700">{idUploadStageLabel}</p>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                            style={{ width: idUploadStage === 'processing' ? '100%' : `${idUploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={handleContinueWithProfile}
+                      disabled={idConsentSaving}
+                      className="btn-primary mt-3"
+                    >
+                      {idConsentSaving ? '…' : 'Continue with my profile details and submit'}
+                    </button>
                   </>
                 )}
               </div>
@@ -1264,7 +1250,7 @@ export default function ProfilePage() {
           )}
           </>
         ) : (
-          <p className="mt-1 text-sm text-green-600">ID document verified.</p>
+          <p className="mt-1 text-sm text-green-600">ID document submitted. Pending admin approval for final verification.</p>
         )}
       </section>
 
