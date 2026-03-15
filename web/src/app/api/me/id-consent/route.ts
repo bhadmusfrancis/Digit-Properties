@@ -9,7 +9,7 @@ import { ID_TYPES, type IdType } from '@/lib/constants';
 
 const VALID_ID_TYPES = new Set(Object.values(ID_TYPES));
 
-/** Upload ID images to Cloudinary, save scanned data to user, and set identityVerifiedAt. Requires front + back and ID type; rejects expired IDs. */
+/** Upload ID images to Cloudinary, save scanned data to user, and set identityVerifiedAt (ID submitted; admin approves later). Requires front + back and ID type; rejects expired IDs. */
 export async function POST(req: Request) {
   try {
     const session = await getSession(req);
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'This ID has expired. Please use a valid, unexpired ID.' }, { status: 400 });
       }
     }
-    if (!firstName && !lastName && !dateOfBirth) {
-      return NextResponse.json({ error: 'Provide at least one of firstName, lastName, dateOfBirth.' }, { status: 400 });
+    if (!firstName || !lastName || !dateOfBirth) {
+      return NextResponse.json({ error: 'First name, last name, and date of birth are required.' }, { status: 400 });
     }
 
     if (firstName && lastName && dateOfBirth) {
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     }
     user.identityVerifiedAt = new Date();
     await user.save();
-    return NextResponse.json({ ok: true, message: 'Saved. You can proceed to Liveness.' });
+    return NextResponse.json({ ok: true, message: 'ID submitted. You can proceed to Liveness.' });
   } catch (e) {
     console.error('[id-consent]', e);
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed' }, { status: 500 });
