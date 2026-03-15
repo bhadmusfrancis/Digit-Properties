@@ -36,6 +36,10 @@ const DOB_LABELS = [
   'b date',
   'born',
   'd.o.b',
+  'd 0f b',      // OCR misread o as 0
+  'd 0f birth',
+  'dofb',
+  'd ofb',
 ];
 
 /** Labels that often precede expiry date on IDs */
@@ -84,6 +88,23 @@ function extractDateOfBirth(text: string): string | null {
           day = correctDayIfOcrError(text, day, month, year);
           return toIsoDate(day, month, year);
         }
+      }
+    }
+  }
+
+  // Nigerian licence: "D of B" on one line, "17-06-1988" on the next (glare can separate them)
+  for (let i = 0; i < lines.length - 1; i++) {
+    const lineLower = lines[i].toLowerCase();
+    if (!DOB_LABELS.some((label) => lineLower.includes(label))) continue;
+    const nextLine = lines[i + 1].trim();
+    const dateMatch = nextLine.match(/^\s*(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
+    if (dateMatch) {
+      let day = parseInt(dateMatch[1], 10);
+      const month = parseInt(dateMatch[2], 10);
+      const year = parseInt(dateMatch[3], 10);
+      if (year >= 1920 && year <= 2015 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        day = correctDayIfOcrError(nextLine, day, month, year);
+        return toIsoDate(day, month, year);
       }
     }
   }
@@ -225,12 +246,30 @@ function splitFirstAndMiddle(part: string): { firstName: string; middleName: str
   return { firstName: parts[0], middleName: parts.slice(1).join(' ') };
 }
 
+/** Regex to find "SURNAME, FIRSTNAME MIDDLENAME" even when the line has other text (e.g. licence number). */
+const COMMA_NAME_IN_LINE = /\b([A-Za-z][A-Za-z\-']{2,25}),\s*([A-Za-z][A-Za-z\-']{2,}(?:\s+[A-Za-z][A-Za-z\-']+)*)\b/g;
+
 /**
  * Extract full name: lastName (surname), firstName, middleName.
  * Handles "LASTNAME, FIRSTNAME MIDDLENAME" (e.g. Nigerian driver's licence).
  */
 function extractName(text: string): { firstName: string; middleName: string; lastName: string } | null {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+  // Nigerian licence: name can appear on a line with other text (e.g. "L/NO xxx BHADMUS, FRANCIS ADEMOLA"). Extract pattern from each line.
+  for (const line of lines) {
+    COMMA_NAME_IN_LINE.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = COMMA_NAME_IN_LINE.exec(line)) !== null) {
+      const lastName = match[1].replace(/\s+/g, ' ').trim();
+      const firstPart = match[2].replace(/\s+/g, ' ').trim();
+      if (lastName.length >= 2 && firstPart.length >= 2 && looksLikeNamePart(lastName) && looksLikeNamePart(firstPart)
+          && !SKIP_NAME_PATTERNS.some((p) => p.test(match![0]))) {
+        const { firstName, middleName } = splitFirstAndMiddle(firstPart);
+        return { lastName, firstName, middleName };
+      }
+    }
+  }
 
   for (const line of lines) {
     const trimmed = line.trim();

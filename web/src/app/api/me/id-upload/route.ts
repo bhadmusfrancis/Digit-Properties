@@ -30,9 +30,8 @@ async function ensureMinResolution(buffer: Buffer): Promise<Buffer> {
     const meta = await sharp(buffer).metadata();
     const w = meta.width ?? 0;
     const h = meta.height ?? 0;
-    if (w < OCR_MIN_SHORT_SIDE && h < OCR_MIN_SHORT_SIDE) return buffer;
     const short = Math.min(w, h);
-    if (short >= OCR_MIN_SHORT_SIDE) return buffer;
+    if (short >= OCR_MIN_SHORT_SIDE || short === 0) return buffer;
     const scale = OCR_MIN_SHORT_SIDE / short;
     const newW = Math.round(w * scale);
     const newH = Math.round(h * scale);
