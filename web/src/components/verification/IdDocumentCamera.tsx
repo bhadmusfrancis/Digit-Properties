@@ -78,20 +78,33 @@ export function IdDocumentCamera({ side, onCapture, onCancel }: Props) {
     setCapturing(true);
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-    const frameW = Math.floor(vw * FRAME_WIDTH_RATIO);
+    const rect = video.getBoundingClientRect();
+    const displayW = rect.width;
+    const displayH = rect.height;
+    // object-cover: video is scaled to cover the element; scale = max(display/video)
+    const scale = Math.max(displayW / vw, displayH / vh);
+    // Visible region of the video (in video pixels) is centered and has this size
+    const visibleW = displayW / scale;
+    const visibleH = displayH / scale;
+    const visibleX = (vw - visibleW) / 2;
+    const visibleY = (vh - visibleH) / 2;
+    // Frame on screen is FRAME_WIDTH_RATIO of display width, same aspect as ID; map to video pixels
+    const frameW = Math.floor((FRAME_WIDTH_RATIO * displayW) / scale);
     const frameH = Math.floor(frameW / ID_ASPECT);
-    const x = Math.floor((vw - frameW) / 2);
-    const y = Math.floor((vh - frameH) / 2);
+    const x = Math.floor(visibleX + (visibleW - frameW) / 2);
+    const y = Math.floor(visibleY + (visibleH - frameH) / 2);
+    const srcW = Math.max(1, Math.min(frameW, vw - x));
+    const srcH = Math.max(1, Math.min(frameH, vh - y));
 
     const canvas = document.createElement('canvas');
-    canvas.width = frameW;
-    canvas.height = frameH;
+    canvas.width = srcW;
+    canvas.height = srcH;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       setCapturing(false);
       return;
     }
-    ctx.drawImage(video, x, y, frameW, frameH, 0, 0, frameW, frameH);
+    ctx.drawImage(video, x, y, srcW, srcH, 0, 0, srcW, srcH);
 
     canvas.toBlob(
       (blob) => {
