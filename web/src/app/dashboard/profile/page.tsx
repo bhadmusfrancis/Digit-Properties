@@ -361,20 +361,30 @@ export default function ProfilePage() {
     setSubmitError(null);
     setIdUploadResult(null);
     setIdUploadProgress(0);
-    setIdUploadStage('uploading');
-    setIdUploadStageLabel('Uploading images…');
+    setIdUploadStage('processing');
+    setIdUploadStageLabel('Scanning ID front (name, DOB)…');
     setIdUploadProcessingSeconds(0);
     try {
       const formData = new FormData();
       formData.set('idFront', idFrontFile);
       formData.set('idBack', idBackFile);
+      let ocrText = '';
+      try {
+        const { recognizeIdFrontInBrowser } = await import('@/lib/ocr-id-front');
+        ocrText = await recognizeIdFrontInBrowser(idFrontFile);
+        if (ocrText && ocrText.trim().length > 0) formData.set('ocrText', ocrText.trim());
+      } catch {
+        // Fall back to server OCR if client OCR fails
+      }
+      setIdUploadStage('uploading');
+      setIdUploadStageLabel(ocrText ? 'Uploading…' : 'Uploading images…');
       const res = await postFormWithProgress(
         '/api/me/id-upload',
         formData,
         (percent, stage) => {
           setIdUploadProgress(percent);
           setIdUploadStage(stage);
-          setIdUploadStageLabel(stage === 'uploading' ? 'Uploading images…' : 'Scanning ID front (name, DOB)…');
+          setIdUploadStageLabel(stage === 'uploading' ? 'Uploading…' : 'Scanning ID front (name, DOB)…');
         },
         { timeoutMs: ID_UPLOAD_RESPONSE_TIMEOUT_MS }
       );
