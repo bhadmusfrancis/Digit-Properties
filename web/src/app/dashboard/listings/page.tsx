@@ -6,20 +6,40 @@ import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
 import { MyListingsTable } from '@/components/listings/MyListingsTable';
-import { USER_ROLES } from '@/lib/constants';
+import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
 
-export default async function MyListingsPage() {
+const PER_PAGE = 25;
+
+export default async function MyListingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ page?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
 
+  const sp = searchParams ? await searchParams : {};
+  const page = Math.max(1, Math.min(500, parseInt(typeof sp?.page === 'string' ? sp.page : '1', 10) || 1));
+  const skip = (page - 1) * PER_PAGE;
+
   await dbConnect();
-  const [listings, user] = await Promise.all([
-    Listing.find({ createdBy: session.user.id })
+  const ownerId = session.user.id;
+  const [listings, total, activeListingCount, user] = await Promise.all([
+    Listing.find({ createdBy: ownerId })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(PER_PAGE)
       .select('title price status listingType rentPeriod images featured highlighted')
       .lean(),
-    User.findById(session.user.id).select('role').lean(),
+    Listing.countDocuments({ createdBy: ownerId }),
+    Listing.countDocuments({
+      createdBy: ownerId,
+      status: { $in: [LISTING_STATUS.DRAFT, LISTING_STATUS.ACTIVE, LISTING_STATUS.PAUSED] },
+    }),
+    User.findById(ownerId).select('role').lean(),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   const rows = listings.map((l) => ({
     _id: String(l._id),
@@ -37,7 +57,6 @@ export default async function MyListingsPage() {
 
   const isGuest = user?.role === USER_ROLES.GUEST;
   const isBot = user?.role === USER_ROLES.BOT;
-  const activeListingCount = rows.filter((r) => ['draft', 'active', 'paused'].includes(r.status)).length;
   const guestLimit = 5;
   const atOrNearGuestLimit = isGuest && activeListingCount >= guestLimit;
 
@@ -69,8 +88,61 @@ export default async function MyListingsPage() {
       <ListingPackagesSection />
 
       <div className="mt-6">
+        <p className="mb-3 text-sm text-gray-500">
+          Showing {rows.length === 0 ? 0 : skip + 1}–{skip + rows.length} of {total} listing{total !== 1 ? 's' : ''}
+          {totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ''}
+        </p>
         <MyListingsTable listings={rows} />
+        {totalPages > 1 && (
+          <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Listing pages">
+            <PaginationLink href="/dashboard/listings" disabled={page <= 1} label="First" />
+            <PaginationLink
+              href={page <= 2 ? '/dashboard/listings' : `/dashboard/listings?page=${page - 1}`}
+              disabled={page <= 1}
+              label="Previous"
+            />
+            <span className="px-3 text-sm text-gray-600">
+              {page} / {totalPages}
+            </span>
+            <PaginationLink
+              href={page >= totalPages ? '#' : `/dashboard/listings?page=${page + 1}`}
+              disabled={page >= totalPages}
+              label="Next"
+            />
+            <PaginationLink
+              href={page >= totalPages ? '#' : `/dashboard/listings?page=${totalPages}`}
+              disabled={page >= totalPages}
+              label="Last"
+            />
+          </nav>
+        )}
       </div>
     </div>
+  );
+}
+
+function PaginationLink({
+  href,
+  disabled,
+  label,
+}: {
+  href: string;
+  disabled: boolean;
+  label: string;
+}) {
+  if (disabled) {
+    return (
+      <span className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 touch-manipulation"
+    >
+      {label}
+    </Link>
   );
 }

@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { formatPrice } from '@/lib/utils';
+import { type ListingSortKey, sortListingRows } from '@/lib/sort-listing-rows';
 import { MyListingActions } from './MyListingActions';
+import { SortColumnHeader } from './SortColumnHeader';
 
 type ListingRow = {
   _id: string;
@@ -35,6 +37,24 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
   const [limits, setLimits] = useState<Limits | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [optimistic, setOptimistic] = useState<Record<string, OptimisticRow>>({});
+  const [sortKey, setSortKey] = useState<ListingSortKey>('default');
+  const [sortAsc, setSortAsc] = useState(true);
+
+  const cycleSort = useCallback((key: Exclude<ListingSortKey, 'default'>) => {
+    setSortKey((prev) => {
+      if (prev !== key) {
+        setSortAsc(key === 'image' ? false : true);
+        return key;
+      }
+      setSortAsc((a) => !a);
+      return prev;
+    });
+  }, []);
+
+  const sortedListings = useMemo(
+    () => sortListingRows(listings, sortKey, sortAsc),
+    [listings, sortKey, sortAsc]
+  );
 
   useEffect(() => {
     fetch('/api/dashboard/stats')
@@ -117,19 +137,58 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
+        <span className="mr-auto text-xs text-gray-500">Sort by column headers</span>
+        {sortKey !== 'default' && (
+          <button
+            type="button"
+            onClick={() => {
+              setSortKey('default');
+              setSortAsc(true);
+            }}
+            className="text-xs font-medium text-primary-600 hover:underline"
+          >
+            Reset order
+          </button>
+        )}
+      </div>
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="w-14 sm:w-20 px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-3">Image</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Title</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4 whitespace-nowrap">Price</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Status</th>
+            <SortColumnHeader
+              className="w-14 sm:w-20 px-2 py-3 sm:px-3"
+              label="Image"
+              active={sortKey === 'image'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('image')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 sm:px-4"
+              label="Title"
+              active={sortKey === 'title'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('title')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 sm:px-4 whitespace-nowrap"
+              label="Price"
+              active={sortKey === 'price'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('price')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 sm:px-4"
+              label="Status"
+              active={sortKey === 'status'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('status')}
+            />
             <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Featured / Highlighted</th>
             <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
-          {listings.map((l) => {
+          {sortedListings.map((l) => {
             const display = getDisplay(l);
             return (
             <tr
@@ -209,7 +268,7 @@ export function MyListingsTable({ listings }: { listings: ListingRow[] }) {
           })}
         </tbody>
       </table>
-      {listings.length === 0 && (
+      {sortedListings.length === 0 && (
         <div className="py-12 text-center text-gray-500">
           No listings yet.{' '}
           <Link href="/listings/new" className="text-primary-600 hover:underline" onClick={(e) => e.stopPropagation()}>

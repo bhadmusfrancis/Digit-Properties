@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Image, ActivityIndicator, Alert } from 'react-native';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,7 +21,56 @@ function formatPrice(n: number, rentPeriod?: string) {
   return rentPeriod ? `${fmt}/${rentPeriod}` : fmt;
 }
 
+type SortKey = 'default' | 'image' | 'title' | 'price' | 'status';
+
+const STATUS_RANK: Record<string, number> = {
+  draft: 0,
+  pending_approval: 1,
+  active: 2,
+  paused: 3,
+  closed: 4,
+};
+
+function sortListingRows(listings: Listing[], sortKey: SortKey, sortAsc: boolean): Listing[] {
+  if (sortKey === 'default') return [...listings];
+  const copy = [...listings];
+  const dir = sortAsc ? 1 : -1;
+  copy.sort((a, b) => {
+    switch (sortKey) {
+      case 'image': {
+        const ha = a.images?.[0]?.url ? 1 : 0;
+        const hb = b.images?.[0]?.url ? 1 : 0;
+        if (ha !== hb) return (ha - hb) * dir;
+        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      }
+      case 'title':
+        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }) * dir;
+      case 'price':
+        if (a.price !== b.price) return (a.price - b.price) * dir;
+        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      case 'status': {
+        const ra = STATUS_RANK[a.status] ?? 99;
+        const rb = STATUS_RANK[b.status] ?? 99;
+        if (ra !== rb) return (ra - rb) * dir;
+        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      }
+      default:
+        return 0;
+    }
+  });
+  return copy;
+}
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'default', label: 'Newest' },
+  { key: 'image', label: 'Image' },
+  { key: 'title', label: 'Title' },
+  { key: 'price', label: 'Price' },
+  { key: 'status', label: 'Status' },
+];
+
 const TOP_PADDING_EXTRA = 24;
+const PER_PAGE = 25;
 
 export default function MyListingsScreen() {
   const insets = useSafeAreaInsets();
@@ -29,23 +78,65 @@ export default function MyListingsScreen() {
   const { token } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
+  const [sortKey, setSortKey] = useState<SortKey>('default');
+  const [sortAsc, setSortAsc] = useState(true);
   const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
 
-  const load = () => {
+  const sortedListings = useMemo(
+    () => sortListingRows(listings, sortKey, sortAsc),
+    [listings, sortKey, sortAsc]
+  );
+
+  const cycleSort = useCallback(
+    (key: Exclude<SortKey, 'default'>) => {
+      setSortKey((prev) => {
+        if (prev !== key) {
+          setSortAsc(key === 'image' ? false : true);
+          return key;
+        }
+        setSortAsc((a) => !a);
+        return prev;
+      });
+    },
+    []
+  );
+
+  const load = useCallback(() => {
     if (!token) return;
     setLoading(true);
-    fetch(getApiUrl('listings', { mine: '1', limit: '50' }), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(
+      getApiUrl('listings', {
+        mine: '1',
+        limit: String(PER_PAGE),
+        page: String(page),
+      }),
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
       .then((r) => r.json())
-      .then((d) => setListings(d.listings || []))
-      .catch(() => setListings([]))
+      .then((d) => {
+        const list = d.listings || [];
+        const pag = d.pagination || {};
+        const pages = Math.max(1, Number(pag.pages) || 1);
+        setListings(list);
+        setPagination({ total: Number(pag.total) || 0, pages });
+        if (list.length === 0 && page > 1) {
+          setPage((p) => Math.max(1, p - 1));
+        }
+      })
+      .catch(() => {
+        setListings([]);
+        setPagination({ total: 0, pages: 1 });
+      })
       .finally(() => setLoading(false));
-  };
+  }, [token, page]);
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, [load]);
 
   const deleteListing = (id: string, title: string) => {
     Alert.alert('Delete listing', `Delete "${title}"?`, [
@@ -58,7 +149,12 @@ export default function MyListingsScreen() {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
           })
-            .then((r) => { if (r.ok) load(); })
+            .then((r) => {
+              if (r.ok) {
+                if (listings.length === 1 && page > 1) setPage((p) => Math.max(1, p - 1));
+                else load();
+              }
+            })
             .catch(() => {});
         },
       },
@@ -92,9 +188,81 @@ export default function MyListingsScreen() {
         </View>
       ) : (
         <FlatList
-          data={listings}
+          data={sortedListings}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <View style={styles.sortSection}>
+              {pagination.total > 0 && (
+                <Text style={styles.pageInfo}>
+                  {(page - 1) * PER_PAGE + 1}–{(page - 1) * PER_PAGE + listings.length} of {pagination.total}
+                  {pagination.pages > 1 ? ` · Page ${page}/${pagination.pages}` : ''}
+                </Text>
+              )}
+              <Text style={styles.sortLabel}>Sort by</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortChips}>
+                {SORT_OPTIONS.map(({ key, label }) => {
+                  const active = sortKey === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      style={[styles.sortChip, active && styles.sortChipActive]}
+                      onPress={() => {
+                        if (key === 'default') {
+                          setSortKey('default');
+                          setSortAsc(true);
+                        } else {
+                          cycleSort(key);
+                        }
+                      }}
+                    >
+                      <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>
+                        {label}
+                        {key !== 'default' && active ? (sortAsc ? ' ↑' : ' ↓') : ''}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          }
+          ListFooterComponent={
+            pagination.pages > 1 ? (
+              <View style={styles.pageNav}>
+                <Pressable
+                  style={[styles.pageBtn, page <= 1 && styles.pageBtnDisabled]}
+                  disabled={page <= 1}
+                  onPress={() => setPage(1)}
+                >
+                  <Text style={[styles.pageBtnText, page <= 1 && styles.pageBtnTextDisabled]}>First</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.pageBtn, page <= 1 && styles.pageBtnDisabled]}
+                  disabled={page <= 1}
+                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <Text style={[styles.pageBtnText, page <= 1 && styles.pageBtnTextDisabled]}>Prev</Text>
+                </Pressable>
+                <Text style={styles.pageNavLabel}>
+                  {page} / {pagination.pages}
+                </Text>
+                <Pressable
+                  style={[styles.pageBtn, page >= pagination.pages && styles.pageBtnDisabled]}
+                  disabled={page >= pagination.pages}
+                  onPress={() => setPage((p) => p + 1)}
+                >
+                  <Text style={[styles.pageBtnText, page >= pagination.pages && styles.pageBtnTextDisabled]}>Next</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.pageBtn, page >= pagination.pages && styles.pageBtnDisabled]}
+                  disabled={page >= pagination.pages}
+                  onPress={() => setPage(pagination.pages)}
+                >
+                  <Text style={[styles.pageBtnText, page >= pagination.pages && styles.pageBtnTextDisabled]}>Last</Text>
+                </Pressable>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <View style={styles.card}>
               {item.images?.[0]?.url ? (
@@ -129,7 +297,46 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: '#0c4a6e', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8 },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   loader: { marginTop: 24 },
+  sortSection: { marginBottom: 12 },
+  pageInfo: { fontSize: 13, color: '#64748b', marginBottom: 10 },
+  sortLabel: { fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 8 },
+  sortChips: { flexDirection: 'row', gap: 8, paddingRight: 16 },
+  sortChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sortChipActive: { backgroundColor: '#0c4a6e', borderColor: '#0c4a6e' },
+  sortChipText: { fontSize: 13, fontWeight: '600', color: '#475569' },
+  sortChipTextActive: { color: '#fff' },
   list: { padding: 16, paddingBottom: 32 },
+  pageNav: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
+  pageBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    minWidth: 56,
+    alignItems: 'center',
+  },
+  pageBtnDisabled: { opacity: 0.45 },
+  pageBtnText: { fontSize: 13, fontWeight: '600', color: '#0c4a6e' },
+  pageBtnTextDisabled: { color: '#94a3b8' },
+  pageNavLabel: { fontSize: 14, fontWeight: '600', color: '#334155', paddingHorizontal: 8 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyText: { fontSize: 16, color: '#64748b', marginBottom: 12 },
   emptyBtn: { paddingVertical: 10, paddingHorizontal: 20 },

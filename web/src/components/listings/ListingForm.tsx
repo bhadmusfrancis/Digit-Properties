@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES } from '@/lib/constants';
+import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES, LISTING_TYPE } from '@/lib/constants';
 import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { generateListingTitle } from '@/lib/listing-title';
@@ -13,7 +13,7 @@ import { generateListingTitle } from '@/lib/listing-title';
 const schema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(20).max(20000),
-  listingType: z.enum(['sale', 'rent']),
+  listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
   propertyType: z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]),
   price: z.number().positive(),
   address: z.string().min(5),
@@ -281,8 +281,9 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
           <div>
             <label className="block text-sm font-medium text-gray-700">Listing type</label>
             <select {...register('listingType')} className="input mt-1">
-              <option value="sale">For Sale</option>
-              <option value="rent">For Rent</option>
+              <option value={LISTING_TYPE.SALE}>For Sale</option>
+              <option value={LISTING_TYPE.RENT}>For Rent</option>
+              <option value={LISTING_TYPE.JOINT_VENTURE}>Joint venture</option>
             </select>
           </div>
           <div>

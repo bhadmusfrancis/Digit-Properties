@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS } from '@/lib/constants';
+import { HAS_LISTING_MEDIA } from '@/lib/listing-media-query';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -54,9 +55,14 @@ export async function GET(
     const pipeline: mongoose.PipelineStage[] = [
       {
         $match: {
-          _id: { $ne: listingIdOid },
-          status: LISTING_STATUS.ACTIVE,
-          propertyType: current.propertyType ?? '',
+          $and: [
+            {
+              _id: { $ne: listingIdOid },
+              status: LISTING_STATUS.ACTIVE,
+              propertyType: current.propertyType ?? '',
+            },
+            HAS_LISTING_MEDIA,
+          ],
         },
       },
       {

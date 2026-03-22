@@ -52,7 +52,12 @@ function pickFromDescription(description: string, maxWords = 2): string[] {
 export function generateListingTitle(input: TitleInput): string {
   const beds = input.bedrooms ?? 0;
   const prop = capitalize((input.propertyType || '').replace(/_/g, ' '));
-  const typeStr = input.listingType === 'rent' ? 'for Rent' : 'for Sale';
+  const typeStr =
+    input.listingType === 'rent'
+      ? 'for Rent'
+      : input.listingType === 'joint_venture'
+        ? 'Joint Venture'
+        : 'for Sale';
   const loc = locationStr(input);
 
   const formats: Array<() => string> = [

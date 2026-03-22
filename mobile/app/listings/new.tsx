@@ -17,7 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../lib/api';
-import { PROPERTY_TYPES, RENT_PERIODS, POPULAR_AMENITIES } from '../../lib/constants';
+import { PROPERTY_TYPES, RENT_PERIODS, POPULAR_AMENITIES, LISTING_TYPE, formatPropertyTypeLabel } from '../../lib/constants';
 import { generateListingTitle } from '../../lib/listing-title';
 import { AddressLocationInput } from '../../components/AddressLocationInput';
 
@@ -35,7 +35,9 @@ export default function NewListingScreen() {
   const [images, setImages] = useState<{ url: string; public_id: string }[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [listingType, setListingType] = useState<'sale' | 'rent'>('sale');
+  const [listingType, setListingType] = useState<
+    (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE]
+  >(LISTING_TYPE.SALE);
   const [propertyType, setPropertyType] = useState('apartment');
   const [price, setPrice] = useState('');
   const [address, setAddress] = useState('');
@@ -244,19 +246,22 @@ export default function NewListingScreen() {
         <Text style={styles.label}>Description * (min 20 chars)</Text>
         <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} placeholder="Describe the property in detail. Use words like luxury, modern, spacious." multiline numberOfLines={4} />
         <Text style={styles.label}>Listing type</Text>
-        <View style={styles.row}>
-          <Pressable style={[styles.chip, listingType === 'sale' && styles.chipActive]} onPress={() => setListingType('sale')}>
-            <Text style={[styles.chipText, listingType === 'sale' && styles.chipTextActive]}>For Sale</Text>
+        <View style={[styles.row, { flexWrap: 'wrap', gap: 8 }]}>
+          <Pressable style={[styles.chip, listingType === LISTING_TYPE.SALE && styles.chipActive]} onPress={() => setListingType(LISTING_TYPE.SALE)}>
+            <Text style={[styles.chipText, listingType === LISTING_TYPE.SALE && styles.chipTextActive]}>For Sale</Text>
           </Pressable>
-          <Pressable style={[styles.chip, listingType === 'rent' && styles.chipActive]} onPress={() => setListingType('rent')}>
-            <Text style={[styles.chipText, listingType === 'rent' && styles.chipTextActive]}>For Rent</Text>
+          <Pressable style={[styles.chip, listingType === LISTING_TYPE.RENT && styles.chipActive]} onPress={() => setListingType(LISTING_TYPE.RENT)}>
+            <Text style={[styles.chipText, listingType === LISTING_TYPE.RENT && styles.chipTextActive]}>For Rent</Text>
+          </Pressable>
+          <Pressable style={[styles.chip, listingType === LISTING_TYPE.JOINT_VENTURE && styles.chipActive]} onPress={() => setListingType(LISTING_TYPE.JOINT_VENTURE)}>
+            <Text style={[styles.chipText, listingType === LISTING_TYPE.JOINT_VENTURE && styles.chipTextActive]}>Joint venture</Text>
           </Pressable>
         </View>
         <Text style={styles.label}>Property type</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
           {PROPERTY_TYPES.map((t) => (
             <Pressable key={t} style={[styles.chip, propertyType === t && styles.chipActive]} onPress={() => setPropertyType(t)}>
-              <Text style={[styles.chipText, propertyType === t && styles.chipTextActive]}>{t}</Text>
+              <Text style={[styles.chipText, propertyType === t && styles.chipTextActive]}>{formatPropertyTypeLabel(t)}</Text>
             </Pressable>
           ))}
         </ScrollView>

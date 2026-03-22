@@ -85,7 +85,7 @@ export const reviewSchema = z.object({
 export const alertSchema = z.object({
   name: z.string().min(1).max(100),
   filters: z.object({
-    listingType: z.enum(['sale', 'rent']).optional(),
+    listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]).optional(),
     propertyType: z.string().optional(),
     minPrice: z.number().optional(),
     maxPrice: z.number().optional(),
