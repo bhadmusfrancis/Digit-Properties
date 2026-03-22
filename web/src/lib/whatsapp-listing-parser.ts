@@ -2,12 +2,12 @@
  * Parse unstructured property text (e.g. from WhatsApp group/status) into
  * Digit Properties listing payload. Used by "Import from WhatsApp" flow.
  */
-import { NIGERIAN_STATES, PROPERTY_TYPES } from './constants';
+import { NIGERIAN_STATES, PROPERTY_TYPES, LISTING_TYPE } from './constants';
 
 export type ParsedListing = {
   title: string;
   description: string;
-  listingType: 'sale' | 'rent';
+  listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE];
   propertyType: string;
   price: number;
   location: { address: string; city: string; state: string; suburb?: string };
@@ -169,14 +169,27 @@ function extractBedsBaths(text: string): { bedrooms: number; bathrooms: number; 
   return { bedrooms, bathrooms, toilets, rest };
 }
 
-function extractListingType(text: string): { listingType: 'sale' | 'rent'; rest: string } {
+function extractListingType(text: string): {
+  listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE];
+  rest: string;
+} {
   let rest = text;
-  let listingType: 'sale' | 'rent' = 'sale';
-  if (/\b(for\s*rent|to\s*rent|rental|renting|available\s*for\s*rent)\b/i.test(text)) {
-    listingType = 'rent';
+  let listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE] = LISTING_TYPE.SALE;
+  if (
+    /\b(joint\s+venture|\bjv\b|jv\s+in|partnership\s+on\s+land|sharing\s+ratio|facilitator'?s?\s+fee)\b/i.test(
+      text
+    )
+  ) {
+    listingType = LISTING_TYPE.JOINT_VENTURE;
+    rest = rest.replace(
+      /\b(joint\s+venture|\bjv\b|jv\s+in)\b/gi,
+      ' '
+    );
+  } else if (/\b(for\s*rent|to\s*rent|rental|renting|available\s*for\s*rent)\b/i.test(text)) {
+    listingType = LISTING_TYPE.RENT;
     rest = rest.replace(/\b(for\s*rent|to\s*rent|rental|renting|available\s*for\s*rent)\b/gi, ' ');
   } else if (/\b(for\s*sale|to\s*sell|selling|available\s*for\s*sale)\b/i.test(text)) {
-    listingType = 'sale';
+    listingType = LISTING_TYPE.SALE;
     rest = rest.replace(/\b(for\s*sale|to\s*sell|selling|available\s*for\s*sale)\b/gi, ' ');
   }
   return { listingType, rest };
@@ -184,16 +197,19 @@ function extractListingType(text: string): { listingType: 'sale' | 'rent'; rest:
 
 function extractPropertyType(text: string): string {
   const lower = text.toLowerCase();
-  const buildingTypes = ['bungalow', 'duplex', 'penthouse', 'villa', 'terrace', 'commercial', 'studio', 'house', 'apartment', 'warehouse', 'farm', 'factory'];
-  for (const p of buildingTypes) {
-    if (new RegExp('\\b' + p + 's?\\b').test(lower)) return p;
+  const ordered = [...PROPERTY_TYPES].sort((a, b) => b.length - a.length);
+  for (const p of ordered) {
+    const pattern = p.replace(/_/g, '[\\s_-]*');
+    if (new RegExp(`\\b${pattern}s?\\b`, 'i').test(lower)) return p;
   }
-  if (/\b(plot|front plot|partitioned)\b/.test(lower)) return 'land';
-  if (/\b\d[\d,]*\s*sqm\b/.test(lower) && !/\b(apartment|bungalow|house|duplex|villa|studio|penthouse|terrace|commercial)\b/.test(lower)) return 'land';
-  const allowed = [...PROPERTY_TYPES];
-  for (const p of allowed) {
-    if (new RegExp(`\\b${p}s?\\b`).test(lower)) return p;
-  }
+  if (/\b(plot|front plot|partitioned|bare\s*land|water\s*front)\b/.test(lower)) return 'land';
+  if (
+    /\b\d[\d,]*\s*sqm\b/.test(lower) &&
+    !/\b(apartment|bungalow|house|duplex|villa|studio|penthouse|terrace|commercial|warehouse|hotel|maisonette|bungalow)\b/.test(
+      lower
+    )
+  )
+    return 'land';
   return 'apartment';
 }
 

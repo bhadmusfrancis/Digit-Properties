@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { NIGERIAN_STATES, PROPERTY_TYPES } from '@/lib/constants';
+import { NIGERIAN_STATES, PROPERTY_TYPES, formatPropertyTypeLabel } from '@/lib/constants';
 
 export function ListingFilters() {
   const router = useRouter();
@@ -45,12 +45,13 @@ export function ListingFilters() {
           <option value="">All types</option>
           <option value="sale">For Sale</option>
           <option value="rent">For Rent</option>
+          <option value="joint_venture">Joint venture</option>
         </select>
         <select value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="input">
           <option value="">Property type</option>
           {PROPERTY_TYPES.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {formatPropertyTypeLabel(t)}
             </option>
           ))}
         </select>

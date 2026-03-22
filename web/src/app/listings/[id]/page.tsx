@@ -7,8 +7,9 @@ import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
-import { LISTING_STATUS } from '@/lib/constants';
+import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { getDefaultListingImageUrl, getListingImagesForDisplay } from '@/lib/listing-default-image';
+import { HAS_LISTING_MEDIA } from '@/lib/listing-media-query';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
@@ -79,9 +80,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const similarAgg = await Listing.aggregate([
       {
         $match: {
-          _id: { $ne: listingIdOid },
-          status: LISTING_STATUS.ACTIVE,
-          propertyType: listing.propertyType ?? '',
+          $and: [
+            {
+              _id: { $ne: listingIdOid },
+              status: LISTING_STATUS.ACTIVE,
+              propertyType: listing.propertyType ?? '',
+            },
+            HAS_LISTING_MEDIA,
+          ],
         },
       },
       {
@@ -193,8 +199,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <span>{listing.bathrooms} baths</span>
                 {listing.toilets != null && listing.toilets > 0 && <span>{listing.toilets} toilets</span>}
                 {listing.area && <span>{listing.area} sqm</span>}
-                <span className="capitalize">{listing.propertyType}</span>
-                <span className="capitalize">{listing.listingType}</span>
+                <span>{formatPropertyTypeLabel(String(listing.propertyType ?? ''))}</span>
+                <span>{formatListingTypeLabel(String(listing.listingType ?? ''))}</span>
               </div>
               <div className="mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0">
                 {listing.description && /<[a-z][\s\S]*>/i.test(listing.description) ? (

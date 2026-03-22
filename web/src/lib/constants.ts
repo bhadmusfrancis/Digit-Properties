@@ -30,7 +30,11 @@ export const LISTING_STATUS = {
 export const LISTING_TYPE = {
   SALE: 'sale',
   RENT: 'rent',
+  /** Land JV / partnership (premium + sharing terms; common in Lagos group listings) */
+  JOINT_VENTURE: 'joint_venture',
 } as const;
+
+export type ListingType = (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE];
 
 /** Rent period: price is per day, month, or year (for rent listings only) */
 export const RENT_PERIOD = {
@@ -39,21 +43,52 @@ export const RENT_PERIOD = {
   YEAR: 'year',
 } as const;
 
+/**
+ * Property categories for filters, schema, and imports.
+ * Covers typical Nigerian market listings (residential, commercial, industrial, JV land).
+ */
 export const PROPERTY_TYPES = [
   'apartment',
   'bungalow',
-  'house',
-  'land',
   'commercial',
   'duplex',
+  'event_center',
+  'factory',
+  'farm',
+  'hotel',
+  'house',
+  'industrial',
+  'land',
+  'maisonette',
+  'mini_flat',
+  'mixed_use',
+  'office',
   'penthouse',
+  'semi_detached',
+  'shop',
   'studio',
   'terrace',
+  'townhouse',
   'villa',
   'warehouse',
-  'farm',
-  'factory',
 ] as const;
+
+/** Readable label for URL/slug property types (e.g. event_center → Event center). */
+export function formatPropertyTypeLabel(slug: string): string {
+  if (!slug) return '';
+  return slug
+    .split('_')
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ''))
+    .join(' ');
+}
+
+/** Readable label for listing type (sale / rent / joint venture). */
+export function formatListingTypeLabel(t: string): string {
+  if (t === LISTING_TYPE.JOINT_VENTURE) return 'Joint venture';
+  if (t === LISTING_TYPE.RENT) return 'Rent';
+  if (t === LISTING_TYPE.SALE) return 'Sale';
+  return formatPropertyTypeLabel(t);
+}
 
 export const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',

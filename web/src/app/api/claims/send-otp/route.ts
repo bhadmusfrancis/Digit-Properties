@@ -13,6 +13,7 @@ import {
   formatPhoneDisplay,
 } from '@/lib/phone-verify';
 import { setClaimOtp } from '@/lib/claim-otp-cache';
+import { isClaimableListingDoc } from '@/lib/claimable-listing';
 import mongoose from 'mongoose';
 
 const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -48,11 +49,11 @@ export async function POST(req: Request) {
 
     const listing = await Listing.findById(listingId)
       .select('agentPhone createdBy createdByType')
-      .populate('createdBy', 'phone')
+      .populate('createdBy', 'phone role')
       .lean();
     if (!listing) return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    if (listing.createdByType !== 'bot') {
-      return NextResponse.json({ error: 'Only bot listings can be claimed' }, { status: 400 });
+    if (!isClaimableListingDoc(listing)) {
+      return NextResponse.json({ error: 'Only listings created by a bot account can be claimed' }, { status: 400 });
     }
 
     const creator = listing.createdBy as { phone?: string } | null;

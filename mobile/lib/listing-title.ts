@@ -14,7 +14,12 @@ export function generateListingTitle(params: {
 }): string {
   const beds = params.bedrooms ?? 0;
   const prop = (params.propertyType || 'property').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  const typeStr = params.listingType === 'rent' ? 'for Rent' : 'for Sale';
+  const typeStr =
+    params.listingType === 'rent'
+      ? 'for Rent'
+      : params.listingType === 'joint_venture'
+        ? 'Joint Venture'
+        : 'for Sale';
   const parts: string[] = [];
   if (params.suburb?.trim()) parts.push(params.suburb.trim());
   if (params.address?.trim()) parts.push(params.address.trim());

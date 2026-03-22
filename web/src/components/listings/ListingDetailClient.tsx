@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getWhatsAppUrl } from '@/lib/utils';
+import { USER_ROLES } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
@@ -227,7 +228,7 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
         </div>
       )}
 
-      {createdByType === 'bot' && session && (
+      {(createdByType === 'bot' || createdBy?.role === USER_ROLES.BOT) && session && (
         <div className="border-t pt-4">
           <button
             onClick={() => {

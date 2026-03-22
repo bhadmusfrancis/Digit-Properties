@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { formatPropertyTypeLabel } from '@/lib/constants';
 
 interface SearchFiltersProps {
   states: string[];
@@ -54,6 +55,7 @@ export function SearchFilters({ states, propertyTypes }: SearchFiltersProps) {
             <option value="">All</option>
             <option value="sale">For Sale</option>
             <option value="rent">For Rent</option>
+            <option value="joint_venture">Joint venture</option>
           </select>
         </div>
         <div>
@@ -66,7 +68,7 @@ export function SearchFilters({ states, propertyTypes }: SearchFiltersProps) {
             <option value="">All</option>
             {propertyTypes.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {formatPropertyTypeLabel(t)}
               </option>
             ))}
           </select>

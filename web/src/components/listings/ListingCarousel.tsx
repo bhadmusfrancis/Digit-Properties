@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 const CARD_WIDTH = 280;
@@ -79,8 +80,8 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
                 Sponsored
               </span>
             )}
-            <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800 capitalize">
-              {listing.listingType}
+            <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800">
+              {formatListingTypeLabel(listing.listingType)}
               {listing.listingType === 'rent' && listing.rentPeriod && (
                 <span className="ml-1 text-primary-600">• Per {listing.rentPeriod}</span>
               )}
@@ -105,7 +106,7 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
                 </>
               )}
               <span className="text-gray-400">•</span>
-              <span className="text-sm text-gray-600 capitalize">{listing.propertyType}</span>
+              <span className="text-sm text-gray-600">{formatPropertyTypeLabel(listing.propertyType)}</span>
             </div>
             {listing.createdBy?.role && listing.createdBy.role !== 'guest' && (
               <div className="mt-2">

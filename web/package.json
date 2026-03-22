@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed-admin.ts",
-    "seed:listings": "tsx scripts/seed-listings.ts"
+    "seed:listings": "tsx scripts/seed-listings.ts",
+    "import:chat": "tsx scripts/import-chat-listings.ts",
+    "delete:chat-imports": "tsx scripts/delete-chat-import-listings.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
