@@ -7,6 +7,8 @@ import {
   RENT_PERIOD,
   PROPERTY_TYPES,
   NIGERIAN_STATES,
+  formatListingTypeLabel,
+  formatPropertyTypeLabel,
 } from '@/lib/constants';
 
 type AlertFilters = {
@@ -133,8 +135,8 @@ export default function PropertyAlertsPage() {
 
   const filterSummary = (f: AlertFilters) => {
     const parts: string[] = [];
-    if (f.listingType) parts.push(f.listingType === 'rent' ? 'Rent' : 'Sale');
-    if (f.propertyType) parts.push(f.propertyType);
+    if (f.listingType) parts.push(formatListingTypeLabel(f.listingType));
+    if (f.propertyType) parts.push(formatPropertyTypeLabel(f.propertyType));
     if (f.state) parts.push(f.state);
     if (f.city) parts.push(f.city);
     if (f.suburb) parts.push(f.suburb);
@@ -177,6 +179,7 @@ export default function PropertyAlertsPage() {
               <option value="">Any</option>
               <option value={LISTING_TYPE.SALE}>Sale</option>
               <option value={LISTING_TYPE.RENT}>Rent</option>
+              <option value={LISTING_TYPE.JOINT_VENTURE}>Joint venture</option>
             </select>
           </div>
           <div>
@@ -188,7 +191,7 @@ export default function PropertyAlertsPage() {
             >
               <option value="">Any</option>
               {PROPERTY_TYPES.map((t) => (
-                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                <option key={t} value={t}>{formatPropertyTypeLabel(t)}</option>
               ))}
             </select>
           </div>

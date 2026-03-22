@@ -10,6 +10,7 @@ import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
 import { sendAdminNewClaim, sendClaimApproved } from '@/lib/email';
 import { hasBaseVerification } from '@/lib/verification';
 import { normalizePhone } from '@/lib/phone-verify';
+import { claimableListingsMatch, isClaimableListingDoc } from '@/lib/claimable-listing';
 import mongoose from 'mongoose';
 
 const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -69,9 +70,10 @@ export async function POST(req: Request) {
       if (validIds.length === 0) {
         return NextResponse.json({ error: 'Invalid listing IDs' }, { status: 400 });
       }
+      const claimMatch = await claimableListingsMatch();
       const listings = await Listing.find({
         _id: { $in: validIds.map((id: string) => new mongoose.Types.ObjectId(id)) },
-        createdByType: 'bot',
+        ...claimMatch,
       }).lean();
       if (listings.length !== validIds.length) {
         return NextResponse.json({ error: 'One or more listings not found or not claimable' }, { status: 400 });
@@ -131,10 +133,10 @@ export async function POST(req: Request) {
     const proofUrlsRaw = Array.isArray(body.proofUrls) ? body.proofUrls : undefined;
     const message = typeof body.message === 'string' ? body.message : undefined;
 
-    const listing = await Listing.findById(listingId).lean();
+    const listing = await Listing.findById(listingId).populate('createdBy', 'role').lean();
     if (!listing) return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    if (listing.createdByType !== 'bot') {
-      return NextResponse.json({ error: 'Only listings created by BOT accounts can be claimed.' }, { status: 400 });
+    if (!isClaimableListingDoc(listing)) {
+      return NextResponse.json({ error: 'Only listings created by a bot account can be claimed.' }, { status: 400 });
     }
 
     const existing = await Claim.findOne({

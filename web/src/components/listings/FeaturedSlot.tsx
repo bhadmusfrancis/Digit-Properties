@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import { formatListingTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 type ListingPayload = {
@@ -121,8 +122,8 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
                 sizes="(max-width: 768px) 100vw, 520px"
               />
             </div>
-            <span className="absolute right-2 top-2 rounded bg-white/95 px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-sm capitalize">
-              {listing.listingType}
+            <span className="absolute right-2 top-2 rounded bg-white/95 px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-sm">
+              {formatListingTypeLabel(listing.listingType)}
               {listing.listingType === 'rent' && listing.rentPeriod && (
                 <span className="ml-1 text-primary-600">/ {listing.rentPeriod}</span>
               )}

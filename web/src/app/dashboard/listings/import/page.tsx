@@ -6,12 +6,12 @@ import { useSession } from 'next-auth/react';
 import { ListingForm } from '@/components/listings/ListingForm';
 import type { ListingFormRef } from '@/components/listings/ListingForm';
 import type { ParsedListing } from '@/lib/whatsapp-listing-parser';
-import { USER_ROLES } from '@/lib/constants';
+import { USER_ROLES, type ListingType } from '@/lib/constants';
 
 export type EditInitialShape = {
   title: string;
   description: string;
-  listingType: 'sale' | 'rent';
+  listingType: ListingType;
   propertyType: string;
   price: number;
   address: string;
@@ -205,7 +205,7 @@ export default function ImportFromWhatsAppPage() {
     const updated: EditInitialShape = {
       title: values.title,
       description: values.description,
-      listingType: values.listingType,
+      listingType: values.listingType as ListingType,
       propertyType: values.propertyType,
       price: values.price,
       address: values.address,
@@ -254,7 +254,7 @@ export default function ImportFromWhatsAppPage() {
         ...toSave[currentIndex],
         title: v.title,
         description: v.description,
-        listingType: v.listingType,
+        listingType: v.listingType as ListingType,
         propertyType: v.propertyType,
         price: v.price,
         address: v.address,

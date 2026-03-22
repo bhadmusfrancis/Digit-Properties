@@ -24,9 +24,13 @@ export interface SimilarListingItem {
 type Props = {
   listingId: string;
   initialListings: SimilarListingItem[];
+  /** Override default subtitle under "Similar properties" */
+  subtitle?: string;
 };
 
-export function SimilarListingsInfinite({ listingId, initialListings }: Props) {
+const DEFAULT_SUBTITLE = 'Same property type · with photos or videos · closest first';
+
+export function SimilarListingsInfinite({ listingId, initialListings, subtitle = DEFAULT_SUBTITLE }: Props) {
   const [listings, setListings] = useState<SimilarListingItem[]>(initialListings);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -78,9 +82,7 @@ export function SimilarListingsInfinite({ listingId, initialListings }: Props) {
   return (
     <section className="mt-12 border-t border-gray-200 pt-10">
       <h2 className="text-xl font-semibold text-gray-900">Similar properties</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Same property type · closest to this listing first
-      </p>
+      <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
       <ListingGrid listings={listings} />
       <div ref={sentinelRef} className="h-4 min-h-4" aria-hidden />
       {loading && (

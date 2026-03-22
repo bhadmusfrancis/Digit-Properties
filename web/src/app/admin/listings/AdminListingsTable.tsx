@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState, useMemo, useCallback } from 'react';
 import { formatPrice } from '@/lib/utils';
+import { type ListingSortKey, sortListingRows } from '@/lib/sort-listing-rows';
+import { SortColumnHeader } from '@/components/listings/SortColumnHeader';
 import { AdminListingActions } from './AdminListingActions';
 
 type User = { _id: string; name?: string; email?: string };
@@ -21,6 +24,24 @@ type Listing = {
 
 export function AdminListingsTable({ listings, users }: { listings: Listing[]; users: User[] }) {
   const router = useRouter();
+  const [sortKey, setSortKey] = useState<ListingSortKey>('default');
+  const [sortAsc, setSortAsc] = useState(true);
+
+  const cycleSort = useCallback((key: Exclude<ListingSortKey, 'default'>) => {
+    setSortKey((prev) => {
+      if (prev !== key) {
+        setSortAsc(key === 'image' ? false : true);
+        return key;
+      }
+      setSortAsc((a) => !a);
+      return prev;
+    });
+  }, []);
+
+  const sortedListings = useMemo(
+    () => sortListingRows(listings, sortKey, sortAsc),
+    [listings, sortKey, sortAsc]
+  );
 
   const thumb = (l: Listing) => {
     const url = l.images?.[0]?.url;
@@ -43,19 +64,58 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
+        <span className="mr-auto text-xs text-gray-500">Sort by column headers</span>
+        {sortKey !== 'default' && (
+          <button
+            type="button"
+            onClick={() => {
+              setSortKey('default');
+              setSortAsc(true);
+            }}
+            className="text-xs font-medium text-primary-600 hover:underline"
+          >
+            Reset order
+          </button>
+        )}
+      </div>
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 w-16 sm:w-20">Image</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Title</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4 whitespace-nowrap">Price</th>
-            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Status</th>
+            <SortColumnHeader
+              className="px-2 py-3 text-left w-16 sm:w-20 sm:px-3"
+              label="Image"
+              active={sortKey === 'image'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('image')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 text-left sm:px-4"
+              label="Title"
+              active={sortKey === 'title'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('title')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 text-left sm:px-4 whitespace-nowrap"
+              label="Price"
+              active={sortKey === 'price'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('price')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 text-left sm:px-4"
+              label="Status"
+              active={sortKey === 'status'}
+              ascending={sortAsc}
+              onClick={() => cycleSort('status')}
+            />
             <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Created by</th>
             <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
-          {listings.map((l) => (
+          {sortedListings.map((l) => (
             <tr
               key={l._id}
               onClick={() => router.push(`/listings/${l._id}`)}
@@ -91,7 +151,7 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
           ))}
         </tbody>
       </table>
-      {listings.length === 0 && (
+      {sortedListings.length === 0 && (
         <div className="py-12 text-center text-gray-500">No listings yet.</div>
       )}
     </div>

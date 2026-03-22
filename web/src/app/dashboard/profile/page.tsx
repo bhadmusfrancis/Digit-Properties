@@ -14,22 +14,6 @@ const ID_TYPE_OPTIONS = [
   { value: ID_TYPES.INTERNATIONAL_PASSPORT, label: 'International passport' },
 ] as const;
 
-const VERIFICATION_TYPES = [
-  { value: 'registered_agent', label: 'Registered Agent' },
-  { value: 'registered_developer', label: 'Registered Developer' },
-] as const;
-
-const COMPANY_POSITIONS = [
-  'Agent',
-  'Senior Agent',
-  'Team Lead',
-  'Director',
-  'CEO',
-  'Marketing Manager',
-  'Project Manager',
-  'Other',
-];
-
 const ID_UPLOAD_RESPONSE_TIMEOUT_MS = 95_000; // 95s max wait for server (OCR can be slow)
 
 /** POST FormData with upload progress. onProgress(percent 0–100, stage). Optional timeout aborts and rejects. */
@@ -171,12 +155,6 @@ export default function ProfilePage() {
   const [idUploadResult, setIdUploadResult] = useState<IdUploadResult | null>(null);
   const [idConfirming, setIdConfirming] = useState(false);
   const [idConsentSaving, setIdConsentSaving] = useState(false);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [requestType, setRequestType] = useState<string>('registered_agent');
-  const [requestCompanyPosition, setRequestCompanyPosition] = useState('');
-  const [requestMessage, setRequestMessage] = useState('');
-  const [docFiles, setDocFiles] = useState<File[]>([]);
 
   function fetchUserAndRequests() {
     return Promise.all([
@@ -676,58 +654,6 @@ export default function ProfilePage() {
     setLivenessUploading(false);
   }
 
-  async function handleSubmitRequest(e: React.FormEvent) {
-    e.preventDefault();
-    const needsPosition = requestType === 'registered_agent' || requestType === 'registered_developer';
-    if (needsPosition && !requestCompanyPosition.trim()) {
-      setSubmitError('Position in company is required for Agent/Developer.');
-      return;
-    }
-    if (docFiles.length < 1) {
-      setSubmitError('Upload at least one document (file upload only, no links).');
-      return;
-    }
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const urls: string[] = [];
-      for (const file of docFiles) {
-        const formData = new FormData();
-        formData.set('file', file);
-        formData.set('folder', 'verification');
-        const up = await fetch('/api/upload', { method: 'POST', body: formData });
-        const upData = await up.json();
-        if (!up.ok || !upData.url) {
-          setSubmitError(upData.error || 'Document upload failed');
-          setSubmitting(false);
-          return;
-        }
-        urls.push(upData.url);
-      }
-      const res = await fetch('/api/verification/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: requestType,
-          documentUrls: urls,
-          companyPosition: needsPosition ? requestCompanyPosition.trim() : undefined,
-          message: requestMessage.trim() || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRequests((prev) => [data, ...prev]);
-        setDocFiles([]);
-        setRequestMessage('');
-      } else {
-        setSubmitError(data.error || 'Submit failed');
-      }
-    } catch {
-      setSubmitError('Request failed');
-    }
-    setSubmitting(false);
-  }
-
   if (loading || !user) {
     return (
       <div>
@@ -846,7 +772,7 @@ export default function ProfilePage() {
           </li>
           <li className="flex items-center gap-2">
             <span className="text-gray-400">→</span>
-            Apply for Registered Agent / Developer (after Verified Individual complete)
+            Apply for Agent / Developer when ready (from Dashboard menu)
           </li>
         </ul>
       </section>
@@ -860,7 +786,7 @@ export default function ProfilePage() {
         )}
         {verificationComplete && (
           <p className="mt-1 text-sm text-green-700">
-            Verified Individual complete. You can apply for Registered Agent or Developer below.
+            Verified Individual complete. When you&apos;re ready, you can apply for Registered Agent or Developer from the Dashboard menu.
           </p>
         )}
         <div className="mt-4 space-y-4">
@@ -1285,87 +1211,13 @@ export default function ProfilePage() {
 
       {verificationComplete && (
         <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="font-medium text-gray-900">Apply for Registered Agent / Developer</h3>
+          <h3 className="font-medium text-gray-900">Registered Agent / Developer</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Verified Individual complete. Upload documents, choose type, and submit to apply for Registered Agent or Developer.
+            When you&apos;re ready, apply for Registered Agent or Developer from the Dashboard.
           </p>
-          <form onSubmit={handleSubmitRequest} className="mt-4 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Type</label>
-              <select
-                value={requestType}
-                onChange={(e) => setRequestType(e.target.value)}
-                className="input mt-1 w-full max-w-xs"
-              >
-                {VERIFICATION_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {(requestType === 'registered_agent' || requestType === 'registered_developer') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Position in company</label>
-                <select
-                  value={requestCompanyPosition}
-                  onChange={(e) => setRequestCompanyPosition(e.target.value)}
-                  className="input mt-1 w-full max-w-xs"
-                >
-                  <option value="">Select…</option>
-                  {COMPANY_POSITIONS.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Documents (upload from your device)</label>
-              <p className="mt-1 text-xs text-gray-500">
-                Select files from your device only. Do not paste links or URLs.
-              </p>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={(e) => setDocFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
-                className="input mt-2 block w-full text-sm"
-                aria-label="Choose document files from your device"
-              />
-              {docFiles.length > 0 && (
-                <ul className="mt-2 space-y-1 text-sm text-gray-600">
-                  {docFiles.map((f, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      {f.name}
-                      <button
-                        type="button"
-                        onClick={() => setDocFiles((p) => p.filter((_, j) => j !== i))}
-                        className="text-red-600 hover:underline"
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Message (optional)</label>
-              <textarea
-                value={requestMessage}
-                onChange={(e) => setRequestMessage(e.target.value)}
-                rows={2}
-                className="input mt-1 w-full"
-                placeholder="Note for reviewer"
-              />
-            </div>
-            {submitError && <p className="text-sm text-red-600">{submitError}</p>}
-            <button type="submit" disabled={submitting || docFiles.length < 1} className="btn-primary">
-              {submitting ? 'Submitting…' : 'Submit request'}
-            </button>
-          </form>
+          <Link href="/dashboard/apply" className="btn-secondary mt-3 inline-block">
+            Apply for Agent or Developer
+          </Link>
         </section>
       )}
 

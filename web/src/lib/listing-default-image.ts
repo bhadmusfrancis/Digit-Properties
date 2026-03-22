@@ -19,6 +19,17 @@ const PROPERTY_TYPE_TO_FILENAME: Record<string, string> = {
   warehouse: 'warehouse',
   farm: 'farm',
   factory: 'factory',
+  // New types map to closest existing placeholder asset
+  maisonette: 'duplex',
+  hotel: 'commercial',
+  industrial: 'factory',
+  office: 'commercial',
+  mixed_use: 'commercial',
+  event_center: 'commercial',
+  shop: 'commercial',
+  semi_detached: 'house',
+  mini_flat: 'apartment',
+  townhouse: 'terrace',
 };
 
 /**

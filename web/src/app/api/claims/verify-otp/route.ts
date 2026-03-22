@@ -6,6 +6,7 @@ import { verifyTermiiPin, normalizePhone } from '@/lib/phone-verify';
 import { getAndDeleteClaimOtp } from '@/lib/claim-otp-cache';
 import ClaimPhoneVerification from '@/models/ClaimPhoneVerification';
 import { USER_ROLES } from '@/lib/constants';
+import { claimableListingsMatch } from '@/lib/claimable-listing';
 import mongoose from 'mongoose';
 
 const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -46,8 +47,9 @@ export async function POST(req: Request) {
       { upsert: true }
     );
 
-    // Find all bot listings; filter by normalized agentPhone matching verified phone
-    const allBot = await Listing.find({ createdByType: 'bot' })
+    // Find all claimable bot listings; filter by normalized agentPhone matching verified phone
+    const claimMatch = await claimableListingsMatch();
+    const allBot = await Listing.find(claimMatch)
       .select('_id title price listingType location status agentPhone')
       .sort({ createdAt: -1 })
       .lean();

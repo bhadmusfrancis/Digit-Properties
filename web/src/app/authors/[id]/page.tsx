@@ -11,6 +11,7 @@ import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatPrice } from '@/lib/utils';
+import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 
 const PUBLIC_USER_SELECT = 'name image role companyPosition';
 const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images';
@@ -148,8 +149,8 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                       className="object-cover transition group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
-                    <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800 capitalize">
-                      {l.listingType}
+                    <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800">
+                      {formatListingTypeLabel(l.listingType)}
                       {l.listingType === 'rent' && l.rentPeriod && (
                         <span className="ml-1 text-primary-600">· Per {l.rentPeriod}</span>
                       )}
@@ -176,7 +177,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                         </>
                       )}
                       <span className="text-gray-400">·</span>
-                      <span className="capitalize">{l.propertyType}</span>
+                      <span>{formatPropertyTypeLabel(l.propertyType)}</span>
                     </div>
                   </div>
                 </Link>
