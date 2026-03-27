@@ -19,6 +19,7 @@ interface Listing {
   bathrooms: number;
   toilets?: number;
   images?: { url: string }[];
+  videos?: { url: string; public_id?: string }[];
   isBoosted?: boolean;
   createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 }
@@ -33,7 +34,7 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
           <Link href={`/listings/${listing._id}`} className="block">
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
               <Image
-                src={getListingDisplayImage(listing.images, listing.propertyType)}
+                src={getListingDisplayImage(listing.images, listing.propertyType, listing.videos)}
                 alt={listing.title}
                 fill
                 className="object-cover transition group-hover:scale-105"

@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo, useCallback } from 'react';
+import { useCallback } from 'react';
 import { formatPrice } from '@/lib/utils';
-import { type ListingSortKey, sortListingRows } from '@/lib/sort-listing-rows';
+import { type ListingSortKey, cycleListingSort } from '@/lib/sort-listing-rows';
+import { buildListingListQuery } from '@/lib/listing-list-query';
+import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
 import { SortColumnHeader } from '@/components/listings/SortColumnHeader';
 import { AdminListingActions } from './AdminListingActions';
 
@@ -15,37 +17,57 @@ type Listing = {
   price: number;
   status: string;
   listingType: string;
+  createdAt?: string;
+  propertyType: string;
   rentPeriod?: string;
   images?: { url?: string; public_id?: string }[];
+  videos?: { url?: string; public_id?: string }[];
   featured?: boolean;
   highlighted?: boolean;
   createdBy: unknown;
 };
 
-export function AdminListingsTable({ listings, users }: { listings: Listing[]; users: User[] }) {
+export function AdminListingsTable({
+  listings,
+  users,
+  sortKey,
+  sortAsc,
+  basePath,
+}: {
+  listings: Listing[];
+  users: User[];
+  sortKey: ListingSortKey;
+  sortAsc: boolean;
+  basePath: string;
+}) {
   const router = useRouter();
-  const [sortKey, setSortKey] = useState<ListingSortKey>('default');
-  const [sortAsc, setSortAsc] = useState(true);
 
-  const cycleSort = useCallback((key: Exclude<ListingSortKey, 'default'>) => {
-    setSortKey((prev) => {
-      if (prev !== key) {
-        setSortAsc(key === 'image' ? false : true);
-        return key;
-      }
-      setSortAsc((a) => !a);
-      return prev;
-    });
-  }, []);
+  // Must be deterministic between server-render and browser hydration.
+  // Use UTC date only (YYYY-MM-DD) to avoid timezone/locale mismatches.
+  const formatCreatedAt = (createdAt?: string) => {
+    if (!createdAt) return '—';
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toISOString().slice(0, 10);
+  };
 
-  const sortedListings = useMemo(
-    () => sortListingRows(listings, sortKey, sortAsc),
-    [listings, sortKey, sortAsc]
+  const applySort = useCallback(
+    (key: Exclude<ListingSortKey, 'default'>) => {
+      const next = cycleListingSort(sortKey, sortAsc, key);
+      router.push(`${basePath}${buildListingListQuery(1, next.sortKey, next.sortAsc)}`);
+    },
+    [basePath, router, sortAsc, sortKey]
   );
 
+  const resetSort = useCallback(() => {
+    router.push(`${basePath}${buildListingListQuery(1, 'default', true)}`);
+  }, [basePath, router]);
+
   const thumb = (l: Listing) => {
-    const url = l.images?.[0]?.url;
-    if (url) return <img src={url} alt="" className="h-12 w-16 rounded object-cover bg-gray-100" />;
+    const url = getListingDisplayImage(l.images, l.propertyType, l.videos);
+    if (url && !isDefaultListingImageUrl(url)) {
+      return <img src={url} alt="" className="h-12 w-16 rounded object-cover bg-gray-100" />;
+    }
     return <div className="h-12 w-16 rounded bg-gray-200 flex items-center justify-center text-gray-400 text-xs">No img</div>;
   };
 
@@ -67,14 +89,7 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
       <div className="flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
         <span className="mr-auto text-xs text-gray-500">Sort by column headers</span>
         {sortKey !== 'default' && (
-          <button
-            type="button"
-            onClick={() => {
-              setSortKey('default');
-              setSortAsc(true);
-            }}
-            className="text-xs font-medium text-primary-600 hover:underline"
-          >
+          <button type="button" onClick={resetSort} className="text-xs font-medium text-primary-600 hover:underline">
             Reset order
           </button>
         )}
@@ -87,35 +102,42 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
               label="Image"
               active={sortKey === 'image'}
               ascending={sortAsc}
-              onClick={() => cycleSort('image')}
+              onClick={() => applySort('image')}
             />
             <SortColumnHeader
               className="px-2 py-3 text-left sm:px-4"
               label="Title"
               active={sortKey === 'title'}
               ascending={sortAsc}
-              onClick={() => cycleSort('title')}
+              onClick={() => applySort('title')}
             />
             <SortColumnHeader
               className="px-2 py-3 text-left sm:px-4 whitespace-nowrap"
               label="Price"
               active={sortKey === 'price'}
               ascending={sortAsc}
-              onClick={() => cycleSort('price')}
+              onClick={() => applySort('price')}
             />
             <SortColumnHeader
               className="px-2 py-3 text-left sm:px-4"
               label="Status"
               active={sortKey === 'status'}
               ascending={sortAsc}
-              onClick={() => cycleSort('status')}
+              onClick={() => applySort('status')}
+            />
+            <SortColumnHeader
+              className="px-2 py-3 text-left sm:px-4 whitespace-nowrap"
+              label="Date"
+              active={sortKey === 'date'}
+              ascending={sortAsc}
+              onClick={() => applySort('date')}
             />
             <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Created by</th>
             <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
-          {sortedListings.map((l) => (
+          {listings.map((l) => (
             <tr
               key={l._id}
               onClick={() => router.push(`/listings/${l._id}`)}
@@ -137,6 +159,9 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
                   {l.status}
                 </span>
               </td>
+              <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                {formatCreatedAt(l.createdAt)}
+              </td>
               <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{createdByLabel(l)}</td>
               <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                 <AdminListingActions
@@ -151,7 +176,7 @@ export function AdminListingsTable({ listings, users }: { listings: Listing[]; u
           ))}
         </tbody>
       </table>
-      {sortedListings.length === 0 && (
+      {listings.length === 0 && (
         <div className="py-12 text-center text-gray-500">No listings yet.</div>
       )}
     </div>

@@ -30,7 +30,7 @@ export async function GET(req: Request) {
         $or: [{ featured: true }, { highlighted: true }],
       })
         .limit(20)
-        .select('title description price listingType rentPeriod propertyType location bedrooms bathrooms toilets area amenities images createdBy')
+        .select('title description price listingType rentPeriod propertyType location bedrooms bathrooms toilets area amenities images videos createdBy')
         .populate('createdBy', 'name role')
         .lean();
       for (const l of listings) {
