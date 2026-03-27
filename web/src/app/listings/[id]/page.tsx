@@ -7,9 +7,9 @@ import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
-import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
+import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel, POPULAR_AMENITIES } from '@/lib/constants';
 import { getDefaultListingImageUrl, getListingDisplayImage } from '@/lib/listing-default-image';
-import { HAS_LISTING_MEDIA } from '@/lib/listing-media-query';
+import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
@@ -84,18 +84,35 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const similarAgg = await Listing.aggregate([
       {
         $match: {
-          $and: [
-            {
-              _id: { $ne: listingIdOid },
-              status: LISTING_STATUS.ACTIVE,
-              propertyType: listing.propertyType ?? '',
-            },
-            HAS_LISTING_MEDIA,
-          ],
+          _id: { $ne: listingIdOid },
+          status: LISTING_STATUS.ACTIVE,
+          propertyType: listing.propertyType ?? '',
         },
       },
       {
         $addFields: {
+          hasMediaScore: {
+            $cond: {
+              if: {
+                $or: [
+                  {
+                    $and: [
+                      { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
+                      { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
+                    ],
+                  },
+                  {
+                    $and: [
+                      { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
+                      { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
+                    ],
+                  },
+                ],
+              },
+              then: 1,
+              else: 0,
+            },
+          },
           proximityScore: {
             $cond: {
               if: {
@@ -116,7 +133,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           },
         },
       },
-      { $sort: { proximityScore: -1, createdAt: -1 } },
+      { $sort: { hasMediaScore: -1, proximityScore: -1, createdAt: -1 } },
       { $limit: 12 },
       {
         $lookup: {
@@ -185,6 +202,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
+    const derivedAmenities = mergeUniqueLists(
+      listing.amenities,
+      extractAmenitiesFromText(
+        `${listing.title ?? ''}\n${listing.description ?? ''}\n${(listing.tags ?? []).join(', ')}`,
+        POPULAR_AMENITIES
+      )
+    );
     const rawImageItems = Array.isArray(listing.images) ? listing.images : [];
     const rawVideoItems = Array.isArray(listing.videos) ? listing.videos : [];
     const images = rawImageItems
@@ -236,14 +260,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   <p>{listing.description}</p>
                 )}
               </div>
-              {listing.amenities?.length > 0 && (
+              {derivedAmenities.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold text-gray-900">Amenities</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {listing.amenities.map((a) => (
-                      <span key={a} className="rounded-full bg-gray-100 px-3 py-1 text-sm">
+                    {derivedAmenities.map((a) => (
+                      <Link
+                        key={a}
+                        href={`/listings?tags=${encodeURIComponent(a)}`}
+                        className="rounded-full bg-gray-100 px-3 py-1 text-sm hover:bg-gray-200"
+                        aria-label={`Show listings with amenity ${a}`}
+                      >
                         {a}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 </div>
