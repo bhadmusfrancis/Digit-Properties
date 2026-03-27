@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { PipelineStage } from 'mongoose';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing, { type IListing } from '@/models/Listing';
@@ -76,7 +77,6 @@ export async function GET(req: Request) {
     type ListingRow = Omit<IListing, 'createdBy'> & { createdBy?: IListing['createdBy'] | { firstName?: string; name?: string; image?: string; role?: string } };
     let listings: ListingRow[];
     let total: number;
-
     const hasRealMedia = (l: ListingRow) => {
       const imgOk =
         Array.isArray(l.images) &&
@@ -88,17 +88,13 @@ export async function GET(req: Request) {
         );
       return imgOk || vidOk;
     };
-
-    const prioritizeMedia = (arr: ListingRow[]) => {
-      const copy = [...arr];
-      copy.sort((a, b) => {
+    const prioritizeMedia = (arr: ListingRow[]) =>
+      [...arr].sort((a, b) => {
         const am = hasRealMedia(a);
         const bm = hasRealMedia(b);
         if (am === bm) return 0;
         return bm ? 1 : -1;
       });
-      return copy;
-    };
 
     if (featured && random) {
       const all = await Listing.find(filter)
@@ -111,15 +107,52 @@ export async function GET(req: Request) {
       total = all.length;
     } else {
       const [listingsRes, totalRes] = await Promise.all([
-        Listing.find(filter)
-          .sort({ boostExpiresAt: -1, createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .populate('createdBy', 'firstName name image role')
-          .lean(),
+        Listing.aggregate([
+          { $match: filter } as PipelineStage,
+          {
+            $addFields: {
+              _hasMedia: {
+                $cond: {
+                  if: {
+                    $or: [
+                      {
+                        $and: [
+                          { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
+                          { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
+                        ],
+                      },
+                      {
+                        $and: [
+                          { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
+                          { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
+                        ],
+                      },
+                    ],
+                  },
+                  then: 1,
+                  else: 0,
+                },
+              },
+            },
+          } as PipelineStage,
+          { $sort: { _hasMedia: -1, boostExpiresAt: -1, createdAt: -1 } } as PipelineStage,
+          { $skip: skip } as PipelineStage,
+          { $limit: limit } as PipelineStage,
+          {
+            $lookup: {
+              from: User.collection.name,
+              localField: 'createdBy',
+              foreignField: '_id',
+              as: '_createdByArr',
+              pipeline: [{ $project: { firstName: 1, name: 1, image: 1, role: 1 } }],
+            },
+          } as PipelineStage,
+          { $addFields: { createdBy: { $arrayElemAt: ['$_createdByArr', 0] } } } as PipelineStage,
+          { $project: { _createdByArr: 0, _hasMedia: 0 } } as PipelineStage,
+        ]).allowDiskUse(true),
         Listing.countDocuments(filter),
       ]);
-      listings = prioritizeMedia(listingsRes);
+      listings = listingsRes as ListingRow[];
       total = totalRes;
     }
 

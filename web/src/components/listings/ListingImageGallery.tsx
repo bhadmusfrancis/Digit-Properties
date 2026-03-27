@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
-type ImageItem = { url: string; public_id?: string };
+type MediaItem = { url: string; public_id?: string; type?: 'image' | 'video' };
 
 const ZOOM_LEVELS = [1, 1.5, 2, 2.5, 3];
 const MIN_ZOOM = 1;
@@ -14,7 +14,7 @@ export function ListingImageGallery({
   title,
   isBoosted,
 }: {
-  images: ImageItem[];
+  images: MediaItem[];
   title: string;
   isBoosted?: boolean;
 }) {
@@ -125,15 +125,25 @@ export function ListingImageGallery({
         className="relative aspect-video w-full cursor-zoom-in bg-gray-200 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         aria-label="View media fullscreen"
       >
-        <Image
-          src={current.url}
-          alt={`${title} – image ${index + 1} of ${total}`}
-          fill
-          className="object-cover"
-          priority
-          sizes="(max-width: 1024px) 100vw, 66vw"
-          unoptimized={!current.url.includes('res.cloudinary.com')}
-        />
+        {current.type === 'video' ? (
+          <video
+            src={current.url}
+            controls
+            preload="metadata"
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <Image
+            src={current.url}
+            alt={`${title} – media ${index + 1} of ${total}`}
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 1024px) 100vw, 66vw"
+            unoptimized={!current.url.includes('res.cloudinary.com')}
+          />
+        )}
         {isBoosted && (
           <span className="absolute left-4 top-4 rounded bg-amber-500 px-3 py-1 text-sm font-medium text-white">
             Sponsored
@@ -155,7 +165,7 @@ export function ListingImageGallery({
                 goPrev();
               }}
               className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white shadow hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/50"
-              aria-label="Previous image"
+              aria-label="Previous media"
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -168,7 +178,7 @@ export function ListingImageGallery({
                 goNext();
               }}
               className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-3 text-white shadow hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/50"
-              aria-label="Next image"
+              aria-label="Next media"
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -188,7 +198,7 @@ export function ListingImageGallery({
                       setIndex(i);
                     }}
                     className={`h-2.5 w-2.5 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'}`}
-                    aria-label={`Go to image ${i + 1}`}
+                    aria-label={`Go to media ${i + 1}`}
                   />
                 ))}
               </div>
@@ -255,14 +265,25 @@ export function ListingImageGallery({
               }}
             >
               <div className="relative h-full w-full">
-                <Image
-                  src={current.url}
-                  alt={`${title} – image ${index + 1} of ${total}`}
-                  fill
-                  className="object-contain"
-                  unoptimized={!current.url.includes('res.cloudinary.com')}
-                  sizes="100vw"
-                />
+                {current.type === 'video' ? (
+                  <video
+                    src={current.url}
+                    controls
+                    autoPlay
+                    preload="metadata"
+                    playsInline
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <Image
+                    src={current.url}
+                    alt={`${title} – media ${index + 1} of ${total}`}
+                    fill
+                    className="object-contain"
+                    unoptimized={!current.url.includes('res.cloudinary.com')}
+                    sizes="100vw"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -273,7 +294,7 @@ export function ListingImageGallery({
                 type="button"
                 onClick={goPrev}
                 className="absolute left-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/70 p-4 text-white hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-white"
-                aria-label="Previous image"
+                aria-label="Previous media"
               >
                 <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -283,7 +304,7 @@ export function ListingImageGallery({
                 type="button"
                 onClick={goNext}
                 className="absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/70 p-4 text-white hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-white"
-                aria-label="Next image"
+                aria-label="Next media"
               >
                 <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -303,7 +324,7 @@ export function ListingImageGallery({
                         setZoomIndex(0);
                       }}
                       className={`h-2.5 w-2.5 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'}`}
-                      aria-label={`Go to image ${i + 1}`}
+                      aria-label={`Go to media ${i + 1}`}
                     />
                   ))}
                 </div>

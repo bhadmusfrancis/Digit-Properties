@@ -29,6 +29,7 @@ export async function GET(req: Request) {
         status: LISTING_STATUS.ACTIVE,
         $or: [{ featured: true }, { highlighted: true }],
       })
+        .sort({ 'images.0.url': -1, createdAt: -1 })
         .limit(20)
         .select('title description price listingType rentPeriod propertyType location bedrooms bathrooms toilets area amenities images videos createdBy')
         .populate('createdBy', 'name role')

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
     if (!hasLocation) {
       const listings = await Listing.find(match)
-        .sort({ viewCount: -1, createdAt: -1 })
+        .sort({ 'images.0.url': -1, viewCount: -1, createdAt: -1 })
         .limit(limit)
         .populate('createdBy', 'firstName name image role')
         .lean();
@@ -37,6 +37,28 @@ export async function GET(req: Request) {
       { $match: match },
       {
         $addFields: {
+          _hasMedia: {
+            $cond: {
+              if: {
+                $or: [
+                  {
+                    $and: [
+                      { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
+                      { $ne: [{ $ifNull: ['$images.0.url', ''] }, '' ] },
+                    ],
+                  },
+                  {
+                    $and: [
+                      { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
+                      { $ne: [{ $ifNull: ['$videos.0.url', ''] }, '' ] },
+                    ],
+                  },
+                ],
+              },
+              then: 1,
+              else: 0,
+            },
+          },
           _locScore: {
             $add: [
               suburb
@@ -48,7 +70,7 @@ export async function GET(req: Request) {
           },
         },
       },
-      { $sort: { _locScore: -1, viewCount: -1, createdAt: -1 } },
+      { $sort: { _hasMedia: -1, _locScore: -1, viewCount: -1, createdAt: -1 } },
       { $limit: limit },
       {
         $lookup: {
@@ -60,7 +82,7 @@ export async function GET(req: Request) {
         },
       },
       { $set: { createdBy: { $arrayElemAt: ['$createdByDoc', 0] } } },
-      { $unset: ['createdByDoc', '_locScore'] },
+      { $unset: ['createdByDoc', '_locScore', '_hasMedia'] },
     ];
 
     const listings = await Listing.aggregate(aggPipeline);
