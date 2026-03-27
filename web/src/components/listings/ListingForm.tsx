@@ -9,6 +9,7 @@ import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES, LISTING_TYPE } from
 import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { generateListingTitle } from '@/lib/listing-title';
+import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 
 const schema = z.object({
   title: z.string().min(5).max(200),
@@ -206,8 +207,11 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     const payload: Record<string, unknown> = {
       ...data,
       location,
-      amenities: data.amenities ? data.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [],
-      tags: data.tags ? data.tags.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      amenities: normalizeList(data.amenities ? data.amenities.split(',') : []),
+      tags: mergeUniqueLists(
+        data.tags ? data.tags.split(',') : [],
+        data.amenities ? data.amenities.split(',') : []
+      ),
       images,
     };
     if (payload.area === undefined || (typeof payload.area === 'number' && Number.isNaN(payload.area))) delete payload.area;
@@ -216,8 +220,6 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     delete payload.state;
     delete payload.suburb;
     delete payload.coordinates;
-    delete payload.amenities;
-    delete payload.tags;
 
     if (editId) {
       const res = await fetch('/api/listings/' + editId, {

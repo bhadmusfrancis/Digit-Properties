@@ -5,10 +5,11 @@ import { dbConnect } from '@/lib/db';
 import Listing, { type IListing } from '@/models/Listing';
 import User from '@/models/User';
 import { listingSchema, listingQuerySchema } from '@/lib/validations';
-import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
+import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } from '@/lib/constants';
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
+import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
     const maxPrice = parsed.success ? parsed.data.maxPrice : searchParams.get('maxPrice')?.slice(0, 20);
     const bedrooms = parsed.success ? parsed.data.bedrooms : searchParams.get('bedrooms')?.slice(0, 10);
     const tagsRaw = parsed.success ? parsed.data.tags : searchParams.get('tags');
-    const tags = tagsRaw?.split(',').filter(Boolean).slice(0, 20) ?? [];
+    const tags = normalizeList(tagsRaw?.split(',')).slice(0, 20);
     const q = (parsed.success ? parsed.data.q : searchParams.get('q'))?.trim()?.slice(0, 200);
     const featured = parsed.success ? parsed.data.featured === '1' : searchParams.get('featured') === '1';
     const highlighted = parsed.success ? parsed.data.highlighted === '1' : searchParams.get('highlighted') === '1';
@@ -247,9 +248,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const { images: _i, videos: _v, ...rest } = parsed.data;
+    const amenitiesFromBody = normalizeList(parsed.data.amenities);
+    const amenitiesFromText = extractAmenitiesFromText(
+      `${parsed.data.title}\n${parsed.data.description}\n${(parsed.data.tags ?? []).join(', ')}`,
+      POPULAR_AMENITIES
+    );
+    const amenities = mergeUniqueLists(amenitiesFromBody, amenitiesFromText);
+    const tagsMerged = mergeUniqueLists(parsed.data.tags, amenities);
+    const { images: _i, videos: _v, amenities: _a, tags: _t, ...rest } = parsed.data;
     const listing = await Listing.create({
       ...rest,
+      amenities,
+      tags: tagsMerged,
       images,
       videos: videos.length > 0 ? videos : [],
       status: parsed.data.status || LISTING_STATUS.DRAFT,

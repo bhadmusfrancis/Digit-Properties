@@ -5,10 +5,11 @@ import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
 import { listingUpdateSchema } from '@/lib/validations';
-import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
+import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } from '@/lib/constants';
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
+import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import mongoose from 'mongoose';
 
 export async function GET(
@@ -168,8 +169,24 @@ export async function PATCH(
 
     const wasDraft = listing.status === LISTING_STATUS.DRAFT;
     const wasActive = listing.status === LISTING_STATUS.ACTIVE;
-    const { images: _pi, videos: _pv, ...rest } = parsed.data;
+    const incomingAmenities =
+      parsed.data.amenities !== undefined ? normalizeList(parsed.data.amenities) : undefined;
+    const incomingTags =
+      parsed.data.tags !== undefined ? normalizeList(parsed.data.tags) : undefined;
+    const { images: _pi, videos: _pv, amenities: _pa, tags: _pt, ...rest } = parsed.data;
     Object.assign(listing, rest);
+    const textForAmenityDetect = `${listing.title ?? ''}\n${listing.description ?? ''}\n${(incomingTags ?? listing.tags ?? []).join(', ')}`;
+    const detectedAmenities = extractAmenitiesFromText(textForAmenityDetect, POPULAR_AMENITIES);
+    if (incomingAmenities !== undefined || detectedAmenities.length > 0) {
+      listing.amenities = mergeUniqueLists(listing.amenities, incomingAmenities, detectedAmenities);
+    }
+    if (incomingTags !== undefined || incomingAmenities !== undefined) {
+      listing.tags = mergeUniqueLists(
+        listing.tags,
+        incomingTags,
+        incomingAmenities ?? listing.amenities
+      );
+    }
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);
     }
