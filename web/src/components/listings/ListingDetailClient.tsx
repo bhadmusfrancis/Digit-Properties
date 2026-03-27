@@ -7,6 +7,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getWhatsAppUrl } from '@/lib/utils';
 import { USER_ROLES } from '@/lib/constants';
+import {
+  LISTING_TRUST_CAVEAT_TEXT,
+  shouldShowListingTrustCaveat,
+} from '@/lib/listing-trust-caveat';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
@@ -145,6 +149,10 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
 
   const listingUrl = `${baseUrl}/listings/${listingId}`;
   const whatsappMessage = `Hi, I'm interested in this property: ${title} - ${listingUrl}`;
+  const showTrustCaveat = shouldShowListingTrustCaveat({
+    role: createdBy?.role,
+    createdByType,
+  });
 
   return (
     <div className="mt-6 space-y-4">
@@ -178,6 +186,11 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
               <Link href={`/authors/${createdBy._id}`} className="text-sm text-gray-500 hover:text-primary-600">
                 View profile →
               </Link>
+            )}
+            {showTrustCaveat && (
+              <p className="w-full text-[11px] text-amber-700">
+                {LISTING_TRUST_CAVEAT_TEXT}
+              </p>
             )}
           </div>
         </div>

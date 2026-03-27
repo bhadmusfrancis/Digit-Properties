@@ -10,6 +10,10 @@ import { LISTING_STATUS } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import {
+  LISTING_TRUST_CAVEAT_TEXT,
+  shouldShowListingTrustCaveat,
+} from '@/lib/listing-trust-caveat';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 
@@ -62,6 +66,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
   const name = (user as { name?: string }).name ?? 'Author';
   const image = (user as { image?: string }).image;
   const role = (user as { role?: string }).role;
+  const showTrustCaveat = shouldShowListingTrustCaveat({ role });
   const companyPosition = (user as { companyPosition?: string }).companyPosition;
   const totalListings = listings.length;
 
@@ -101,6 +106,9 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                   ? '1 active listing'
                   : `${totalListings} active listings`}
             </p>
+            {showTrustCaveat && (
+              <p className="mt-2 text-xs text-amber-700">{LISTING_TRUST_CAVEAT_TEXT}</p>
+            )}
             <AuthorLikeButton authorId={id} />
           </div>
         </div>

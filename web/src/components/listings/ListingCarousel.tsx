@@ -5,6 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import {
+  LISTING_TRUST_CAVEAT_TEXT,
+  shouldShowListingTrustCaveat,
+} from '@/lib/listing-trust-caveat';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
@@ -113,6 +117,11 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
               <div className="mt-2">
                 <VerifiedBadge role={listing.createdBy.role} />
               </div>
+            )}
+            {shouldShowListingTrustCaveat({ role: listing.createdBy?.role }) && (
+              <p className="mt-2 text-[11px] text-amber-700">
+                {LISTING_TRUST_CAVEAT_TEXT}
+              </p>
             )}
           </div>
         </Link>
