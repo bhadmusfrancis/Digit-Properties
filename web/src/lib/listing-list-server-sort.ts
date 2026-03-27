@@ -138,7 +138,7 @@ export async function fetchMyListingsPage(
 }
 
 const listingFieldsAdmin =
-  'title price status listingType rentPeriod propertyType images videos featured highlighted createdBy createdAt';
+  'title price status listingType rentPeriod propertyType location images videos featured highlighted createdBy createdAt';
 
 /** Admin listings: sort entire set in DB, then paginate; populate createdBy via $lookup. */
 export async function fetchAdminListingsPage(

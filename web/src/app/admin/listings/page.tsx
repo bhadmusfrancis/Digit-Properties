@@ -62,6 +62,15 @@ export default async function AdminListingsPage({
           public_id: v?.public_id != null ? String(v.public_id) : '',
         }))
       : [];
+    const loc = l.location && typeof l.location === 'object'
+      ? (l.location as { address?: unknown; suburb?: unknown; city?: unknown; state?: unknown })
+      : undefined;
+    const locationLine = [
+      typeof loc?.address === 'string' ? loc.address : '',
+      typeof loc?.suburb === 'string' ? loc.suburb : '',
+      typeof loc?.city === 'string' ? loc.city : '',
+      typeof loc?.state === 'string' ? loc.state : '',
+    ].filter(Boolean).join(', ');
 
     return {
       _id: String(l._id),
@@ -73,6 +82,7 @@ export default async function AdminListingsPage({
       rentPeriod:
         l.rentPeriod != null && typeof l.rentPeriod === 'string' ? l.rentPeriod : undefined,
       createdAt: l.createdAt ? new Date(l.createdAt as unknown as Date).toISOString() : undefined,
+      locationLine,
       images,
       videos,
       featured: Boolean(l.featured),
