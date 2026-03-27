@@ -14,7 +14,7 @@ import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 
 const PUBLIC_USER_SELECT = 'name image role companyPosition';
-const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images';
+const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images videos';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
@@ -51,7 +51,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
   const [user, listings] = await Promise.all([
     User.findById(id).select(PUBLIC_USER_SELECT).lean(),
     Listing.find({ createdBy: new mongoose.Types.ObjectId(id), status: LISTING_STATUS.ACTIVE })
-      .sort({ createdAt: -1 })
+      .sort({ 'images.0.url': -1, createdAt: -1 })
       .limit(24)
       .select(LISTING_SELECT)
       .lean(),

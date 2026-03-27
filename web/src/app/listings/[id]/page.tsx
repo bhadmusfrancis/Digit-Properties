@@ -8,7 +8,7 @@ import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsIn
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
-import { getListingDisplayImage, getListingImagesForDisplay } from '@/lib/listing-default-image';
+import { getDefaultListingImageUrl, getListingDisplayImage } from '@/lib/listing-default-image';
 import { HAS_LISTING_MEDIA } from '@/lib/listing-media-query';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
@@ -185,22 +185,32 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
-    const rawImages = getListingImagesForDisplay(
-      listing.images,
-      listing.propertyType ?? 'apartment',
-      listing.videos
-    );
-    const images = rawImages.map((img) => ({
-      url: typeof img.url === 'string' ? img.url : '',
-      public_id: img.public_id != null ? String(img.public_id) : undefined,
-    }));
+    const rawImageItems = Array.isArray(listing.images) ? listing.images : [];
+    const rawVideoItems = Array.isArray(listing.videos) ? listing.videos : [];
+    const images = rawImageItems
+      .map((img) => ({
+        url: typeof img?.url === 'string' ? img.url : '',
+        public_id: img?.public_id != null ? String(img.public_id) : undefined,
+        type: 'image' as const,
+      }))
+      .filter((img) => img.url);
+    const videos = rawVideoItems
+      .map((v) => ({
+        url: typeof v?.url === 'string' ? v.url : '',
+        public_id: v?.public_id != null ? String(v.public_id) : undefined,
+        type: 'video' as const,
+      }))
+      .filter((v) => v.url);
+    const galleryMedia = images.length + videos.length > 0
+      ? [...images, ...videos]
+      : [{ url: getDefaultListingImageUrl(listing.propertyType ?? 'apartment'), public_id: 'default-media', type: 'image' as const }];
 
     return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">
-            <ListingImageGallery images={images} title={listing.title} isBoosted={isBoosted} />
+            <ListingImageGallery images={galleryMedia} title={listing.title} isBoosted={isBoosted} />
             <div className="p-6">
               <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
               <p className="mt-2 text-2xl font-bold text-primary-600">
