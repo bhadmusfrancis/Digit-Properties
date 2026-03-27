@@ -1,12 +1,13 @@
 /** Shared client-side sort for listing tables (My Properties, Admin listings). */
 
-export type ListingSortKey = 'default' | 'image' | 'title' | 'price' | 'status';
+export type ListingSortKey = 'default' | 'image' | 'date' | 'title' | 'price' | 'status';
 
 export type SortableListingFields = {
   title: string;
   price: number;
   status: string;
   images?: { url?: string; public_id?: string }[];
+  videos?: { url?: string; public_id?: string }[];
 };
 
 export const LISTING_STATUS_SORT_RANK: Record<string, number> = {
@@ -16,6 +17,20 @@ export const LISTING_STATUS_SORT_RANK: Record<string, number> = {
   paused: 3,
   closed: 4,
 };
+
+/** Next sort state when user clicks a column (matches table header UX). */
+export function cycleListingSort(
+  prevKey: ListingSortKey,
+  prevAsc: boolean,
+  clickedKey: Exclude<ListingSortKey, 'default'>
+): { sortKey: ListingSortKey; sortAsc: boolean } {
+  if (prevKey !== clickedKey) {
+    // Default click order: images/newest-first should start descending.
+    if (clickedKey === 'image' || clickedKey === 'date') return { sortKey: clickedKey, sortAsc: false };
+    return { sortKey: clickedKey, sortAsc: true };
+  }
+  return { sortKey: prevKey, sortAsc: !prevAsc };
+}
 
 export function sortListingRows<T extends SortableListingFields>(
   rows: T[],
@@ -28,8 +43,11 @@ export function sortListingRows<T extends SortableListingFields>(
   copy.sort((a, b) => {
     switch (sortKey) {
       case 'image': {
-        const ha = a.images?.[0]?.url ? 1 : 0;
-        const hb = b.images?.[0]?.url ? 1 : 0;
+        const hasMedia = (x: SortableListingFields) =>
+          !!(x.images?.[0]?.url?.trim()) ||
+          !!(x.videos?.[0]?.url?.trim() || x.videos?.[0]?.public_id?.trim());
+        const ha = hasMedia(a) ? 1 : 0;
+        const hb = hasMedia(b) ? 1 : 0;
         if (ha !== hb) return (ha - hb) * dir;
         return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
       }

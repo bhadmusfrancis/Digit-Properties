@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css';
 
 const DEFAULT_LAT = 6.5244;
 const DEFAULT_LNG = 3.3792;
+/** Zoom level when centering on a resolved address or saved listing coordinates */
+const LOCATION_FOCUS_ZOOM = 15;
 
 /** Leaflet may be default export or namespace depending on bundler. */
 function getL(leaflet: typeof import('leaflet') | { default: typeof import('leaflet') }) {
@@ -58,7 +60,7 @@ export function MapPicker({
       if (cancelled || !containerRef.current) return;
       const lat = latRef.current;
       const lng = lngRef.current;
-      const map = L.map(containerRef.current).setView([lat, lng], 14);
+      const map = L.map(containerRef.current).setView([lat, lng], LOCATION_FOCUS_ZOOM);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap',
       }).addTo(map);
@@ -77,7 +79,7 @@ export function MapPicker({
       const currentLng = lngRef.current;
       if (currentLat !== lat || currentLng !== lng) {
         marker.setLatLng([currentLat, currentLng]);
-        map.setView([currentLat, currentLng], map.getZoom());
+        map.setView([currentLat, currentLng], LOCATION_FOCUS_ZOOM);
       }
     });
 
@@ -89,15 +91,19 @@ export function MapPicker({
     };
   }, []);
 
-  // When initialLat/initialLng change (address typed, suggestion selected, or blur), move marker and map view
+  // When initialLat/initialLng change (geocode, edit load, suggestion), center map and marker on that point
   useEffect(() => {
-    const lat = latRef.current;
-    const lng = lngRef.current;
+    const lat = initialLat ?? DEFAULT_LAT;
+    const lng = initialLng ?? DEFAULT_LNG;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     const map = mapRef.current;
     const marker = markerRef.current;
     if (map && marker) {
       marker.setLatLng([lat, lng]);
-      map.setView([lat, lng], map.getZoom());
+      map.setView([lat, lng], LOCATION_FOCUS_ZOOM);
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+      });
     }
   }, [initialLat, initialLng]);
 

@@ -9,6 +9,8 @@ type Props = { listingId: string; status: string; createdById: string; createdBy
 export function AdminListingActions({ listingId, status, createdById, createdByLabel, users }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [showAssign, setShowAssign] = useState(false);
 
@@ -46,6 +48,35 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
       .finally(() => setAssigning(false));
   };
 
+  const deactivate = () => {
+    if (deactivating) return;
+    setDeactivating(true);
+    fetch(`/api/listings/${listingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'paused' }),
+    })
+      .then((r) => r.ok && window.location.reload())
+      .catch(() => {})
+      .finally(() => setDeactivating(false));
+  };
+
+  const remove = () => {
+    if (deleting) return;
+    if (!window.confirm('Delete this listing permanently?')) return;
+    setDeleting(true);
+    fetch(`/api/listings/${listingId}`, { method: 'DELETE' })
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => Promise.reject(d));
+        window.location.reload();
+      })
+      .catch((d) => {
+        const msg = d?.error || 'Failed to delete listing';
+        alert(msg);
+      })
+      .finally(() => setDeleting(false));
+  };
+
   return (
     <span className="flex flex-wrap items-center gap-1 sm:gap-2">
       <Link href={`/listings/${listingId}`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
@@ -60,6 +91,26 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
           {approving ? '…' : 'Approve'}
         </button>
       )}
+      {(status === 'active' || status === 'pending_approval') && (
+        <button
+          type="button"
+          onClick={deactivate}
+          disabled={deactivating}
+          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-sm text-amber-600 hover:underline disabled:opacity-50 touch-manipulation"
+          title="Deactivate (pause) listing"
+        >
+          {deactivating ? '…' : 'Deactivate'}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={remove}
+        disabled={deleting}
+        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-sm text-red-600 hover:underline disabled:opacity-50 touch-manipulation"
+        title="Delete listing"
+      >
+        {deleting ? '…' : 'Delete'}
+      </button>
       <div className="relative inline-block">
         <button
           type="button"

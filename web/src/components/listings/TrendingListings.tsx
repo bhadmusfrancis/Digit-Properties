@@ -19,6 +19,7 @@ type ListingRow = {
   bathrooms: number;
   toilets?: number;
   images?: { url: string }[];
+  videos?: { url: string; public_id?: string }[];
   isBoosted?: boolean;
   createdBy?: { name?: string; role?: string };
 };

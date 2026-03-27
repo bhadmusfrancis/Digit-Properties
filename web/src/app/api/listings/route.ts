@@ -77,6 +77,29 @@ export async function GET(req: Request) {
     let listings: ListingRow[];
     let total: number;
 
+    const hasRealMedia = (l: ListingRow) => {
+      const imgOk =
+        Array.isArray(l.images) &&
+        l.images.some((img) => typeof img?.url === 'string' && img.url.trim().length > 0);
+      const vidOk =
+        Array.isArray((l as unknown as { videos?: IListing['videos'] }).videos) &&
+        ((l as unknown as { videos?: Array<{ url?: string; public_id?: string }> }).videos ?? []).some(
+          (v) => typeof v?.url === 'string' && v.url.trim().length > 0
+        );
+      return imgOk || vidOk;
+    };
+
+    const prioritizeMedia = (arr: ListingRow[]) => {
+      const copy = [...arr];
+      copy.sort((a, b) => {
+        const am = hasRealMedia(a);
+        const bm = hasRealMedia(b);
+        if (am === bm) return 0;
+        return bm ? 1 : -1;
+      });
+      return copy;
+    };
+
     if (featured && random) {
       const all = await Listing.find(filter)
         .sort({ boostExpiresAt: -1, createdAt: -1 })
@@ -84,7 +107,7 @@ export async function GET(req: Request) {
         .populate('createdBy', 'firstName name image role')
         .lean();
       const shuffled = [...all].sort(() => Math.random() - 0.5);
-      listings = shuffled.slice(0, limit);
+      listings = prioritizeMedia(shuffled).slice(0, limit);
       total = all.length;
     } else {
       const [listingsRes, totalRes] = await Promise.all([
@@ -96,7 +119,7 @@ export async function GET(req: Request) {
           .lean(),
         Listing.countDocuments(filter),
       ]);
-      listings = listingsRes;
+      listings = prioritizeMedia(listingsRes);
       total = totalRes;
     }
 

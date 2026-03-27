@@ -17,6 +17,7 @@ export interface SimilarListingItem {
   bathrooms: number;
   toilets?: number;
   images?: { url: string; public_id?: string }[];
+  videos?: { url: string; public_id?: string }[];
   isBoosted?: boolean;
   createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 }

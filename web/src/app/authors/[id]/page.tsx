@@ -133,6 +133,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                 bathrooms: number;
                 toilets?: number;
                 images?: { url: string }[];
+                videos?: { url: string; public_id?: string }[];
               };
               const listingId = String(l._id);
               return (
@@ -143,7 +144,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
                     <Image
-                      src={getListingDisplayImage(l.images, l.propertyType)}
+                      src={getListingDisplayImage(l.images, l.propertyType, l.videos)}
                       alt={l.title}
                       fill
                       className="object-cover transition group-hover:scale-105"

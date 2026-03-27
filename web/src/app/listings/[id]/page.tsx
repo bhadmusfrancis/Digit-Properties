@@ -8,7 +8,7 @@ import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsIn
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
-import { getDefaultListingImageUrl, getListingImagesForDisplay } from '@/lib/listing-default-image';
+import { getListingDisplayImage, getListingImagesForDisplay } from '@/lib/listing-default-image';
 import { HAS_LISTING_MEDIA } from '@/lib/listing-media-query';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
@@ -32,7 +32,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const listing = await Listing.findById(id).lean();
     if (!listing) return {};
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
-    const ogImage = listing.images?.[0]?.url ?? getDefaultListingImageUrl(listing.propertyType ?? 'apartment');
+    const ogImage = getListingDisplayImage(
+      listing.images as { url: string }[] | undefined,
+      listing.propertyType ?? 'apartment',
+      listing.videos as { url: string; public_id?: string }[] | undefined
+    );
     const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`;
     const description = listing.description?.slice(0, 160) ?? listing.title;
     return {
@@ -143,6 +147,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           public_id: o.public_id != null ? String(o.public_id) : undefined,
         };
       });
+      const rawVideos = Array.isArray(doc.videos) ? doc.videos : [];
+      const videos = rawVideos.map((v: unknown) => {
+        const o = v && typeof v === 'object' && v !== null ? v as Record<string, unknown> : {};
+        return {
+          url: typeof o.url === 'string' ? o.url : '',
+          public_id: o.public_id != null ? String(o.public_id) : undefined,
+        };
+      });
       return {
         _id: String(doc._id),
         title: typeof doc.title === 'string' ? doc.title : '',
@@ -158,6 +170,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         bathrooms: typeof doc.bathrooms === 'number' ? doc.bathrooms : 0,
         toilets: typeof doc.toilets === 'number' ? doc.toilets : undefined,
         images,
+        videos,
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
         createdBy: cb
           ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }
@@ -172,7 +185,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
-    const rawImages = getListingImagesForDisplay(listing.images, listing.propertyType ?? 'apartment');
+    const rawImages = getListingImagesForDisplay(
+      listing.images,
+      listing.propertyType ?? 'apartment',
+      listing.videos
+    );
     const images = rawImages.map((img) => ({
       url: typeof img.url === 'string' ? img.url : '',
       public_id: img.public_id != null ? String(img.public_id) : undefined,
