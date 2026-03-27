@@ -23,9 +23,9 @@ export async function GET(
 
     const [listings, total] = await Promise.all([
       Listing.find({ createdBy: new mongoose.Types.ObjectId(id), status: LISTING_STATUS.ACTIVE })
-        .sort({ createdAt: -1 })
+        .sort({ 'images.0.url': -1, createdAt: -1 })
         .limit(24)
-        .select('title price listingType rentPeriod propertyType location bedrooms bathrooms images')
+        .select('title price listingType rentPeriod propertyType location bedrooms bathrooms images videos')
         .lean(),
       Listing.countDocuments({ createdBy: new mongoose.Types.ObjectId(id), status: LISTING_STATUS.ACTIVE }),
     ]);
@@ -51,6 +51,7 @@ export async function GET(
         bedrooms: (l as { bedrooms: number }).bedrooms,
         bathrooms: (l as { bathrooms: number }).bathrooms,
         images: (l as { images?: { url: string }[] }).images,
+        videos: (l as { videos?: { url: string }[] }).videos,
       })),
       totalListings: total,
     });

@@ -21,6 +21,8 @@ function matchOwner(ownerId: string) {
   return { createdBy: createdByMatchValue(ownerId) };
 }
 
+const MEDIA_FIRST_SORT = { 'images.0.url': -1 as const };
+
 /** Dashboard “My Properties”: sort entire set in DB, then paginate. */
 export async function fetchMyListingsPage(
   ownerId: string,
@@ -34,7 +36,7 @@ export async function fetchMyListingsPage(
 
   if (sortKey === 'default') {
     return Listing.find(match)
-      .sort({ createdAt: -1 })
+      .sort({ ...MEDIA_FIRST_SORT, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select(listingFieldsMy)
@@ -43,7 +45,7 @@ export async function fetchMyListingsPage(
 
   if (sortKey === 'date') {
     return Listing.find(match)
-      .sort({ createdAt: sortDir })
+      .sort({ ...MEDIA_FIRST_SORT, createdAt: sortDir })
       .skip(skip)
       .limit(limit)
       .select(listingFieldsMy)
@@ -52,7 +54,7 @@ export async function fetchMyListingsPage(
 
   if (sortKey === 'title') {
     return Listing.find(match)
-      .sort({ title: sortDir, createdAt: -1 })
+      .sort({ ...MEDIA_FIRST_SORT, title: sortDir, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select(listingFieldsMy)
@@ -61,7 +63,7 @@ export async function fetchMyListingsPage(
 
   if (sortKey === 'price') {
     return Listing.find(match)
-      .sort({ price: sortDir, createdAt: -1 })
+      .sort({ ...MEDIA_FIRST_SORT, price: sortDir, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select(listingFieldsMy)
@@ -69,35 +71,35 @@ export async function fetchMyListingsPage(
   }
 
   const pipeline: PipelineStage[] = [{ $match: match }];
-
-  if (sortKey === 'image') {
-    pipeline.push({
-      $addFields: {
-        _sortHasThumb: {
-          $cond: {
-            if: {
-              $or: [
-                {
-                  $and: [
-                    { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
-                    { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
-                  ],
-                },
-                {
-                  $and: [
-                    { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
-                    { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
-                  ],
-                },
-              ],
-            },
-            then: 1,
-            else: 0,
+  pipeline.push({
+    $addFields: {
+      _sortHasThumb: {
+        $cond: {
+          if: {
+            $or: [
+              {
+                $and: [
+                  { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
+                  { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
+                ],
+              },
+              {
+                $and: [
+                  { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
+                  { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
+                ],
+              },
+            ],
           },
+          then: 1,
+          else: 0,
         },
       },
-    });
-    pipeline.push({ $sort: { _sortHasThumb: sortDir, createdAt: -1 } });
+    },
+  });
+
+  if (sortKey === 'image') {
+    pipeline.push({ $sort: { _sortHasThumb: -1, createdAt: -1 } });
   } else if (sortKey === 'status') {
     pipeline.push({
       $addFields: {
@@ -115,11 +117,11 @@ export async function fetchMyListingsPage(
         },
       },
     });
-    pipeline.push({ $sort: { _sortStatus: sortDir, createdAt: -1 } });
+    pipeline.push({ $sort: { _sortHasThumb: -1, _sortStatus: sortDir, createdAt: -1 } });
   } else {
     // Fallback to createdAt ordering if an unexpected sortKey arrives.
     return Listing.find(match)
-      .sort({ createdAt: sortDir })
+      .sort({ ...MEDIA_FIRST_SORT, createdAt: sortDir })
       .skip(skip)
       .limit(limit)
       .select(listingFieldsMy)
@@ -153,7 +155,7 @@ export async function fetchAdminListingsPage(
 
   if (sortKey === 'default') {
     return Listing.find(match)
-      .sort({ createdAt: -1 })
+      .sort({ ...MEDIA_FIRST_SORT, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('createdBy', 'name email')
@@ -163,7 +165,7 @@ export async function fetchAdminListingsPage(
 
   if (sortKey === 'date') {
     return Listing.find(match)
-      .sort({ createdAt: sortDir })
+      .sort({ ...MEDIA_FIRST_SORT, createdAt: sortDir })
       .skip(skip)
       .limit(limit)
       .populate('createdBy', 'name email')
@@ -173,7 +175,7 @@ export async function fetchAdminListingsPage(
 
   if (sortKey === 'title') {
     return Listing.find(match)
-      .sort({ title: sortDir, createdAt: -1 })
+      .sort({ ...MEDIA_FIRST_SORT, title: sortDir, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('createdBy', 'name email')
@@ -183,7 +185,7 @@ export async function fetchAdminListingsPage(
 
   if (sortKey === 'price') {
     return Listing.find(match)
-      .sort({ price: sortDir, createdAt: -1 })
+      .sort({ ...MEDIA_FIRST_SORT, price: sortDir, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('createdBy', 'name email')
@@ -192,35 +194,35 @@ export async function fetchAdminListingsPage(
   }
 
   const pipeline: PipelineStage[] = [{ $match: match }];
-
-  if (sortKey === 'image') {
-    pipeline.push({
-      $addFields: {
-        _sortHasThumb: {
-          $cond: {
-            if: {
-              $or: [
-                {
-                  $and: [
-                    { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
-                    { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
-                  ],
-                },
-                {
-                  $and: [
-                    { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
-                    { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
-                  ],
-                },
-              ],
-            },
-            then: 1,
-            else: 0,
+  pipeline.push({
+    $addFields: {
+      _sortHasThumb: {
+        $cond: {
+          if: {
+            $or: [
+              {
+                $and: [
+                  { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
+                  { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
+                ],
+              },
+              {
+                $and: [
+                  { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
+                  { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
+                ],
+              },
+            ],
           },
+          then: 1,
+          else: 0,
         },
       },
-    });
-    pipeline.push({ $sort: { _sortHasThumb: sortDir, createdAt: -1 } });
+    },
+  });
+
+  if (sortKey === 'image') {
+    pipeline.push({ $sort: { _sortHasThumb: -1, createdAt: -1 } });
   } else if (sortKey === 'status') {
     pipeline.push({
       $addFields: {
@@ -238,10 +240,10 @@ export async function fetchAdminListingsPage(
         },
       },
     });
-    pipeline.push({ $sort: { _sortStatus: sortDir, createdAt: -1 } });
+    pipeline.push({ $sort: { _sortHasThumb: -1, _sortStatus: sortDir, createdAt: -1 } });
   } else {
     return Listing.find(match)
-      .sort({ createdAt: sortDir })
+      .sort({ ...MEDIA_FIRST_SORT, createdAt: sortDir })
       .skip(skip)
       .limit(limit)
       .populate('createdBy', 'name email')
