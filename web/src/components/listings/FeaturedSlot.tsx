@@ -23,6 +23,7 @@ type ListingPayload = {
   area?: number;
   amenities?: string[];
   images?: { url: string }[];
+  videos?: { url: string; public_id?: string }[];
   createdBy?: { name?: string; role?: string };
 };
 
@@ -115,7 +116,7 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
           <div className="relative w-full shrink-0 overflow-hidden bg-gray-200 md:min-h-[280px] md:w-[42%] lg:min-h-[320px] lg:max-w-[540px]">
             <div className="aspect-[4/3] w-full md:absolute md:inset-0 md:aspect-auto md:h-full">
               <Image
-                src={getListingDisplayImage(listing.images, listing.propertyType)}
+                src={getListingDisplayImage(listing.images, listing.propertyType, listing.videos)}
                 alt={listing.title}
                 fill
                 className="object-cover transition duration-300 group-hover:scale-105"

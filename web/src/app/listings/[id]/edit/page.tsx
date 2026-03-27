@@ -23,7 +23,22 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   const isOwner = String(listing.createdBy) === session.user.id;
   if (!isAdmin && !isOwner) notFound();
 
-  const loc = listing.location as { address?: string; city?: string; state?: string; suburb?: string } | undefined;
+  const loc = listing.location as {
+    address?: string;
+    city?: string;
+    state?: string;
+    suburb?: string;
+    coordinates?: { lat?: number; lng?: number };
+  } | undefined;
+  const savedCoords = loc?.coordinates;
+  const coordinates =
+    savedCoords &&
+    typeof savedCoords.lat === 'number' &&
+    typeof savedCoords.lng === 'number' &&
+    Number.isFinite(savedCoords.lat) &&
+    Number.isFinite(savedCoords.lng)
+      ? { lat: savedCoords.lat, lng: savedCoords.lng }
+      : undefined;
   const listingStatus = listing.status as string;
   const formStatus: 'draft' | 'active' =
     listingStatus === 'draft' || listingStatus === 'active' ? listingStatus : 'active';
@@ -53,6 +68,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
           public_id: img?.public_id ?? '',
         }))
       : [],
+    coordinates,
   };
 
   return (

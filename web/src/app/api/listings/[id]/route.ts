@@ -80,6 +80,18 @@ export async function PATCH(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    // Non-admins should only be able to keep listings as draft/active via this endpoint.
+    // Anything else (paused/closed/pending_approval) should be controlled by the admin flow.
+    const requestedStatus = parsed.data.status;
+    if (
+      !isAdmin &&
+      typeof requestedStatus === 'string' &&
+      requestedStatus !== LISTING_STATUS.DRAFT &&
+      requestedStatus !== LISTING_STATUS.ACTIVE
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const normalizedImages =
       parsed.data.images !== undefined
         ? (Array.isArray(parsed.data.images) ? parsed.data.images : [])

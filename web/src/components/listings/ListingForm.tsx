@@ -47,7 +47,10 @@ export type ListingFormRef = {
 
 type ListingFormProps = {
   editId?: string;
-  editInitial?: Partial<FormData> & { images?: { url: string; public_id: string }[] };
+  editInitial?: Partial<FormData> & {
+    images?: { url: string; public_id: string }[];
+    coordinates?: { lat: number; lng: number };
+  };
   /** When set, parent can read current form values and images (e.g. for multi-listing import next/prev). */
   getFormRef?: React.MutableRefObject<ListingFormRef | null>;
 };
@@ -80,6 +83,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       agentEmail: editInitial.agentEmail ?? '',
       rentPeriod: editInitial.rentPeriod,
       status: editInitial.status ?? 'draft',
+      coordinates: editInitial.coordinates,
     } : {
       listingType: 'sale',
       status: 'draft',

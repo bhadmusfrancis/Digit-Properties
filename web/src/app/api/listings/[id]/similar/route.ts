@@ -21,6 +21,7 @@ type SimilarListingItem = {
   bathrooms: number;
   toilets?: number;
   images: { url: string; public_id?: string }[];
+  videos: { url: string; public_id?: string }[];
   isBoosted: boolean;
   createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 };
@@ -126,6 +127,14 @@ export async function GET(
           public_id: o.public_id != null ? String(o.public_id) : undefined,
         };
       });
+      const rawVideos = Array.isArray(doc.videos) ? doc.videos : [];
+      const videos = rawVideos.map((v: unknown) => {
+        const o = v && typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {};
+        return {
+          url: typeof o.url === 'string' ? o.url : '',
+          public_id: o.public_id != null ? String(o.public_id) : undefined,
+        };
+      });
       return {
         _id: String(doc._id),
         title: typeof doc.title === 'string' ? doc.title : '',
@@ -141,6 +150,7 @@ export async function GET(
         bathrooms: typeof doc.bathrooms === 'number' ? doc.bathrooms : 0,
         toilets: typeof doc.toilets === 'number' ? doc.toilets : undefined,
         images,
+        videos,
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
         createdBy: cb
           ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
+import { getListingDisplayImage } from '@/lib/listing-default-image';
 
 type FavoriteListing = {
   _id: string;
@@ -11,8 +12,10 @@ type FavoriteListing = {
   price: number;
   listingType?: string;
   rentPeriod?: 'day' | 'month' | 'year';
+  propertyType?: string;
   location?: { city: string; state: string };
   images?: { public_id: string; url: string }[];
+  videos?: { public_id?: string; url: string }[];
 };
 
 export default function SavedListingsPage() {
@@ -38,7 +41,7 @@ export default function SavedListingsPage() {
       <p className="mt-1 text-gray-600">Properties you have added to your favorites.</p>
       <div className="mt-6 space-y-4">
         {list.map((l) => {
-          const thumbUrl = l.images?.[0]?.url;
+          const thumbUrl = getListingDisplayImage(l.images, l.propertyType ?? 'apartment', l.videos);
           return (
             <Link
               key={l._id}

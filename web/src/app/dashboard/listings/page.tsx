@@ -7,31 +7,32 @@ import User from '@/models/User';
 import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
 import { MyListingsTable } from '@/components/listings/MyListingsTable';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
+import { fetchMyListingsPage } from '@/lib/listing-list-server-sort';
 
 const PER_PAGE = 25;
 
 export default async function MyListingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ page?: string }>;
+  searchParams?: Promise<{ page?: string; sort?: string; order?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
 
   const sp = searchParams ? await searchParams : {};
-  const page = Math.max(1, Math.min(500, parseInt(typeof sp?.page === 'string' ? sp.page : '1', 10) || 1));
-  const skip = (page - 1) * PER_PAGE;
+  const rawPage = Math.max(1, Math.min(500, parseInt(typeof sp?.page === 'string' ? sp.page : '1', 10) || 1));
+  const { sortKey, sortAsc } = parseListingSortFromSearchParams(sp);
 
   await dbConnect();
   const ownerId = session.user.id;
-  const [listings, total, activeListingCount, user] = await Promise.all([
-    Listing.find({ createdBy: ownerId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(PER_PAGE)
-      .select('title price status listingType rentPeriod images featured highlighted')
-      .lean(),
-    Listing.countDocuments({ createdBy: ownerId }),
+  const total = await Listing.countDocuments({ createdBy: ownerId });
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const page = Math.min(totalPages, rawPage);
+  const skip = (page - 1) * PER_PAGE;
+
+  const [listings, activeListingCount, user] = await Promise.all([
+    fetchMyListingsPage(ownerId, sortKey, sortAsc, skip, PER_PAGE),
     Listing.countDocuments({
       createdBy: ownerId,
       status: { $in: [LISTING_STATUS.DRAFT, LISTING_STATUS.ACTIVE, LISTING_STATUS.PAUSED] },
@@ -39,7 +40,7 @@ export default async function MyListingsPage({
     User.findById(ownerId).select('role').lean(),
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const q = (p: number) => buildListingListQuery(p, sortKey, sortAsc);
 
   const rows = listings.map((l) => ({
     _id: String(l._id),
@@ -47,9 +48,14 @@ export default async function MyListingsPage({
     price: Number(l.price),
     status: String(l.status),
     listingType: String(l.listingType),
+    propertyType: typeof l.propertyType === 'string' ? l.propertyType : 'apartment',
     rentPeriod: l.rentPeriod != null ? String(l.rentPeriod) : undefined,
+    createdAt: l.createdAt ? new Date(l.createdAt as unknown as Date).toISOString() : undefined,
     images: Array.isArray(l.images)
       ? l.images.map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }))
+      : [],
+    videos: Array.isArray(l.videos)
+      ? l.videos.map((v: { url?: string; public_id?: string }) => ({ url: v?.url ?? '', public_id: v?.public_id ?? '' }))
       : [],
     featured: Boolean(l.featured),
     highlighted: Boolean(l.highlighted),
@@ -92,12 +98,17 @@ export default async function MyListingsPage({
           Showing {rows.length === 0 ? 0 : skip + 1}–{skip + rows.length} of {total} listing{total !== 1 ? 's' : ''}
           {totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ''}
         </p>
-        <MyListingsTable listings={rows} />
+        <MyListingsTable
+          listings={rows}
+          sortKey={sortKey}
+          sortAsc={sortAsc}
+          basePath="/dashboard/listings"
+        />
         {totalPages > 1 && (
           <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Listing pages">
-            <PaginationLink href="/dashboard/listings" disabled={page <= 1} label="First" />
+            <PaginationLink href={`/dashboard/listings${q(1)}`} disabled={page <= 1} label="First" />
             <PaginationLink
-              href={page <= 2 ? '/dashboard/listings' : `/dashboard/listings?page=${page - 1}`}
+              href={page <= 2 ? `/dashboard/listings${q(1)}` : `/dashboard/listings${q(page - 1)}`}
               disabled={page <= 1}
               label="Previous"
             />
@@ -105,12 +116,12 @@ export default async function MyListingsPage({
               {page} / {totalPages}
             </span>
             <PaginationLink
-              href={page >= totalPages ? '#' : `/dashboard/listings?page=${page + 1}`}
+              href={page >= totalPages ? '#' : `/dashboard/listings${q(page + 1)}`}
               disabled={page >= totalPages}
               label="Next"
             />
             <PaginationLink
-              href={page >= totalPages ? '#' : `/dashboard/listings?page=${totalPages}`}
+              href={page >= totalPages ? '#' : `/dashboard/listings${q(totalPages)}`}
               disabled={page >= totalPages}
               label="Last"
             />

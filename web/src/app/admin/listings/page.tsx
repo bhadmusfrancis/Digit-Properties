@@ -2,6 +2,8 @@ import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import Link from 'next/link';
+import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
+import { fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
 import { AdminListingsTable } from './AdminListingsTable';
 
 const PER_PAGE = 50;
@@ -9,10 +11,11 @@ const PER_PAGE = 50;
 export default async function AdminListingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ page?: string }>;
+  searchParams?: Promise<{ page?: string; sort?: string; order?: string }>;
 }) {
   const sp = searchParams ? await searchParams : {};
   const rawPage = Math.max(1, parseInt(typeof sp?.page === 'string' ? sp.page : '1', 10) || 1);
+  const { sortKey, sortAsc } = parseListingSortFromSearchParams(sp);
 
   await dbConnect();
   const total = await Listing.countDocuments({});
@@ -21,15 +24,11 @@ export default async function AdminListingsPage({
   const skip = (page - 1) * PER_PAGE;
 
   const [listings, users] = await Promise.all([
-    Listing.find({})
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(PER_PAGE)
-      .populate('createdBy', 'name email')
-      .select('title price status listingType rentPeriod images featured highlighted createdBy')
-      .lean(),
+    fetchAdminListingsPage(sortKey, sortAsc, skip, PER_PAGE),
     User.find({}).select('_id name email').sort({ name: 1 }).limit(500).lean(),
   ]);
+
+  const q = (p: number) => buildListingListQuery(p, sortKey, sortAsc);
 
   const userList = users.map((u) => ({
     _id: String(u._id),
@@ -57,6 +56,12 @@ export default async function AdminListingsPage({
           public_id: img?.public_id != null ? String(img.public_id) : '',
         }))
       : [];
+    const videos = Array.isArray(l.videos)
+      ? l.videos.map((v: { url?: unknown; public_id?: unknown }) => ({
+          url: typeof v?.url === 'string' ? v.url : '',
+          public_id: v?.public_id != null ? String(v.public_id) : '',
+        }))
+      : [];
 
     return {
       _id: String(l._id),
@@ -64,9 +69,12 @@ export default async function AdminListingsPage({
       price: typeof l.price === 'number' ? l.price : Number(l.price) || 0,
       status: typeof l.status === 'string' ? l.status : String(l.status ?? ''),
       listingType: typeof l.listingType === 'string' ? l.listingType : String(l.listingType ?? ''),
+      propertyType: typeof l.propertyType === 'string' ? l.propertyType : 'apartment',
       rentPeriod:
         l.rentPeriod != null && typeof l.rentPeriod === 'string' ? l.rentPeriod : undefined,
+      createdAt: l.createdAt ? new Date(l.createdAt as unknown as Date).toISOString() : undefined,
       images,
+      videos,
       featured: Boolean(l.featured),
       highlighted: Boolean(l.highlighted),
       createdBy,
@@ -87,13 +95,19 @@ export default async function AdminListingsPage({
         )}
       </p>
       <div className="mt-4">
-        <AdminListingsTable listings={listingRows} users={userList} />
+        <AdminListingsTable
+          listings={listingRows}
+          users={userList}
+          sortKey={sortKey}
+          sortAsc={sortAsc}
+          basePath="/admin/listings"
+        />
       </div>
       {totalPages > 1 && (
         <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Listing pages">
-          <AdminPaginationLink href="/admin/listings" disabled={page <= 1} label="First" />
+          <AdminPaginationLink href={`/admin/listings${q(1)}`} disabled={page <= 1} label="First" />
           <AdminPaginationLink
-            href={page <= 2 ? '/admin/listings' : `/admin/listings?page=${page - 1}`}
+            href={page <= 2 ? `/admin/listings${q(1)}` : `/admin/listings${q(page - 1)}`}
             disabled={page <= 1}
             label="Previous"
           />
@@ -101,12 +115,12 @@ export default async function AdminListingsPage({
             {page} / {totalPages}
           </span>
           <AdminPaginationLink
-            href={page >= totalPages ? '#' : `/admin/listings?page=${page + 1}`}
+            href={page >= totalPages ? '#' : `/admin/listings${q(page + 1)}`}
             disabled={page >= totalPages}
             label="Next"
           />
           <AdminPaginationLink
-            href={page >= totalPages ? '#' : `/admin/listings?page=${totalPages}`}
+            href={page >= totalPages ? '#' : `/admin/listings${q(totalPages)}`}
             disabled={page >= totalPages}
             label="Last"
           />

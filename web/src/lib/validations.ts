@@ -67,7 +67,20 @@ export const listingSchema = listingBaseSchema.refine((data) => {
 }, { message: 'Rent period is required for rental listings', path: ['rentPeriod'] });
 
 /** Partial schema for PATCH/update - no refine */
-export const listingUpdateSchema = listingBaseSchema.partial();
+const listingStatusUpdateSchema = z.enum([
+  'draft',
+  'active',
+  'paused',
+  'pending_approval',
+  'closed',
+]);
+
+// PATCH/update is allowed to set more status values than create:
+// users still should only use draft/active, but admins can set paused/closed too.
+export const listingUpdateSchema = listingBaseSchema
+  .partial()
+  .omit({ status: true })
+  .extend({ status: listingStatusUpdateSchema.optional() });
 
 export const claimSchema = z.object({
   listingId: objectIdSchema,
