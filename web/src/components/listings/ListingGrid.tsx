@@ -4,10 +4,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
-import {
-  LISTING_TRUST_CAVEAT_TEXT,
-  shouldShowListingTrustCaveat,
-} from '@/lib/listing-trust-caveat';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
@@ -91,11 +87,6 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                 >
                   By {listing.createdBy.firstName ?? listing.createdBy.name ?? 'Author'}
                 </Link>
-              )}
-              {shouldShowListingTrustCaveat({ role: listing.createdBy?.role }) && (
-                <p className="w-full text-[11px] text-amber-700">
-                  {LISTING_TRUST_CAVEAT_TEXT}
-                </p>
               )}
             </div>
           )}

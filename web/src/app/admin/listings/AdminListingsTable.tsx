@@ -14,6 +14,7 @@ type User = { _id: string; name?: string; email?: string };
 type Listing = {
   _id: string;
   title: string;
+  locationLine?: string;
   price: number;
   status: string;
   listingType: string;
@@ -111,6 +112,7 @@ export function AdminListingsTable({
               ascending={sortAsc}
               onClick={() => applySort('title')}
             />
+            <th className="px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Address</th>
             <SortColumnHeader
               className="px-2 py-3 text-left sm:px-4 whitespace-nowrap"
               label="Price"
@@ -147,6 +149,9 @@ export function AdminListingsTable({
                 {thumb(l)}
               </td>
               <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-[200px] sm:max-w-xs truncate">{l.title}</td>
+              <td className="px-4 py-3 text-sm text-gray-600 max-w-[260px] truncate" title={l.locationLine || ''}>
+                {l.locationLine || '—'}
+              </td>
               <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                 {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
               </td>
