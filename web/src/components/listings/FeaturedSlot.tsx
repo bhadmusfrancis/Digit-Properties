@@ -5,6 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import {
+  LISTING_TRUST_CAVEAT_TEXT,
+  shouldShowListingTrustCaveat,
+} from '@/lib/listing-trust-caveat';
 import { formatListingTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
@@ -174,6 +178,11 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {listing.createdBy?.role && listing.createdBy.role !== 'guest' && (
                 <VerifiedBadge role={listing.createdBy.role} />
+              )}
+              {shouldShowListingTrustCaveat({ role: listing.createdBy?.role }) && (
+                <p className="w-full text-[11px] text-amber-700">
+                  {LISTING_TRUST_CAVEAT_TEXT}
+                </p>
               )}
               <span className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition group-hover:bg-primary-700">
                 View property →
