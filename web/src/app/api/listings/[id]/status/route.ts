@@ -38,8 +38,23 @@ export async function PATCH(
     if (status && ['draft', 'active', 'paused', 'closed'].includes(status)) {
       listing.status = status as 'draft' | 'active' | 'paused' | 'closed';
     }
-    if (soldAt) listing.soldAt = new Date();
-    if (rentedAt) listing.rentedAt = new Date();
+    if (soldAt === true && rentedAt === true) {
+      return NextResponse.json({ error: 'Listing cannot be sold and rented at the same time' }, { status: 400 });
+    }
+    if (typeof soldAt === 'boolean') {
+      if (listing.listingType === 'rent' && soldAt) {
+        return NextResponse.json({ error: 'Rent listings cannot be marked as sold' }, { status: 400 });
+      }
+      listing.soldAt = soldAt ? new Date() : undefined;
+      if (soldAt) listing.rentedAt = undefined;
+    }
+    if (typeof rentedAt === 'boolean') {
+      if (listing.listingType !== 'rent' && rentedAt) {
+        return NextResponse.json({ error: 'Only rent listings can be marked as rented' }, { status: 400 });
+      }
+      listing.rentedAt = rentedAt ? new Date() : undefined;
+      if (rentedAt) listing.soldAt = undefined;
+    }
     await listing.save();
 
     const nowActive = listing.status === LISTING_STATUS.ACTIVE;

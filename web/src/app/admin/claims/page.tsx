@@ -14,8 +14,8 @@ export default async function AdminClaimsPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900">Pending Claims</h2>
-      <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm -mx-1 px-1 sm:mx-0 sm:px-0">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="mt-4 overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table className="w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Listing</th>
@@ -41,7 +41,7 @@ export default async function AdminClaimsPage() {
                 <td className="hidden sm:table-cell px-4 py-3 text-sm text-gray-600">
                   {new Date(c.createdAt).toLocaleDateString('en-NG')}
                 </td>
-                <td className="px-3 py-3 text-right sm:px-4 whitespace-nowrap">
+                <td className="px-3 py-3 text-right sm:px-4">
                   <ClaimApproveButton claimId={c._id.toString()} />
                 </td>
               </tr>

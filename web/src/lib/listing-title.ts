@@ -27,14 +27,25 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
-/** Location string for title: suburb, address, city, state (e.g. "Jakande, Baale Street, Lagos"). */
+/**
+ * Location string for title.
+ * Uses only one source at a time:
+ * - user free-text address, OR
+ * - structured location (suburb/city/state).
+ * Source is chosen randomly to avoid mixing both in one title.
+ */
 function locationStr(input: TitleInput): string {
-  const parts: string[] = [];
-  if (input.suburb?.trim()) parts.push(input.suburb.trim());
-  if (input.address?.trim()) parts.push(input.address.trim());
-  if (input.city?.trim()) parts.push(input.city.trim());
-  if (input.state?.trim()) parts.push(input.state.trim());
-  return parts.join(', ');
+  const address = input.address?.trim() || '';
+  const structuredParts = [input.suburb?.trim(), input.city?.trim(), input.state?.trim()]
+    .filter(Boolean) as string[];
+  const structured = Array.from(
+    new Map(structuredParts.map((p) => [p.toLowerCase(), p])).values()
+  ).join(', ');
+
+  if (address && structured) {
+    return Math.random() < 0.5 ? address : structured;
+  }
+  return address || structured;
 }
 
 function pickFromDescription(description: string, maxWords = 2): string[] {

@@ -34,6 +34,7 @@ export interface IListing {
   /** Rent period: day | month | year (for rent listings) */
   rentPeriod?: 'day' | 'month' | 'year';
   leaseDuration?: string;
+  boostPackage?: 'starter' | 'pro' | 'premium';
   boostExpiresAt?: Date;
   /** Shown in home carousel when true (respects subscription maxFeatured). */
   featured?: boolean;
@@ -94,6 +95,7 @@ const ListingSchema = new Schema<IListing>(
     agentEmail: String,
     rentPeriod: { type: String, enum: ['day', 'month', 'year'] },
     leaseDuration: String,
+    boostPackage: { type: String, enum: ['starter', 'pro', 'premium'] },
     boostExpiresAt: Date,
     featured: { type: Boolean, default: false },
     highlighted: { type: Boolean, default: false },

@@ -101,15 +101,15 @@ export default function AdminAdsPage() {
       {loading ? (
         <p className="mt-4 text-gray-500">Loading…</p>
       ) : (
-        <div className="mt-4 -mx-1 overflow-x-auto rounded-lg border border-gray-200 bg-white px-1 shadow-sm sm:mx-0 sm:px-0">
-          <table className="min-w-[36rem] divide-y divide-gray-200 sm:min-w-full">
+        <div className="mt-4 overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <table className="w-full table-fixed divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">User</th>
                 <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Placement
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Creative</th>
+                <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Creative</th>
                 <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Period
                 </th>
@@ -128,7 +128,7 @@ export default function AdminAdsPage() {
                   <td className="hidden px-4 py-3 text-sm sm:table-cell">
                     {PLACEMENT_LABELS[ad.placement] ?? ad.placement}
                   </td>
-                  <td className="px-3 py-3 sm:px-4">
+                  <td className="hidden sm:table-cell px-3 py-3 sm:px-4">
                     {ad.media?.type === 'image' ? (
                       <a href={ad.media.url} target="_blank" rel="noopener noreferrer" className="block relative w-20 h-14 rounded overflow-hidden bg-gray-100">
                         <Image src={ad.media.url} alt="Ad" fill className="object-cover" sizes="80px" />
@@ -151,7 +151,7 @@ export default function AdminAdsPage() {
                       {ad.status}
                     </span>
                   </td>
-                  <td className="min-w-[8.5rem] px-3 py-3 sm:min-w-0 sm:px-4">
+                  <td className="px-3 py-3 sm:px-4">
                     {ad.status === 'pending_approval' && (
                       <div className="flex max-w-[14rem] flex-col gap-2 sm:max-w-none">
                         {!ad.paymentId ? (
@@ -171,7 +171,7 @@ export default function AdminAdsPage() {
                               placeholder="Rejection reason (optional)"
                               value={rejectReason[ad._id] ?? ''}
                               onChange={(e) => setRejectReason((r) => ({ ...r, [ad._id]: e.target.value }))}
-                              className="w-40 rounded border border-gray-300 px-2 py-1 text-xs"
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
                             />
                             <button
                               type="button"

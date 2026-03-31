@@ -36,18 +36,14 @@ export default function SavedListingsPage() {
   const list = Array.isArray(listings) ? (listings as FavoriteListing[]) : [];
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">Favorites</h1>
+    <div className="min-w-0">
+      <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Favorites</h1>
       <p className="mt-1 text-gray-600">Properties you have added to your favorites.</p>
       <div className="mt-6 space-y-4">
         {list.map((l) => {
           const thumbUrl = getListingDisplayImage(l.images, l.propertyType ?? 'apartment', l.videos);
           return (
-            <Link
-              key={l._id}
-              href={`/listings/${l._id}`}
-              className="flex gap-4 rounded-lg border border-gray-200 bg-white p-4 hover:bg-gray-50"
-            >
+            <Link key={l._id} href={`/listings/${l._id}`} className="flex gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50 sm:gap-4 sm:p-4">
               <div className="h-20 w-28 shrink-0 overflow-hidden rounded-md bg-gray-100">
                 {thumbUrl ? (
                   <Image
@@ -74,7 +70,7 @@ export default function SavedListingsPage() {
                   </span>
                 )}
               </div>
-              <span className="shrink-0 text-primary-600 font-semibold">
+              <span className="shrink-0 text-right text-sm font-semibold text-primary-600 sm:text-base">
                 {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
               </span>
             </Link>

@@ -12,6 +12,7 @@ import {
   shouldShowListingTrustCaveat,
 } from '@/lib/listing-trust-caveat';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { toFirstName } from '@/lib/display-name';
 
 type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
 
@@ -176,10 +177,10 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {createdBy._id ? (
               <Link href={`/authors/${createdBy._id}`} className="font-medium text-primary-600 hover:underline">
-                {createdBy.firstName ?? createdBy.name}
+                {toFirstName(createdBy.firstName, createdBy.name, 'Author')}
               </Link>
             ) : (
-              <span className="font-medium">{createdBy.firstName ?? createdBy.name}</span>
+              <span className="font-medium">{toFirstName(createdBy.firstName, createdBy.name, 'Author')}</span>
             )}
             {createdBy.role && <VerifiedBadge role={createdBy.role} showCaveat />}
             {createdBy._id && (

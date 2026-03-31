@@ -22,6 +22,8 @@ type SimilarListingItem = {
   images: { url: string; public_id?: string }[];
   videos: { url: string; public_id?: string }[];
   isBoosted: boolean;
+  soldAt?: string;
+  rentedAt?: string;
   createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 };
 
@@ -168,6 +170,8 @@ export async function GET(
         images,
         videos,
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
+        soldAt: doc.soldAt ? new Date(doc.soldAt as Date).toISOString() : undefined,
+        rentedAt: doc.rentedAt ? new Date(doc.rentedAt as Date).toISOString() : undefined,
         createdBy: cb
           ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }
           : undefined,

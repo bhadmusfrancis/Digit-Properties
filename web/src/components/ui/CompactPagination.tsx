@@ -40,25 +40,24 @@ function PageControl({
 export function CompactPagination({
   page,
   totalPages,
-  hrefForPage,
+  previousHref,
+  nextHref,
   className = '',
 }: {
   page: number;
   totalPages: number;
-  hrefForPage: (page: number) => string;
+  previousHref: string;
+  nextHref: string;
   className?: string;
 }) {
   if (totalPages <= 1) return null;
-
-  const prevP = Math.max(1, page - 1);
-  const nextP = Math.min(totalPages, page + 1);
 
   return (
     <nav
       className={`mx-auto flex w-full max-w-lg items-center justify-center gap-2 ${className}`}
       aria-label="Pagination"
     >
-      <PageControl href={hrefForPage(prevP)} disabled={page <= 1} aria-label="Previous page">
+      <PageControl href={previousHref} disabled={page <= 1} aria-label="Previous page">
         <span className="text-lg leading-none sm:hidden" aria-hidden>
           ‹
         </span>
@@ -68,7 +67,7 @@ export function CompactPagination({
         <span className="hidden sm:inline">Page </span>
         {page} / {totalPages}
       </span>
-      <PageControl href={hrefForPage(nextP)} disabled={page >= totalPages} aria-label="Next page">
+      <PageControl href={nextHref} disabled={page >= totalPages} aria-label="Next page">
         <span className="text-lg leading-none sm:hidden" aria-hidden>
           ›
         </span>

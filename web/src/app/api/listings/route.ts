@@ -209,13 +209,11 @@ export async function POST(req: Request) {
       createdBy: session.user.id,
       status: { $in: [LISTING_STATUS.DRAFT, LISTING_STATUS.ACTIVE, LISTING_STATUS.PAUSED] },
     });
-    const isGuest = tier === SUBSCRIPTION_TIERS.GUEST;
-    const guestLimit = 5;
-    if (isGuest && listingCount >= guestLimit) {
+    if (listingCount >= limits.maxListings) {
       return NextResponse.json(
         {
-          error: `You've reached the limit of ${guestLimit} listings. Verify your account to add more listings.`,
-          code: 'GUEST_LIMIT_VERIFY',
+          error: `You've reached the limit of ${limits.maxListings} listings for your plan.`,
+          code: 'LISTING_LIMIT_REACHED',
         },
         { status: 403 }
       );

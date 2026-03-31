@@ -4,6 +4,7 @@ import { dbConnect } from '@/lib/db';
 import Payment from '@/models/Payment';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
 export async function POST(req: Request) {
   try {
@@ -70,13 +71,20 @@ export async function POST(req: Request) {
 
     if (payment.purpose === 'boost_listing' && payment.listingId) {
       const days = (payment.metadata as { boostDays?: number })?.boostDays || 7;
+      const packageId = (payment.metadata as { boostPackage?: keyof typeof BOOST_PACKAGES })?.boostPackage ?? 'starter';
+      const boostPackage = BOOST_PACKAGES[packageId] ?? BOOST_PACKAGES.starter;
       const listing = await Listing.findById(payment.listingId).select('boostExpiresAt').lean();
       const now = new Date();
       const currentEnd = listing?.boostExpiresAt ? new Date(listing.boostExpiresAt) : null;
       const base = currentEnd && currentEnd > now ? currentEnd : now;
       const newExpiry = new Date(base);
       newExpiry.setDate(newExpiry.getDate() + days);
-      await Listing.findByIdAndUpdate(payment.listingId, { boostExpiresAt: newExpiry });
+      await Listing.findByIdAndUpdate(payment.listingId, {
+        boostPackage: packageId,
+        boostExpiresAt: newExpiry,
+        featured: boostPackage.featured,
+        highlighted: boostPackage.highlighted,
+      });
     }
 
     if (payment.purpose === 'subscription_tier' && payment.userId) {

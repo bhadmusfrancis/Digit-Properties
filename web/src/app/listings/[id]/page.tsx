@@ -189,6 +189,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         images,
         videos,
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
+        soldAt: doc.soldAt ? new Date(doc.soldAt as Date).toISOString() : undefined,
+        rentedAt: doc.rentedAt ? new Date(doc.rentedAt as Date).toISOString() : undefined,
         createdBy: cb
           ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }
           : undefined,
@@ -237,6 +239,17 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <ListingImageGallery images={galleryMedia} title={listing.title} isBoosted={isBoosted} />
             <div className="p-6">
               <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
+              {(listing.soldAt || listing.rentedAt) && (
+                <div className="mt-2">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      listing.soldAt ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'
+                    }`}
+                  >
+                    {listing.soldAt ? 'Sold' : 'Rented'}
+                  </span>
+                </div>
+              )}
               <p className="mt-2 text-2xl font-bold text-primary-600">
                 {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(listing.price)}
                 {listing.listingType === 'rent' && listing.rentPeriod && (
@@ -291,9 +304,20 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           <div className="card p-6">
             <h3 className="font-semibold text-gray-900">Location</h3>
             <p className="mt-2 text-gray-600">
-              {listing.location?.address}
-              <br />
-              {[listing.location?.suburb, listing.location?.city, listing.location?.state].filter(Boolean).join(', ')}
+              {Array.from(
+                new Map(
+                  [
+                    ...(typeof listing.location?.address === 'string'
+                      ? listing.location.address.split(',').map((v) => v.trim())
+                      : []),
+                    listing.location?.suburb,
+                    listing.location?.city,
+                    listing.location?.state,
+                  ]
+                    .filter((v): v is string => Boolean(v && v.trim()))
+                    .map((v) => [v.trim().toLowerCase(), v.trim()])
+                ).values()
+              ).join(', ')}
             </p>
             <ListingDetailClient
               listingId={String(listing._id)}
