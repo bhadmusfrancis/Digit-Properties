@@ -86,11 +86,11 @@ export default function AdminAdsPage() {
         Approve or reject paid ad requests. Set placement pricing and AdSense in{' '}
         <Link href="/admin/config" className="text-primary-600 hover:underline">Subscription config</Link> (Ad section).
       </p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="input min-h-11 w-full min-w-[12rem] max-w-md text-sm sm:w-auto"
         >
           <option value="">All statuses</option>
           <option value="pending_approval">Pending approval</option>
@@ -101,28 +101,34 @@ export default function AdminAdsPage() {
       {loading ? (
         <p className="mt-4 text-gray-500">Loading…</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="mt-4 -mx-1 overflow-x-auto rounded-lg border border-gray-200 bg-white px-1 shadow-sm sm:mx-0 sm:px-0">
+          <table className="min-w-[36rem] divide-y divide-gray-200 sm:min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">User</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Placement</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Creative</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Period</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Action</th>
+                <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">User</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Placement
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Creative</th>
+                <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Period
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Status</th>
+                <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {ads.map((ad) => (
                 <tr key={ad._id}>
-                  <td className="px-4 py-3 text-sm text-gray-900">
+                  <td className="max-w-[10rem] truncate px-3 py-3 text-sm text-gray-900 sm:max-w-none sm:px-4" title={typeof ad.userId === 'object' && ad.userId ? String((ad.userId as { email?: string }).email ?? (ad.userId as { name?: string }).name ?? '') : String(ad.userId)}>
                     {typeof ad.userId === 'object' && ad.userId
                       ? (ad.userId as { name?: string; email?: string }).email ?? (ad.userId as { name?: string }).name
                       : ad.userId}
                   </td>
-                  <td className="px-4 py-3 text-sm">{PLACEMENT_LABELS[ad.placement] ?? ad.placement}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 text-sm sm:table-cell">
+                    {PLACEMENT_LABELS[ad.placement] ?? ad.placement}
+                  </td>
+                  <td className="px-3 py-3 sm:px-4">
                     {ad.media?.type === 'image' ? (
                       <a href={ad.media.url} target="_blank" rel="noopener noreferrer" className="block relative w-20 h-14 rounded overflow-hidden bg-gray-100">
                         <Image src={ad.media.url} alt="Ad" fill className="object-cover" sizes="80px" />
@@ -131,10 +137,12 @@ export default function AdminAdsPage() {
                       <a href={ad.media?.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600">Video</a>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {new Date(ad.startDate).toLocaleString()} – {new Date(ad.endDate).toLocaleString()}
+                  <td className="hidden px-4 py-3 text-sm text-gray-600 md:table-cell">
+                    <span className="whitespace-nowrap">{new Date(ad.startDate).toLocaleString()}</span>
+                    <span className="text-gray-400"> – </span>
+                    <span className="whitespace-nowrap">{new Date(ad.endDate).toLocaleString()}</span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3 sm:px-4">
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
                       ad.status === 'approved' ? 'bg-green-100 text-green-800' :
                       ad.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -143,9 +151,9 @@ export default function AdminAdsPage() {
                       {ad.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="min-w-[8.5rem] px-3 py-3 sm:min-w-0 sm:px-4">
                     {ad.status === 'pending_approval' && (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex max-w-[14rem] flex-col gap-2 sm:max-w-none">
                         {!ad.paymentId ? (
                           <span className="text-xs text-gray-500">Unpaid</span>
                         ) : (
