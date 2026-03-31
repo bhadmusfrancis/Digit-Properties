@@ -96,13 +96,13 @@ export default function AdminVerificationPage() {
         Review ID and professional documents; approve or reject. On approve, user role and profile
         picture lock are updated.
       </p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         {['pending', 'approved', 'rejected'].map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => setStatusFilter(s)}
-            className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+            className={`min-h-11 min-w-[5.5rem] flex-1 rounded-md border px-3 py-2 text-sm font-medium capitalize sm:flex-none sm:px-3 sm:py-1.5 ${
               statusFilter === s
                 ? 'border-primary-500 bg-primary-50 text-primary-700'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -117,33 +117,33 @@ export default function AdminVerificationPage() {
       ) : requests.length === 0 ? (
         <p className="mt-4 text-gray-500">No requests found.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+        <div className="mt-4 -mx-1 overflow-x-auto rounded-lg border border-gray-200 bg-white px-1 shadow-sm sm:mx-0 sm:px-0">
+          <table className="min-w-[44rem] divide-y divide-gray-200 text-left text-sm sm:min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 font-medium text-gray-700">User</th>
-                <th className="px-4 py-3 font-medium text-gray-700">Type</th>
-                <th className="px-4 py-3 font-medium text-gray-700">Position</th>
-                <th className="px-4 py-3 font-medium text-gray-700">Documents</th>
-                <th className="px-4 py-3 font-medium text-gray-700">Status</th>
+                <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">User</th>
+                <th className="hidden sm:table-cell px-4 py-3 font-medium text-gray-700">Type</th>
+                <th className="hidden lg:table-cell px-4 py-3 font-medium text-gray-700">Position</th>
+                <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">Documents</th>
+                <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">Status</th>
                 {statusFilter === 'pending' && (
-                  <th className="px-4 py-3 font-medium text-gray-700">Actions</th>
+                  <th className="min-w-[10rem] px-3 py-3 font-medium text-gray-700 sm:px-4">Actions</th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {requests.map((r) => (
                 <tr key={r._id}>
-                  <td className="px-4 py-3">
+                  <td className="max-w-[12rem] px-3 py-3 sm:max-w-none sm:px-4">
                     <div>
                       <span className="font-medium">{r.userId?.name ?? '—'}</span>
-                      <br />
-                      <span className="text-gray-500">{r.userId?.email}</span>
+                      <span className="mt-0.5 block truncate text-sm text-gray-500">{r.userId?.email}</span>
+                      <span className="mt-1 block text-xs text-gray-500 sm:hidden">{typeLabel(r.type)}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">{typeLabel(r.type)}</td>
-                  <td className="px-4 py-3">{r.companyPosition ?? '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 sm:table-cell">{typeLabel(r.type)}</td>
+                  <td className="hidden px-4 py-3 lg:table-cell">{r.companyPosition ?? '—'}</td>
+                  <td className="px-3 py-3 sm:px-4">
                     <div className="flex flex-wrap gap-2">
                       {r.userId?.livenessCentreImageUrl && (
                         <span className="inline-flex flex-col items-center">
@@ -203,7 +203,7 @@ export default function AdminVerificationPage() {
                         ))
                       : null}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-3 py-3 sm:px-4">
                     <span
                       className={
                         r.status === 'approved'
@@ -220,8 +220,8 @@ export default function AdminVerificationPage() {
                     )}
                   </td>
                   {statusFilter === 'pending' && (
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-2">
+                    <td className="min-w-[10rem] px-3 py-3 sm:px-4">
+                      <div className="flex max-w-[16rem] flex-col gap-2 sm:max-w-none">
                         <input
                           type="text"
                           placeholder="Rejection reason (optional)"
@@ -229,7 +229,7 @@ export default function AdminVerificationPage() {
                           onChange={(e) =>
                             setRejectReason((prev) => ({ ...prev, [r._id]: e.target.value }))
                           }
-                          className="input w-48 text-xs"
+                          className="input w-full max-w-full text-xs"
                         />
                         <div className="flex gap-2">
                           <button

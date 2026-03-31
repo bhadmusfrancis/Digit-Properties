@@ -6,6 +6,7 @@ import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
 import { MyListingsTable } from '@/components/listings/MyListingsTable';
+import { CompactPagination } from '@/components/ui/CompactPagination';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
 import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
 import { fetchMyListingsPage } from '@/lib/listing-list-server-sort';
@@ -105,55 +106,14 @@ export default async function MyListingsPage({
           basePath="/dashboard/listings"
         />
         {totalPages > 1 && (
-          <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Listing pages">
-            <PaginationLink href={`/dashboard/listings${q(1)}`} disabled={page <= 1} label="First" />
-            <PaginationLink
-              href={page <= 2 ? `/dashboard/listings${q(1)}` : `/dashboard/listings${q(page - 1)}`}
-              disabled={page <= 1}
-              label="Previous"
-            />
-            <span className="px-3 text-sm text-gray-600">
-              {page} / {totalPages}
-            </span>
-            <PaginationLink
-              href={page >= totalPages ? '#' : `/dashboard/listings${q(page + 1)}`}
-              disabled={page >= totalPages}
-              label="Next"
-            />
-            <PaginationLink
-              href={page >= totalPages ? '#' : `/dashboard/listings${q(totalPages)}`}
-              disabled={page >= totalPages}
-              label="Last"
-            />
-          </nav>
+          <CompactPagination
+            className="mt-6"
+            page={page}
+            totalPages={totalPages}
+            hrefForPage={(p) => `/dashboard/listings${q(p)}`}
+          />
         )}
       </div>
     </div>
-  );
-}
-
-function PaginationLink({
-  href,
-  disabled,
-  label,
-}: {
-  href: string;
-  disabled: boolean;
-  label: string;
-}) {
-  if (disabled) {
-    return (
-      <span className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400">
-        {label}
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 touch-manipulation"
-    >
-      {label}
-    </Link>
   );
 }

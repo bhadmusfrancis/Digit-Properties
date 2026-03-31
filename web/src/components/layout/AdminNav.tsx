@@ -40,7 +40,7 @@ export function AdminNav() {
         </svg>
       </button>
       <div
-        className={`flex flex-wrap gap-2 overflow-x-auto pb-2 sm:flex-nowrap sm:overflow-visible sm:pb-0 ${open ? 'mt-2 flex' : 'hidden sm:flex'}`}
+        className={`gap-1 overflow-x-auto pb-2 sm:flex sm:flex-wrap sm:gap-2 sm:overflow-visible sm:pb-0 ${open ? 'mt-2 flex flex-col sm:flex-row' : 'hidden sm:flex'}`}
       >
         {links.map(({ href, label }) => {
           const isActive = pathname === href || (href !== '/admin' && pathname.startsWith(href));
@@ -49,7 +49,7 @@ export function AdminNav() {
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors sm:px-2 sm:py-1.5 ${
+              className={`min-h-11 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium transition-colors sm:min-h-0 sm:px-2 sm:py-1.5 ${
                 isActive
                   ? 'bg-primary-100 text-primary-700'
                   : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
