@@ -1,0 +1,333 @@
+## Digit Properties – WhatsApp Chat Upload Runbook
+
+### 1. Overview
+
+Digit Properties supports importing real-estate listings directly from a WhatsApp group export.
+
+This document describes the end‑to‑end process:
+
+- Export a WhatsApp chat.
+- Normalize the export into a clean `chat.txt`.
+- Run the Node/TypeScript importer to:
+  - Parse property messages.
+  - Upload media (images & videos) to Cloudinary.
+  - Create or update listings in MongoDB.
+- Clean up duplicate listings.
+
+This is written for **operators** (no code changes required).
+
+### 2. Prerequisites
+
+#### 2.1. Tools
+
+- Node.js (LTS) with `npx`.
+- Python 3 (for one helper script).
+- Git and a local checkout of the Digit Properties repo.
+
+#### 2.2. Environment configuration
+
+In the `web/` directory, configure `web/.env.local` with **at least**:
+
+- **MongoDB**
+  - `MONGODB_URI`
+- **Cloudinary**
+  - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
+  - `CLOUDINARY_API_KEY`
+  - `CLOUDINARY_API_SECRET`
+
+These are required for:
+
+- Connecting to the main listings database.
+- Uploading listing media (images and videos) to Cloudinary.
+
+### 3. Preparing the WhatsApp Export
+
+#### 3.1. Export from WhatsApp
+
+1. Open the desired WhatsApp group (e.g. “WORLD MARKET”).
+2. Use WhatsApp’s **Chat Export** feature:
+   - Choose **“Include Media”**.
+   - Save the export to your computer.
+
+You will typically receive:
+
+- A chat text file, e.g. `_chat.txt`.
+- A folder of media files (e.g. `IMG-2026…jpg`, `VID-2026…mp4`).
+
+#### 3.2. Place files in the project
+
+Inside your project folder, create:
+
+- `WhatsApp Chat - WORLD MARKET/`
+  - `_chat.txt`
+  - All exported media files (same folder or a subfolder).
+  - Optionally `contacts.txt` (for nicer sender names; if used by your setup).
+
+### 4. Normalizing the Chat: `build_chat.py`
+
+We normalize WhatsApp’s raw export into a **consistent, parser‑friendly** `chat.txt`.
+
+#### 4.1. Script location
+
+- `WhatsApp Chat - WORLD MARKET/build_chat.py`
+
+#### 4.2. What it does
+
+- Reads the raw `_chat.txt`.
+- Normalizes:
+  - Date/time formats.
+  - Unicode characters.
+  - Sender formatting.
+- Produces one message per line in the shape:
+
+  `[3/22/26, 8:47:53 PM] ~ Sender Name ~ (234 801 234 5678): Message body <attached: IMG-2026....jpg>`
+
+This format is what the Node importer expects.
+
+#### 4.3. How to run
+
+From within the `WhatsApp Chat - WORLD MARKET` folder:
+
+```bash
+cd "WhatsApp Chat - WORLD MARKET"
+python build_chat.py
+```
+
+Result:
+
+- A cleaned `chat.txt` file in the same folder.
+
+### 5. Importing Listings into the Web App
+
+#### 5.1. Script location
+
+- `web/scripts/import-chat-listings.ts`
+
+This is the core importer that converts `chat.txt` into Digit Properties listings.
+
+#### 5.2. Key responsibilities
+
+- Read all messages from `chat.txt`.
+- Identify those that look like **property listings**.
+- Merge media-only messages into their adjacent listing messages.
+- Parse each listing using the WhatsApp listing parser.
+- Upload images & videos to Cloudinary.
+- Build valid `Listing` documents and write them to MongoDB.
+- Avoid creating duplicates on re-runs.
+
+#### 5.3. Running the importer
+
+From the `web/` directory:
+
+```bash
+cd web
+```
+
+**Standard run (default paths):**
+
+```bash
+npx tsx scripts/import-chat-listings.ts
+```
+
+**Run with explicit options:**
+
+```bash
+npx tsx scripts/import-chat-listings.ts \
+  --chat "../WhatsApp Chat - WORLD MARKET/chat.txt" \
+  --media-dir "../WhatsApp Chat - WORLD MARKET" \
+  --email "your-bot-or-agent@email"
+```
+
+**Dry run (no DB changes, no Cloudinary uploads):**
+
+```bash
+npx tsx scripts/import-chat-listings.ts --dry-run
+```
+
+##### Supported flags
+
+- `--chat <path>`: Path to the normalized `chat.txt`. Default points at `../WhatsApp Chat - WORLD MARKET/chat.txt`.
+- `--media-dir <path>`: Directory where media files (images/videos) live. Default is the directory containing `chat.txt`.
+- `--email <address>`: Email of the **author user** in MongoDB. All imported listings are owned by this user.
+- `--dry-run`: Runs parsing and logging only (no writes or uploads).
+
+### 6. How the Importer Interprets Messages
+
+#### 6.1. Message splitting & metadata
+
+The script:
+
+1. Splits `chat.txt` into individual messages using a date/time header.
+2. For each message, it extracts:
+   - `body`: full message contents (including `<attached: ...>` markers).
+   - `senderName`.
+   - `senderPhone` (normalized to a consistent format).
+   - `sentAt` (message timestamp).
+
+#### 6.2. Cleaning message text
+
+Before parsing:
+
+- The `body` is cleaned to produce `clean` text:
+  - `<attached: ...>` markers removed.
+  - Invisible characters and “image omitted” placeholders removed.
+  - Lines trimmed and normalized.
+
+This `clean` text is given to the WhatsApp listing parser.
+
+#### 6.3. Merging media-only messages
+
+Many WhatsApp messages are “media only” (e.g. a photo with no text) sent right before or after the textual listing.
+
+The importer:
+
+- Detects messages with attachments but **no real text**.
+- Looks at neighbors from the **same sender**.
+- If a neighbor looks like a listing, it **merges those attachments** into that neighbor’s media list.
+
+Result: each logical listing ends up with all its relevant images and videos attached.
+
+#### 6.4. Listing detection
+
+Messages are treated as property listings if:
+
+- They have a non-zero price, OR
+- They mention bedrooms/area, OR
+- They contain real-estate keywords:
+  - `rent`, `sale`, `bed`, `bath`, `sqm`, `₦`, `m`, `k`, `bn`, etc.
+
+Non‑listing messages are ignored entirely.
+
+### 7. Parsing a Listing (WhatsApp Parser)
+
+Parsing is done in `web/src/lib/whatsapp-listing-parser.ts` via `parseWhatsAppListingText`.
+
+For each listing-like message, the parser attempts to extract:
+
+- **Price & rent period**
+  - Handles formats like `₦5m`, `5 million`, `2.7bn`, `500k`, `4m/sqm`, etc.
+  - Determines whether price is per `day`, `month`, or `year`.
+- **Listing type** (`sale`, `rent`, `joint_venture`) via phrases:
+  - `for rent`, `rental`, `renting`, `available for rent`.
+  - `for sale`, `to sell`, `selling`, `available for sale`.
+  - `joint venture`, `JV`, `jv in`, etc.
+- **Property type** based on known types (apartment, duplex, land, etc.) and heuristics.
+- **Bedrooms, bathrooms, toilets**.
+- **Location** from `Location:` / `Address:` lines and common area/state heuristics.
+- **Agent details** from phrases like `call`, `contact`, `whatsapp`.
+- **Title and description** (e.g. `500 sqm 3 Bed Apartment at Lekki`).
+- **Quality indicators**:
+  - `confidence`: `high`, `medium`, or `low`.
+  - `missing`: list of missing critical fields.
+
+The import script later uses this to validate whether a listing document is good enough to store.
+
+### 8. Media Upload to Cloudinary
+
+For each listing:
+
+1. **Collect filenames** from the message and its merged media neighbors.
+2. **Determine media type**:
+   - Images: `.jpg`, `.jpeg`, `.png`, `.webp`.
+   - Videos: `.mp4`, `.webm`, `.mov`.
+3. **Skip oversized videos** (> 40 MB).
+4. **Upload** via Cloudinary:
+   - `folder: 'listings'`
+   - `resource_type: 'image' | 'video'`
+   - Images get a `1920px` max width with `quality: auto`.
+5. **Cache** uploads by path so the same file isn’t uploaded twice.
+6. **Result**:
+   - `images: [{ url, public_id }, ...]`
+   - `videos: [{ url, public_id }, ...]`
+
+### 9. Fingerprints & Tags for Tracking and Dedupe
+
+Each imported listing gets special tags:
+
+- **Content fingerprint (`wa-fp`)**:
+  - `sha1(normalized_text + senderPhone)` → `wa-fp:<sha1>`.
+- **Source timestamp (`wa-ts`)**:
+  - Encoded as `YYYYMMDDHHmmss` → `wa-ts:<YYYYMMDDHHmmss>`.
+- **Import tags**:
+  - `whatsapp-import`
+  - `whatsapp-chat-import`
+
+These support incremental imports and duplicate detection.
+
+### 10. Creating vs Updating Listings
+
+For each validated listing payload:
+
+1. **Check for existing listing**:
+   - Same `createdBy` and same `wa-fp` tag.
+2. **If existing is found**:
+   - If the new candidate has media and the existing one does not, update the existing listing’s media and core fields.
+   - Otherwise, treat as a duplicate and skip creating a new row.
+3. **If no existing is found**:
+   - Create a new `Listing` with:
+     - `createdBy` = chosen import user.
+     - `status: 'active'`.
+     - Parsed fields and uploaded media.
+4. **Dry-run mode**:
+   - Only logs what would happen; no DB writes or uploads.
+
+### 11. Global Duplicate Cleanup (Admin)
+
+#### 11.1. Inspecting a pair of listings
+
+- Script: `web/scripts/inspect-listings-pair.ts`
+
+Usage:
+
+```bash
+cd web
+npx tsx scripts/inspect-listings-pair.ts <id1> <id2>
+npx tsx scripts/inspect-listings-pair.ts --delete-loser <id1> <id2>
+```
+
+- Compares two listings by:
+  - Media score (videos × 100 + images).
+  - `createdAt`.
+- With `--delete-loser`, deletes the loser and cleans related likes, saved listings, reviews, and claims.
+
+#### 11.2. Deduplicating the whole collection
+
+- Script: `web/scripts/dedupe-all-listings.ts`
+
+Usage:
+
+```bash
+cd web
+npx tsx scripts/dedupe-all-listings.ts          # dry-run
+npx tsx scripts/dedupe-all-listings.ts --apply  # actually delete
+```
+
+Logic:
+
+- Builds duplicate clusters using:
+  - Shared `wa-fp` fingerprint tags.
+  - Shared media `public_id` sets (for `whatsapp-chat-import` listings).
+- Per cluster:
+  - Keeps the listing with the highest media score and earliest `createdAt`.
+  - Deletes all others and cleans dependent collections.
+
+### 12. Operator Checklist (Quick Reference)
+
+1. **Prepare export**:
+   - Export WhatsApp chat with media.
+   - Place `_chat.txt` and media into `WhatsApp Chat - WORLD MARKET/`.
+2. **Normalize**:
+   - Run `python build_chat.py` to produce `chat.txt`.
+3. **Verify `.env.local`**:
+   - Ensure `MONGODB_URI` and Cloudinary credentials are present in `web/.env.local`.
+4. **Dry-run import**:
+   - `cd web`
+   - `npx tsx scripts/import-chat-listings.ts --dry-run`
+5. **Run import**:
+   - `npx tsx scripts/import-chat-listings.ts --chat "../WhatsApp Chat - WORLD MARKET/chat.txt" --email "<author>"`
+6. **Repeat as new chats arrive**:
+   - Script automatically skips messages older than the latest imported `wa-ts`.
+7. **Occasional cleanup**:
+   - `npx tsx scripts/dedupe-all-listings.ts` (dry run).
+   - `npx tsx scripts/dedupe-all-listings.ts --apply` (apply deletions).
+
