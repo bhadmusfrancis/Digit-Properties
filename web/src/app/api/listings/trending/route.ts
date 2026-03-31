@@ -9,6 +9,7 @@ export async function GET(req: Request) {
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '10', 10)));
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
     const suburb = searchParams.get('suburb')?.trim();
     const city = searchParams.get('city')?.trim();
     const state = searchParams.get('state')?.trim();
@@ -19,6 +20,7 @@ export async function GET(req: Request) {
     if (!hasLocation) {
       const listings = await Listing.find(match)
         .sort({ 'images.0.url': -1, viewCount: -1, createdAt: -1 })
+        .skip(offset)
         .limit(limit)
         .populate('createdBy', 'firstName name image role')
         .lean();
@@ -71,6 +73,7 @@ export async function GET(req: Request) {
         },
       },
       { $sort: { _hasMedia: -1, _locScore: -1, viewCount: -1, createdAt: -1 } },
+      { $skip: offset },
       { $limit: limit },
       {
         $lookup: {

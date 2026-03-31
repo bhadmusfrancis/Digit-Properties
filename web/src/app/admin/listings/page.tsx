@@ -4,6 +4,7 @@ import User from '@/models/User';
 import Link from 'next/link';
 import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
 import { fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
+import { CompactPagination } from '@/components/ui/CompactPagination';
 import { AdminListingsTable } from './AdminListingsTable';
 
 const PER_PAGE = 50;
@@ -114,27 +115,12 @@ export default async function AdminListingsPage({
         />
       </div>
       {totalPages > 1 && (
-        <nav className="mt-6 flex flex-wrap items-center justify-center gap-2" aria-label="Listing pages">
-          <AdminPaginationLink href={`/admin/listings${q(1)}`} disabled={page <= 1} label="First" />
-          <AdminPaginationLink
-            href={page <= 2 ? `/admin/listings${q(1)}` : `/admin/listings${q(page - 1)}`}
-            disabled={page <= 1}
-            label="Previous"
-          />
-          <span className="px-3 text-sm text-gray-600">
-            {page} / {totalPages}
-          </span>
-          <AdminPaginationLink
-            href={page >= totalPages ? '#' : `/admin/listings${q(page + 1)}`}
-            disabled={page >= totalPages}
-            label="Next"
-          />
-          <AdminPaginationLink
-            href={page >= totalPages ? '#' : `/admin/listings${q(totalPages)}`}
-            disabled={page >= totalPages}
-            label="Last"
-          />
-        </nav>
+        <CompactPagination
+          className="mt-6"
+          page={page}
+          totalPages={totalPages}
+          hrefForPage={(p) => `/admin/listings${q(p)}`}
+        />
       )}
       <p className="mt-4">
         <Link href="/admin" className="text-sm text-primary-600 hover:underline">← Back to Admin</Link>
@@ -143,28 +129,3 @@ export default async function AdminListingsPage({
   );
 }
 
-function AdminPaginationLink({
-  href,
-  disabled,
-  label,
-}: {
-  href: string;
-  disabled: boolean;
-  label: string;
-}) {
-  if (disabled) {
-    return (
-      <span className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400">
-        {label}
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 touch-manipulation"
-    >
-      {label}
-    </Link>
-  );
-}

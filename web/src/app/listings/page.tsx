@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
+import { ListingsPagination } from '@/components/listings/ListingsPagination';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 
 function buildQuery(params: URLSearchParams) {
@@ -56,19 +57,7 @@ function ListingsContent() {
               <p className="text-gray-500">No listings match your filters. Try adjusting your search.</p>
             </div>
           )}
-          {pagination.pages > 1 && (
-            <div className="mt-8 flex justify-center gap-2">
-              {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((p) => (
-                <a
-                  key={p}
-                  href={`/listings?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(p) }).toString()}`}
-                  className={`rounded px-3 py-1 ${p === pagination.page ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
-                >
-                  {p}
-                </a>
-              ))}
-            </div>
-          )}
+          <ListingsPagination pagination={pagination} />
         </>
       )}
     </div>
