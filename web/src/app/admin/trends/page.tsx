@@ -83,8 +83,8 @@ export default function AdminTrendsPage() {
       {loading ? (
         <p className="mt-6 text-gray-500">Loading…</p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="mt-6 overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow">
+          <table className="w-full table-fixed divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="w-16 px-2 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:w-20 sm:px-3">Image</th>
@@ -119,7 +119,7 @@ export default function AdminTrendsPage() {
                   <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-500">
                     {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-NG') : '—'}
                   </td>
-                  <td className="px-2 py-3 text-right sm:px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-2 py-3 text-right sm:px-4" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/trends/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
                     <Link href={`/admin/trends/${p._id}/edit`} className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
                     <button

@@ -276,7 +276,11 @@ function extractLocation(text: string): { state: string; city: string; address: 
   if (!state) state = 'Lagos';
   if (!city) city = state;
   const validState = NIGERIAN_STATES.includes(state as (typeof NIGERIAN_STATES)[number]) ? state : 'Lagos';
-  if (!address) address = [suburb || city, validState].filter(Boolean).join(', ');
+  if (!address) {
+    const parts = [suburb || city, validState].filter(Boolean).map((p) => p.trim());
+    const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
+    address = dedup.join(', ');
+  }
   return { state: validState, city, address, suburb, rest };
 }
 

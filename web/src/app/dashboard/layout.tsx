@@ -10,10 +10,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (needsLegal) redirect('/auth/accept-terms?callbackUrl=/dashboard');
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+    <div className="mx-auto w-full max-w-7xl overflow-x-hidden px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:gap-8">
         <DashboardSidebar />
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 pb-4">{children}</main>
       </div>
     </div>
   );

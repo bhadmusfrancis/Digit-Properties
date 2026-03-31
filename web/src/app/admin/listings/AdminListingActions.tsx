@@ -4,15 +4,28 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 
 type User = { _id: string; name?: string; email?: string };
-type Props = { listingId: string; status: string; createdById: string; createdByLabel: string; users: User[] };
+type Props = {
+  listingId: string;
+  status: string;
+  createdById: string;
+  createdByLabel: string;
+  users: User[];
+  featured?: boolean;
+  highlighted?: boolean;
+  boostPackage?: string;
+};
 
-export function AdminListingActions({ listingId, status, createdById, createdByLabel, users }: Props) {
+export function AdminListingActions({ listingId, status, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '' }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingFeatured, setTogglingFeatured] = useState(false);
+  const [togglingHighlighted, setTogglingHighlighted] = useState(false);
   const [search, setSearch] = useState('');
   const [showAssign, setShowAssign] = useState(false);
+  const [packageUpdating, setPackageUpdating] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState(boostPackage);
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -77,16 +90,50 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
       .finally(() => setDeleting(false));
   };
 
+  const toggleFeature = (field: 'featured' | 'highlighted', value: boolean) => {
+    const setBusy = field === 'featured' ? setTogglingFeatured : setTogglingHighlighted;
+    setBusy(true);
+    fetch(`/api/listings/${listingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value }),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => Promise.reject(d));
+        window.location.reload();
+      })
+      .catch((d) => alert(d?.error || `Failed to update ${field}`))
+      .finally(() => setBusy(false));
+  };
+
+  const assignPackage = () => {
+    if (packageUpdating) return;
+    setPackageUpdating(true);
+    fetch(`/api/listings/${listingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ boostPackage: selectedPackage || null }),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => Promise.reject(d));
+        window.location.reload();
+      })
+      .catch((d) => alert(d?.error || 'Failed to assign package'))
+      .finally(() => setPackageUpdating(false));
+  };
+
   return (
-    <span className="flex flex-wrap items-center gap-1 sm:gap-2">
-      <Link href={`/listings/${listingId}`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
-      <Link href={`/listings/${listingId}/edit`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
+    <span className="flex w-full flex-wrap items-center justify-start gap-2 sm:flex-nowrap sm:justify-between">
+      <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 p-1">
+        <Link href={`/listings/${listingId}`} className="inline-flex min-h-[32px] items-center justify-center rounded border border-primary-200 bg-primary-50 px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-100 touch-manipulation">View</Link>
+        <Link href={`/listings/${listingId}/edit`} className="inline-flex min-h-[32px] items-center justify-center rounded border border-primary-200 bg-white px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-50 touch-manipulation">Edit</Link>
+      </span>
       {status === 'draft' && (
         <button
           type="button"
           onClick={approve}
           disabled={approving}
-          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-sm text-green-600 hover:underline disabled:opacity-50 touch-manipulation"
+          className="inline-flex min-h-[32px] items-center justify-center rounded border border-green-200 bg-green-50 px-2 text-[11px] font-semibold text-green-700 hover:bg-green-100 disabled:opacity-50 touch-manipulation"
         >
           {approving ? '…' : 'Approve'}
         </button>
@@ -96,27 +143,69 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
           type="button"
           onClick={deactivate}
           disabled={deactivating}
-          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-sm text-amber-600 hover:underline disabled:opacity-50 touch-manipulation"
+          className="inline-flex min-h-[32px] items-center justify-center rounded border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50 touch-manipulation"
           title="Deactivate (pause) listing"
         >
           {deactivating ? '…' : 'Deactivate'}
         </button>
       )}
-      <button
-        type="button"
-        onClick={remove}
-        disabled={deleting}
-        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded text-sm text-red-600 hover:underline disabled:opacity-50 touch-manipulation"
-        title="Delete listing"
-      >
-        {deleting ? '…' : 'Delete'}
-      </button>
-      <div className="relative inline-block">
+      <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white p-1">
+        <button
+          type="button"
+          onClick={() => toggleFeature('featured', !featured)}
+          disabled={togglingFeatured}
+          className="inline-flex min-h-[32px] items-center justify-center rounded border border-amber-200 bg-white px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50 touch-manipulation"
+          title={featured ? 'Remove Featured' : 'Set Featured'}
+        >
+          {togglingFeatured ? '…' : featured ? 'Unfeature' : 'Feature'}
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleFeature('highlighted', !highlighted)}
+          disabled={togglingHighlighted}
+          className="inline-flex min-h-[32px] items-center justify-center rounded border border-sky-200 bg-white px-2 text-[11px] font-semibold text-sky-700 hover:bg-sky-50 disabled:opacity-50 touch-manipulation"
+          title={highlighted ? 'Remove Highlighted' : 'Set Highlighted'}
+        >
+          {togglingHighlighted ? '…' : highlighted ? 'Unhighlight' : 'Highlight'}
+        </button>
+        <button
+          type="button"
+          onClick={remove}
+          disabled={deleting}
+          className="inline-flex min-h-[32px] items-center justify-center rounded border border-red-200 bg-red-50 px-2 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 touch-manipulation"
+          title="Delete listing"
+        >
+          {deleting ? '…' : 'Delete'}
+        </button>
+      </span>
+      <div className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 p-1">
+        <select
+          value={selectedPackage}
+          onChange={(e) => setSelectedPackage(e.target.value)}
+          className="min-h-[32px] min-w-[112px] rounded border border-gray-300 bg-white px-2 text-[11px]"
+          disabled={packageUpdating}
+          title="Assign listing package"
+        >
+          <option value="">No package</option>
+          <option value="starter">Starter</option>
+          <option value="pro">Pro</option>
+          <option value="premium">Premium</option>
+        </select>
+        <button
+          type="button"
+          onClick={assignPackage}
+          disabled={packageUpdating}
+          className="min-h-[32px] rounded border border-primary-300 bg-primary-50 px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-100 disabled:opacity-50"
+        >
+          {packageUpdating ? '…' : 'Apply'}
+        </button>
+      </div>
+      <div className="relative inline-block shrink-0">
         <button
           type="button"
           onClick={() => setShowAssign((v) => !v)}
           disabled={assigning}
-          className="min-h-[44px] rounded border border-gray-300 py-2 pl-2 pr-8 text-xs text-left min-w-[120px] touch-manipulation"
+          className="min-h-[32px] min-w-[120px] rounded border border-gray-300 bg-white py-1 pl-2 pr-8 text-left text-[11px] touch-manipulation"
         >
           {createdByLabel || 'Assign…'}
         </button>

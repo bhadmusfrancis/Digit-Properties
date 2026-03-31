@@ -10,6 +10,7 @@ export type PackageDisplay = {
   maxListings: number;
   maxImages: number;
   maxVideos: number;
+  maxCategories: number;
   maxFeatured: number;
   maxHighlighted: number;
   isGuestOrFree: boolean;
@@ -121,6 +122,10 @@ export function ListingPackages() {
                   <span className="mt-0.5 text-emerald-600 shrink-0" aria-hidden>✓</span>
                   <span><strong>{pkg.maxVideos}</strong> video{pkg.maxVideos !== 1 ? 's' : ''} per listing</span>
                 </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-0.5 text-emerald-600 shrink-0" aria-hidden>✓</span>
+                  <span><strong>{pkg.maxCategories ?? 1}</strong> category selection{(pkg.maxCategories ?? 1) > 1 ? 's' : ''}</span>
+                </li>
                 {pkg.maxFeatured > 0 || pkg.maxHighlighted > 0 ? (
                   <>
                     <li className="flex items-start gap-2">
@@ -141,13 +146,8 @@ export function ListingPackages() {
               </ul>
 
               {!isCurrent && pkg.priceMonthly > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <Link
-                    href={`/dashboard/payments/upgrade?tier=${pkg.tier}`}
-                    className="block w-full rounded-xl bg-gray-900 py-2.5 text-center text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
-                  >
-                    Upgrade to {pkg.label}
-                  </Link>
+                <div className="mt-6 border-t border-gray-100 pt-4 text-center text-xs text-gray-500">
+                  Subscription upgrades are disabled for users.
                 </div>
               )}
             </div>

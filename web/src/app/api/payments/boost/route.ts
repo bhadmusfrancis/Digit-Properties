@@ -5,9 +5,8 @@ import Listing from '@/models/Listing';
 import Payment from '@/models/Payment';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
-
-const BOOST_AMOUNT = 5000; // NGN
-const BOOST_DAYS = 7;
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
+type BoostPackageId = keyof typeof BOOST_PACKAGES;
 
 function generateRef() {
   return `boost_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -19,10 +18,21 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { listingId, gateway } = body as { listingId?: string; gateway?: 'paystack' | 'flutterwave' };
+    const { listingId, gateway, packageId } = body as {
+      listingId?: string;
+      gateway?: 'paystack' | 'flutterwave';
+      packageId?: BoostPackageId;
+    };
 
     if (!listingId || !gateway) {
       return NextResponse.json({ error: 'listingId and gateway required' }, { status: 400 });
+    }
+    const selectedPackage = BOOST_PACKAGES[(packageId ?? 'starter') as BoostPackageId];
+    if (!selectedPackage) {
+      return NextResponse.json({ error: 'Invalid boost package' }, { status: 400 });
+    }
+    if (gateway !== 'paystack') {
+      return NextResponse.json({ error: 'Only Paystack is available for boost payments right now.' }, { status: 400 });
     }
 
     if (!mongoose.Types.ObjectId.isValid(listingId)) {
@@ -41,7 +51,7 @@ export async function POST(req: Request) {
 
     await Payment.create({
       userId: session.user.id,
-      amount: BOOST_AMOUNT,
+      amount: selectedPackage.amount,
       currency: 'NGN',
       gateway,
       gatewayRef: ref,
@@ -49,7 +59,7 @@ export async function POST(req: Request) {
       listingId,
       status: 'pending',
       idempotencyKey,
-      metadata: { boostDays: BOOST_DAYS },
+      metadata: { boostDays: selectedPackage.days, boostPackage: packageId ?? 'starter' },
     });
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -63,9 +73,9 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           email: session.user.email,
-          amount: BOOST_AMOUNT * 100, // kobo
+          amount: selectedPackage.amount * 100, // kobo
           reference: ref,
-          metadata: { listingId, userId: session.user.id, purpose: 'boost_listing' },
+          metadata: { listingId, userId: session.user.id, purpose: 'boost_listing', boostPackage: packageId ?? 'starter' },
           callback_url: `${baseUrl}/dashboard/boost?success=true`,
         }),
       });
@@ -75,30 +85,6 @@ export async function POST(req: Request) {
       }
       return NextResponse.json({
         authorization_url: data.data.authorization_url,
-        reference: ref,
-      });
-    }
-
-    if (gateway === 'flutterwave') {
-      const Flutterwave = (await import('flutterwave-node-v3')).default;
-      const flw = new Flutterwave(
-        process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY!,
-        process.env.FLUTTERWAVE_SECRET_KEY!
-      );
-      const res = await flw.PaymentLink.initiate({
-        tx_ref: ref,
-        amount: BOOST_AMOUNT,
-        currency: 'NGN',
-        redirect_url: `${baseUrl}/dashboard/boost?success=true`,
-        customer: {
-          email: session.user.email!,
-          name: session.user.name!,
-        },
-        customizations: { title: 'Boost Listing - Digit Properties' },
-        meta: { listingId, userId: session.user.id, purpose: 'boost_listing' },
-      });
-      return NextResponse.json({
-        link: res.data?.link,
         reference: ref,
       });
     }

@@ -16,35 +16,35 @@ export default async function PaymentsPage() {
     .lean();
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
-      <p className="mt-1 text-gray-600">Your boost and ad payments.</p>
+    <div className="min-w-0">
+      <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Payment History</h1>
+      <p className="mt-1 text-gray-600">Your listing boost and ad payments.</p>
       <p className="mt-4">
-        <Link href="/dashboard/payments/plans" className="text-primary-600 font-medium hover:underline">
-          Upgrade your listing plan (Gold / Premium) →
+        <Link href="/dashboard/listings" className="text-primary-600 font-medium hover:underline">
+          Upgrade individual listings from My Properties →
         </Link>
       </p>
-      <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="mt-6 rounded-lg border border-gray-200 bg-white shadow">
+        <table className="w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Date</th>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Amount</th>
-              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Purpose</th>
+              <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:table-cell">Purpose</th>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
             {payments.map((p) => (
               <tr key={p._id.toString()}>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-3 py-3 text-sm text-gray-600 sm:px-4">
                   {new Date(p.createdAt).toLocaleDateString('en-NG')}
                 </td>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatPrice(p.amount)}</td>
-                <td className="px-4 py-3 text-sm text-gray-600 capitalize">
+                <td className="px-3 py-3 text-sm font-medium text-gray-900 sm:px-4">{formatPrice(p.amount)}</td>
+                <td className="hidden px-3 py-3 text-sm capitalize text-gray-600 sm:table-cell sm:px-4">
                   {p.purpose?.replace('_', ' ')}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3 sm:px-4">
                   <span
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
                       p.status === 'success'

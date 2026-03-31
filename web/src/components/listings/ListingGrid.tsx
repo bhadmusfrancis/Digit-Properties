@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { toFirstName } from '@/lib/display-name';
 
 interface Listing {
   _id: string;
@@ -21,6 +22,8 @@ interface Listing {
   images?: { url: string }[];
   videos?: { url: string; public_id?: string }[];
   isBoosted?: boolean;
+  soldAt?: string | Date;
+  rentedAt?: string | Date;
   createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 }
 
@@ -43,6 +46,15 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
               {listing.isBoosted && (
                 <span className="absolute left-2 top-2 rounded bg-amber-500 px-2 py-0.5 text-xs font-medium text-white">
                   Sponsored
+                </span>
+              )}
+              {(listing.soldAt || listing.rentedAt) && (
+                <span
+                  className={`absolute left-2 ${listing.isBoosted ? 'top-9' : 'top-2'} rounded px-2 py-0.5 text-xs font-semibold text-white ${
+                    listing.soldAt ? 'bg-red-600' : 'bg-indigo-600'
+                  }`}
+                >
+                  {listing.soldAt ? 'Sold' : 'Rented'}
                 </span>
               )}
               <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800">
@@ -85,7 +97,7 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                   href={`/authors/${listing.createdBy._id}`}
                   className="text-sm text-gray-500 hover:text-primary-600"
                 >
-                  By {listing.createdBy.firstName ?? listing.createdBy.name ?? 'Author'}
+                  By {toFirstName(listing.createdBy.firstName, listing.createdBy.name, 'Author')}
                 </Link>
               )}
             </div>
