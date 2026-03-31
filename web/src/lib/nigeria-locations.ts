@@ -278,6 +278,7 @@ export const NIGERIA_STATE_CITY_SUBURBS: StateCitiesSuburbs = {
   Ogun: {
     Abeokuta: ['GRA', 'Ibara', 'Kuto', 'Adatan', 'Isale Igbein', 'Sapon', 'Ita Eko', 'Lafenwa', 'Oke Ilewo', 'Camp', 'Olomore', 'Oke Lantoro', 'Ake', 'Itoku', 'Imeko'],
     Sagamu: ['Sagamu Town', 'Makun', 'Ikenne'],
+    Ogijo: ['Ogijo', 'Ogijo Axis'],
     'Ijebu Ode': ['Ijebu Ode Town', 'Obalende', 'Ita Osun'],
     Ota: ['Ota Town', 'Sango', 'Agbara', 'Ado-Odo'],
     Ilaro: ['Ilaro Town', 'Ota'],

@@ -12,22 +12,19 @@ export default function ClaimsPage() {
   const list = Array.isArray(claims) ? claims : [];
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">My Claims</h1>
+    <div className="min-w-0">
+      <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">My Claims</h1>
       <p className="mt-1 text-gray-600">Track your property ownership claims.</p>
       {isLoading ? (
         <div className="mt-6 h-48 animate-pulse rounded bg-gray-100" />
       ) : (
         <div className="mt-6 space-y-4">
           {list.map((c: { _id: string; status: string; listingId?: { _id: string; title?: string } }) => (
-            <div
-              key={c._id}
-              className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4"
-            >
+            <div key={c._id} className="rounded-lg border border-gray-200 bg-white p-4">
               <div>
                 <Link
                   href={c.listingId ? `/listings/${c.listingId._id || c.listingId}` : '#'}
-                  className="font-medium text-primary-600 hover:underline"
+                  className="line-clamp-2 font-medium text-primary-600 hover:underline"
                 >
                   {typeof c.listingId === 'object' && c.listingId?.title
                     ? c.listingId.title

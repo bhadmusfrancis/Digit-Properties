@@ -10,12 +10,13 @@ export type PackageDisplay = {
   maxListings: number;
   maxImages: number;
   maxVideos: number;
+  maxCategories: number;
   maxFeatured: number;
   maxHighlighted: number;
   isGuestOrFree: boolean;
 };
 
-function buildPackagesFromDefaults(configs: { tier: string; maxListings?: number; maxImages?: number; maxVideos?: number; maxFeatured?: number; maxHighlighted?: number; priceMonthly?: number }[]): PackageDisplay[] {
+function buildPackagesFromDefaults(configs: { tier: string; maxListings?: number; maxImages?: number; maxVideos?: number; maxCategories?: number; maxFeatured?: number; maxHighlighted?: number; priceMonthly?: number }[]): PackageDisplay[] {
   const tiers = [SUBSCRIPTION_TIERS.GUEST, SUBSCRIPTION_TIERS.GOLD, SUBSCRIPTION_TIERS.PREMIUM] as const;
   return tiers.map((tier) => {
     const found = configs.find((c) => c.tier === tier);
@@ -24,6 +25,7 @@ function buildPackagesFromDefaults(configs: { tier: string; maxListings?: number
     const maxListings = found?.maxListings ?? def.maxListings ?? 5;
     const maxImages = found?.maxImages ?? def.maxImages ?? 5;
     const maxVideos = found?.maxVideos ?? def.maxVideos ?? 1;
+    const maxCategories = found?.maxCategories ?? def.maxCategories ?? 1;
     const maxFeatured = found?.maxFeatured ?? def.maxFeatured ?? 0;
     const maxHighlighted = found?.maxHighlighted ?? def.maxHighlighted ?? 0;
     const priceMonthly = found?.priceMonthly ?? def.priceMonthly ?? 0;
@@ -42,6 +44,7 @@ function buildPackagesFromDefaults(configs: { tier: string; maxListings?: number
       maxListings,
       maxImages,
       maxVideos,
+      maxCategories,
       maxFeatured,
       maxHighlighted,
       isGuestOrFree,

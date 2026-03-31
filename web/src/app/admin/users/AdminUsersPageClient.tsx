@@ -201,12 +201,12 @@ export default function AdminUsersPageClient() {
           </div>
         </form>
       )}
-      <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm -mx-1 px-1 sm:mx-0 sm:px-0">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="mt-4 overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table className="w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Name</th>
-              <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Email</th>
+              <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Email</th>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Role</th>
               <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Tier</th>
               <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Joined</th>
@@ -217,7 +217,7 @@ export default function AdminUsersPageClient() {
             {users.map((u) => (
               <tr key={u._id}>
                 <td className="px-3 py-3 text-sm font-medium text-gray-900 max-w-[120px] sm:max-w-none truncate sm:whitespace-normal" title={u.name}>{u.name}</td>
-                <td className="px-3 py-3 text-sm text-gray-600 max-w-[140px] sm:max-w-none truncate" title={u.email}>{u.email}</td>
+                <td className="hidden sm:table-cell px-3 py-3 text-sm text-gray-600 truncate" title={u.email}>{u.email}</td>
                 <td className="px-3 py-3">
                   <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">{u.role}</span>
                 </td>
@@ -225,7 +225,7 @@ export default function AdminUsersPageClient() {
                 <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-600">
                   {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-NG') : '—'}
                 </td>
-                <td className="px-3 py-3 text-right whitespace-nowrap">
+                <td className="px-3 py-3 text-right">
                   <button type="button" onClick={() => startEdit(u)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-primary-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Edit</button>
                   <span className="text-gray-300 mx-1">|</span>
                   <button type="button" onClick={() => deleteUser(u._id)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Delete</button>

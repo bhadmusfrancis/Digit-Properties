@@ -110,6 +110,22 @@ export default function UpgradePage() {
     );
   }
 
+  if (!isAdmin) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+        <h1 className="text-xl font-semibold text-amber-900">Subscription upgrades disabled</h1>
+        <p className="mt-2 text-amber-800">
+          Users can only upgrade individual listings.
+        </p>
+        <p className="mt-4">
+          <Link href="/dashboard/listings" className="text-sm font-medium text-amber-900 underline">
+            Go to My Properties to boost a listing →
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
   if (!tier || (!loading && !pkg)) {
     return (
       <div>

@@ -117,17 +117,17 @@ export default function AdminVerificationPage() {
       ) : requests.length === 0 ? (
         <p className="mt-4 text-gray-500">No requests found.</p>
       ) : (
-        <div className="mt-4 -mx-1 overflow-x-auto rounded-lg border border-gray-200 bg-white px-1 shadow-sm sm:mx-0 sm:px-0">
-          <table className="min-w-[44rem] divide-y divide-gray-200 text-left text-sm sm:min-w-full">
+        <div className="mt-4 overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <table className="w-full table-fixed divide-y divide-gray-200 text-left text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">User</th>
                 <th className="hidden sm:table-cell px-4 py-3 font-medium text-gray-700">Type</th>
                 <th className="hidden lg:table-cell px-4 py-3 font-medium text-gray-700">Position</th>
-                <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">Documents</th>
+                <th className="hidden sm:table-cell px-3 py-3 font-medium text-gray-700 sm:px-4">Documents</th>
                 <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">Status</th>
                 {statusFilter === 'pending' && (
-                  <th className="min-w-[10rem] px-3 py-3 font-medium text-gray-700 sm:px-4">Actions</th>
+                  <th className="px-3 py-3 font-medium text-gray-700 sm:px-4">Actions</th>
                 )}
               </tr>
             </thead>
@@ -143,7 +143,7 @@ export default function AdminVerificationPage() {
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">{typeLabel(r.type)}</td>
                   <td className="hidden px-4 py-3 lg:table-cell">{r.companyPosition ?? '—'}</td>
-                  <td className="px-3 py-3 sm:px-4">
+                  <td className="hidden sm:table-cell px-3 py-3 sm:px-4">
                     <div className="flex flex-wrap gap-2">
                       {r.userId?.livenessCentreImageUrl && (
                         <span className="inline-flex flex-col items-center">
@@ -203,7 +203,7 @@ export default function AdminVerificationPage() {
                         ))
                       : null}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 sm:px-4">
+                  <td className="px-3 py-3 sm:px-4">
                     <span
                       className={
                         r.status === 'approved'
@@ -220,7 +220,7 @@ export default function AdminVerificationPage() {
                     )}
                   </td>
                   {statusFilter === 'pending' && (
-                    <td className="min-w-[10rem] px-3 py-3 sm:px-4">
+                    <td className="px-3 py-3 sm:px-4">
                       <div className="flex max-w-[16rem] flex-col gap-2 sm:max-w-none">
                         <input
                           type="text"

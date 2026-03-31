@@ -28,6 +28,12 @@ export async function POST(req: Request) {
     const amount = def?.priceMonthly ?? (tier === SUBSCRIPTION_TIERS.GOLD ? 10000 : 30000);
 
     const isAdmin = session.user.role === USER_ROLES.ADMIN;
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'Subscription upgrades are disabled. You can only upgrade individual listings.' },
+        { status: 403 }
+      );
+    }
     if (gateway === 'test' && isAdmin) {
       await dbConnect();
       await User.findByIdAndUpdate(session.user.id, { subscriptionTier: tier });

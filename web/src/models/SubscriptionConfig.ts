@@ -7,6 +7,7 @@ export interface ISubscriptionConfig {
   maxVideos: number;
   canFeatured: boolean;
   canHighlighted: boolean;
+  maxCategories: number;
   maxFeatured: number;
   maxHighlighted: number;
   priceMonthly: number;
@@ -21,6 +22,7 @@ const SubscriptionConfigSchema = new Schema<ISubscriptionConfig>(
     maxVideos: { type: Number, required: true },
     canFeatured: { type: Boolean, default: false },
     canHighlighted: { type: Boolean, default: false },
+    maxCategories: { type: Number, default: 1 },
     maxFeatured: { type: Number, default: 0 },
     maxHighlighted: { type: Number, default: 0 },
     priceMonthly: { type: Number, default: 0 },

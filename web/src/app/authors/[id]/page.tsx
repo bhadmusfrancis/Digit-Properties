@@ -12,8 +12,9 @@ import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
+import { toFirstName } from '@/lib/display-name';
 
-const PUBLIC_USER_SELECT = 'name image role companyPosition';
+const PUBLIC_USER_SELECT = 'firstName name image role companyPosition';
 const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images videos';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -21,10 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) return {};
     await dbConnect();
-    const user = await User.findById(id).select('name role').lean();
+    const user = await User.findById(id).select('firstName name role').lean();
     if (!user) return {};
-    const name = (user as { name?: string }).name ?? 'Author';
-    const role = (user as { role?: string }).role;
+    const u = user as { firstName?: string; name?: string; role?: string };
+    const name = toFirstName(u.firstName, u.name, 'Author');
+    const role = u.role;
     const title = role ? `${name} · ${role.replace(/_/g, ' ')}` : name;
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     return {
@@ -59,10 +61,11 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
 
   if (!user) notFound();
 
-  const name = (user as { name?: string }).name ?? 'Author';
-  const image = (user as { image?: string }).image;
-  const role = (user as { role?: string }).role;
-  const companyPosition = (user as { companyPosition?: string }).companyPosition;
+  const u = user as { firstName?: string; name?: string; image?: string; role?: string; companyPosition?: string };
+  const name = toFirstName(u.firstName, u.name, 'Author');
+  const image = u.image;
+  const role = u.role;
+  const companyPosition = u.companyPosition;
   const totalListings = listings.length;
 
   return (

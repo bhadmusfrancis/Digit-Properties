@@ -4,10 +4,9 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
-import { ListingPackagesSection } from '@/components/listings/ListingPackagesSection';
 import { MyListingsTable } from '@/components/listings/MyListingsTable';
 import { CompactPagination } from '@/components/ui/CompactPagination';
-import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { USER_ROLES } from '@/lib/constants';
 import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
 import { fetchMyListingsPage } from '@/lib/listing-list-server-sort';
 
@@ -32,12 +31,8 @@ export default async function MyListingsPage({
   const page = Math.min(totalPages, rawPage);
   const skip = (page - 1) * PER_PAGE;
 
-  const [listings, activeListingCount, user] = await Promise.all([
+  const [listings, user] = await Promise.all([
     fetchMyListingsPage(ownerId, sortKey, sortAsc, skip, PER_PAGE),
-    Listing.countDocuments({
-      createdBy: ownerId,
-      status: { $in: [LISTING_STATUS.DRAFT, LISTING_STATUS.ACTIVE, LISTING_STATUS.PAUSED] },
-    }),
     User.findById(ownerId).select('role').lean(),
   ]);
 
@@ -60,24 +55,14 @@ export default async function MyListingsPage({
       : [],
     featured: Boolean(l.featured),
     highlighted: Boolean(l.highlighted),
+    soldAt: l.soldAt ? new Date(l.soldAt as unknown as Date).toISOString() : undefined,
+    rentedAt: l.rentedAt ? new Date(l.rentedAt as unknown as Date).toISOString() : undefined,
   }));
 
-  const isGuest = user?.role === USER_ROLES.GUEST;
   const isBot = user?.role === USER_ROLES.BOT;
-  const guestLimit = 5;
-  const atOrNearGuestLimit = isGuest && activeListingCount >= guestLimit;
 
   return (
     <div>
-      {atOrNearGuestLimit && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <p className="font-medium">You&apos;ve reached the limit of {guestLimit} listings.</p>
-          <p className="mt-1">Verify your account to add more listings and unlock more features.</p>
-          <Link href="/dashboard/profile" className="mt-2 inline-block font-medium text-amber-900 underline hover:no-underline">
-            Verify my account →
-          </Link>
-        </div>
-      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">My Properties</h1>
         <div className="flex flex-wrap gap-2">
@@ -91,8 +76,6 @@ export default async function MyListingsPage({
           </Link>
         </div>
       </div>
-
-      <ListingPackagesSection />
 
       <div className="mt-6">
         <p className="mb-3 text-sm text-gray-500">
@@ -110,7 +93,8 @@ export default async function MyListingsPage({
             className="mt-6"
             page={page}
             totalPages={totalPages}
-            hrefForPage={(p) => `/dashboard/listings${q(p)}`}
+            previousHref={`/dashboard/listings${q(Math.max(1, page - 1))}`}
+            nextHref={`/dashboard/listings${q(Math.min(totalPages, page + 1))}`}
           />
         )}
       </div>

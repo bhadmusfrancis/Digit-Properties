@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { formatPrice } from '@/lib/utils';
 import {
   type ListingSortKey,
@@ -26,19 +26,9 @@ type ListingRow = {
   videos?: { url?: string; public_id?: string }[];
   featured?: boolean;
   highlighted?: boolean;
+  soldAt?: string;
+  rentedAt?: string;
 };
-
-type Limits = {
-  featuredCount: number;
-  highlightedCount: number;
-  maxFeatured: number;
-  maxHighlighted: number;
-  canFeatured: boolean;
-  canHighlighted: boolean;
-};
-
-/** Local overlay for optimistic featured/highlighted so checkbox updates immediately */
-type OptimisticRow = { featured?: boolean; highlighted?: boolean };
 
 export function MyListingsTable({
   listings,
@@ -52,9 +42,6 @@ export function MyListingsTable({
   basePath: string;
 }) {
   const router = useRouter();
-  const [limits, setLimits] = useState<Limits | null>(null);
-  const [toggling, setToggling] = useState<string | null>(null);
-  const [optimistic, setOptimistic] = useState<Record<string, OptimisticRow>>({});
 
   const applySort = useCallback(
     (key: Exclude<ListingSortKey, 'default'>) => {
@@ -67,77 +54,6 @@ export function MyListingsTable({
   const resetSort = useCallback(() => {
     router.push(`${basePath}${buildListingListQuery(1, 'default', true)}`);
   }, [basePath, router]);
-
-  useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d) setLimits({
-          featuredCount: d.featuredCount ?? 0,
-          highlightedCount: d.highlightedCount ?? 0,
-          maxFeatured: d.maxFeatured ?? 0,
-          maxHighlighted: d.maxHighlighted ?? 0,
-          canFeatured: d.canFeatured ?? false,
-          canHighlighted: d.canHighlighted ?? false,
-        });
-      })
-      .catch(() => {});
-  }, []);
-
-  const toggle = async (e: React.SyntheticEvent, listingId: string, field: 'featured' | 'highlighted', current: boolean) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const next = !current;
-    if (limits) {
-      if (field === 'featured' && next && (!limits.canFeatured || limits.featuredCount >= limits.maxFeatured)) {
-        alert('Featured listings require Gold or Premium. Upgrade to feature this listing.');
-        return;
-      }
-      if (field === 'highlighted' && next && (!limits.canHighlighted || limits.highlightedCount >= limits.maxHighlighted)) {
-        alert('Highlighted listings require Gold or Premium. Upgrade to highlight this listing.');
-        return;
-      }
-    }
-    setToggling(`${listingId}-${field}`);
-    setOptimistic((prev) => ({
-      ...prev,
-      [listingId]: { ...prev[listingId], [field]: next },
-    }));
-    try {
-      const res = await fetch(`/api/listings/${listingId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: next }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        router.refresh();
-        setOptimistic((prev) => {
-          const nextState = { ...prev };
-          delete nextState[listingId];
-          return nextState;
-        });
-      } else {
-        setOptimistic((prev) => {
-          const cur = prev[listingId];
-          if (!cur) return prev;
-          const { [field]: _, ...rest } = cur;
-          const nextState = { ...prev };
-          if (Object.keys(rest).length === 0) delete nextState[listingId];
-          else nextState[listingId] = rest as OptimisticRow;
-          return nextState;
-        });
-        if (data.error) alert(data.error);
-      }
-    } finally {
-      setToggling(null);
-    }
-  };
-
-  const getDisplay = (l: ListingRow) => ({
-    featured: optimistic[l._id]?.featured ?? l.featured,
-    highlighted: optimistic[l._id]?.highlighted ?? l.highlighted,
-  });
 
   const thumb = (l: ListingRow) => {
     const url = getListingDisplayImage(l.images, l.propertyType, l.videos);
@@ -157,7 +73,57 @@ export function MyListingsTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow -mx-1 px-1 sm:mx-0 sm:px-0">
+    <div className="rounded-lg border border-gray-200 bg-white shadow">
+      <div className="space-y-3 p-3 sm:hidden">
+        {listings.map((l) => (
+          <article key={l._id} className="rounded-lg border border-gray-200 p-3">
+            <div className="flex gap-3">
+              <div className="shrink-0">{thumb(l)}</div>
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/listings/${l._id}`)}
+                  className="line-clamp-2 text-left text-sm font-semibold text-gray-900 hover:text-primary-600"
+                >
+                  {l.title}
+                </button>
+                <p className="mt-1 text-sm font-medium text-primary-600">
+                  {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 ${
+                    l.status === 'active' ? 'bg-green-100 text-green-800' : l.status === 'draft' ? 'bg-gray-100 text-gray-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {l.status}
+                  </span>
+                  <span>{formatCreatedAt(l.createdAt)}</span>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 ${l.featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
+                    {l.featured ? 'Featured' : 'Standard'}
+                  </span>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 ${l.highlighted ? 'bg-sky-100 text-sky-800' : 'bg-gray-100 text-gray-600'}`}>
+                    {l.highlighted ? 'Highlighted' : 'Normal'}
+                  </span>
+                  {(l.soldAt || l.rentedAt) && (
+                    <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${l.soldAt ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                      {l.soldAt ? 'Sold' : 'Rented'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <MyListingActions
+                listingId={l._id}
+                listingType={l.listingType}
+                soldAt={l.soldAt}
+                rentedAt={l.rentedAt}
+              />
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden sm:block">
       <div className="flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
         <span className="mr-auto text-xs text-gray-500">Sort by column headers</span>
         {sortKey !== 'default' && (
@@ -166,7 +132,7 @@ export function MyListingsTable({
           </button>
         )}
       </div>
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="w-full table-fixed divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
             <SortColumnHeader
@@ -184,7 +150,7 @@ export function MyListingsTable({
               onClick={() => applySort('title')}
             />
             <SortColumnHeader
-              className="px-2 py-3 sm:px-4 whitespace-nowrap"
+              className="px-2 py-3 sm:px-4"
               label="Price"
               active={sortKey === 'price'}
               ascending={sortAsc}
@@ -198,19 +164,18 @@ export function MyListingsTable({
               onClick={() => applySort('status')}
             />
             <SortColumnHeader
-              className="px-2 py-3 sm:px-4 whitespace-nowrap"
+              className="px-2 py-3 sm:px-4"
               label="Date"
               active={sortKey === 'date'}
               ascending={sortAsc}
               onClick={() => applySort('date')}
             />
-            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Featured / Highlighted</th>
-            <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
+            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Package visibility</th>
+            <th className="px-2 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Quick actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
           {listings.map((l) => {
-            const display = getDisplay(l);
             return (
             <tr
               key={l._id}
@@ -221,7 +186,7 @@ export function MyListingsTable({
                 {thumb(l)}
               </td>
               <td className="px-2 py-3 sm:px-4 text-sm font-medium text-gray-900 max-w-[120px] sm:max-w-none truncate sm:whitespace-normal" title={l.title}>{l.title}</td>
-              <td className="px-2 py-3 sm:px-4 text-sm text-gray-600 whitespace-nowrap">
+              <td className="px-2 py-3 text-sm text-gray-600 sm:px-4">
                 {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
               </td>
               <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -233,59 +198,26 @@ export function MyListingsTable({
                   {l.status}
                 </span>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+              <td className="px-4 py-3 text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
                 {formatCreatedAt(l.createdAt)}
               </td>
               <td className="hidden md:table-cell px-4 py-3" onClick={(e) => e.stopPropagation()}>
                 <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={!!display.featured}
-                      onChange={(e) => toggle(e, l._id, 'featured', !!display.featured)}
-                      disabled={
-                        toggling === `${l._id}-featured` ||
-                        (limits != null && limits.canFeatured && !display.featured && limits.featuredCount >= limits.maxFeatured)
-                      }
-                      title={
-                        limits?.canFeatured
-                          ? display.featured
-                            ? 'Remove from Featured (home carousel)'
-                            : `Featured (${limits?.featuredCount ?? 0}/${limits?.maxFeatured ?? 0})`
-                          : 'Upgrade for Featured'
-                      }
-                      className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 disabled:opacity-50"
-                    />
-                    <span className={display.featured ? 'font-medium text-amber-700' : 'text-gray-600'}>
-                      {toggling === `${l._id}-featured` ? '…' : 'Featured'}
-                    </span>
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={!!display.highlighted}
-                      onChange={(e) => toggle(e, l._id, 'highlighted', !!display.highlighted)}
-                      disabled={
-                        toggling === `${l._id}-highlighted` ||
-                        (limits != null && limits.canHighlighted && !display.highlighted && limits.highlightedCount >= limits.maxHighlighted)
-                      }
-                      title={
-                        limits?.canHighlighted
-                          ? display.highlighted
-                            ? 'Remove from Highlighted (search)'
-                            : `Highlighted (${limits?.highlightedCount ?? 0}/${limits?.maxHighlighted ?? 0})`
-                          : 'Upgrade for Highlighted'
-                      }
-                      className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50"
-                    />
-                    <span className={display.highlighted ? 'font-medium text-sky-700' : 'text-gray-600'}>
-                      {toggling === `${l._id}-highlighted` ? '…' : 'Highlighted'}
-                    </span>
-                  </label>
+                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${l.featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
+                    {l.featured ? 'Featured' : 'Standard'}
+                  </span>
+                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${l.highlighted ? 'bg-sky-100 text-sky-800' : 'bg-gray-100 text-gray-600'}`}>
+                    {l.highlighted ? 'Highlighted' : 'Normal search'}
+                  </span>
                 </div>
               </td>
-              <td className="px-2 py-3 text-right sm:px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                <MyListingActions listingId={l._id} />
+              <td className="px-2 py-3 text-right sm:px-4" onClick={(e) => e.stopPropagation()}>
+                <MyListingActions
+                  listingId={l._id}
+                  listingType={l.listingType}
+                  soldAt={l.soldAt}
+                  rentedAt={l.rentedAt}
+                />
               </td>
             </tr>
           );
@@ -300,6 +232,7 @@ export function MyListingsTable({
           </Link>
         </div>
       )}
+      </div>
     </div>
   );
 }

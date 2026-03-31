@@ -11,6 +11,7 @@ import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import mongoose from 'mongoose';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
 export async function GET(
   _req: Request,
@@ -189,6 +190,29 @@ export async function PATCH(
     }
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);
+    }
+    if (isAdmin) {
+      if (typeof body.boostPackage === 'string' && body.boostPackage.trim()) {
+        const key = body.boostPackage.trim().toLowerCase() as keyof typeof BOOST_PACKAGES;
+        const selected = BOOST_PACKAGES[key];
+        if (!selected) {
+          return NextResponse.json({ error: 'Invalid boost package' }, { status: 400 });
+        }
+        const now = new Date();
+        const currentEnd = listing.boostExpiresAt ? new Date(listing.boostExpiresAt) : null;
+        const base = currentEnd && currentEnd > now ? currentEnd : now;
+        const newExpiry = new Date(base);
+        newExpiry.setDate(newExpiry.getDate() + selected.days);
+        listing.boostPackage = key;
+        listing.boostExpiresAt = newExpiry;
+        listing.featured = selected.featured;
+        listing.highlighted = selected.highlighted;
+      } else if (body.boostPackage === null || body.boostPackage === '') {
+        listing.boostPackage = undefined;
+        listing.boostExpiresAt = undefined;
+        listing.featured = false;
+        listing.highlighted = false;
+      }
     }
     // Non-admin owner edit to an active listing requires approval
     if (!isAdmin && wasActive) {

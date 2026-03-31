@@ -11,6 +11,7 @@ type TierConfig = {
   maxVideos: number;
   canFeatured: boolean;
   canHighlighted: boolean;
+  maxCategories: number;
   maxFeatured: number;
   maxHighlighted: number;
   priceMonthly: number;
@@ -94,7 +95,7 @@ export default function AdminConfigPage() {
         {configs.map((c) => (
           <div key={c.tier} className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="font-medium text-gray-900 capitalize">{c.tier === 'guest' ? 'Guest / Free' : c.tier}</h3>
-            <div className="mt-4 grid gap-4 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+            <div className="mt-4 grid gap-4 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
               <div>
                 <label className="block text-xs font-medium text-gray-500">Price (NGN/mo)</label>
                 <input
@@ -135,6 +136,17 @@ export default function AdminConfigPage() {
                   min={0}
                   value={c.maxVideos}
                   onChange={(e) => updateTier(c.tier, { maxVideos: parseInt(e.target.value, 10) || 0 })}
+                  className="input mt-1 w-full"
+                  disabled={!!saving}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Category slots</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={c.maxCategories ?? 1}
+                  onChange={(e) => updateTier(c.tier, { maxCategories: parseInt(e.target.value, 10) || 1 })}
                   className="input mt-1 w-full"
                   disabled={!!saving}
                 />

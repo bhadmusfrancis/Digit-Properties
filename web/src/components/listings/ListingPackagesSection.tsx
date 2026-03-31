@@ -12,14 +12,14 @@ export function ListingPackagesSection() {
             Get more eyes on your properties
           </h2>
           <p className="mt-2 max-w-xl text-gray-700">
-            Stand out with <strong className="text-amber-700">Featured</strong> spots on the homepage and <strong className="text-sky-700">Highlighted</strong> listings in search. Upgrade once, get more leads.
+            Upgrade individual properties with <strong className="text-amber-700">Boost</strong> to get more visibility and faster leads.
           </p>
         </div>
         <Link
-          href="/dashboard/payments/plans"
+          href="/dashboard/listings"
           className="shrink-0 rounded-xl bg-primary-600 px-6 py-3 text-center font-semibold text-white shadow-md transition hover:bg-primary-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         >
-          Upgrade now →
+          Boost a listing →
         </Link>
       </div>
     </section>

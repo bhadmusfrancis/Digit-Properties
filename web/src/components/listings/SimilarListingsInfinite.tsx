@@ -19,6 +19,8 @@ export interface SimilarListingItem {
   images?: { url: string; public_id?: string }[];
   videos?: { url: string; public_id?: string }[];
   isBoosted?: boolean;
+  soldAt?: string | Date;
+  rentedAt?: string | Date;
   createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
 }
 

@@ -4,7 +4,7 @@ import User from '@/models/User';
 import type { ListingSortKey } from '@/lib/sort-listing-rows';
 
 const listingFieldsMy =
-  'title price status listingType rentPeriod propertyType images videos featured highlighted createdAt';
+  'title price status listingType rentPeriod propertyType images videos featured highlighted soldAt rentedAt createdAt';
 
 /**
  * Aggregation $match does not cast string → ObjectId like Mongoose find() does.

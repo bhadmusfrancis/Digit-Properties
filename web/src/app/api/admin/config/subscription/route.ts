@@ -25,6 +25,7 @@ export async function GET(req: Request) {
         maxVideos: found?.maxVideos ?? def?.maxVideos ?? 1,
         canFeatured: found?.canFeatured ?? def?.canFeatured ?? false,
         canHighlighted: found?.canHighlighted ?? def?.canHighlighted ?? false,
+        maxCategories: found?.maxCategories ?? def?.maxCategories ?? 1,
         maxFeatured: found?.maxFeatured ?? def?.maxFeatured ?? 0,
         maxHighlighted: found?.maxHighlighted ?? def?.maxHighlighted ?? 0,
         priceMonthly: found?.priceMonthly ?? def?.priceMonthly ?? 0,
@@ -44,7 +45,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json();
-    const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted, maxFeatured, maxHighlighted, priceMonthly } = body;
+    const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted, maxCategories, maxFeatured, maxHighlighted, priceMonthly } = body;
     if (!tier || !Object.values(SUBSCRIPTION_TIERS).includes(tier)) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
@@ -58,6 +59,7 @@ export async function PUT(req: Request) {
         maxVideos: Number(maxVideos) ?? def?.maxVideos ?? 1,
         canFeatured: Boolean(canFeatured),
         canHighlighted: Boolean(canHighlighted),
+        maxCategories: Number(maxCategories) >= 1 ? Number(maxCategories) : (def?.maxCategories ?? 1),
         maxFeatured: Number(maxFeatured) >= 0 ? Number(maxFeatured) : (def?.maxFeatured ?? 0),
         maxHighlighted: Number(maxHighlighted) >= 0 ? Number(maxHighlighted) : (def?.maxHighlighted ?? 0),
         priceMonthly: Number(priceMonthly) >= 0 ? Number(priceMonthly) : (def?.priceMonthly ?? 0),

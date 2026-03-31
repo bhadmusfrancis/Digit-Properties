@@ -88,24 +88,52 @@ export default async function AdminListingsPage({
       videos,
       featured: Boolean(l.featured),
       highlighted: Boolean(l.highlighted),
+      boostPackage: typeof (l as { boostPackage?: unknown }).boostPackage === 'string'
+        ? (l as { boostPackage?: string }).boostPackage
+        : undefined,
       createdBy,
     };
   });
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900">Listings</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        {total} listing{total !== 1 ? 's' : ''} total
-        {listingRows.length > 0 && (
-          <>
-            {' '}
-            · Showing {skip + 1}–{skip + listingRows.length}
-            {totalPages > 1 ? ` · Page ${page} of ${totalPages}` : ''}
-          </>
-        )}
-      </p>
-      <div className="mt-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Admin Listings</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage, assign, and moderate all platform listings.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/listings/new"
+            className="btn-primary min-h-[44px] w-full touch-manipulation sm:w-auto"
+          >
+            Add listing
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Total listings</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900">{total}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Showing</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900">
+            {listingRows.length === 0 ? '0' : `${skip + 1}-${skip + listingRows.length}`}
+          </p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Page</p>
+          <p className="mt-1 text-xl font-semibold text-gray-900">
+            {page} / {totalPages}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6">
         <AdminListingsTable
           listings={listingRows}
           users={userList}
@@ -119,10 +147,11 @@ export default async function AdminListingsPage({
           className="mt-6"
           page={page}
           totalPages={totalPages}
-          hrefForPage={(p) => `/admin/listings${q(p)}`}
+          previousHref={`/admin/listings${q(Math.max(1, page - 1))}`}
+          nextHref={`/admin/listings${q(Math.min(totalPages, page + 1))}`}
         />
       )}
-      <p className="mt-4">
+      <p className="mt-6">
         <Link href="/admin" className="text-sm text-primary-600 hover:underline">← Back to Admin</Link>
       </p>
     </div>

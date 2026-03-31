@@ -87,7 +87,7 @@ export function DashboardSidebar() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="mb-4 flex w-full items-center justify-between rounded-xl border-2 border-gray-200 bg-white px-4 py-3.5 text-left font-semibold text-gray-800 shadow-sm hover:border-primary-200 hover:bg-primary-50/50 lg:hidden"
+        className="mb-3 flex w-full items-center justify-between rounded-xl border-2 border-gray-200 bg-white px-4 py-3.5 text-left font-semibold text-gray-800 shadow-sm hover:border-primary-200 hover:bg-primary-50/50 lg:hidden"
         aria-expanded={open}
         aria-label="Toggle dashboard menu"
       >
@@ -108,11 +108,8 @@ export function DashboardSidebar() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      <aside
-        className={`w-full shrink-0 lg:w-64 ${open ? 'block' : 'hidden lg:block'}`}
-        aria-hidden={!open}
-      >
-        <nav className="rounded-xl border border-gray-200 bg-white shadow-md overflow-hidden">
+      <aside className={`w-full shrink-0 lg:w-64 ${open ? 'block' : 'hidden lg:block'}`} aria-hidden={!open}>
+        <nav className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md lg:sticky lg:top-4">
           <div className="border-b border-gray-100 bg-gradient-to-r from-primary-50 to-white px-4 py-3.5">
             <h2 className="text-sm font-bold uppercase tracking-wider text-primary-700">Dashboard</h2>
             <p className="mt-0.5 text-xs text-gray-500">Manage your account</p>
@@ -125,7 +122,7 @@ export function DashboardSidebar() {
                   key={href}
                   href={href}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  className={`flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                     isActive
                       ? 'bg-primary-100 text-primary-700 shadow-sm ring-1 ring-primary-200/50'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'

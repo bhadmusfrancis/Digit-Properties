@@ -80,7 +80,10 @@ const listingStatusUpdateSchema = z.enum([
 export const listingUpdateSchema = listingBaseSchema
   .partial()
   .omit({ status: true })
-  .extend({ status: listingStatusUpdateSchema.optional() });
+  .extend({
+    status: listingStatusUpdateSchema.optional(),
+    boostPackage: z.enum(['starter', 'pro', 'premium']).optional(),
+  });
 
 export const claimSchema = z.object({
   listingId: objectIdSchema,
