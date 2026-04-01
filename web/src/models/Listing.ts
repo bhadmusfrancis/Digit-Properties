@@ -28,6 +28,8 @@ export interface IListing {
   status: (typeof LISTING_STATUS)[keyof typeof LISTING_STATUS];
   createdBy: mongoose.Types.ObjectId;
   createdByType: 'admin' | 'ai' | 'bot' | 'user';
+  /** Which contact details should be shown for this listing. */
+  contactSource?: 'author' | 'listing';
   agentName?: string;
   agentPhone?: string;
   agentEmail?: string;
@@ -90,6 +92,7 @@ const ListingSchema = new Schema<IListing>(
     status: { type: String, enum: Object.values(LISTING_STATUS), default: LISTING_STATUS.DRAFT },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     createdByType: { type: String, enum: ['admin', 'ai', 'bot', 'user'], default: 'user' },
+    contactSource: { type: String, enum: ['author', 'listing'], default: 'author' },
     agentName: String,
     agentPhone: String,
     agentEmail: String,

@@ -215,6 +215,24 @@ export async function PATCH(
         listing.highlighted = false;
       }
     }
+    // Enforce contact source choice when switching to listing contact
+    if ((parsed.data as { contactSource?: string }).contactSource === 'listing') {
+      const nextName =
+        (parsed.data as { agentName?: string }).agentName ?? listing.agentName ?? '';
+      const nextPhone =
+        (parsed.data as { agentPhone?: string }).agentPhone ?? listing.agentPhone ?? '';
+      const nextEmail =
+        (parsed.data as { agentEmail?: string }).agentEmail ?? listing.agentEmail ?? '';
+      if (!String(nextName).trim() && !String(nextPhone).trim() && !String(nextEmail).trim()) {
+        return NextResponse.json(
+          {
+            error: 'Add listing contact details (phone/email/name) or switch contact to Author contact.',
+            code: 'CONTACT_REQUIRED',
+          },
+          { status: 400 }
+        );
+      }
+    }
     // Non-admin owner edit to an active listing requires approval
     if (!isAdmin && wasActive) {
       listing.status = LISTING_STATUS.PENDING_APPROVAL;
