@@ -57,6 +57,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     toilets: listing.toilets,
     area: listing.area,
     amenities: Array.isArray(listing.amenities) ? listing.amenities.join(', ') : '',
+    contactSource: (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author',
     agentName: listing.agentName ?? '',
     agentPhone: listing.agentPhone ?? '',
     agentEmail: listing.agentEmail ?? '',

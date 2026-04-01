@@ -49,6 +49,7 @@ const listingBaseSchema = z.object({
   area: z.number().positive().optional(),
   amenities: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
+  contactSource: z.enum(['author', 'listing']).optional(),
   agentName: z.string().optional(),
   agentPhone: z.string().optional(),
   agentEmail: z.string().email().optional().or(z.literal('')),
@@ -61,10 +62,15 @@ const listingBaseSchema = z.object({
   videos: z.array(z.object({ public_id: z.string(), url: z.string() })).optional().default([]),
 });
 
-export const listingSchema = listingBaseSchema.refine((data) => {
-  if (data.listingType === 'rent') return !!data.rentPeriod;
-  return true;
-}, { message: 'Rent period is required for rental listings', path: ['rentPeriod'] });
+export const listingSchema = listingBaseSchema
+  .refine((data) => {
+    if (data.listingType === 'rent') return !!data.rentPeriod;
+    return true;
+  }, { message: 'Rent period is required for rental listings', path: ['rentPeriod'] })
+  .refine((data) => {
+    if (data.contactSource !== 'listing') return true;
+    return !!(data.agentPhone?.trim() || data.agentEmail?.trim() || data.agentName?.trim());
+  }, { message: 'Add listing contact details (phone/email/name) or switch contact to Author contact.', path: ['agentPhone'] });
 
 /** Partial schema for PATCH/update - no refine */
 const listingStatusUpdateSchema = z.enum([

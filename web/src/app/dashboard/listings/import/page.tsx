@@ -22,6 +22,7 @@ export type EditInitialShape = {
   bathrooms: number;
   toilets: number;
   area?: number;
+  contactSource?: 'author' | 'listing';
   agentName: string;
   agentPhone: string;
   agentEmail: string;
@@ -32,6 +33,11 @@ export type EditInitialShape = {
 };
 
 function parsedToEditInitial(parsed: ParsedListing, images?: { url: string; public_id: string }[]): EditInitialShape {
+  const hasListingContact = !!(
+    (parsed.agentPhone && String(parsed.agentPhone).trim()) ||
+    (parsed.agentEmail && String(parsed.agentEmail).trim()) ||
+    (parsed.agentName && String(parsed.agentName).trim())
+  );
   return {
     title: parsed.title,
     description: parsed.description,
@@ -46,6 +52,7 @@ function parsedToEditInitial(parsed: ParsedListing, images?: { url: string; publ
     bathrooms: parsed.bathrooms,
     toilets: parsed.toilets ?? 0,
     area: parsed.area,
+    contactSource: hasListingContact ? 'listing' : 'author',
     agentName: parsed.agentName ?? '',
     agentPhone: parsed.agentPhone ?? '',
     agentEmail: parsed.agentEmail ?? '',
@@ -76,6 +83,9 @@ function buildListingPayload(
     bathrooms: item.bathrooms,
     toilets: item.toilets,
     area: item.area,
+    contactSource:
+      item.contactSource ??
+      (item.agentPhone || item.agentEmail || item.agentName ? 'listing' : 'author'),
     agentName: item.agentName || undefined,
     agentPhone: item.agentPhone || undefined,
     agentEmail: item.agentEmail || undefined,
@@ -216,6 +226,7 @@ export default function ImportFromWhatsAppPage() {
       bathrooms: values.bathrooms,
       toilets: values.toilets ?? 0,
       area: values.area,
+      contactSource: (values as { contactSource?: 'author' | 'listing' }).contactSource,
       agentName: values.agentName ?? '',
       agentPhone: values.agentPhone ?? '',
       agentEmail: values.agentEmail ?? '',
@@ -265,6 +276,7 @@ export default function ImportFromWhatsAppPage() {
         bathrooms: v.bathrooms,
         toilets: v.toilets ?? 0,
         area: v.area,
+        contactSource: (v as { contactSource?: 'author' | 'listing' }).contactSource,
         agentName: v.agentName ?? '',
         agentPhone: v.agentPhone ?? '',
         agentEmail: v.agentEmail ?? '',
