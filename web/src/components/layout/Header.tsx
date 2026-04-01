@@ -27,7 +27,7 @@ export function Header() {
             Rent
           </Link>
           <Link href="/listings/new" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
-            Sell
+            Sell/Rent
           </Link>
           <Link href="/trends" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Trends
@@ -140,7 +140,7 @@ export function Header() {
               Rent
             </Link>
             <Link href="/listings/new" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
-              Sell
+              Sell/Rent
             </Link>
             <Link href="/trends" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
               Trends

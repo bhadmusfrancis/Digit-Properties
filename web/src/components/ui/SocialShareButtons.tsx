@@ -12,26 +12,73 @@ export type SocialShareButtonsProps = {
 
 const encoded = (s: string) => encodeURIComponent(s);
 
+/** Facebook requires an absolute https URL; relative paths break sharing. */
+function getAbsoluteShareUrl(raw: string): string {
+  const t = raw.trim();
+  if (/^https?:\/\//i.test(t)) return t;
+  if (typeof window === 'undefined') return t;
+  const path = t.startsWith('/') ? t : `/${t}`;
+  return `${window.location.origin}${path}`;
+}
+
+/**
+ * Opening facebook.com/sharer in a new tab on mobile often hands off to the native app
+ * without the `u` query string. Prefer m.facebook.com + full navigation, or Meta Share Dialog when App ID is set.
+ */
+function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: string): void {
+  const abs = getAbsoluteShareUrl(pageUrl);
+  const hrefEnc = encoded(abs);
+  const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID?.trim();
+
+  const mobileUa =
+    typeof navigator !== 'undefined' &&
+    /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (appId && typeof window !== 'undefined') {
+    const redirectUri = encoded(`${window.location.origin}/`);
+    const quote = encoded((shareSnippet || shareTitle).slice(0, 500));
+    const display = mobileUa ? 'page' : 'popup';
+    const dialogUrl = `https://www.facebook.com/dialog/share?app_id=${appId}&display=${display}&href=${hrefEnc}&redirect_uri=${redirectUri}&quote=${quote}`;
+    if (mobileUa) {
+      window.location.assign(dialogUrl);
+    } else {
+      const w = window.open(dialogUrl, '_blank', 'noopener,noreferrer,width=626,height=600,scrollbars=yes');
+      if (w) w.opener = null;
+    }
+    return;
+  }
+
+  if (mobileUa) {
+    window.location.assign(`https://m.facebook.com/sharer.php?u=${hrefEnc}`);
+    return;
+  }
+
+  const sharer = `https://www.facebook.com/sharer/sharer.php?u=${hrefEnc}`;
+  const popup = window.open(sharer, '_blank', 'noopener,noreferrer,width=626,height=436,scrollbars=yes');
+  if (popup) popup.opener = null;
+}
+
 export function SocialShareButtons({ url, title, text, className = '' }: SocialShareButtonsProps) {
   const [copied, setCopied] = useState(false);
   const shareText = text ?? title;
 
   const shareUrls = {
     twitter: `https://twitter.com/intent/tweet?url=${encoded(url)}&text=${encoded(shareText)}`,
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encoded(url)}`,
     whatsapp: `https://wa.me/?text=${encoded(shareText + ' ' + url)}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encoded(url)}`,
   };
 
+  const copyUrlAbsolute = useCallback(() => getAbsoluteShareUrl(url), [url]);
+
   const copyLink = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(copyUrlAbsolute());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
-  }, [url]);
+  }, [copyUrlAbsolute]);
 
   const label = 'Share';
   const baseButtonClass =
@@ -51,16 +98,15 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
           <XIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">X</span>
         </a>
-        <a
-          href={shareUrls.facebook}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => openFacebookShare(url, title, shareText)}
           className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white hover:shadow-lg focus:ring-[#1877f2]`}
           aria-label="Share on Facebook"
         >
           <FacebookIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">Facebook</span>
-        </a>
+        </button>
         <a
           href={shareUrls.whatsapp}
           target="_blank"

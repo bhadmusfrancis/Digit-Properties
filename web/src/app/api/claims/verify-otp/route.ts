@@ -3,51 +3,89 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { verifyTermiiPin, normalizePhone } from '@/lib/phone-verify';
-import { getAndDeleteClaimOtp } from '@/lib/claim-otp-cache';
+import { getClaimOtp, deleteClaimOtp } from '@/lib/claim-otp-cache';
 import ClaimPhoneVerification from '@/models/ClaimPhoneVerification';
-import { USER_ROLES } from '@/lib/constants';
 import { claimableListingsMatch } from '@/lib/claimable-listing';
-import mongoose from 'mongoose';
-
-const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
+import {
+  assertClaimOtpNotLocked,
+  recordClaimVerifyFailure,
+  recordClaimVerifySuccess,
+} from '@/lib/claim-otp-throttle';
 
 /** POST /api/claims/verify-otp — verify Termii OTP; return all bot listings for that phone and record verification */
 export async function POST(req: Request) {
   try {
     const session = await getSession(req);
-    if (!session?.user?.id || !CAN_CLAIM.includes(session.user.role as (typeof CAN_CLAIM)[number])) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    await dbConnect();
+
+    const locked = await assertClaimOtpNotLocked(session.user.id);
+    if (locked) {
+      return NextResponse.json(
+        { error: locked.error, code: locked.code, retryAfter: locked.retryAfter },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
-    const { pinId, pin, listingId: bodyListingId } = body;
+    const { pinId, pin } = body;
     if (!pinId || typeof pin !== 'string' || !pin.trim()) {
       return NextResponse.json({ error: 'pinId and pin are required' }, { status: 400 });
     }
 
-    const entry = getAndDeleteClaimOtp(pinId);
+    const entry = getClaimOtp(pinId);
     if (!entry) {
-      return NextResponse.json({ error: 'Code expired or invalid. Request a new code.' }, { status: 400 });
+      const { lockedUntil } = await recordClaimVerifyFailure(session.user.id);
+      if (lockedUntil) {
+        return NextResponse.json(
+          {
+            error:
+              'Too many failed attempts. Claim verification codes are disabled for your account for 24 hours.',
+            code: 'OTP_LOCKED',
+            retryAfter: lockedUntil.toISOString(),
+          },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({ error: 'Code expired or invalid. Request a new code.', code: 'OTP_EXPIRED' }, { status: 400 });
     }
+
     if (entry.userId !== session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const verifyResult = await verifyTermiiPin(pinId, pin);
     if (!verifyResult.ok) {
-      return NextResponse.json({ error: verifyResult.error || 'Invalid or expired code' }, { status: 400 });
+      const { lockedUntil } = await recordClaimVerifyFailure(session.user.id);
+      if (lockedUntil) {
+        return NextResponse.json(
+          {
+            error:
+              'Too many failed attempts. Claim verification codes are disabled for your account for 24 hours.',
+            code: 'OTP_LOCKED',
+            retryAfter: lockedUntil.toISOString(),
+          },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json(
+        { error: verifyResult.error || 'Invalid or expired code', code: 'OTP_INVALID' },
+        { status: 400 }
+      );
     }
 
-    await dbConnect();
+    await recordClaimVerifySuccess(session.user.id);
+    deleteClaimOtp(pinId);
 
-    // Record that this user verified this phone (for auto-approve on claim)
     await ClaimPhoneVerification.findOneAndUpdate(
       { userId: session.user.id, phone: entry.phone },
       { $set: { verifiedAt: new Date() } },
       { upsert: true }
     );
 
-    // Find all claimable bot listings; filter by normalized agentPhone matching verified phone
     const claimMatch = await claimableListingsMatch();
     const allBot = await Listing.find(claimMatch)
       .select('_id title price listingType location status agentPhone')

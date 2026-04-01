@@ -10,6 +10,7 @@ import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
+import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
@@ -135,8 +136,8 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      if (normalizedImages !== undefined) listing.images = images;
-      if (normalizedVideos !== undefined) listing.videos = videos;
+      if (normalizedImages !== undefined) listing.images = dedupeImagesByPublicId(images);
+      if (normalizedVideos !== undefined) listing.videos = dedupeImagesByPublicId(videos);
     }
 
     if (parsed.data.featured === true || parsed.data.highlighted === true) {
@@ -218,6 +219,27 @@ export async function PATCH(
     if (!isAdmin && wasActive) {
       listing.status = LISTING_STATUS.PENDING_APPROVAL;
     }
+
+    const mediaIds = [
+      ...(listing.images || []).map((i: { public_id?: string }) => (i.public_id || '').trim()).filter(Boolean),
+      ...(listing.videos || []).map((v: { public_id?: string }) => (v.public_id || '').trim()).filter(Boolean),
+    ];
+    const duplicateCheck = await findUserListingDuplicate(
+      listing.createdBy.toString(),
+      {
+        title: listing.title,
+        description: listing.description,
+        mediaPublicIds: mediaIds,
+      },
+      String(listing._id)
+    );
+    if (duplicateCheck) {
+      return NextResponse.json(
+        { error: duplicateCheck.message, code: duplicateCheck.code },
+        { status: 409 }
+      );
+    }
+
     await listing.save();
 
     const nowActive = listing.status === LISTING_STATUS.ACTIVE;

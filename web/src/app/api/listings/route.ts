@@ -10,6 +10,7 @@ import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
+import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -221,28 +222,47 @@ export async function POST(req: Request) {
 
     const rawImages = Array.isArray(parsed.data.images) ? parsed.data.images : [];
     const rawVideos = Array.isArray(parsed.data.videos) ? parsed.data.videos : [];
-    const images = rawImages
-      .map((img: { url?: string; public_id?: string }) => ({
-        url: typeof img?.url === 'string' ? img.url.trim() : '',
-        public_id: typeof img?.public_id === 'string' ? img.public_id.trim() : '',
-      }))
-      .filter((img) => img.url && img.public_id);
-    const videos = rawVideos
-      .map((v: { url?: string; public_id?: string }) => ({
-        url: typeof v?.url === 'string' ? v.url.trim() : '',
-        public_id: typeof v?.public_id === 'string' ? v.public_id.trim() : '',
-      }))
-      .filter((v) => v.url && v.public_id);
-    if (rawImages.length > limits.maxImages) {
+    const images = dedupeImagesByPublicId(
+      rawImages
+        .map((img: { url?: string; public_id?: string }) => ({
+          url: typeof img?.url === 'string' ? img.url.trim() : '',
+          public_id: typeof img?.public_id === 'string' ? img.public_id.trim() : '',
+        }))
+        .filter((img) => img.url && img.public_id)
+    );
+    const videos = dedupeImagesByPublicId(
+      rawVideos
+        .map((v: { url?: string; public_id?: string }) => ({
+          url: typeof v?.url === 'string' ? v.url.trim() : '',
+          public_id: typeof v?.public_id === 'string' ? v.public_id.trim() : '',
+        }))
+        .filter((v) => v.url && v.public_id)
+    );
+    if (images.length > limits.maxImages) {
       return NextResponse.json(
         { error: `Maximum ${limits.maxImages} images per listing for your plan.` },
         { status: 400 }
       );
     }
-    if (rawVideos.length > limits.maxVideos) {
+    if (videos.length > limits.maxVideos) {
       return NextResponse.json(
         { error: `Maximum ${limits.maxVideos} video(s) per listing for your plan.` },
         { status: 400 }
+      );
+    }
+
+    const duplicateCheck = await findUserListingDuplicate(session.user.id, {
+      title: parsed.data.title,
+      description: parsed.data.description,
+      mediaPublicIds: [
+        ...images.map((i) => i.public_id),
+        ...videos.map((v) => v.public_id),
+      ],
+    });
+    if (duplicateCheck) {
+      return NextResponse.json(
+        { error: duplicateCheck.message, code: duplicateCheck.code },
+        { status: 409 }
       );
     }
 
