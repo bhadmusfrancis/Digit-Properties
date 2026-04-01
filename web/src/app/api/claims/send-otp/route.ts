@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
-import User from '@/models/User';
-import { hasBaseVerification } from '@/lib/verification';
-import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
 import {
   normalizePhone,
   isValidNigerianPhone,
@@ -14,15 +11,14 @@ import {
 } from '@/lib/phone-verify';
 import { setClaimOtp } from '@/lib/claim-otp-cache';
 import { isClaimableListingDoc } from '@/lib/claimable-listing';
+import { assertCanSendClaimOtp, recordClaimOtpSent } from '@/lib/claim-otp-throttle';
 import mongoose from 'mongoose';
-
-const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
 /** POST /api/claims/send-otp — send Termii OTP to listing contact phone for claim verification */
 export async function POST(req: Request) {
   try {
     const session = await getSession(req);
-    if (!session?.user?.id || !CAN_CLAIM.includes(session.user.role as (typeof CAN_CLAIM)[number])) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!isTermiiConfigured()) {
@@ -30,14 +26,13 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
-    const user = await User.findById(session.user.id)
-      .select('verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt role')
-      .lean();
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    if (!hasBaseVerification(user)) {
+
+    const throttle = await assertCanSendClaimOtp(session.user.id);
+    if (throttle) {
+      const status = throttle.code === 'OTP_LOCKED' ? 403 : 429;
       return NextResponse.json(
-        { error: 'Complete verification to claim listings', code: 'VERIFICATION_REQUIRED', verificationUrl: '/dashboard/profile' },
-        { status: 403 }
+        { error: throttle.error, code: throttle.code, retryAfter: throttle.retryAfter },
+        { status }
       );
     }
 
@@ -75,6 +70,7 @@ export async function POST(req: Request) {
       );
     }
 
+    await recordClaimOtpSent(session.user.id);
     setClaimOtp(result.pinId, session.user.id, phone, listingId);
     return NextResponse.json({
       pinId: result.pinId,

@@ -8,12 +8,9 @@ import ClaimPhoneVerification from '@/models/ClaimPhoneVerification';
 import { objectIdSchema } from '@/lib/validations';
 import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
 import { sendAdminNewClaim, sendClaimApproved } from '@/lib/email';
-import { hasBaseVerification } from '@/lib/verification';
 import { normalizePhone } from '@/lib/phone-verify';
 import { claimableListingsMatch, isClaimableListingDoc } from '@/lib/claimable-listing';
 import mongoose from 'mongoose';
-
-const CAN_CLAIM = [USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
 export async function GET(req: Request) {
   try {
@@ -41,24 +38,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getSession(req);
-    if (!session?.user?.id || !CAN_CLAIM.includes(session.user.role as (typeof CAN_CLAIM)[number])) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     await dbConnect();
-    const user = await User.findById(session.user.id)
-      .select('verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt role')
-      .lean();
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    if (!hasBaseVerification(user)) {
-      return NextResponse.json(
-        {
-          error: 'Complete verification to submit a claim',
-          code: 'VERIFICATION_REQUIRED',
-          verificationUrl: '/dashboard/profile',
-        },
-        { status: 403 }
-      );
-    }
 
     const body = await req.json();
     const userId = new mongoose.Types.ObjectId(session.user.id);

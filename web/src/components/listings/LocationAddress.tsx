@@ -30,6 +30,8 @@ export function LocationAddress() {
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showMap, setShowMap] = useState(true);
+  /** User placed the pin on the map; do not move it when address/city/suburb change until refresh. */
+  const [mapUserPinned, setMapUserPinned] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const { data: citiesData } = useQuery({
@@ -52,6 +54,7 @@ export function LocationAddress() {
   /** When user selects state and city, geocode and move map to that area. */
   const stateCityGeocodeRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
+    if (mapUserPinned) return;
     const s = (state || '').trim();
     const c = (city || '').trim();
     if (!s || !c || c.length < 2) return;
@@ -73,9 +76,9 @@ export function LocationAddress() {
     return () => {
       if (stateCityGeocodeRef.current) clearTimeout(stateCityGeocodeRef.current);
     };
-  }, [state, city, setValue]);
+  }, [state, city, setValue, mapUserPinned]);
 
-  const applyResult = useCallback(
+  const applyAddressFieldsOnly = useCallback(
     (r: GeocodeResult) => {
       setValue('address', r.address || '', { shouldValidate: true });
       setValue('city', r.city || '', { shouldValidate: true });
@@ -84,11 +87,19 @@ export function LocationAddress() {
       const stateMatch = NIGERIAN_STATES.find((s) => s.toLowerCase() === stateVal.toLowerCase());
       setValue('state', stateMatch || NIGERIAN_STATES[0], { shouldValidate: true });
       setValue('suburb', r.suburb || '', { shouldValidate: true });
+    },
+    [setValue]
+  );
+
+  const applyResult = useCallback(
+    (r: GeocodeResult) => {
+      setMapUserPinned(false);
+      applyAddressFieldsOnly(r);
       setValue('coordinates', { lat: r.lat, lng: r.lng }, { shouldValidate: true });
       setSuggestions([]);
       setShowSuggestions(false);
     },
-    [setValue]
+    [setValue, applyAddressFieldsOnly]
   );
 
   const fetchSuggestions = useCallback((query: string) => {
@@ -112,6 +123,7 @@ export function LocationAddress() {
   /** Geocode current address string and move map marker (e.g. on blur when user typed but didn't select). */
   const geocodeAddressForMap = useCallback(
     (addressValue: string) => {
+      if (mapUserPinned) return;
       const trimmed = addressValue.trim();
       if (trimmed.length < 5) return;
       setLoading(true);
@@ -127,7 +139,7 @@ export function LocationAddress() {
         .catch(() => {})
         .finally(() => setLoading(false));
     },
-    [setValue]
+    [setValue, mapUserPinned]
   );
 
   const onAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,16 +240,19 @@ export function LocationAddress() {
       {showMap && (
         <div className="rounded border border-gray-200 bg-gray-50 p-2">
           <p className="mb-2 text-sm text-gray-600">
-            Click on the map to set property location. Address will be filled automatically.
+            Click the map to set the pin. After you place it, the pin stays put if you edit address, city, or suburb (until you refresh the page or pick a new place from search or GPS).
           </p>
           <MapPicker
             initialLat={coordinates?.lat}
             initialLng={coordinates?.lng}
+            followFormCoordinates={!mapUserPinned}
             onPick={(lat, lng) => {
+              setMapUserPinned(true);
+              setValue('coordinates', { lat, lng }, { shouldValidate: true, shouldDirty: true });
               fetch('/api/geocode?lat=' + lat + '&lon=' + lng)
                 .then((res) => res.json())
                 .then((data) => {
-                  if (data.address !== undefined) applyResult(data);
+                  if (data.address !== undefined) applyAddressFieldsOnly(data as GeocodeResult);
                 })
                 .catch(() => {});
             }}

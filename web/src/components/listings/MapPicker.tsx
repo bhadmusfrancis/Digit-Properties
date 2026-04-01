@@ -33,10 +33,13 @@ export function MapPicker({
   initialLat,
   initialLng,
   onPick,
+  /** When false, map marker/view is not moved when form coordinates change (manual pin lock). */
+  followFormCoordinates = true,
 }: {
   initialLat?: number;
   initialLng?: number;
   onPick: (lat: number, lng: number) => void;
+  followFormCoordinates?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ReturnType<typeof import('leaflet').map> | null>(null);
@@ -93,6 +96,7 @@ export function MapPicker({
 
   // When initialLat/initialLng change (geocode, edit load, suggestion), center map and marker on that point
   useEffect(() => {
+    if (!followFormCoordinates) return;
     const lat = initialLat ?? DEFAULT_LAT;
     const lng = initialLng ?? DEFAULT_LNG;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -105,7 +109,7 @@ export function MapPicker({
         map.invalidateSize();
       });
     }
-  }, [initialLat, initialLng]);
+  }, [initialLat, initialLng, followFormCoordinates]);
 
   return (
     <div

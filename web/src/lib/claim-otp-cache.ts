@@ -42,7 +42,8 @@ export function setClaimOtp(pinId: string, userId: string, phone: string, listin
   });
 }
 
-export function getAndDeleteClaimOtp(pinId: string): Entry | null {
+/** Read OTP session without removing it (wrong PIN can retry until expiry). */
+export function getClaimOtp(pinId: string): Entry | null {
   prune();
   const cache = getCache();
   const entry = cache.get(pinId);
@@ -51,6 +52,17 @@ export function getAndDeleteClaimOtp(pinId: string): Entry | null {
     cache.delete(pinId);
     return null;
   }
-  cache.delete(pinId);
   return entry;
+}
+
+export function deleteClaimOtp(pinId: string): void {
+  prune();
+  getCache().delete(pinId);
+}
+
+/** @deprecated use getClaimOtp + deleteClaimOtp on success */
+export function getAndDeleteClaimOtp(pinId: string): Entry | null {
+  const e = getClaimOtp(pinId);
+  if (e) getCache().delete(pinId);
+  return e;
 }
