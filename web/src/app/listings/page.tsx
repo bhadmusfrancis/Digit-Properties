@@ -1,34 +1,62 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
-import { ListingsPagination } from '@/components/listings/ListingsPagination';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 
-function buildQuery(params: URLSearchParams) {
+function buildBaseQuery(params: URLSearchParams) {
   const q = new URLSearchParams();
   params.forEach((v, k) => {
-    if (v) q.set(k, v);
+    if (!v || k === 'page') return;
+    q.set(k, v);
   });
   return q.toString();
 }
 
 function ListingsContent() {
   const searchParams = useSearchParams();
-  const query = buildQuery(searchParams);
+  const query = buildBaseQuery(searchParams);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['listings', query],
-    queryFn: () => fetch(`/api/listings?${query}`).then((r) => r.json()),
+    queryFn: async ({ pageParam = 1 }) => {
+      const q = new URLSearchParams(query);
+      if (pageParam > 1) q.set('page', String(pageParam));
+      const res = await fetch(`/api/listings?${q.toString()}`);
+      return res.json();
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: { pagination?: { page?: number; pages?: number } }) => {
+      const page = lastPage?.pagination?.page ?? 1;
+      const pages = lastPage?.pagination?.pages ?? 1;
+      return page < pages ? page + 1 : undefined;
+    },
     staleTime: 0,
     refetchOnMount: 'always',
   });
 
-  const listings = data?.listings ?? [];
-  const pagination = data?.pagination ?? { page: 1, pages: 1 };
+  const pages = data?.pages ?? [];
+  const listings = pages.flatMap((p: { listings?: unknown[] }) => p?.listings ?? []);
+  const total = pages[0]?.pagination?.total as number | undefined;
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '480px 0px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, listings.length]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -57,7 +85,25 @@ function ListingsContent() {
               <p className="text-gray-500">No listings match your filters. Try adjusting your search.</p>
             </div>
           )}
-          <ListingsPagination pagination={pagination} />
+          {listings.length > 0 && (
+            <div className="mt-8 flex flex-col items-center gap-3">
+              {typeof total === 'number' && total >= 0 && (
+                <p className="text-center text-xs text-gray-500">
+                  {listings.length.toLocaleString()} of {total.toLocaleString()} listing{total === 1 ? '' : 's'}
+                </p>
+              )}
+              {hasNextPage ? (
+                <>
+                  <div ref={loadMoreRef} className="h-1 w-full" aria-hidden />
+                  <p className="text-sm text-gray-500">
+                    {isFetchingNextPage ? 'Loading more listings...' : 'Scroll to load more listings'}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">You have reached the end of results.</p>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
