@@ -16,6 +16,11 @@ import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
 
+function isVideoUrl(url: string): boolean {
+  const clean = (url || '').split('?')[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogg|ogv)$/.test(clean) || clean.includes('/video/upload/');
+}
+
 function serializeCreatedBy(createdBy: unknown): { _id: string; firstName?: string; name?: string; role?: string } | null {
   if (!createdBy || typeof createdBy !== 'object') return null;
   const obj = createdBy as { _id?: unknown; firstName?: string; name?: string; role?: string };
@@ -219,7 +224,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         public_id: img?.public_id != null ? String(img.public_id) : undefined,
         type: 'image' as const,
       }))
-      .filter((img) => img.url);
+      .filter((img) => img.url && !isVideoUrl(img.url));
     const videos = rawVideoItems
       .map((v) => ({
         url: typeof v?.url === 'string' ? v.url : '',
@@ -227,8 +232,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         type: 'video' as const,
       }))
       .filter((v) => v.url);
+    // Backward compatibility: older imports may have video URLs saved inside images.
+    const videosFromImages = rawImageItems
+      .map((img) => ({
+        url: typeof img?.url === 'string' ? img.url : '',
+        public_id: img?.public_id != null ? String(img.public_id) : undefined,
+        type: 'video' as const,
+      }))
+      .filter((v) => v.url && isVideoUrl(v.url));
     const galleryMedia = images.length + videos.length > 0
-      ? [...images, ...videos]
+      ? [...images, ...videos, ...videosFromImages]
       : [{ url: getDefaultListingImageUrl(listing.propertyType ?? 'apartment'), public_id: 'default-media', type: 'image' as const }];
 
     return (
