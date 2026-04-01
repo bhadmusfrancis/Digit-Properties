@@ -26,9 +26,15 @@ function ListingsContent() {
   const query = buildBaseQuery(searchParams);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<ListingsApiPage>({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<
+    ListingsApiPage,
+    Error,
+    ListingsApiPage,
+    [string, string],
+    number
+  >({
     queryKey: ['listings', query],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam }) => {
       const q = new URLSearchParams(query);
       if (pageParam > 1) q.set('page', String(pageParam));
       const res = await fetch(`/api/listings?${q.toString()}`);
