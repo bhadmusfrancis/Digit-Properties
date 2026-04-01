@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
-import User from '@/models/User';
-import { hasBaseVerification } from '@/lib/verification';
+import { toFirstName } from '@/lib/display-name';
 import mongoose from 'mongoose';
 
 export async function GET(
@@ -16,20 +15,6 @@ export async function GET(
       return NextResponse.json({ error: 'Login required to view contact details' }, { status: 401 });
     }
     await dbConnect();
-    const user = await User.findById(session.user.id)
-      .select('verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt role')
-      .lean();
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    if (!hasBaseVerification(user)) {
-      return NextResponse.json(
-        {
-          error: 'Complete verification to view contact details',
-          code: 'VERIFICATION_REQUIRED',
-          verificationUrl: '/dashboard/profile',
-        },
-        { status: 403 }
-      );
-    }
 
     const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -38,19 +23,22 @@ export async function GET(
 
     const listing = await Listing.findById(id)
       .select('agentName agentPhone agentEmail title createdBy contactSource')
-      .populate('createdBy', 'name phone email')
+      .populate('createdBy', 'firstName name phone email')
       .lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const creator = listing.createdBy as { name?: string; phone?: string; email?: string } | null;
+    const creator = listing.createdBy as { firstName?: string; name?: string; phone?: string; email?: string } | null;
     const src = (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author';
     const hasListingContact = [listing.agentName, listing.agentPhone, listing.agentEmail].some(Boolean);
+    const useListingContact = src === 'listing' && hasListingContact;
     return NextResponse.json({
-      agentName: src === 'listing' ? (listing.agentName ?? '') : (creator?.name ?? listing.agentName),
-      agentPhone: src === 'listing' ? (listing.agentPhone ?? '') : (creator?.phone ?? listing.agentPhone),
-      agentEmail: src === 'listing' ? (listing.agentEmail ?? '') : (creator?.email ?? listing.agentEmail),
+      agentName: useListingContact
+        ? (listing.agentName ?? '')
+        : toFirstName(creator?.firstName, creator?.name, listing.agentName ?? ''),
+      agentPhone: useListingContact ? (listing.agentPhone ?? '') : (creator?.phone ?? listing.agentPhone),
+      agentEmail: useListingContact ? (listing.agentEmail ?? '') : (creator?.email ?? listing.agentEmail),
       title: listing.title,
-      contactSource: src,
+      contactSource: useListingContact ? 'listing' : 'author',
       hasListingContact,
     });
   } catch (e) {
