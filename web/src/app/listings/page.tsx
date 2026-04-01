@@ -4,11 +4,12 @@ import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
+import type { Listing as ListingGridItem } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 
 type ListingsApiPage = {
-  listings?: unknown[];
+  listings?: ListingGridItem[];
   pagination?: { page?: number; pages?: number; total?: number };
 };
 

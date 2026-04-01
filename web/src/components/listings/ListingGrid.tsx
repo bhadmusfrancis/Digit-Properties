@@ -8,7 +8,7 @@ import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { toFirstName } from '@/lib/display-name';
 
-interface Listing {
+export interface Listing {
   _id: string;
   title: string;
   price: number;
