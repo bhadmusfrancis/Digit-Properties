@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
-import { getListingDisplayImage } from '@/lib/listing-default-image';
+import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
 import { formatListingTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
@@ -123,6 +123,14 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
                 sizes="(max-width: 768px) 100vw, 520px"
               />
             </div>
+            {listingHasVideoMedia(listing.images, listing.videos) && (
+              <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-xs font-medium text-white">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Video
+              </span>
+            )}
             <span className="absolute right-2 top-2 rounded bg-white/95 px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-sm">
               {formatListingTypeLabel(listing.listingType)}
               {listing.listingType === 'rent' && listing.rentPeriod && (

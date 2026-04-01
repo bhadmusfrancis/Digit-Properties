@@ -87,21 +87,43 @@ export function getCloudinaryVideoThumbnailUrl(
 
 export type ListingVideoRef = { url?: string; public_id?: string };
 
+function isVideoUrl(url: string): boolean {
+  const clean = (url || '').split('?')[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogg|ogv|mkv|avi)$/.test(clean) || clean.includes('/video/upload/');
+}
+
 /**
- * Card / preview image: first photo, else first Cloudinary video frame, else default by property type.
+ * True when listing has video media (including legacy records where video URLs were saved in images[]).
+ */
+export function listingHasVideoMedia(
+  images?: { url?: string }[] | undefined,
+  videos?: ListingVideoRef[] | undefined
+): boolean {
+  const fromVideos = (videos ?? []).some((v) => !!(v?.url?.trim() || v?.public_id?.trim()));
+  if (fromVideos) return true;
+  return (images ?? []).some((img) => !!img?.url && isVideoUrl(img.url));
+}
+
+/**
+ * Card / preview image: prefer video frame (if available), then first image, then default by property type.
  */
 export function getListingDisplayImage(
   images: { url?: string }[] | undefined,
   propertyType: string,
   videos?: ListingVideoRef[] | undefined
 ): string {
-  const firstImg = images?.find((i) => i?.url?.trim())?.url;
-  if (firstImg) return firstImg;
-  const firstVid = videos?.find((v) => v?.url?.trim() || v?.public_id?.trim());
+  const firstVid =
+    videos?.find((v) => v?.url?.trim() || v?.public_id?.trim()) ??
+    images
+      ?.filter((i) => i?.url?.trim())
+      .map((i) => ({ url: i.url }))
+      .find((i) => i.url && isVideoUrl(i.url));
   if (firstVid) {
     const thumb = getCloudinaryVideoThumbnailUrl(firstVid);
     if (thumb) return thumb;
   }
+  const firstImg = images?.find((i) => i?.url?.trim() && !isVideoUrl(i.url || ''))?.url;
+  if (firstImg) return firstImg;
   return getDefaultListingImageUrl(propertyType);
 }
 
