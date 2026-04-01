@@ -50,7 +50,7 @@ export type ListingFormRef = {
   getImages: () => { url: string; public_id: string }[];
 };
 
-type ListingFormProps = {
+export type ListingFormProps = {
   editId?: string;
   editInitial?: Partial<FormData> & {
     images?: { url: string; public_id: string }[];

@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
-import type { ComponentProps } from 'react';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { ListingForm } from '@/components/listings/ListingForm';
+import type { ListingFormProps } from '@/components/listings/ListingForm';
 import { USER_ROLES } from '@/lib/constants';
 import mongoose from 'mongoose';
 
@@ -45,7 +45,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     listingStatus === 'draft' || listingStatus === 'active' ? listingStatus : 'active';
   const contactSource: 'author' | 'listing' =
     (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author';
-  const editInitial: ComponentProps<typeof ListingForm>['editInitial'] = {
+  const editInitial: ListingFormProps['editInitial'] = {
     title: listing.title,
     description: listing.description,
     listingType: listing.listingType,
