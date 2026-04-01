@@ -82,6 +82,17 @@ function normalizeText(s: string): string {
   return s.replace(/\s+/g, ' ').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').trim();
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Strict token/phrase match: prevents false hits like "vi" inside "available". */
+function includesPhrase(haystack: string, phrase: string): boolean {
+  const compact = phrase.trim().toLowerCase().replace(/\s+/g, '\\s+');
+  if (!compact) return false;
+  return new RegExp(`\\b${compact}\\b`, 'i').test(haystack);
+}
+
 function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'month' | 'year'; pricePerSqm?: number; rest: string } {
   let rest = text;
   let value = 0;
@@ -251,7 +262,7 @@ function extractLocation(text: string): { state: string; city: string; address: 
   }
 
   for (const [alias, s] of Object.entries(STATE_ALIASES)) {
-    if (lower.includes(alias)) {
+    if (includesPhrase(lower, escapeRegex(alias.toLowerCase()))) {
       state = s;
       break;
     }
@@ -265,7 +276,7 @@ function extractLocation(text: string): { state: string; city: string; address: 
     }
   }
   for (const [area, loc] of Object.entries(COMMON_AREAS)) {
-    if (lower.includes(area)) {
+    if (includesPhrase(lower, escapeRegex(area.toLowerCase()))) {
       city = loc.city;
       if (!state) state = loc.state;
       suburb = loc.city;
