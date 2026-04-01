@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
+import type { ComponentProps } from 'react';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
@@ -42,7 +43,9 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   const listingStatus = listing.status as string;
   const formStatus: 'draft' | 'active' =
     listingStatus === 'draft' || listingStatus === 'active' ? listingStatus : 'active';
-  const editInitial = {
+  const contactSource: 'author' | 'listing' =
+    (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author';
+  const editInitial: ComponentProps<typeof ListingForm>['editInitial'] = {
     title: listing.title,
     description: listing.description,
     listingType: listing.listingType,
@@ -57,7 +60,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     toilets: listing.toilets,
     area: listing.area,
     amenities: Array.isArray(listing.amenities) ? listing.amenities.join(', ') : '',
-    contactSource: (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author',
+    contactSource,
     agentName: listing.agentName ?? '',
     agentPhone: listing.agentPhone ?? '',
     agentEmail: listing.agentEmail ?? '',
