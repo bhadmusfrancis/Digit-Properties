@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getWhatsAppUrl } from '@/lib/utils';
+import { getWhatsAppUrl, getTelHref } from '@/lib/utils';
 import { USER_ROLES } from '@/lib/constants';
 import {
   LISTING_TRUST_CAVEAT_TEXT,
@@ -205,7 +205,25 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
             <div className="rounded-lg bg-gray-50 p-4">
               <h4 className="font-medium text-gray-900">Contact details</h4>
               {contact.agentName && <p className="mt-1">{contact.agentName}</p>}
-              {contact.agentPhone && <p className="mt-1">{contact.agentPhone}</p>}
+              {contact.agentPhone && (
+                <>
+                  <p className="mt-1 hidden md:block">{contact.agentPhone}</p>
+                  <a
+                    href={getTelHref(contact.agentPhone)}
+                    className="btn-primary mt-2 inline-flex w-full items-center justify-center gap-2 md:hidden"
+                  >
+                    <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                      />
+                    </svg>
+                    Call {contact.agentPhone}
+                  </a>
+                </>
+              )}
               {contact.agentPhone && (
                 <a
                   href={getWhatsAppUrl(contact.agentPhone, whatsappMessage)}
@@ -268,16 +286,20 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
             {claimStep === 'send' && (
               <>
                 <p className="mt-2 text-sm text-gray-600">
-                  Verify the listing contact number to claim. We&apos;ll send a one-time code via SMS to this number. Once verified, you can claim all listings linked to it without admin approval.
+                  Verify the listing contact number to claim. We&apos;ll send a one-time code via SMS to that number. After you verify once, you can claim every bot listing that uses the same number—no second OTP needed.
                 </p>
-                {contact?.agentPhone && (
-                  <p className="mt-2 font-medium text-gray-900">Number: {contact.agentPhone}</p>
+                {contact?.agentPhone ? (
+                  <p className="mt-2 font-medium text-gray-900">Number on listing: {contact.agentPhone}</p>
+                ) : (
+                  <p className="mt-2 text-sm text-gray-500">
+                    The code is sent to the phone stored on this listing (you may not see the number until you complete profile verification).
+                  </p>
                 )}
                 <div className="mt-4 flex gap-2">
                   <button
                     type="button"
                     onClick={() => sendClaimOtp.mutate()}
-                    disabled={sendClaimOtp.isPending || !contact?.agentPhone}
+                    disabled={sendClaimOtp.isPending}
                     className="btn-primary flex-1"
                   >
                     {sendClaimOtp.isPending ? 'Sending…' : 'Send code'}
@@ -328,7 +350,7 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
             {claimStep === 'list' && (
               <>
                 <p className="mt-2 text-sm text-gray-600">
-                  You verified this number. The following {claimListings.length} listing{claimListings.length !== 1 ? 's' : ''} use it. Claim them all at once (no admin approval needed).
+                  The following {claimListings.length} claimable listing{claimListings.length !== 1 ? 's' : ''} share this phone number. Claim them together in one step—no extra OTP per listing.
                 </p>
                 <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
                   {claimListings.map((l) => (

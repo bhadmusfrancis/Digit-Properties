@@ -43,7 +43,6 @@ export default function HomePage() {
             View all →
           </Link>
         </div>
-        <p className="text-sm text-gray-500">Top 20 by views — ordered by your area when location is available.</p>
         <TrendingListings />
       </section>
 

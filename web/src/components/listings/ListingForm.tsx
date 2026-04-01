@@ -196,6 +196,22 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
   };
 
   async function onSubmit(data: FormData) {
+    const dupRes = await fetch('/api/listings/check-new-duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+        imagePublicIds: images.map((i) => i.public_id),
+        ...(editId ? { excludeListingId: editId } : {}),
+      }),
+    });
+    if (dupRes.status === 409) {
+      const err = await dupRes.json().catch(() => ({}));
+      alert(typeof err.error === 'string' ? err.error : 'This listing matches one you already posted.');
+      return;
+    }
+
     const location: Record<string, unknown> = {
       address: data.address,
       city: data.city,
@@ -229,6 +245,10 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       });
       if (!res.ok) {
         const err = await res.json();
+        if (err.code === 'DUPLICATE_TITLE' || err.code === 'DUPLICATE_DESCRIPTION' || err.code === 'DUPLICATE_MEDIA') {
+          alert(err.error || 'This listing looks like a duplicate.');
+          return;
+        }
         alert(err.error || 'Failed to update listing');
         return;
       }
@@ -245,6 +265,10 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       const err = await res.json();
       if (err.code === 'LISTING_LIMIT_REACHED') {
         alert(err.error || 'You have reached your listing limit.');
+        return;
+      }
+      if (err.code === 'DUPLICATE_TITLE' || err.code === 'DUPLICATE_DESCRIPTION' || err.code === 'DUPLICATE_MEDIA') {
+        alert(err.error || 'This listing looks like a duplicate.');
         return;
       }
       alert(err.error || 'Failed to create listing');
