@@ -6,6 +6,7 @@ import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/l
 import { fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
 import { CompactPagination } from '@/components/ui/CompactPagination';
 import { AdminListingsTable } from './AdminListingsTable';
+import { FixVictoriaIslandTitlesButton } from './FixVictoriaIslandTitlesButton';
 
 const PER_PAGE = 50;
 
@@ -105,6 +106,7 @@ export default async function AdminListingsPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <FixVictoriaIslandTitlesButton />
           <Link
             href="/listings/new"
             className="btn-primary min-h-[44px] w-full touch-manipulation sm:w-auto"

@@ -30,6 +30,7 @@ interface Props {
 export function ListingDetailClient({ listingId, title, createdBy, createdByType, baseUrl, isOwner, viewCount = 0, likeCount: initialLikeCount = 0 }: Props) {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [showDesktopPhone, setShowDesktopPhone] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const [claimStep, setClaimStep] = useState<'send' | 'verify' | 'list'>('send');
   const [claimPinId, setClaimPinId] = useState<string | null>(null);
@@ -45,6 +46,10 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
     if (!listingId || viewRecorded.current) return;
     viewRecorded.current = true;
     fetch(`/api/listings/${listingId}/view`, { method: 'POST' }).catch(() => {});
+  }, [listingId]);
+
+  useEffect(() => {
+    setShowDesktopPhone(false);
   }, [listingId]);
 
   const { data: contact } = useQuery({
@@ -207,10 +212,20 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
               {contact.agentName && <p className="mt-1">{contact.agentName}</p>}
               {contact.agentPhone && (
                 <>
-                  <p className="mt-1 hidden md:block">{contact.agentPhone}</p>
+                  {showDesktopPhone ? (
+                    <p className="mt-1 hidden lg:block">{contact.agentPhone}</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowDesktopPhone(true)}
+                      className="btn-secondary mt-2 hidden lg:inline-flex items-center justify-center"
+                    >
+                      View contact
+                    </button>
+                  )}
                   <a
                     href={getTelHref(contact.agentPhone)}
-                    className="btn-primary mt-2 inline-flex w-full items-center justify-center gap-2 md:hidden"
+                    className="btn-primary mt-2 inline-flex w-full items-center justify-center gap-2 lg:hidden"
                   >
                     <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path
