@@ -7,6 +7,11 @@ import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 
+type ListingsApiPage = {
+  listings?: unknown[];
+  pagination?: { page?: number; pages?: number; total?: number };
+};
+
 function buildBaseQuery(params: URLSearchParams) {
   const q = new URLSearchParams();
   params.forEach((v, k) => {
@@ -21,16 +26,16 @@ function ListingsContent() {
   const query = buildBaseQuery(searchParams);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<ListingsApiPage>({
     queryKey: ['listings', query],
     queryFn: async ({ pageParam = 1 }) => {
       const q = new URLSearchParams(query);
       if (pageParam > 1) q.set('page', String(pageParam));
       const res = await fetch(`/api/listings?${q.toString()}`);
-      return res.json();
+      return (await res.json()) as ListingsApiPage;
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage: { pagination?: { page?: number; pages?: number } }) => {
+    getNextPageParam: (lastPage) => {
       const page = lastPage?.pagination?.page ?? 1;
       const pages = lastPage?.pagination?.pages ?? 1;
       return page < pages ? page + 1 : undefined;
@@ -40,7 +45,7 @@ function ListingsContent() {
   });
 
   const pages = data?.pages ?? [];
-  const listings = pages.flatMap((p: { listings?: unknown[] }) => p?.listings ?? []);
+  const listings = pages.flatMap((p) => p?.listings ?? []);
   const total = pages[0]?.pagination?.total as number | undefined;
 
   useEffect(() => {
