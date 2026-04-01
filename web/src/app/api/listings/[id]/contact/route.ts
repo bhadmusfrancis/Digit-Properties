@@ -37,18 +37,21 @@ export async function GET(
     }
 
     const listing = await Listing.findById(id)
-      .select('agentName agentPhone agentEmail title createdBy')
+      .select('agentName agentPhone agentEmail title createdBy contactSource')
       .populate('createdBy', 'name phone email')
       .lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const creator = listing.createdBy as { name?: string; phone?: string; email?: string } | null;
-    const hasAgent = [listing.agentName, listing.agentPhone, listing.agentEmail].some(Boolean);
+    const src = (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author';
+    const hasListingContact = [listing.agentName, listing.agentPhone, listing.agentEmail].some(Boolean);
     return NextResponse.json({
-      agentName: hasAgent ? listing.agentName : (creator?.name ?? listing.agentName),
-      agentPhone: hasAgent ? listing.agentPhone : (creator?.phone ?? listing.agentPhone),
-      agentEmail: hasAgent ? listing.agentEmail : (creator?.email ?? listing.agentEmail),
+      agentName: src === 'listing' ? (listing.agentName ?? '') : (creator?.name ?? listing.agentName),
+      agentPhone: src === 'listing' ? (listing.agentPhone ?? '') : (creator?.phone ?? listing.agentPhone),
+      agentEmail: src === 'listing' ? (listing.agentEmail ?? '') : (creator?.email ?? listing.agentEmail),
       title: listing.title,
+      contactSource: src,
+      hasListingContact,
     });
   } catch (e) {
     console.error(e);

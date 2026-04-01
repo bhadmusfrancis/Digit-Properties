@@ -28,6 +28,7 @@ const schema = z.object({
   area: z.preprocess((v) => (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v)) ? undefined : Number(v)), z.number().positive().optional()),
   amenities: z.string().optional(),
   tags: z.string().optional(),
+  contactSource: z.enum(['author', 'listing']).default('author'),
   agentName: z.string().optional(),
   agentPhone: z.string().optional(),
   agentEmail: z.string().email().optional().or(z.literal('')),
@@ -37,6 +38,9 @@ const schema = z.object({
 }).refine((d) => d.listingType !== 'rent' || !!d.rentPeriod, {
   message: 'Rent period is required for rental listings',
   path: ['rentPeriod'],
+}).refine((d) => d.contactSource !== 'listing' || !!((d.agentPhone || '').trim() || (d.agentEmail || '').trim() || (d.agentName || '').trim()), {
+  message: 'Add listing contact details (phone/email/name) or switch contact to Author contact.',
+  path: ['agentPhone'],
 });
 
 type FormData = z.infer<typeof schema>;
@@ -79,6 +83,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       toilets: editInitial.toilets ?? 0,
       area: editInitial.area,
       amenities: editInitial.amenities ?? '',
+      contactSource: (editInitial as Partial<FormData> & { contactSource?: 'author' | 'listing' }).contactSource ?? 'author',
       agentName: editInitial.agentName ?? '',
       agentPhone: editInitial.agentPhone ?? '',
       agentEmail: editInitial.agentEmail ?? '',
@@ -92,6 +97,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       bathrooms: 0,
       toilets: 0,
       state: NIGERIAN_STATES[0],
+      contactSource: 'author',
     },
   });
 
@@ -481,11 +487,36 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Contact (optional)</label>
+          <p className="mt-1 text-xs text-gray-500">
+            Choose whether viewers will see your account contact (Author) or the contact details you enter on this listing.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-4" role="radiogroup" aria-label="Contact source">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                value="author"
+                {...register('contactSource')}
+                className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-800">Author contact</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                value="listing"
+                {...register('contactSource')}
+                className="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-800">Listing contact</span>
+            </label>
+          </div>
           <div className="mt-2 space-y-2">
             <input {...register('agentName')} placeholder="Agent name" className="input" />
             <input {...register('agentPhone')} placeholder="Phone" className="input" />
             <input {...register('agentEmail')} type="email" placeholder="Email" className="input" />
           </div>
+          {errors.contactSource && <p className="mt-1 text-sm text-red-600">{errors.contactSource.message}</p>}
+          {errors.agentPhone && <p className="mt-1 text-sm text-red-600">{errors.agentPhone.message}</p>}
         </div>
         </section>
 
