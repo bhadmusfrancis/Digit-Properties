@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
@@ -11,6 +11,8 @@ type ListingsApiPage = {
   listings?: unknown[];
   pagination?: { page?: number; pages?: number; total?: number };
 };
+
+const AUTO_LOAD_LIMIT = 50;
 
 function buildBaseQuery(params: URLSearchParams) {
   const q = new URLSearchParams();
@@ -29,7 +31,7 @@ function ListingsContent() {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<
     ListingsApiPage,
     Error,
-    ListingsApiPage,
+    InfiniteData<ListingsApiPage, number>,
     [string, string],
     number
   >({
@@ -53,10 +55,11 @@ function ListingsContent() {
   const pages = data?.pages ?? [];
   const listings = pages.flatMap((p) => p?.listings ?? []);
   const total = pages[0]?.pagination?.total as number | undefined;
+  const shouldAutoLoad = listings.length < AUTO_LOAD_LIMIT;
 
   useEffect(() => {
     const node = loadMoreRef.current;
-    if (!node || !hasNextPage) return;
+    if (!node || !hasNextPage || !shouldAutoLoad) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting) && hasNextPage && !isFetchingNextPage) {
@@ -67,7 +70,7 @@ function ListingsContent() {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, listings.length]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, shouldAutoLoad]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -105,10 +108,23 @@ function ListingsContent() {
               )}
               {hasNextPage ? (
                 <>
-                  <div ref={loadMoreRef} className="h-1 w-full" aria-hidden />
-                  <p className="text-sm text-gray-500">
-                    {isFetchingNextPage ? 'Loading more listings...' : 'Scroll to load more listings'}
-                  </p>
+                  {shouldAutoLoad ? (
+                    <>
+                      <div ref={loadMoreRef} className="h-1 w-full" aria-hidden />
+                      <p className="text-sm text-gray-500">
+                        {isFetchingNextPage ? 'Loading more listings...' : 'Scroll to load more listings'}
+                      </p>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                      className="btn-secondary min-w-[140px]"
+                    >
+                      {isFetchingNextPage ? 'Loading...' : 'Load more'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-gray-500">You have reached the end of results.</p>
