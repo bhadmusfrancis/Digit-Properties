@@ -19,7 +19,13 @@ import { generateListingDescriptionHtml } from '@/lib/listing-description';
 import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
-import { fileLooksLikeVideo, LISTING_FILE_UPLOAD_ACCEPT, LISTING_VIDEO_PICK_ACCEPT } from '@/lib/listing-media-accept';
+import {
+  countPlannedMediaUploads,
+  fileLooksLikeVideo,
+  LISTING_FILE_UPLOAD_ACCEPT,
+  LISTING_VIDEO_PICK_ACCEPT,
+} from '@/lib/listing-media-accept';
+import { uploadListingMediaFile } from '@/lib/upload-listing-media';
 import { stripHtml } from '@/lib/utils';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
@@ -158,6 +164,16 @@ const STEPS = [
   { n: 3, label: 'Publish', sub: 'Story & photos' },
 ];
 
+type UploadUiState =
+  | { status: 'idle' }
+  | {
+      status: 'uploading';
+      fileIndex: number;
+      fileTotal: number;
+      percent: number;
+      fileName: string;
+    };
+
 export function NewListingWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -165,10 +181,67 @@ export function NewListingWizard() {
   stepRef.current = step;
   const [images, setImages] = useState<{ url: string; public_id: string }[]>([]);
   const [videos, setVideos] = useState<{ url: string; public_id: string }[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploadUi, setUploadUi] = useState<UploadUiState>({ status: 'idle' });
+  const uploadAbortRef = useRef<AbortController | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoPickInputRef = useRef<HTMLInputElement>(null);
   const videoRecordInputRef = useRef<HTMLInputElement>(null);
+
+  const isUploading = uploadUi.status === 'uploading';
+
+  const beginUploadBatch = () => {
+    uploadAbortRef.current?.abort();
+    uploadAbortRef.current = new AbortController();
+  };
+
+  const endUploadBatch = () => {
+    uploadAbortRef.current = null;
+    setUploadUi({ status: 'idle' });
+  };
+
+  const cancelOngoingUploads = () => {
+    uploadAbortRef.current?.abort();
+    uploadAbortRef.current = null;
+    setUploadUi({ status: 'idle' });
+  };
+
+  async function runUploadWithProgress(
+    file: File,
+    attemptIndex: number,
+    attemptTotal: number
+  ): Promise<{ url: string; public_id: string; type: 'image' | 'video' } | null> {
+    const ac = uploadAbortRef.current;
+    if (!ac) return null;
+    setUploadUi({
+      status: 'uploading',
+      fileIndex: attemptIndex + 1,
+      fileTotal: attemptTotal,
+      percent: attemptTotal > 0 ? (attemptIndex / attemptTotal) * 100 : 0,
+      fileName: file.name,
+    });
+    try {
+      const result = await uploadListingMediaFile(file, {
+        signal: ac.signal,
+        onProgress: ({ loaded, total }) => {
+          if (!total || attemptTotal <= 0) return;
+          const base = (attemptIndex / attemptTotal) * 100;
+          const slice = 100 / attemptTotal;
+          const pct = base + (loaded / total) * slice;
+          setUploadUi((u) => (u.status === 'uploading' ? { ...u, percent: Math.min(99.9, pct) } : u));
+        },
+      });
+      setUploadUi((u) =>
+        u.status === 'uploading'
+          ? { ...u, percent: Math.min(100, ((attemptIndex + 1) / attemptTotal) * 100) }
+          : u
+      );
+      return result;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') throw e;
+      alert(e instanceof Error ? e.message : 'Upload failed');
+      return null;
+    }
+  }
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard', 'stats'],
@@ -347,72 +420,90 @@ export function NewListingWizard() {
   };
 
   const goBack = () => {
+    if (isUploading) cancelOngoingUploads();
     if (step > 1) setStep((s) => s - 1);
   };
-
-  async function uploadMediaFile(file: File): Promise<{ url: string; public_id: string; type: 'image' | 'video' } | null> {
-    const form = new FormData();
-    form.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: form });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(typeof data.error === 'string' ? data.error : 'Upload failed');
-      return null;
-    }
-    if (!data.url) return null;
-    return {
-      url: data.url,
-      public_id: data.public_id,
-      type: data.type === 'video' ? 'video' : 'image',
-    };
-  }
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
-    setUploading(true);
     let imgRoom = maxImages - images.length;
     let vidRoom = maxVideos - videos.length;
+    const batchTotal = countPlannedMediaUploads(files, imgRoom, vidRoom);
+    if (!batchTotal) {
+      e.target.value = '';
+      return;
+    }
+    beginUploadBatch();
+    let ir = imgRoom;
+    let vr = vidRoom;
     const newImgs: { url: string; public_id: string }[] = [];
     const newVids: { url: string; public_id: string }[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const expectVideo = fileLooksLikeVideo(file);
-      if (expectVideo) {
-        if (vidRoom <= 0) continue;
-        const up = await uploadMediaFile(file);
-        if (up?.type === 'video') {
-          newVids.push({ url: up.url, public_id: up.public_id });
-          vidRoom -= 1;
-        } else if (up?.type === 'image' && imgRoom > 0) {
-          newImgs.push({ url: up.url, public_id: up.public_id });
-          imgRoom -= 1;
-        }
-      } else {
-        if (imgRoom <= 0) continue;
-        const up = await uploadMediaFile(file);
-        if (up?.type === 'image') {
-          newImgs.push({ url: up.url, public_id: up.public_id });
-          imgRoom -= 1;
-        } else if (up?.type === 'video' && vidRoom > 0) {
-          newVids.push({ url: up.url, public_id: up.public_id });
-          vidRoom -= 1;
+    let attempt = 0;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const expectVideo = fileLooksLikeVideo(file);
+        if (expectVideo) {
+          if (vr <= 0) continue;
+          let up: { url: string; public_id: string; type: 'image' | 'video' } | null = null;
+          try {
+            up = await runUploadWithProgress(file, attempt, batchTotal);
+          } catch {
+            break;
+          }
+          attempt++;
+          if (!up) continue;
+          if (up.type === 'video') {
+            newVids.push({ url: up.url, public_id: up.public_id });
+            vr -= 1;
+          } else if (up.type === 'image' && ir > 0) {
+            newImgs.push({ url: up.url, public_id: up.public_id });
+            ir -= 1;
+          }
+        } else {
+          if (ir <= 0) continue;
+          let up: { url: string; public_id: string; type: 'image' | 'video' } | null = null;
+          try {
+            up = await runUploadWithProgress(file, attempt, batchTotal);
+          } catch {
+            break;
+          }
+          attempt++;
+          if (!up) continue;
+          if (up.type === 'image') {
+            newImgs.push({ url: up.url, public_id: up.public_id });
+            ir -= 1;
+          } else if (up.type === 'video' && vr > 0) {
+            newVids.push({ url: up.url, public_id: up.public_id });
+            vr -= 1;
+          }
         }
       }
+    } finally {
+      endUploadBatch();
     }
     if (newImgs.length) setImages((prev) => [...prev, ...newImgs]);
     if (newVids.length) setVideos((prev) => [...prev, ...newVids]);
-    setUploading(false);
     e.target.value = '';
   }
 
   async function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file && images.length < maxImages) {
-      setUploading(true);
-      const up = await uploadMediaFile(file);
-      if (up?.type === 'image') setImages((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
-      setUploading(false);
+    if (!file || images.length >= maxImages) {
+      e.target.value = '';
+      return;
+    }
+    beginUploadBatch();
+    try {
+      try {
+        const up = await runUploadWithProgress(file, 0, 1);
+        if (up?.type === 'image') setImages((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
+      } catch {
+        /* aborted */
+      }
+    } finally {
+      endUploadBatch();
     }
     e.target.value = '';
   }
@@ -420,28 +511,54 @@ export function NewListingWizard() {
   async function onVideoPickChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
-    setUploading(true);
     let vidRoom = maxVideos - videos.length;
+    const batchTotal = countPlannedMediaUploads(files, maxImages - images.length, vidRoom);
+    if (!batchTotal) {
+      e.target.value = '';
+      return;
+    }
+    beginUploadBatch();
+    let vr = vidRoom;
     const newVids: { url: string; public_id: string }[] = [];
-    for (let i = 0; i < files.length && vidRoom > 0; i++) {
-      const up = await uploadMediaFile(files[i]);
-      if (up?.type === 'video') {
-        newVids.push({ url: up.url, public_id: up.public_id });
-        vidRoom -= 1;
+    let attempt = 0;
+    try {
+      for (let i = 0; i < files.length && vr > 0; i++) {
+        const file = files[i];
+        let up: { url: string; public_id: string; type: 'image' | 'video' } | null = null;
+        try {
+          up = await runUploadWithProgress(file, attempt, batchTotal);
+        } catch {
+          break;
+        }
+        attempt++;
+        if (up?.type === 'video') {
+          newVids.push({ url: up.url, public_id: up.public_id });
+          vr -= 1;
+        }
       }
+    } finally {
+      endUploadBatch();
     }
     if (newVids.length) setVideos((prev) => [...prev, ...newVids]);
-    setUploading(false);
     e.target.value = '';
   }
 
   async function onVideoRecordChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file && videos.length < maxVideos) {
-      setUploading(true);
-      const up = await uploadMediaFile(file);
-      if (up?.type === 'video') setVideos((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
-      setUploading(false);
+    if (!file || videos.length >= maxVideos) {
+      e.target.value = '';
+      return;
+    }
+    beginUploadBatch();
+    try {
+      try {
+        const up = await runUploadWithProgress(file, 0, 1);
+        if (up?.type === 'video') setVideos((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
+      } catch {
+        /* aborted */
+      }
+    } finally {
+      endUploadBatch();
     }
     e.target.value = '';
   }
@@ -573,6 +690,10 @@ export function NewListingWizard() {
         <form
           onSubmit={(e) => {
             if (stepRef.current < 3) {
+              e.preventDefault();
+              return;
+            }
+            if (uploadUi.status === 'uploading') {
               e.preventDefault();
               return;
             }
@@ -808,7 +929,7 @@ export function NewListingWizard() {
                       value={field.value}
                       onChange={field.onChange}
                       minHeight="220px"
-                      disabled={uploading}
+                      disabled={isUploading}
                       placeholder="Describe your property in your own words."
                     />
                   )}
@@ -828,7 +949,7 @@ export function NewListingWizard() {
                     multiple
                     onChange={onFileChange}
                     disabled={
-                      uploading || (images.length >= maxImages && videos.length >= maxVideos)
+                      isUploading || (images.length >= maxImages && videos.length >= maxVideos)
                     }
                     className="hidden"
                     id="wizard-file-upload"
@@ -836,7 +957,7 @@ export function NewListingWizard() {
                   <label
                     htmlFor="wizard-file-upload"
                     className={`cursor-pointer rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95 ${
-                      uploading || (images.length >= maxImages && videos.length >= maxVideos)
+                      isUploading || (images.length >= maxImages && videos.length >= maxVideos)
                         ? 'pointer-events-none opacity-50'
                         : ''
                     }`}
@@ -849,14 +970,14 @@ export function NewListingWizard() {
                     capture="environment"
                     ref={cameraInputRef}
                     onChange={onCameraFileChange}
-                    disabled={uploading || images.length >= maxImages}
+                    disabled={isUploading || images.length >= maxImages}
                     className="hidden"
                     aria-hidden
                   />
                   <button
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
-                    disabled={uploading || images.length >= maxImages}
+                    disabled={isUploading || images.length >= maxImages}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Photo (camera)
@@ -867,14 +988,14 @@ export function NewListingWizard() {
                     multiple
                     ref={videoPickInputRef}
                     onChange={onVideoPickChange}
-                    disabled={uploading || videos.length >= maxVideos}
+                    disabled={isUploading || videos.length >= maxVideos}
                     className="hidden"
                     aria-hidden
                   />
                   <button
                     type="button"
                     onClick={() => videoPickInputRef.current?.click()}
-                    disabled={uploading || videos.length >= maxVideos}
+                    disabled={isUploading || videos.length >= maxVideos}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Add video
@@ -885,14 +1006,14 @@ export function NewListingWizard() {
                     capture="environment"
                     ref={videoRecordInputRef}
                     onChange={onVideoRecordChange}
-                    disabled={uploading || videos.length >= maxVideos}
+                    disabled={isUploading || videos.length >= maxVideos}
                     className="hidden"
                     aria-hidden
                   />
                   <button
                     type="button"
                     onClick={() => videoRecordInputRef.current?.click()}
-                    disabled={uploading || videos.length >= maxVideos}
+                    disabled={isUploading || videos.length >= maxVideos}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Record video
@@ -901,7 +1022,34 @@ export function NewListingWizard() {
                     {images.length} / {maxImages} photos · {videos.length} / {maxVideos} videos
                   </span>
                 </div>
-                {uploading && <p className="mt-2 text-sm text-sky-700">Uploading…</p>}
+                {uploadUi.status === 'uploading' && (
+                  <div className="mt-3 space-y-2 rounded-xl border border-sky-200 bg-sky-50/90 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-gray-800">
+                        Uploading file {uploadUi.fileIndex} of {uploadUi.fileTotal}
+                        {uploadUi.fileName ? (
+                          <>
+                            : <span className="font-medium break-all">{uploadUi.fileName}</span>
+                          </>
+                        ) : null}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={cancelOngoingUploads}
+                        className="shrink-0 text-sm font-medium text-red-600 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full bg-sky-600 transition-[width] duration-200"
+                        style={{ width: `${Math.min(100, Math.max(0, uploadUi.percent))}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-600">{Math.round(uploadUi.percent)}% complete</p>
+                  </div>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   {images.map((img, index) => (
                     <div key={img.public_id} className="relative">
@@ -997,7 +1145,8 @@ export function NewListingWizard() {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:opacity-95"
+                  disabled={isUploading}
+                  className="rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:opacity-95 disabled:opacity-60"
                 >
                   Continue
                 </button>
@@ -1006,7 +1155,7 @@ export function NewListingWizard() {
                   <button
                     type="submit"
                     onClick={() => setValue('status', 'draft')}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isUploading}
                     className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-60"
                   >
                     Save draft
@@ -1014,7 +1163,7 @@ export function NewListingWizard() {
                   <button
                     type="submit"
                     onClick={() => setValue('status', 'active')}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isUploading}
                     className="rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:opacity-95 disabled:opacity-60"
                   >
                     {isSubmitting ? 'Publishing…' : 'Publish property'}

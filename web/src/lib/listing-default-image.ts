@@ -55,6 +55,11 @@ export function isDefaultListingImageUrl(url: string): boolean {
  * Extract Cloudinary video `public_id` from a video delivery URL.
  * e.g. .../video/upload/v123/folder/id.mp4 → folder/id
  */
+function extractCloudinaryCloudNameFromUrl(url: string): string | null {
+  const m = url.match(/\/\/res\.cloudinary\.com\/([^/]+)\//i);
+  return m?.[1] ? decodeURIComponent(m[1]) : null;
+}
+
 function extractCloudinaryVideoPublicIdFromUrl(url: string): string | null {
   try {
     const m = url.match(/\/video\/upload\/(?:v\d+\/)?([^?#]+)/i);
@@ -73,14 +78,16 @@ function extractCloudinaryVideoPublicIdFromUrl(url: string): string | null {
 export function getCloudinaryVideoThumbnailUrl(
   video: { url?: string; public_id?: string }
 ): string | null {
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  if (!cloud) return null;
-
   let publicId = typeof video.public_id === 'string' ? video.public_id.trim() : '';
-  if (!publicId && video.url?.includes(CLOUDINARY_HOST) && video.url.includes('/video/upload/')) {
-    publicId = extractCloudinaryVideoPublicIdFromUrl(video.url) ?? '';
+  const url = typeof video.url === 'string' ? video.url.trim() : '';
+  if (!publicId && url.includes(CLOUDINARY_HOST) && url.includes('/video/upload/')) {
+    publicId = extractCloudinaryVideoPublicIdFromUrl(url) ?? '';
   }
   if (!publicId) return null;
+
+  const cloud =
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || (url ? extractCloudinaryCloudNameFromUrl(url) : null);
+  if (!cloud) return null;
 
   return `https://${CLOUDINARY_HOST}/${cloud}/video/upload/so_0,f_jpg,q_auto/${publicId}`;
 }
@@ -105,13 +112,16 @@ export function listingHasVideoMedia(
 }
 
 /**
- * Card / preview image: prefer video frame (if available), then first image, then default by property type.
+ * Card / preview image: first real photo wins; if the listing is video-only (no stills), use a Cloudinary video frame.
  */
 export function getListingDisplayImage(
   images: { url?: string }[] | undefined,
   propertyType: string,
   videos?: ListingVideoRef[] | undefined
 ): string {
+  const firstStill = images?.find((i) => i?.url?.trim() && !isVideoUrl(i.url || ''))?.url;
+  if (firstStill) return firstStill;
+
   const firstVid =
     videos?.find((v) => v?.url?.trim() || v?.public_id?.trim()) ??
     images
@@ -122,8 +132,6 @@ export function getListingDisplayImage(
     const thumb = getCloudinaryVideoThumbnailUrl(firstVid);
     if (thumb) return thumb;
   }
-  const firstImg = images?.find((i) => i?.url?.trim() && !isVideoUrl(i.url || ''))?.url;
-  if (firstImg) return firstImg;
   return getDefaultListingImageUrl(propertyType);
 }
 
