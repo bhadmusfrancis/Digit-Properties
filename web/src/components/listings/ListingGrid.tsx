@@ -15,6 +15,8 @@ export interface Listing {
   listingType: string;
   rentPeriod?: 'day' | 'month' | 'year';
   propertyType: string;
+  /** When set (e.g. API returns multiple types), shown in the grid; falls back to `propertyType`. */
+  propertyTypes?: string[];
   location: { city?: string; state?: string; suburb?: string };
   bedrooms: number;
   bathrooms: number;
