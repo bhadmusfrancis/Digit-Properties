@@ -11,6 +11,7 @@ import {
 import { buildListingListQuery } from '@/lib/listing-list-query';
 import { MyListingActions } from './MyListingActions';
 import { SortColumnHeader } from './SortColumnHeader';
+import { ListingSortMobileBar } from './ListingSortMobileBar';
 import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
 
 type ListingRow = {
@@ -74,6 +75,13 @@ export function MyListingsTable({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white shadow">
+      <ListingSortMobileBar
+        sortKey={sortKey}
+        sortAsc={sortAsc}
+        applySort={applySort}
+        resetSort={resetSort}
+        className="mx-3 mt-3"
+      />
       <div className="space-y-3 p-3 sm:hidden">
         {listings.map((l) => (
           <article key={l._id} className="rounded-lg border border-gray-200 p-3">
