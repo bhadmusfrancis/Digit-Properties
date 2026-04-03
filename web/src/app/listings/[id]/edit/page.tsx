@@ -76,6 +76,12 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
           public_id: img?.public_id ?? '',
         }))
       : [],
+    videos: Array.isArray((listing as { videos?: { url?: string; public_id?: string }[] }).videos)
+      ? (listing as { videos: { url?: string; public_id?: string }[] }).videos.map((v) => ({
+          url: v?.url ?? '',
+          public_id: v?.public_id ?? '',
+        }))
+      : [],
     coordinates,
   };
 

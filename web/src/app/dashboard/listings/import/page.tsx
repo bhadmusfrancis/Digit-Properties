@@ -30,6 +30,7 @@ export type EditInitialShape = {
   status: 'draft' | 'active';
   amenities: string;
   images?: { url: string; public_id: string }[];
+  videos?: { url: string; public_id: string }[];
 };
 
 function parsedToEditInitial(parsed: ParsedListing, images?: { url: string; public_id: string }[]): EditInitialShape {
@@ -60,6 +61,7 @@ function parsedToEditInitial(parsed: ParsedListing, images?: { url: string; publ
     status: 'draft',
     amenities: Array.isArray(parsed.amenities) ? parsed.amenities.join(', ') : '',
     images: images ?? [],
+    videos: [],
   };
 }
 
@@ -94,6 +96,7 @@ function buildListingPayload(
     amenities: item.amenities ? item.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [],
     tags: ['whatsapp-import'],
     images: item.images ?? [],
+    videos: item.videos ?? [],
   };
 }
 
@@ -212,6 +215,7 @@ export default function ImportFromWhatsAppPage() {
     if (!formRef.current || !listings) return;
     const values = formRef.current.getValues();
     const images = formRef.current.getImages();
+    const videos = formRef.current.getVideos();
     const updated: EditInitialShape = {
       title: values.title,
       description: values.description,
@@ -234,6 +238,7 @@ export default function ImportFromWhatsAppPage() {
       status: (values.status as 'draft' | 'active') ?? 'draft',
       amenities: values.amenities ?? '',
       images,
+      videos,
     };
     setListings((prev) => {
       if (!prev) return prev;
@@ -261,6 +266,7 @@ export default function ImportFromWhatsAppPage() {
     if (formRef.current) {
       const v = formRef.current.getValues();
       const imgs = formRef.current.getImages();
+      const vids = formRef.current.getVideos();
       toSave[currentIndex] = {
         ...toSave[currentIndex],
         title: v.title,
@@ -284,6 +290,7 @@ export default function ImportFromWhatsAppPage() {
         status: (v.status as 'draft' | 'active') ?? 'draft',
         amenities: v.amenities ?? '',
         images: imgs,
+        videos: vids,
       };
     }
     let success = 0;
