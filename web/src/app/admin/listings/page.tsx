@@ -3,6 +3,7 @@ import Listing from '@/models/Listing';
 import User from '@/models/User';
 import Link from 'next/link';
 import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
+import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
 import { CompactPagination } from '@/components/ui/CompactPagination';
 import { AdminListingsTable } from './AdminListingsTable';
@@ -67,12 +68,12 @@ export default async function AdminListingsPage({
     const loc = l.location && typeof l.location === 'object'
       ? (l.location as { address?: unknown; suburb?: unknown; city?: unknown; state?: unknown })
       : undefined;
-    const locationLine = [
-      typeof loc?.address === 'string' ? loc.address : '',
-      typeof loc?.suburb === 'string' ? loc.suburb : '',
-      typeof loc?.city === 'string' ? loc.city : '',
-      typeof loc?.state === 'string' ? loc.state : '',
-    ].filter(Boolean).join(', ');
+    const locationLine = formatListingLocationDisplay(loc ? {
+      address: typeof loc.address === 'string' ? loc.address : '',
+      suburb: typeof loc.suburb === 'string' ? loc.suburb : '',
+      city: typeof loc.city === 'string' ? loc.city : '',
+      state: typeof loc.state === 'string' ? loc.state : '',
+    } : undefined);
 
     return {
       _id: String(l._id),

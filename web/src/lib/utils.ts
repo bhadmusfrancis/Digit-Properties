@@ -33,3 +33,21 @@ export function getTelHref(phone: string): string {
   else if (!n.startsWith('234') && n.length === 10) n = '234' + n;
   return `tel:+${n}`;
 }
+
+/** Strip HTML tags for length checks (e.g. rich text descriptions). */
+export function stripHtml(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

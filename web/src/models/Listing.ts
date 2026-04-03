@@ -15,6 +15,8 @@ export interface IListing {
   description: string;
   listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE];
   propertyType: (typeof PROPERTY_TYPES)[number];
+  /** Up to 3 categories (primary is `propertyType`). */
+  propertyTypes?: (typeof PROPERTY_TYPES)[number][];
   price: number;
   location: ILocation;
   bedrooms: number;
@@ -69,6 +71,7 @@ const ListingSchema = new Schema<IListing>(
     description: { type: String, required: true },
     listingType: { type: String, enum: Object.values(LISTING_TYPE), required: true },
     propertyType: { type: String, enum: PROPERTY_TYPES, required: true },
+    propertyTypes: [{ type: String, enum: PROPERTY_TYPES }],
     price: { type: Number, required: true },
     location: { type: LocationSchema, required: true },
     bedrooms: { type: Number, default: 0 },

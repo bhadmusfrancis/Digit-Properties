@@ -5,6 +5,8 @@
 export interface TitleInput {
   listingType: string;
   propertyType: string;
+  /** When set (up to 3), used for titles instead of a single propertyType. */
+  propertyTypes?: string[];
   address?: string;
   state?: string;
   city?: string;
@@ -60,9 +62,20 @@ function pickFromDescription(description: string, maxWords = 2): string[] {
 }
 
 /** Build title using one of several formats at random. */
+function propertyTypesDisplay(input: TitleInput): string {
+  const types =
+    input.propertyTypes?.length && input.propertyTypes.length > 0
+      ? input.propertyTypes
+      : input.propertyType
+        ? [input.propertyType]
+        : [];
+  if (!types.length) return 'Property';
+  return types.map((t) => capitalize((t || '').replace(/_/g, ' '))).join(' & ');
+}
+
 export function generateListingTitle(input: TitleInput): string {
   const beds = input.bedrooms ?? 0;
-  const prop = capitalize((input.propertyType || '').replace(/_/g, ' '));
+  const prop = propertyTypesDisplay(input);
   const typeStr =
     input.listingType === 'rent'
       ? 'for Rent'
@@ -100,5 +113,5 @@ export function generateListingTitle(input: TitleInput): string {
   const fn = formats[Math.floor(Math.random() * formats.length)];
   let title = fn();
   if (title.length > 200) title = title.slice(0, 197) + '...';
-  return title.trim() || 'Property Listing';
+  return title.trim() || 'Property';
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
-import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
+import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 const CARD_WIDTH = 280;
@@ -19,6 +19,7 @@ export interface Listing {
   listingType: string;
   rentPeriod?: 'day' | 'month' | 'year';
   propertyType: string;
+  propertyTypes?: string[];
   location: { city?: string; state?: string; suburb?: string };
   bedrooms: number;
   bathrooms: number;
@@ -115,7 +116,9 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
                 </>
               )}
               <span className="text-gray-400">•</span>
-              <span className="text-sm text-gray-600">{formatPropertyTypeLabel(listing.propertyType)}</span>
+              <span className="text-sm text-gray-600">
+                {formatPropertyTypesLine(listing.propertyTypes, listing.propertyType)}
+              </span>
             </div>
             {listing.createdBy?.role && listing.createdBy.role !== 'guest' && (
               <div className="mt-2">

@@ -5,17 +5,20 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
 import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES, LISTING_TYPE } from '@/lib/constants';
 import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { generateListingTitle } from '@/lib/listing-title';
 import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 
+const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
+
 const schema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(20).max(20000),
   listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
-  propertyType: z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]),
+  propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(3, 'You can select up to 3'),
   price: z.number().positive(),
   address: z.string().min(5),
   city: z.string().min(2),
@@ -55,6 +58,8 @@ export type ListingFormProps = {
   editInitial?: Partial<FormData> & {
     images?: { url: string; public_id: string }[];
     coordinates?: { lat: number; lng: number };
+    /** @deprecated use propertyTypes */
+    propertyType?: string;
   };
   /** When set, parent can read current form values and images (e.g. for multi-listing import next/prev). */
   getFormRef?: React.MutableRefObject<ListingFormRef | null>;
@@ -66,13 +71,34 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
   const [uploading, setUploading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard', 'stats'],
+    queryFn: async () => {
+      const r = await fetch('/api/dashboard/stats');
+      if (!r.ok) return {};
+      return r.json();
+    },
+  });
+  const maxImages = typeof stats?.maxImages === 'number' ? stats.maxImages : 10;
+
+  const resolvedInitialTypes =
+    editInitial &&
+    Array.isArray((editInitial as { propertyTypes?: string[] }).propertyTypes) &&
+    (editInitial as { propertyTypes?: string[] }).propertyTypes!.length > 0
+      ? (editInitial as { propertyTypes: string[] }).propertyTypes
+      : editInitial &&
+          typeof (editInitial as { propertyType?: string }).propertyType === 'string' &&
+          (editInitial as { propertyType: string }).propertyType
+        ? [(editInitial as { propertyType: string }).propertyType]
+        : ['apartment'];
+
   const methods = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: editInitial ? {
       title: editInitial.title ?? '',
       description: editInitial.description ?? '',
       listingType: editInitial.listingType ?? 'sale',
-      propertyType: editInitial.propertyType ?? 'apartment',
+      propertyTypes: resolvedInitialTypes.slice(0, 3) as FormData['propertyTypes'],
       price: editInitial.price ?? 0,
       address: editInitial.address ?? '',
       city: editInitial.city ?? '',
@@ -93,6 +119,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     } : {
       listingType: 'sale',
       status: 'draft',
+      propertyTypes: ['apartment'],
       bedrooms: 0,
       bathrooms: 0,
       toilets: 0,
@@ -124,6 +151,17 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
   }, [getFormRef, getValues, images]);
 
   const watched = watch();
+  const propertyTypesSel = watched.propertyTypes ?? [];
+
+  const togglePropertyType = (t: (typeof PROPERTY_TYPES)[number]) => {
+    const cur = [...propertyTypesSel];
+    const i = cur.indexOf(t);
+    if (i >= 0) {
+      if (cur.length <= 1) return;
+      cur.splice(i, 1);
+    } else if (cur.length < 3) cur.push(t);
+    setValue('propertyTypes', cur, { shouldValidate: true });
+  };
 
   const amenityList = Array.from(
     new Set([
@@ -143,7 +181,8 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     const list = watched.amenities ? watched.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [];
     const title = generateListingTitle({
       listingType: watched.listingType,
-      propertyType: watched.propertyType,
+      propertyType: propertyTypesSel[0] || 'apartment',
+      propertyTypes: propertyTypesSel,
       address: watched.address,
       state: watched.state,
       city: watched.city,
@@ -162,7 +201,8 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     const files = e.target.files;
     if (!files?.length) return;
     setUploading(true);
-    for (let i = 0; i < Math.min(files.length, 10 - images.length); i++) {
+    const room = maxImages - images.length;
+    for (let i = 0; i < Math.min(files.length, room); i++) {
       const form = new FormData();
       form.append('file', files[i]);
       const res = await fetch('/api/upload', { method: 'POST', body: form });
@@ -175,7 +215,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
 
   function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && images.length < maxImages) {
       setUploading(true);
       const form = new FormData();
       form.append('file', file);
@@ -319,13 +359,29 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
               <option value={LISTING_TYPE.JOINT_VENTURE}>Joint venture</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Property type</label>
-            <select {...register('propertyType')} className="input mt-1">
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">Property types (up to 3)</label>
+            <p className="mt-0.5 text-xs text-gray-500">Selected: {propertyTypesSel.length} / 3</p>
+            {errors.propertyTypes && (
+              <p className="mt-1 text-sm text-red-600">{(errors.propertyTypes as { message?: string }).message}</p>
+            )}
+            <div className="mt-2 flex max-h-40 flex-wrap gap-2 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/50 p-2 sm:max-h-none">
+              {PROPERTY_TYPES.map((t) => {
+                const selected = propertyTypesSel.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => togglePropertyType(t)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium capitalize sm:text-sm ${
+                      selected ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {t.replace(/_/g, ' ')}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -392,7 +448,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         <div>
           <label className="block text-sm font-medium text-gray-700">Photos</label>
           <p className="mt-1 text-xs text-gray-500">
-            Recommended for SEO: 1200×630 or 1920×1080, JPEG/PNG/WebP, max 10MB. First image is used in search previews.
+            Up to {maxImages} images per listing. Recommended: 1200×630 or 1920×1080, JPEG/PNG/WebP. First image is used in search previews.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <input
@@ -400,7 +456,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
               accept="image/*"
               multiple
               onChange={onFileChange}
-              disabled={uploading || images.length >= 10}
+              disabled={uploading || images.length >= maxImages}
               className="hidden"
               id="file-upload"
             />
@@ -413,13 +469,14 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
               capture="environment"
               ref={cameraInputRef}
               onChange={onCameraFileChange}
-              disabled={uploading || images.length >= 10}
+              disabled={uploading || images.length >= maxImages}
               className="hidden"
               aria-hidden
             />
-            <button type="button" onClick={onCameraCapture} disabled={uploading || images.length >= 10} className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <button type="button" onClick={onCameraCapture} disabled={uploading || images.length >= maxImages} className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               Use camera
             </button>
+            <span className="self-center text-xs text-gray-500">{images.length} / {maxImages}</span>
           </div>
           <p className="mt-1 text-xs text-gray-500">You can add multiple photos: choose multiple files at once, or use the camera repeatedly to add another after each shot.</p>
           {uploading && <p className="text-sm text-gray-500">Uploading...</p>}

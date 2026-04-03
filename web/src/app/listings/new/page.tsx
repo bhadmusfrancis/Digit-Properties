@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ListingForm } from '@/components/listings/ListingForm';
+import { NewListingWizard } from '@/components/listings/NewListingWizard';
 
 export default function NewListingPage() {
   const { data: session, status } = useSession();
@@ -78,19 +78,18 @@ export default function NewListingPage() {
 
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Sell or Rent a property
+            List a property in three easy steps
           </h1>
-          <p className="mt-2 text-base text-gray-600">
-            Fill in the details below. Required fields are marked with <span className="text-red-500">*</span>.
+          <p className="mt-2 text-base text-gray-600 max-w-xl mx-auto">
+            A guided flow for details, location, then title, description, and photos.
+            Required fields are marked with <span className="text-red-500">*</span>.
           </p>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-gray-200/80 bg-white p-6 shadow-lg shadow-sky-100/30 sm:p-8">
-          <ListingForm />
-        </div>
+        <NewListingWizard />
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Your listing can be saved as a draft or published right away.
+        <p className="mt-8 text-center text-sm text-gray-500">
+          You can save as a draft or publish when you&apos;re ready—progress is saved only after you submit on step 3.
         </p>
       </main>
     </div>

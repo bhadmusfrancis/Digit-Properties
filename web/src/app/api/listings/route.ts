@@ -4,7 +4,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing, { type IListing } from '@/models/Listing';
 import User from '@/models/User';
-import { listingSchema, listingQuerySchema } from '@/lib/validations';
+import { listingSchema, listingQuerySchema, resolveListingPropertyTypes } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } from '@/lib/constants';
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
@@ -213,7 +213,7 @@ export async function POST(req: Request) {
     if (listingCount >= limits.maxListings) {
       return NextResponse.json(
         {
-          error: `You've reached the limit of ${limits.maxListings} listings for your plan.`,
+          error: `You can have up to ${limits.maxListings} active or draft listings at this time.`,
           code: 'LISTING_LIMIT_REACHED',
         },
         { status: 403 }
@@ -240,13 +240,13 @@ export async function POST(req: Request) {
     );
     if (images.length > limits.maxImages) {
       return NextResponse.json(
-        { error: `Maximum ${limits.maxImages} images per listing for your plan.` },
+        { error: `You can add up to ${limits.maxImages} images per listing.` },
         { status: 400 }
       );
     }
     if (videos.length > limits.maxVideos) {
       return NextResponse.json(
-        { error: `Maximum ${limits.maxVideos} video(s) per listing for your plan.` },
+        { error: `You can add up to ${limits.maxVideos} video(s) per listing.` },
         { status: 400 }
       );
     }
@@ -266,6 +266,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const resolvedPt = resolveListingPropertyTypes(parsed.data);
+    if (!resolvedPt) {
+      return NextResponse.json({ error: 'Select at least one property type' }, { status: 400 });
+    }
+
     const amenitiesFromBody = normalizeList(parsed.data.amenities);
     const amenitiesFromText = extractAmenitiesFromText(
       `${parsed.data.title}\n${parsed.data.description}\n${(parsed.data.tags ?? []).join(', ')}`,
@@ -273,9 +278,19 @@ export async function POST(req: Request) {
     );
     const amenities = mergeUniqueLists(amenitiesFromBody, amenitiesFromText);
     const tagsMerged = mergeUniqueLists(parsed.data.tags, amenities);
-    const { images: _i, videos: _v, amenities: _a, tags: _t, ...rest } = parsed.data;
+    const {
+      images: _i,
+      videos: _v,
+      amenities: _a,
+      tags: _t,
+      propertyType: _dropPt,
+      propertyTypes: _dropPts,
+      ...rest
+    } = parsed.data;
     const listing = await Listing.create({
       ...rest,
+      propertyType: resolvedPt.propertyType,
+      propertyTypes: resolvedPt.propertyTypes,
       amenities,
       tags: tagsMerged,
       images,
