@@ -11,3 +11,23 @@ export function fileLooksLikeVideo(file: File): boolean {
   const n = file.name.toLowerCase();
   return /\.(mp4|webm|mov|m4v|mkv|avi|ogv)$/.test(n);
 }
+
+/** How many files from this list will be attempted given remaining image/video slots (client-side guess). */
+export function countPlannedMediaUploads(files: FileList, imgRoom: number, vidRoom: number): number {
+  let ir = Math.max(0, imgRoom);
+  let vr = Math.max(0, vidRoom);
+  let count = 0;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (fileLooksLikeVideo(file)) {
+      if (vr > 0) {
+        count++;
+        vr--;
+      }
+    } else if (ir > 0) {
+      count++;
+      ir--;
+    }
+  }
+  return count;
+}
