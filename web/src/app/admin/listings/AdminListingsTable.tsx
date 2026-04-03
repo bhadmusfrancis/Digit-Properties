@@ -8,6 +8,7 @@ import { type ListingSortKey, cycleListingSort } from '@/lib/sort-listing-rows';
 import { buildListingListQuery } from '@/lib/listing-list-query';
 import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
 import { SortColumnHeader } from '@/components/listings/SortColumnHeader';
+import { ListingSortMobileBar } from '@/components/listings/ListingSortMobileBar';
 import { AdminListingActions } from './AdminListingActions';
 
 type User = { _id: string; name?: string; email?: string };
@@ -88,7 +89,7 @@ export function AdminListingsTable({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white shadow">
-      <div className="flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
+      <div className="hidden sm:flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
         <span className="mr-auto text-xs text-gray-500">Sort by column headers</span>
         {sortKey !== 'default' && (
           <button type="button" onClick={resetSort} className="text-xs font-medium text-primary-600 hover:underline">
@@ -96,6 +97,13 @@ export function AdminListingsTable({
           </button>
         )}
       </div>
+      <ListingSortMobileBar
+        sortKey={sortKey}
+        sortAsc={sortAsc}
+        applySort={applySort}
+        resetSort={resetSort}
+        className="mx-3 mt-3"
+      />
 
       <div className="space-y-3 p-3 sm:hidden">
         {listings.map((l) => (
