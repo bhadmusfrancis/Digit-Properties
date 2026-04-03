@@ -45,11 +45,15 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     listingStatus === 'draft' || listingStatus === 'active' ? listingStatus : 'active';
   const contactSource: 'author' | 'listing' =
     (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author';
+  const storedTypes = (listing as { propertyTypes?: string[] }).propertyTypes;
+  const propertyTypesForForm =
+    Array.isArray(storedTypes) && storedTypes.length > 0 ? storedTypes : [listing.propertyType];
+
   const editInitial: ListingFormProps['editInitial'] = {
     title: listing.title,
     description: listing.description,
     listingType: listing.listingType,
-    propertyType: listing.propertyType,
+    propertyTypes: propertyTypesForForm,
     price: listing.price,
     address: loc?.address ?? '',
     city: loc?.city ?? '',

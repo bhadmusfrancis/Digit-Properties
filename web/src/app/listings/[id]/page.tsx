@@ -7,9 +7,10 @@ import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
-import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel, POPULAR_AMENITIES } from '@/lib/constants';
+import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
 import { getDefaultListingImageUrl, getListingDisplayImage } from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
+import { formatListingLocationDisplay } from '@/lib/listing-location';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
@@ -276,7 +277,12 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <span>{listing.bathrooms} baths</span>
                 {listing.toilets != null && listing.toilets > 0 && <span>{listing.toilets} toilets</span>}
                 {listing.area && <span>{listing.area} sqm</span>}
-                <span>{formatPropertyTypeLabel(String(listing.propertyType ?? ''))}</span>
+                <span>
+                  {formatPropertyTypesLine(
+                    (listing as { propertyTypes?: string[] }).propertyTypes,
+                    String(listing.propertyType ?? '')
+                  )}
+                </span>
                 <span>{formatListingTypeLabel(String(listing.listingType ?? ''))}</span>
               </div>
               <div className="mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0">
@@ -317,20 +323,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           <div className="card p-6">
             <h3 className="font-semibold text-gray-900">Location</h3>
             <p className="mt-2 text-gray-600">
-              {Array.from(
-                new Map(
-                  [
-                    ...(typeof listing.location?.address === 'string'
-                      ? listing.location.address.split(',').map((v) => v.trim())
-                      : []),
-                    listing.location?.suburb,
-                    listing.location?.city,
-                    listing.location?.state,
-                  ]
-                    .filter((v): v is string => Boolean(v && v.trim()))
-                    .map((v) => [v.trim().toLowerCase(), v.trim()])
-                ).values()
-              ).join(', ')}
+              {formatListingLocationDisplay(listing.location)}
             </p>
             <ListingDetailClient
               listingId={String(listing._id)}

@@ -126,13 +126,13 @@ export async function PATCH(
       const videos = normalizedVideos ?? (listing.videos ?? []).map((v: { url?: string; public_id?: string }) => ({ url: v?.url ?? '', public_id: v?.public_id ?? '' }));
       if (images.length > limits.maxImages) {
         return NextResponse.json(
-          { error: `Maximum ${limits.maxImages} images per listing for your plan.` },
+          { error: `You can add up to ${limits.maxImages} images per listing.` },
           { status: 400 }
         );
       }
       if (videos.length > limits.maxVideos) {
         return NextResponse.json(
-          { error: `Maximum ${limits.maxVideos} video(s) per listing for your plan.` },
+          { error: `You can add up to ${limits.maxVideos} video(s) per listing.` },
           { status: 400 }
         );
       }
@@ -175,8 +175,25 @@ export async function PATCH(
       parsed.data.amenities !== undefined ? normalizeList(parsed.data.amenities) : undefined;
     const incomingTags =
       parsed.data.tags !== undefined ? normalizeList(parsed.data.tags) : undefined;
-    const { images: _pi, videos: _pv, amenities: _pa, tags: _pt, ...rest } = parsed.data;
+    const {
+      images: _pi,
+      videos: _pv,
+      amenities: _pa,
+      tags: _pt,
+      propertyTypes: patchPropertyTypes,
+      propertyType: patchPropertyType,
+      ...rest
+    } = parsed.data;
     Object.assign(listing, rest);
+    if (patchPropertyTypes !== undefined) {
+      listing.propertyTypes = patchPropertyTypes as typeof listing.propertyTypes;
+      if (patchPropertyTypes.length > 0) {
+        listing.propertyType = patchPropertyTypes[0] as typeof listing.propertyType;
+      }
+    } else if (patchPropertyType !== undefined) {
+      listing.propertyType = patchPropertyType as typeof listing.propertyType;
+      listing.propertyTypes = [patchPropertyType] as typeof listing.propertyTypes;
+    }
     const textForAmenityDetect = `${listing.title ?? ''}\n${listing.description ?? ''}\n${(incomingTags ?? listing.tags ?? []).join(', ')}`;
     const detectedAmenities = extractAmenitiesFromText(textForAmenityDetect, POPULAR_AMENITIES);
     if (incomingAmenities !== undefined || detectedAmenities.length > 0) {

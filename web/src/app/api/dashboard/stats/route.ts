@@ -34,6 +34,8 @@ export async function GET(req: Request) {
       listingsCount,
       claimsCount,
       maxListings: limits.maxListings,
+      maxImages: limits.maxImages,
+      maxVideos: limits.maxVideos,
       tier,
       featuredCount,
       highlightedCount,

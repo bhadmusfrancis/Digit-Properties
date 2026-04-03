@@ -12,7 +12,7 @@ export type EditInitialShape = {
   title: string;
   description: string;
   listingType: ListingType;
-  propertyType: string;
+  propertyTypes: string[];
   price: number;
   address: string;
   city: string;
@@ -42,7 +42,7 @@ function parsedToEditInitial(parsed: ParsedListing, images?: { url: string; publ
     title: parsed.title,
     description: parsed.description,
     listingType: parsed.listingType,
-    propertyType: parsed.propertyType,
+    propertyTypes: [parsed.propertyType],
     price: parsed.price,
     address: parsed.location.address,
     city: parsed.location.city,
@@ -76,7 +76,7 @@ function buildListingPayload(
     title: item.title,
     description: item.description,
     listingType: item.listingType,
-    propertyType: item.propertyType,
+    propertyTypes: item.propertyTypes?.length ? item.propertyTypes : ['apartment'],
     price: item.price,
     location,
     bedrooms: item.bedrooms,
@@ -216,7 +216,7 @@ export default function ImportFromWhatsAppPage() {
       title: values.title,
       description: values.description,
       listingType: values.listingType as ListingType,
-      propertyType: values.propertyType,
+      propertyTypes: values.propertyTypes,
       price: values.price,
       address: values.address,
       city: values.city,
@@ -266,7 +266,7 @@ export default function ImportFromWhatsAppPage() {
         title: v.title,
         description: v.description,
         listingType: v.listingType as ListingType,
-        propertyType: v.propertyType,
+        propertyTypes: v.propertyTypes,
         price: v.price,
         address: v.address,
         city: v.city,

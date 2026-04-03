@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
+import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
-import { formatListingTypeLabel } from '@/lib/constants';
+import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 type ListingPayload = {
@@ -16,6 +17,7 @@ type ListingPayload = {
   listingType: string;
   rentPeriod?: 'day' | 'month' | 'year';
   propertyType: string;
+  propertyTypes?: string[];
   location?: { address?: string; city?: string; state?: string; suburb?: string };
   bedrooms?: number;
   bathrooms?: number;
@@ -104,7 +106,7 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
     const descriptionText = typeof listing.description === 'string'
       ? listing.description.replace(/<[^>]+>/g, '').trim().slice(0, 200)
       : '';
-    const locationLine = [listing.location?.address, listing.location?.suburb, listing.location?.city, listing.location?.state].filter(Boolean).join(', ') || [listing.location?.city, listing.location?.state].filter(Boolean).join(', ');
+    const locationLine = formatListingLocationDisplay(listing.location);
 
     return (
       <div className="mt-6">
@@ -163,7 +165,9 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
               {listing.bathrooms != null && <span>{listing.bathrooms} baths</span>}
               {listing.toilets != null && listing.toilets > 0 && <span>{listing.toilets} toilets</span>}
               {listing.area != null && listing.area > 0 && <span>{listing.area} sqm</span>}
-              {listing.propertyType && <span className="capitalize">{listing.propertyType}</span>}
+              {(listing.propertyTypes?.length || listing.propertyType) && (
+                <span>{formatPropertyTypesLine(listing.propertyTypes, listing.propertyType)}</span>
+              )}
             </div>
             {listing.amenities && listing.amenities.length > 0 && (
               <div className="mt-3 hidden flex-wrap gap-2 md:mt-4 md:flex">

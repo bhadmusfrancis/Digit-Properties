@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
-import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
+import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { toFirstName } from '@/lib/display-name';
 
@@ -91,7 +91,9 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                   </>
                 )}
                 <span className="text-gray-400">•</span>
-                <span className="text-sm text-gray-600">{formatPropertyTypeLabel(listing.propertyType)}</span>
+                <span className="text-sm text-gray-600">
+                  {formatPropertyTypesLine(listing.propertyTypes, listing.propertyType)}
+                </span>
               </div>
             </div>
           </Link>
