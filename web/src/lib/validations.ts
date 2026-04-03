@@ -1,5 +1,20 @@
 import { z } from 'zod';
 import { PROPERTY_TYPES, NIGERIAN_STATES, LISTING_TYPE, RENT_PERIOD } from './constants';
+import { stripHtml } from './utils';
+
+const propertyTypeSchema = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
+
+export function resolveListingPropertyTypes(data: {
+  propertyTypes?: string[];
+  propertyType?: string;
+}): { propertyType: string; propertyTypes: string[] } | null {
+  const fromArr = data.propertyTypes?.filter(Boolean) ?? [];
+  const fromSingle = data.propertyType ? [data.propertyType] : [];
+  const raw = fromArr.length ? fromArr : fromSingle;
+  const uniq = [...new Set(raw)].slice(0, 3);
+  if (!uniq.length) return null;
+  return { propertyType: uniq[0], propertyTypes: uniq };
+}
 
 /** MongoDB ObjectId: 24 hex characters */
 export const objectIdSchema = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid ID format');
@@ -32,9 +47,13 @@ export const resetPasswordSchema = z.object({
 
 const listingBaseSchema = z.object({
   title: z.string().min(5).max(200),
-  description: z.string().min(20).max(5000),
+  description: z
+    .string()
+    .max(20000)
+    .refine((s) => stripHtml(s).length >= 20, { message: 'Description must be at least 20 characters' }),
   listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
-  propertyType: z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]),
+  propertyType: propertyTypeSchema.optional(),
+  propertyTypes: z.array(propertyTypeSchema).max(3).optional(),
   price: z.number().positive(),
   location: z.object({
     address: z.string().min(5),
@@ -63,6 +82,24 @@ const listingBaseSchema = z.object({
 });
 
 export const listingSchema = listingBaseSchema
+  .superRefine((data, ctx) => {
+    const resolved = resolveListingPropertyTypes(data);
+    if (!resolved) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select at least one property type',
+        path: ['propertyTypes'],
+      });
+      return;
+    }
+    if (resolved.propertyTypes.length > 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'You can select up to 3 property types',
+        path: ['propertyTypes'],
+      });
+    }
+  })
   .refine((data) => {
     if (data.listingType === 'rent') return !!data.rentPeriod;
     return true;
@@ -89,6 +126,24 @@ export const listingUpdateSchema = listingBaseSchema
   .extend({
     status: listingStatusUpdateSchema.optional(),
     boostPackage: z.enum(['starter', 'pro', 'premium']).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.propertyTypes !== undefined) {
+      if (data.propertyTypes.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Select at least one property type',
+          path: ['propertyTypes'],
+        });
+      }
+      if (data.propertyTypes.length > 3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'You can select up to 3 property types',
+          path: ['propertyTypes'],
+        });
+      }
+    }
   });
 
 export const claimSchema = z.object({

@@ -82,6 +82,13 @@ export function formatPropertyTypeLabel(slug: string): string {
     .join(' ');
 }
 
+/** Join multiple property slugs for display (e.g. cards + detail). */
+export function formatPropertyTypesLine(slugs: string[] | undefined | null, fallbackSlug?: string): string {
+  const list = slugs?.filter(Boolean) ?? [];
+  if (!list.length) return fallbackSlug ? formatPropertyTypeLabel(fallbackSlug) : '';
+  return list.map((s) => formatPropertyTypeLabel(s)).join(' · ');
+}
+
 /** Readable label for listing type (sale / rent / joint venture). */
 export function formatListingTypeLabel(t: string): string {
   if (t === LISTING_TYPE.JOINT_VENTURE) return 'Joint venture';
@@ -184,8 +191,8 @@ export const DEFAULT_SUBSCRIPTION_LIMITS: Record<string, {
   maxHighlighted: number;
   priceMonthly: number;
 }> = {
-  guest: { maxListings: 99999, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
-  free: { maxListings: 99999, maxImages: 5, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
+  guest: { maxListings: 99999, maxImages: 10, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
+  free: { maxListings: 99999, maxImages: 10, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
   bot: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
   gold: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: true, canHighlighted: true, maxCategories: 3, maxFeatured: 5, maxHighlighted: 5, priceMonthly: 10000 },
   premium: { maxListings: 99999, maxImages: 25, maxVideos: 5, canFeatured: true, canHighlighted: true, maxCategories: 5, maxFeatured: 15, maxHighlighted: 15, priceMonthly: 30000 },
