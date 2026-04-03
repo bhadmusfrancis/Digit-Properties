@@ -18,6 +18,8 @@ import { generateListingTitle } from '@/lib/listing-title';
 import { generateListingDescriptionHtml } from '@/lib/listing-description';
 import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
+import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
+import { fileLooksLikeVideo, LISTING_FILE_UPLOAD_ACCEPT, LISTING_VIDEO_PICK_ACCEPT } from '@/lib/listing-media-accept';
 import { stripHtml } from '@/lib/utils';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
@@ -162,8 +164,11 @@ export function NewListingWizard() {
   const stepRef = useRef(step);
   stepRef.current = step;
   const [images, setImages] = useState<{ url: string; public_id: string }[]>([]);
+  const [videos, setVideos] = useState<{ url: string; public_id: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoPickInputRef = useRef<HTMLInputElement>(null);
+  const videoRecordInputRef = useRef<HTMLInputElement>(null);
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard', 'stats'],
@@ -174,6 +179,7 @@ export function NewListingWizard() {
     },
   });
   const maxImages = typeof stats?.maxImages === 'number' ? stats.maxImages : 10;
+  const maxVideos = typeof stats?.maxVideos === 'number' ? stats.maxVideos : 1;
 
   const methods = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -344,34 +350,98 @@ export function NewListingWizard() {
     if (step > 1) setStep((s) => s - 1);
   };
 
+  async function uploadMediaFile(file: File): Promise<{ url: string; public_id: string; type: 'image' | 'video' } | null> {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(typeof data.error === 'string' ? data.error : 'Upload failed');
+      return null;
+    }
+    if (!data.url) return null;
+    return {
+      url: data.url,
+      public_id: data.public_id,
+      type: data.type === 'video' ? 'video' : 'image',
+    };
+  }
+
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
     setUploading(true);
-    const room = maxImages - images.length;
-    for (let i = 0; i < Math.min(files.length, room); i++) {
-      const form = new FormData();
-      form.append('file', files[i]);
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
-      const data = await res.json();
-      if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
+    let imgRoom = maxImages - images.length;
+    let vidRoom = maxVideos - videos.length;
+    const newImgs: { url: string; public_id: string }[] = [];
+    const newVids: { url: string; public_id: string }[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const expectVideo = fileLooksLikeVideo(file);
+      if (expectVideo) {
+        if (vidRoom <= 0) continue;
+        const up = await uploadMediaFile(file);
+        if (up?.type === 'video') {
+          newVids.push({ url: up.url, public_id: up.public_id });
+          vidRoom -= 1;
+        } else if (up?.type === 'image' && imgRoom > 0) {
+          newImgs.push({ url: up.url, public_id: up.public_id });
+          imgRoom -= 1;
+        }
+      } else {
+        if (imgRoom <= 0) continue;
+        const up = await uploadMediaFile(file);
+        if (up?.type === 'image') {
+          newImgs.push({ url: up.url, public_id: up.public_id });
+          imgRoom -= 1;
+        } else if (up?.type === 'video' && vidRoom > 0) {
+          newVids.push({ url: up.url, public_id: up.public_id });
+          vidRoom -= 1;
+        }
+      }
     }
+    if (newImgs.length) setImages((prev) => [...prev, ...newImgs]);
+    if (newVids.length) setVideos((prev) => [...prev, ...newVids]);
     setUploading(false);
     e.target.value = '';
   }
 
-  function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file && images.length < maxImages) {
       setUploading(true);
-      const form = new FormData();
-      form.append('file', file);
-      fetch('/api/upload', { method: 'POST', body: form })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
-        })
-        .finally(() => setUploading(false));
+      const up = await uploadMediaFile(file);
+      if (up?.type === 'image') setImages((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
+      setUploading(false);
+    }
+    e.target.value = '';
+  }
+
+  async function onVideoPickChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+    let vidRoom = maxVideos - videos.length;
+    const newVids: { url: string; public_id: string }[] = [];
+    for (let i = 0; i < files.length && vidRoom > 0; i++) {
+      const up = await uploadMediaFile(files[i]);
+      if (up?.type === 'video') {
+        newVids.push({ url: up.url, public_id: up.public_id });
+        vidRoom -= 1;
+      }
+    }
+    if (newVids.length) setVideos((prev) => [...prev, ...newVids]);
+    setUploading(false);
+    e.target.value = '';
+  }
+
+  async function onVideoRecordChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file && videos.length < maxVideos) {
+      setUploading(true);
+      const up = await uploadMediaFile(file);
+      if (up?.type === 'video') setVideos((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
+      setUploading(false);
     }
     e.target.value = '';
   }
@@ -384,6 +454,14 @@ export function NewListingWizard() {
     setImages(newOrder);
   };
 
+  const moveVideo = (index: number, direction: 'left' | 'right') => {
+    const newOrder = [...videos];
+    const target = direction === 'left' ? index - 1 : index + 1;
+    if (target < 0 || target >= newOrder.length) return;
+    [newOrder[index], newOrder[target]] = [newOrder[target], newOrder[index]];
+    setVideos(newOrder);
+  };
+
   async function onSubmit(data: WizardFormData) {
     const dupRes = await fetch('/api/listings/check-new-duplicate', {
       method: 'POST',
@@ -392,6 +470,7 @@ export function NewListingWizard() {
         title: data.title,
         description: data.description,
         imagePublicIds: images.map((i) => i.public_id),
+        videoPublicIds: videos.map((v) => v.public_id),
       }),
     });
     if (dupRes.status === 409) {
@@ -418,6 +497,7 @@ export function NewListingWizard() {
         data.amenities ? data.amenities.split(',') : []
       ),
       images,
+      videos,
     };
     if (payload.area === undefined || (typeof payload.area === 'number' && Number.isNaN(payload.area))) {
       delete payload.area;
@@ -737,25 +817,31 @@ export function NewListingWizard() {
               </div>
 
               <div className="rounded-2xl border border-dashed border-sky-200/80 bg-gradient-to-br from-sky-50/50 to-white p-5">
-                <h3 className="font-semibold text-gray-900">Photos</h3>
+                <h3 className="font-semibold text-gray-900">Photos &amp; videos</h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  Up to {maxImages} images. First photo is used in search previews. JPEG, PNG or WebP recommended.
+                  Up to {maxImages} photos (first is used in search) and {maxVideos} video{maxVideos === 1 ? '' : 's'} (MP4, WebM, MOV up to 50MB). On your phone you can add videos from your gallery or record a clip.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={LISTING_FILE_UPLOAD_ACCEPT}
                     multiple
                     onChange={onFileChange}
-                    disabled={uploading || images.length >= maxImages}
+                    disabled={
+                      uploading || (images.length >= maxImages && videos.length >= maxVideos)
+                    }
                     className="hidden"
                     id="wizard-file-upload"
                   />
                   <label
                     htmlFor="wizard-file-upload"
-                    className="cursor-pointer rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95 disabled:opacity-50"
+                    className={`cursor-pointer rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95 ${
+                      uploading || (images.length >= maxImages && videos.length >= maxVideos)
+                        ? 'pointer-events-none opacity-50'
+                        : ''
+                    }`}
                   >
-                    Upload images
+                    Upload photos / videos
                   </label>
                   <input
                     type="file"
@@ -773,10 +859,46 @@ export function NewListingWizard() {
                     disabled={uploading || images.length >= maxImages}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    Camera
+                    Photo (camera)
+                  </button>
+                  <input
+                    type="file"
+                    accept={LISTING_VIDEO_PICK_ACCEPT}
+                    multiple
+                    ref={videoPickInputRef}
+                    onChange={onVideoPickChange}
+                    disabled={uploading || videos.length >= maxVideos}
+                    className="hidden"
+                    aria-hidden
+                  />
+                  <button
+                    type="button"
+                    onClick={() => videoPickInputRef.current?.click()}
+                    disabled={uploading || videos.length >= maxVideos}
+                    className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Add video
+                  </button>
+                  <input
+                    type="file"
+                    accept={LISTING_VIDEO_PICK_ACCEPT}
+                    capture="environment"
+                    ref={videoRecordInputRef}
+                    onChange={onVideoRecordChange}
+                    disabled={uploading || videos.length >= maxVideos}
+                    className="hidden"
+                    aria-hidden
+                  />
+                  <button
+                    type="button"
+                    onClick={() => videoRecordInputRef.current?.click()}
+                    disabled={uploading || videos.length >= maxVideos}
+                    className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Record video
                   </button>
                   <span className="self-center text-sm text-gray-500">
-                    {images.length} / {maxImages}
+                    {images.length} / {maxImages} photos · {videos.length} / {maxVideos} videos
                   </span>
                 </div>
                 {uploading && <p className="mt-2 text-sm text-sky-700">Uploading…</p>}
@@ -805,6 +927,47 @@ export function NewListingWizard() {
                           type="button"
                           onClick={() => moveImage(index, 'right')}
                           disabled={index === images.length - 1}
+                          className="text-xs text-gray-600 disabled:opacity-40"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {videos.map((vid, index) => (
+                    <div key={vid.public_id} className="relative">
+                      <video
+                        src={vid.url}
+                        poster={getCloudinaryVideoThumbnailUrl(vid) ?? undefined}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-24 w-24 rounded-xl object-cover ring-2 ring-white shadow"
+                      />
+                      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 py-0.5 text-[10px] font-medium text-white">
+                        Video
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setVideos((prev) => prev.filter((v) => v.public_id !== vid.public_id))}
+                        className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-sm text-white shadow"
+                        aria-label="Remove video"
+                      >
+                        ×
+                      </button>
+                      <div className="mt-1 flex justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveVideo(index, 'left')}
+                          disabled={index === 0}
+                          className="text-xs text-gray-600 disabled:opacity-40"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveVideo(index, 'right')}
+                          disabled={index === videos.length - 1}
                           className="text-xs text-gray-600 disabled:opacity-40"
                         >
                           →

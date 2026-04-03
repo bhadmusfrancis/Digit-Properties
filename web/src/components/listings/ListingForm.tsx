@@ -11,6 +11,8 @@ import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { generateListingTitle } from '@/lib/listing-title';
 import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
+import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
+import { fileLooksLikeVideo, LISTING_FILE_UPLOAD_ACCEPT, LISTING_VIDEO_PICK_ACCEPT } from '@/lib/listing-media-accept';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
 
@@ -51,12 +53,14 @@ type FormData = z.infer<typeof schema>;
 export type ListingFormRef = {
   getValues: () => FormData;
   getImages: () => { url: string; public_id: string }[];
+  getVideos: () => { url: string; public_id: string }[];
 };
 
 export type ListingFormProps = {
   editId?: string;
   editInitial?: Partial<FormData> & {
     images?: { url: string; public_id: string }[];
+    videos?: { url: string; public_id: string }[];
     coordinates?: { lat: number; lng: number };
     /** @deprecated use propertyTypes */
     propertyType?: string;
@@ -68,8 +72,11 @@ export type ListingFormProps = {
 export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProps = {}) {
   const router = useRouter();
   const [images, setImages] = useState<{ url: string; public_id: string }[]>(editInitial?.images ?? []);
+  const [videos, setVideos] = useState<{ url: string; public_id: string }[]>(editInitial?.videos ?? []);
   const [uploading, setUploading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoPickInputRef = useRef<HTMLInputElement>(null);
+  const videoRecordInputRef = useRef<HTMLInputElement>(null);
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard', 'stats'],
@@ -80,6 +87,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     },
   });
   const maxImages = typeof stats?.maxImages === 'number' ? stats.maxImages : 10;
+  const maxVideos = typeof stats?.maxVideos === 'number' ? stats.maxVideos : 1;
 
   const resolvedInitialTypes =
     editInitial &&
@@ -143,12 +151,13 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       getFormRef.current = {
         getValues: () => getValues() as FormData,
         getImages: () => images,
+        getVideos: () => videos,
       };
     }
     return () => {
       if (getFormRef) getFormRef.current = null;
     };
-  }, [getFormRef, getValues, images]);
+  }, [getFormRef, getValues, images, videos]);
 
   const watched = watch();
   const propertyTypesSel = watched.propertyTypes ?? [];
@@ -197,34 +206,98 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     setValue('title', title, { shouldValidate: true });
   };
 
+  async function uploadMediaFile(file: File): Promise<{ url: string; public_id: string; type: 'image' | 'video' } | null> {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(typeof data.error === 'string' ? data.error : 'Upload failed');
+      return null;
+    }
+    if (!data.url) return null;
+    return {
+      url: data.url,
+      public_id: data.public_id,
+      type: data.type === 'video' ? 'video' : 'image',
+    };
+  }
+
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
     setUploading(true);
-    const room = maxImages - images.length;
-    for (let i = 0; i < Math.min(files.length, room); i++) {
-      const form = new FormData();
-      form.append('file', files[i]);
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
-      const data = await res.json();
-      if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
+    let imgRoom = maxImages - images.length;
+    let vidRoom = maxVideos - videos.length;
+    const newImgs: { url: string; public_id: string }[] = [];
+    const newVids: { url: string; public_id: string }[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const expectVideo = fileLooksLikeVideo(file);
+      if (expectVideo) {
+        if (vidRoom <= 0) continue;
+        const up = await uploadMediaFile(file);
+        if (up?.type === 'video') {
+          newVids.push({ url: up.url, public_id: up.public_id });
+          vidRoom -= 1;
+        } else if (up?.type === 'image' && imgRoom > 0) {
+          newImgs.push({ url: up.url, public_id: up.public_id });
+          imgRoom -= 1;
+        }
+      } else {
+        if (imgRoom <= 0) continue;
+        const up = await uploadMediaFile(file);
+        if (up?.type === 'image') {
+          newImgs.push({ url: up.url, public_id: up.public_id });
+          imgRoom -= 1;
+        } else if (up?.type === 'video' && vidRoom > 0) {
+          newVids.push({ url: up.url, public_id: up.public_id });
+          vidRoom -= 1;
+        }
+      }
     }
+    if (newImgs.length) setImages((prev) => [...prev, ...newImgs]);
+    if (newVids.length) setVideos((prev) => [...prev, ...newVids]);
     setUploading(false);
     e.target.value = '';
   }
 
-  function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onCameraFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file && images.length < maxImages) {
       setUploading(true);
-      const form = new FormData();
-      form.append('file', file);
-      fetch('/api/upload', { method: 'POST', body: form })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.url) setImages((prev) => [...prev, { url: data.url, public_id: data.public_id }]);
-        })
-        .finally(() => setUploading(false));
+      const up = await uploadMediaFile(file);
+      if (up?.type === 'image') setImages((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
+      setUploading(false);
+    }
+    e.target.value = '';
+  }
+
+  async function onVideoPickChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+    let vidRoom = maxVideos - videos.length;
+    const newVids: { url: string; public_id: string }[] = [];
+    for (let i = 0; i < files.length && vidRoom > 0; i++) {
+      const up = await uploadMediaFile(files[i]);
+      if (up?.type === 'video') {
+        newVids.push({ url: up.url, public_id: up.public_id });
+        vidRoom -= 1;
+      }
+    }
+    if (newVids.length) setVideos((prev) => [...prev, ...newVids]);
+    setUploading(false);
+    e.target.value = '';
+  }
+
+  async function onVideoRecordChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file && videos.length < maxVideos) {
+      setUploading(true);
+      const up = await uploadMediaFile(file);
+      if (up?.type === 'video') setVideos((prev) => [...prev, { url: up.url, public_id: up.public_id }]);
+      setUploading(false);
     }
     e.target.value = '';
   }
@@ -241,6 +314,14 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     setImages(newOrder);
   };
 
+  const moveVideo = (index: number, direction: 'left' | 'right') => {
+    const newOrder = [...videos];
+    const target = direction === 'left' ? index - 1 : index + 1;
+    if (target < 0 || target >= newOrder.length) return;
+    [newOrder[index], newOrder[target]] = [newOrder[target], newOrder[index]];
+    setVideos(newOrder);
+  };
+
   async function onSubmit(data: FormData) {
     const dupRes = await fetch('/api/listings/check-new-duplicate', {
       method: 'POST',
@@ -249,6 +330,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         title: data.title,
         description: data.description,
         imagePublicIds: images.map((i) => i.public_id),
+        videoPublicIds: videos.map((v) => v.public_id),
         ...(editId ? { excludeListingId: editId } : {}),
       }),
     });
@@ -275,6 +357,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         data.amenities ? data.amenities.split(',') : []
       ),
       images,
+      videos,
     };
     if (payload.area === undefined || (typeof payload.area === 'number' && Number.isNaN(payload.area))) delete payload.area;
     delete payload.address;
@@ -446,22 +529,22 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Images &amp; media</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Photos</label>
+          <label className="block text-sm font-medium text-gray-700">Photos &amp; videos</label>
           <p className="mt-1 text-xs text-gray-500">
-            Up to {maxImages} images per listing. Recommended: 1200×630 or 1920×1080, JPEG/PNG/WebP. First image is used in search previews.
+            Up to {maxImages} photos (first is used in search) and {maxVideos} video{maxVideos === 1 ? '' : 's'} (MP4/WebM/MOV, max 50MB). On mobile you can pick videos from your library or record.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <input
               type="file"
-              accept="image/*"
+              accept={LISTING_FILE_UPLOAD_ACCEPT}
               multiple
               onChange={onFileChange}
-              disabled={uploading || images.length >= maxImages}
+              disabled={uploading || (images.length >= maxImages && videos.length >= maxVideos)}
               className="hidden"
               id="file-upload"
             />
             <label htmlFor="file-upload" className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Choose files
+              Choose photos / videos
             </label>
             <input
               type="file"
@@ -474,11 +557,49 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
               aria-hidden
             />
             <button type="button" onClick={onCameraCapture} disabled={uploading || images.length >= maxImages} className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-              Use camera
+              Photo (camera)
             </button>
-            <span className="self-center text-xs text-gray-500">{images.length} / {maxImages}</span>
+            <input
+              type="file"
+              accept={LISTING_VIDEO_PICK_ACCEPT}
+              multiple
+              ref={videoPickInputRef}
+              onChange={onVideoPickChange}
+              disabled={uploading || videos.length >= maxVideos}
+              className="hidden"
+              aria-hidden
+            />
+            <button
+              type="button"
+              onClick={() => videoPickInputRef.current?.click()}
+              disabled={uploading || videos.length >= maxVideos}
+              className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Add video
+            </button>
+            <input
+              type="file"
+              accept={LISTING_VIDEO_PICK_ACCEPT}
+              capture="environment"
+              ref={videoRecordInputRef}
+              onChange={onVideoRecordChange}
+              disabled={uploading || videos.length >= maxVideos}
+              className="hidden"
+              aria-hidden
+            />
+            <button
+              type="button"
+              onClick={() => videoRecordInputRef.current?.click()}
+              disabled={uploading || videos.length >= maxVideos}
+              className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Record video
+            </button>
+            <span className="self-center text-xs text-gray-500">
+              {images.length} / {maxImages} photos · {videos.length} / {maxVideos} videos
+            </span>
           </div>
-          <p className="mt-1 text-xs text-gray-500">You can add multiple photos: choose multiple files at once, or use the camera repeatedly to add another after each shot.</p>
+          <p className="mt-1 text-xs text-gray-500">You can select several files at once, or use the camera repeatedly for more photos.</p>
           {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
           <div className="mt-2 flex flex-wrap gap-2">
             {images.map((img, index) => (
@@ -496,6 +617,32 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
                 <div className="mt-1 flex gap-1">
                   <button type="button" onClick={() => moveImage(index, 'left')} disabled={index === 0} className="text-xs text-gray-600 disabled:opacity-40">←</button>
                   <button type="button" onClick={() => moveImage(index, 'right')} disabled={index === images.length - 1} className="text-xs text-gray-600 disabled:opacity-40">→</button>
+                </div>
+              </div>
+            ))}
+            {videos.map((vid, index) => (
+              <div key={vid.public_id} className="relative flex flex-col items-center">
+                <div className="relative h-20 w-20">
+                  <video
+                    src={vid.url}
+                    poster={getCloudinaryVideoThumbnailUrl(vid) ?? undefined}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full rounded object-cover"
+                  />
+                  <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-0.5 text-[9px] text-white">Video</span>
+                  <button
+                    type="button"
+                    onClick={() => setVideos((prev) => prev.filter((v) => v.public_id !== vid.public_id))}
+                    className="absolute -right-1 -top-1 rounded-full bg-red-500 p-1 text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="mt-1 flex gap-1">
+                  <button type="button" onClick={() => moveVideo(index, 'left')} disabled={index === 0} className="text-xs text-gray-600 disabled:opacity-40">←</button>
+                  <button type="button" onClick={() => moveVideo(index, 'right')} disabled={index === videos.length - 1} className="text-xs text-gray-600 disabled:opacity-40">→</button>
                 </div>
               </div>
             ))}
