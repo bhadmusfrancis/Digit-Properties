@@ -187,6 +187,7 @@ export async function PATCH(
 
     const wasDraft = listing.status === LISTING_STATUS.DRAFT;
     const wasActive = listing.status === LISTING_STATUS.ACTIVE;
+    const wasPendingApproval = listing.status === LISTING_STATUS.PENDING_APPROVAL;
     const incomingAmenities =
       parsed.data.amenities !== undefined ? normalizeList(parsed.data.amenities) : undefined;
     const incomingTags =
@@ -303,6 +304,8 @@ export async function PATCH(
         listing.listingType,
         listing.price
       ).catch((e) => console.error('[listings] admin email:', e));
+      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
+    } else if (wasPendingApproval && nowActive) {
       notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
     }
 
