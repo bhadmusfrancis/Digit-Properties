@@ -37,14 +37,20 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
     ).slice(0, 20);
   }, [users, search]);
 
-  const approve = () => {
+  const activateListing = () => {
     setApproving(true);
     fetch(`/api/listings/${listingId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'active' }),
     })
-      .then((r) => r.ok && window.location.reload())
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => Promise.reject(d));
+        window.location.reload();
+      })
+      .catch((d) => {
+        alert(typeof d?.error === 'string' ? d.error : 'Failed to activate listing');
+      })
       .finally(() => setApproving(false));
   };
 
@@ -128,14 +134,15 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
         <Link href={`/listings/${listingId}`} className="inline-flex min-h-[32px] items-center justify-center rounded border border-primary-200 bg-primary-50 px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-100 touch-manipulation">View</Link>
         <Link href={`/listings/${listingId}/edit`} className="inline-flex min-h-[32px] items-center justify-center rounded border border-primary-200 bg-white px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-50 touch-manipulation">Edit</Link>
       </span>
-      {status === 'draft' && (
+      {(status === 'draft' || status === 'pending_approval' || status === 'paused') && (
         <button
           type="button"
-          onClick={approve}
+          onClick={activateListing}
           disabled={approving}
+          title={status === 'draft' ? 'Publish listing as active' : 'Set listing to active (live)'}
           className="inline-flex min-h-[32px] items-center justify-center rounded border border-green-200 bg-green-50 px-2 text-[11px] font-semibold text-green-700 hover:bg-green-100 disabled:opacity-50 touch-manipulation"
         >
-          {approving ? '…' : 'Approve'}
+          {approving ? '…' : status === 'draft' ? 'Approve' : 'Activate'}
         </button>
       )}
       {(status === 'active' || status === 'pending_approval') && (
