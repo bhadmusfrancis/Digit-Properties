@@ -32,11 +32,33 @@ export function uploadListingMediaFile(
 
     xhr.onload = () => {
       cleanup();
+      if (xhr.status === 413) {
+        reject(
+          new Error(
+            'File is too large for the server. Try a smaller video (max 50MB) or compress the file.'
+          )
+        );
+        return;
+      }
+      if (xhr.status === 502 || xhr.status === 504) {
+        reject(
+          new Error(
+            'Upload timed out while processing. Try again with a smaller file or a more stable connection.'
+          )
+        );
+        return;
+      }
       let data: { url?: string; public_id?: string; type?: string; error?: string };
       try {
         data = JSON.parse(xhr.responseText || '{}') as typeof data;
       } catch {
-        reject(new Error('Upload failed'));
+        reject(
+          new Error(
+            !xhr.responseText?.trim()
+              ? 'Upload failed (no response from server). The file may be too large for your host or the connection dropped after the transfer finished.'
+              : 'Upload failed (invalid server response).'
+          )
+        );
         return;
       }
       if (xhr.status >= 200 && xhr.status < 300 && data.url && data.public_id) {
