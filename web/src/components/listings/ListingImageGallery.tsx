@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
 
 type MediaItem = { url: string; public_id?: string; type?: 'image' | 'video' };
 
@@ -128,6 +129,7 @@ export function ListingImageGallery({
         {current.type === 'video' ? (
           <video
             src={current.url}
+            poster={getCloudinaryVideoThumbnailUrl(current) ?? undefined}
             controls
             preload="metadata"
             playsInline
@@ -268,6 +270,7 @@ export function ListingImageGallery({
                 {current.type === 'video' ? (
                   <video
                     src={current.url}
+                    poster={getCloudinaryVideoThumbnailUrl(current) ?? undefined}
                     controls
                     autoPlay
                     preload="metadata"
