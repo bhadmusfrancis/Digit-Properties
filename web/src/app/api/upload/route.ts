@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import cloudinary from '@/lib/cloudinary';
 import { USER_ROLES } from '@/lib/constants';
+import { classifyListingUploadFile } from '@/lib/listing-media-accept';
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB, SEO-friendly
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+
+/** Large videos need time to stream from the host to Cloudinary (Vercel caps this by plan). */
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   try {
@@ -33,15 +35,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
-    const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
-    if (!isImage && !isVideo) {
+    const kind = classifyListingUploadFile(file);
+    if (!kind) {
       return NextResponse.json(
-        { error: 'Use JPEG, PNG, WebP for images or MP4/WebM for video.' },
+        { error: 'Use JPEG, PNG, WebP for images or common video formats (MP4, WebM, MOV, 3GP, etc.).' },
         { status: 400 }
       );
     }
 
+    const isVideo = kind === 'video';
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
     if (file.size > maxSize) {
       return NextResponse.json(
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
         folder,
         resource_type: resourceType,
       };
-      if (isImage) {
+      if (kind === 'image') {
         options.transformation = [{ width: 1920, crop: 'limit', quality: 'auto' }];
       }
       const uploadStream = cloudinary.uploader.upload_stream(

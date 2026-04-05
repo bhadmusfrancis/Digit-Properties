@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Allow listing video uploads up to 50MB through the dev/proxy pipeline (small default can truncate bodies).
+    proxyClientMaxBodySize: '55mb',
+  },
   serverExternalPackages: ['sharp', 'tesseract.js'],
   images: {
     remotePatterns: [
