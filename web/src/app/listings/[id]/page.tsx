@@ -8,7 +8,11 @@ import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsIn
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
-import { getDefaultListingImageUrl, getListingDisplayImage } from '@/lib/listing-default-image';
+import {
+  getCloudinaryVideoThumbnailUrl,
+  getDefaultListingImageUrl,
+  getListingDisplayImage,
+} from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import Listing from '@/models/Listing';
@@ -241,9 +245,36 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         type: 'video' as const,
       }))
       .filter((v) => v.url && isVideoUrl(v.url));
-    const galleryMedia = images.length + videos.length > 0
-      ? [...images, ...videos, ...videosFromImages]
-      : [{ url: getDefaultListingImageUrl(listing.propertyType ?? 'apartment'), public_id: 'default-media', type: 'image' as const }];
+
+    const hasGalleryStills = images.length > 0;
+    const hasGalleryVideos = videos.length + videosFromImages.length > 0;
+    const hasAnyGalleryMedia = hasGalleryStills || hasGalleryVideos;
+
+    let galleryMedia: Array<{ url: string; public_id?: string; type: 'image' | 'video' }>;
+    if (!hasAnyGalleryMedia) {
+      galleryMedia = [
+        {
+          url: getDefaultListingImageUrl(listing.propertyType ?? 'apartment'),
+          public_id: 'default-media',
+          type: 'image',
+        },
+      ];
+    } else if (!hasGalleryStills && hasGalleryVideos) {
+      const firstVideo = videos[0] ?? videosFromImages[0];
+      const posterUrl = firstVideo ? getCloudinaryVideoThumbnailUrl(firstVideo) : null;
+      const posterSlide = posterUrl
+        ? [
+            {
+              url: posterUrl,
+              public_id: firstVideo.public_id ? `${firstVideo.public_id}_poster` : 'video-poster',
+              type: 'image' as const,
+            },
+          ]
+        : [];
+      galleryMedia = [...posterSlide, ...videos, ...videosFromImages];
+    } else {
+      galleryMedia = [...images, ...videos, ...videosFromImages];
+    }
 
     return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
