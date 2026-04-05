@@ -11,6 +11,7 @@ import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
+import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
@@ -25,6 +26,21 @@ export async function GET(
     }
 
     await dbConnect();
+    const session = await getSession(_req);
+    const pre = await Listing.findById(id)
+      .select('status createdBy')
+      .lean();
+    if (!pre) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (
+      !canViewListingOnSite({
+        status: pre.status,
+        createdBy: pre.createdBy,
+        session,
+      })
+    ) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const listing = await Listing.findByIdAndUpdate(
       id,
       { $inc: { viewCount: 1 } },

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
+import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
 
 export async function POST(
@@ -21,8 +22,17 @@ export async function POST(
     }
 
     await dbConnect();
-    const listing = await Listing.findById(listingId).select('_id createdBy').lean();
+    const listing = await Listing.findById(listingId).select('_id status createdBy').lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (
+      !canViewListingOnSite({
+        status: listing.status,
+        createdBy: listing.createdBy,
+        session,
+      })
+    ) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
 
     const createdById = listing.createdBy != null ? String(listing.createdBy) : '';
     if (createdById === session.user.id) {
@@ -56,6 +66,17 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
     }
     await dbConnect();
+    const listing = await Listing.findById(listingId).select('status createdBy').lean();
+    if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (
+      !canViewListingOnSite({
+        status: listing.status,
+        createdBy: listing.createdBy,
+        session,
+      })
+    ) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
     const lid = new mongoose.Types.ObjectId(listingId);
     const [likeCount, liked] = await Promise.all([
       ListingLike.countDocuments({ listingId: lid }),

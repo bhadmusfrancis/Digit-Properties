@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
 
 /**
@@ -8,7 +10,7 @@ import mongoose from 'mongoose';
  * Does not require auth so anonymous views are counted.
  */
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -17,6 +19,18 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
     await dbConnect();
+    const session = await getSession(req);
+    const pre = await Listing.findById(id).select('status createdBy').lean();
+    if (!pre) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (
+      !canViewListingOnSite({
+        status: pre.status,
+        createdBy: pre.createdBy,
+        session,
+      })
+    ) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
     const listing = await Listing.findByIdAndUpdate(
       id,
       { $inc: { viewCount: 1 } },

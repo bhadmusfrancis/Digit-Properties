@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { canViewListingOnSite } from '@/lib/listing-access';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
@@ -39,8 +40,20 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) return {};
     await dbConnect();
-    const listing = await Listing.findById(id).lean();
+    const [session, listing] = await Promise.all([
+      getServerSession(authOptions),
+      Listing.findById(id).lean(),
+    ]);
     if (!listing) return {};
+    if (
+      !canViewListingOnSite({
+        status: listing.status,
+        createdBy: listing.createdBy,
+        session,
+      })
+    ) {
+      notFound();
+    }
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
     const ogImage = getListingDisplayImage(
       listing.images as { url: string }[] | undefined,
@@ -87,6 +100,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       ListingLike.countDocuments({ listingId: new mongoose.Types.ObjectId(id) }),
     ]);
     if (!listing) notFound();
+
+    if (
+      !canViewListingOnSite({
+        status: listing.status,
+        createdBy: listing.createdBy,
+        session,
+      })
+    ) {
+      notFound();
+    }
 
     const currentCity = listing.location?.city ?? '';
     const currentState = listing.location?.state ?? '';
