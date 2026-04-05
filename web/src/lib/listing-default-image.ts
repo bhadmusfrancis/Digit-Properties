@@ -89,7 +89,8 @@ export function getCloudinaryVideoThumbnailUrl(
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || (url ? extractCloudinaryCloudNameFromUrl(url) : null);
   if (!cloud) return null;
 
-  return `https://${CLOUDINARY_HOST}/${cloud}/video/upload/so_0,f_jpg,q_auto/${publicId}`;
+  // so_0 = first frame; c_limit,w_1920 aligns with listing image uploads; g_auto centers the crop when used with fill elsewhere
+  return `https://${CLOUDINARY_HOST}/${cloud}/video/upload/so_0,f_jpg,q_auto,c_limit,w_1920/${publicId}`;
 }
 
 export type ListingVideoRef = { url?: string; public_id?: string };
