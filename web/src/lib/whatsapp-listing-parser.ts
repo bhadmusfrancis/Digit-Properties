@@ -221,9 +221,16 @@ function extractListingType(text: string): {
       /\b(joint\s+venture|\bjv\b|jv\s+in)\b/gi,
       ' '
     );
-  } else if (/\b(for\s*rent|to\s*rent|rental|renting|available\s*for\s*rent)\b/i.test(text)) {
+  } else if (
+    /\b(for\s*rent|to\s*rent|to\s*let|rental|renting|available\s*for\s*rent|short\s*let|shortlet)\b/i.test(
+      text
+    )
+  ) {
     listingType = LISTING_TYPE.RENT;
-    rest = rest.replace(/\b(for\s*rent|to\s*rent|rental|renting|available\s*for\s*rent)\b/gi, ' ');
+    rest = rest.replace(
+      /\b(for\s*rent|to\s*rent|to\s*let|rental|renting|available\s*for\s*rent|short\s*let|shortlet)\b/gi,
+      ' '
+    );
   } else if (/\b(for\s*sale|to\s*sell|selling|available\s*for\s*sale)\b/i.test(text)) {
     listingType = LISTING_TYPE.SALE;
     rest = rest.replace(/\b(for\s*sale|to\s*sell|selling|available\s*for\s*sale)\b/gi, ' ');

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS } from '@/lib/constants';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
+import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
 
 const DEFAULT_LIMIT = 12;
@@ -45,8 +47,18 @@ export async function GET(
     await dbConnect();
     void User;
 
-    const current = await Listing.findById(id).select('propertyType location').lean();
+    const session = await getSession(req);
+    const current = await Listing.findById(id).select('status createdBy propertyType location').lean();
     if (!current) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+    }
+    if (
+      !canViewListingOnSite({
+        status: current.status,
+        createdBy: current.createdBy,
+        session,
+      })
+    ) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
