@@ -25,6 +25,7 @@ import {
   LISTING_FILE_UPLOAD_ACCEPT,
   LISTING_VIDEO_PICK_ACCEPT,
 } from '@/lib/listing-media-accept';
+import { formatBytes } from '@/lib/format-bytes';
 import { uploadListingMediaFile } from '@/lib/upload-listing-media';
 import { stripHtml } from '@/lib/utils';
 
@@ -172,6 +173,8 @@ type UploadUiState =
       fileTotal: number;
       percent: number;
       fileName: string;
+      loadedBytes: number;
+      totalBytes: number;
     };
 
 export function NewListingWizard() {
@@ -218,21 +221,37 @@ export function NewListingWizard() {
       fileTotal: attemptTotal,
       percent: attemptTotal > 0 ? (attemptIndex / attemptTotal) * 100 : 0,
       fileName: file.name,
+      loadedBytes: 0,
+      totalBytes: file.size,
     });
     try {
       const result = await uploadListingMediaFile(file, {
         signal: ac.signal,
         onProgress: ({ loaded, total }) => {
-          if (!total || attemptTotal <= 0) return;
+          const t = total > 0 ? total : file.size;
+          if (!t || attemptTotal <= 0) return;
           const base = (attemptIndex / attemptTotal) * 100;
           const slice = 100 / attemptTotal;
-          const pct = base + (loaded / total) * slice;
-          setUploadUi((u) => (u.status === 'uploading' ? { ...u, percent: Math.min(99.9, pct) } : u));
+          const pct = base + (loaded / t) * slice;
+          setUploadUi((u) =>
+            u.status === 'uploading'
+              ? {
+                  ...u,
+                  percent: Math.min(99.9, pct),
+                  loadedBytes: loaded,
+                  totalBytes: t,
+                }
+              : u
+          );
         },
       });
       setUploadUi((u) =>
         u.status === 'uploading'
-          ? { ...u, percent: Math.min(100, ((attemptIndex + 1) / attemptTotal) * 100) }
+          ? {
+              ...u,
+              percent: Math.min(100, ((attemptIndex + 1) / attemptTotal) * 100),
+              loadedBytes: u.totalBytes,
+            }
           : u
       );
       return result;
@@ -1047,7 +1066,17 @@ export function NewListingWizard() {
                         style={{ width: `${Math.min(100, Math.max(0, uploadUi.percent))}%` }}
                       />
                     </div>
-                    <p className="text-xs text-gray-600">{Math.round(uploadUi.percent)}% complete</p>
+                    <p className="text-xs text-gray-600">
+                      {uploadUi.totalBytes > 0 ? (
+                        <>
+                          <span className="tabular-nums">
+                            {formatBytes(uploadUi.loadedBytes)} / {formatBytes(uploadUi.totalBytes)}
+                          </span>
+                          <span className="mx-1.5 text-gray-400">·</span>
+                        </>
+                      ) : null}
+                      {Math.round(uploadUi.percent)}% complete
+                    </p>
                   </div>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
