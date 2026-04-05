@@ -1,15 +1,56 @@
 /** Allowed MIME types for `/api/upload` in listing flows (images + video). */
 export const LISTING_FILE_UPLOAD_ACCEPT =
-  'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime';
+  'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,video/3gpp,video/*';
 
 /** Prefer picking videos from library (no `capture`) so gallery opens on mobile. */
-export const LISTING_VIDEO_PICK_ACCEPT = 'video/mp4,video/webm,video/quicktime,video/*';
+export const LISTING_VIDEO_PICK_ACCEPT = 'video/mp4,video/webm,video/quicktime,video/3gpp,video/*';
+
+const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+const KNOWN_VIDEO_MIMES = new Set([
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/3gpp',
+  'video/3gpp2',
+  'video/x-matroska',
+  'video/x-msvideo',
+]);
+
+/**
+ * Classify listing media for `/api/upload`. Many mobile browsers send empty or
+ * `application/octet-stream` for gallery videos; we fall back to the filename.
+ */
+export function classifyListingUploadFile(file: File): 'image' | 'video' | null {
+  const type = (file.type || '').trim().toLowerCase();
+  const videoByExt = /\.(mp4|webm|mov|m4v|mkv|avi|ogv|3gp|3g2|qt)$/i.test(file.name);
+  const imageByExt = /\.(jpe?g|png|webp)$/i.test(file.name);
+
+  const isImageMime = ALLOWED_IMAGE_MIMES.has(type);
+  const isVideoMime = KNOWN_VIDEO_MIMES.has(type) || type.startsWith('video/');
+
+  if (isImageMime && !isVideoMime) return 'image';
+  if (isVideoMime) return 'video';
+
+  if (!type || type === 'application/octet-stream') {
+    if (videoByExt && !imageByExt) return 'video';
+    if (imageByExt && !videoByExt) return 'image';
+    if (videoByExt && imageByExt) {
+      return file.size > 12 * 1024 * 1024 ? 'video' : 'image';
+    }
+    return null;
+  }
+
+  if (type.startsWith('image/')) return null;
+
+  return null;
+}
 
 export function fileLooksLikeVideo(file: File): boolean {
   const t = (file.type || '').toLowerCase();
   if (t.startsWith('video/')) return true;
   const n = file.name.toLowerCase();
-  return /\.(mp4|webm|mov|m4v|mkv|avi|ogv)$/.test(n);
+  return /\.(mp4|webm|mov|m4v|mkv|avi|ogv|3gp|qt)$/i.test(n);
 }
 
 /** How many files from this list will be attempted given remaining image/video slots (client-side guess). */
