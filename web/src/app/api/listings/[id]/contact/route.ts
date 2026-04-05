@@ -3,6 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { toFirstName } from '@/lib/display-name';
+import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
 
 export async function GET(
@@ -22,10 +23,19 @@ export async function GET(
     }
 
     const listing = await Listing.findById(id)
-      .select('agentName agentPhone agentEmail title createdBy contactSource')
+      .select('status agentName agentPhone agentEmail title createdBy contactSource')
       .populate('createdBy', 'firstName name phone email')
       .lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (
+      !canViewListingOnSite({
+        status: listing.status,
+        createdBy: listing.createdBy,
+        session,
+      })
+    ) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
 
     const creator = listing.createdBy as { firstName?: string; name?: string; phone?: string; email?: string } | null;
     const src = (listing as { contactSource?: string }).contactSource === 'listing' ? 'listing' : 'author';
