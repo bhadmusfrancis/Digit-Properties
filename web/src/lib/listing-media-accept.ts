@@ -18,13 +18,18 @@ const KNOWN_VIDEO_MIMES = new Set([
 ]);
 
 /**
- * Classify listing media for `/api/upload`. Many mobile browsers send empty or
- * `application/octet-stream` for gallery videos; we fall back to the filename.
+ * Classify listing media for `/api/upload` and direct Cloudinary uploads. Many mobile
+ * browsers send empty or `application/octet-stream` for gallery videos; we fall back
+ * to the filename.
  */
-export function classifyListingUploadFile(file: File): 'image' | 'video' | null {
-  const type = (file.type || '').trim().toLowerCase();
-  const videoByExt = /\.(mp4|webm|mov|m4v|mkv|avi|ogv|3gp|3g2|qt)$/i.test(file.name);
-  const imageByExt = /\.(jpe?g|png|webp)$/i.test(file.name);
+export function classifyListingUploadParts(
+  fileName: string,
+  mimeType: string,
+  fileSize: number
+): 'image' | 'video' | null {
+  const type = (mimeType || '').trim().toLowerCase();
+  const videoByExt = /\.(mp4|webm|mov|m4v|mkv|avi|ogv|3gp|3g2|qt)$/i.test(fileName);
+  const imageByExt = /\.(jpe?g|png|webp)$/i.test(fileName);
 
   const isImageMime = ALLOWED_IMAGE_MIMES.has(type);
   const isVideoMime = KNOWN_VIDEO_MIMES.has(type) || type.startsWith('video/');
@@ -36,7 +41,7 @@ export function classifyListingUploadFile(file: File): 'image' | 'video' | null 
     if (videoByExt && !imageByExt) return 'video';
     if (imageByExt && !videoByExt) return 'image';
     if (videoByExt && imageByExt) {
-      return file.size > 12 * 1024 * 1024 ? 'video' : 'image';
+      return fileSize > 12 * 1024 * 1024 ? 'video' : 'image';
     }
     return null;
   }
@@ -44,6 +49,10 @@ export function classifyListingUploadFile(file: File): 'image' | 'video' | null 
   if (type.startsWith('image/')) return null;
 
   return null;
+}
+
+export function classifyListingUploadFile(file: File): 'image' | 'video' | null {
+  return classifyListingUploadParts(file.name, file.type, file.size);
 }
 
 export function fileLooksLikeVideo(file: File): boolean {
