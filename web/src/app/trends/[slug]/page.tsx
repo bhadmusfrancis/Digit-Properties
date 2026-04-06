@@ -4,15 +4,9 @@ import Trend from '@/models/Trend';
 import { TREND_STATUS } from '@/lib/constants';
 import { TrendPostClient } from '@/components/trends/TrendPostClient';
 import type { Metadata } from 'next';
+import { siteOrigin } from '@/lib/site-metadata';
 
-const baseUrl = () => process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
-
-function toAbsoluteImageUrl(url: string | undefined): string | undefined {
-  if (!url) return undefined;
-  if (url.startsWith('http')) return url;
-  const base = baseUrl();
-  return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
-}
+const baseUrl = () => siteOrigin();
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   try {
@@ -20,16 +14,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     if (!slug?.trim()) return {};
     await dbConnect();
     const post = await Trend.findOne({ slug: slug.trim(), status: TREND_STATUS.PUBLISHED })
-      .select('title excerpt imageUrl')
+      .select('title excerpt publishedAt updatedAt')
       .lean();
     if (!post) return {};
     const url = `${baseUrl()}/trends/${slug}`;
     const title = post.title;
     const description = (post.excerpt ?? post.title)?.slice(0, 160);
-    const ogImageUrl = toAbsoluteImageUrl(post.imageUrl);
+    const publishedTime = post.publishedAt ? new Date(post.publishedAt).toISOString() : undefined;
+    const modifiedTime = post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined;
     return {
       title: `${title} | Digit Properties Trends`,
       description: description ?? title,
+      alternates: { canonical: url },
       openGraph: {
         type: 'article',
         title,
@@ -37,15 +33,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         url,
         siteName: 'Digit Properties',
         locale: 'en_NG',
-        ...(ogImageUrl && {
-          images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
-        }),
+        publishedTime,
+        modifiedTime,
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description: description ?? title,
-        ...(ogImageUrl && { images: [ogImageUrl] }),
       },
     };
   } catch (e) {

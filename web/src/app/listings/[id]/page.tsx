@@ -10,11 +10,7 @@ import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitl
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
-import {
-  getCloudinaryVideoThumbnailUrl,
-  getDefaultListingImageUrl,
-  getListingOpenGraphImages,
-} from '@/lib/listing-default-image';
+import { getCloudinaryVideoThumbnailUrl, getDefaultListingImageUrl } from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import Listing from '@/models/Listing';
@@ -22,12 +18,9 @@ import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
-import {
-  buildListingOpenGraphImageAlt,
-  buildListingShareDescription,
-  listingDocToShareFields,
-} from '@/lib/listing-share-text';
+import { buildListingShareDescription, listingDocToShareFields } from '@/lib/listing-share-text';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
+import { siteOrigin } from '@/lib/site-metadata';
 
 function isVideoUrl(url: string): boolean {
   const clean = (url || '').split('?')[0].toLowerCase();
@@ -53,39 +46,33 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     ) {
       notFound();
     }
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    const baseUrl = siteOrigin();
+    const canonical = `${baseUrl}/listings/${id}`;
     const shareFields = listingDocToShareFields({
       ...listing,
       propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
     });
     const description = buildListingShareDescription(shareFields, { maxLen: 160 });
-    const ogImageAlt = buildListingOpenGraphImageAlt(shareFields);
-    const ogImages = getListingOpenGraphImages(
-      baseUrl,
-      listing.images as { url: string }[] | undefined,
-      listing.propertyType ?? 'apartment',
-      listing.videos as { url: string; public_id?: string }[] | undefined,
-      ogImageAlt,
-      4
-    );
-    const twitterImageUrls = ogImages.map((im) => im.url);
+    const createdAt = listing.createdAt ? new Date(listing.createdAt as Date) : undefined;
+    const updatedAt = listing.updatedAt ? new Date(listing.updatedAt as Date) : undefined;
     return {
       title: listing.title,
       description,
+      alternates: { canonical },
       openGraph: {
-        type: 'website',
+        type: 'article',
         title: listing.title,
         description,
-        url: `${baseUrl}/listings/${id}`,
+        url: canonical,
         siteName: 'Digit Properties',
         locale: 'en_NG',
-        images: ogImages,
+        publishedTime: createdAt?.toISOString(),
+        modifiedTime: updatedAt?.toISOString(),
       },
       twitter: {
         card: 'summary_large_image',
         title: listing.title,
         description,
-        images: twitterImageUrls.length ? twitterImageUrls : undefined,
       },
     };
   } catch (e) {
@@ -254,7 +241,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       : String(listing.createdBy);
     const isOwner = !!session?.user?.id && createdById === session.user.id;
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    const baseUrl = siteOrigin();
     const shareFields = listingDocToShareFields({
       ...listing,
       propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
