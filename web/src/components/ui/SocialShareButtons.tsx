@@ -65,7 +65,7 @@ function isIOSNonSafariBrowser(ua: string): boolean {
 }
 
 /**
- * Meta Share Dialog: `touch` on mobile Safari/Android. `page` on iOS Chrome / Firefox / Edge / Opera so `href` and quote load.
+ * Meta Share Dialog: `touch` on mobile Safari/Android; `page` on iOS Chrome / Firefox / Edge / Opera.
  * No website can reliably force the native Facebook app; universal links may open the app after navigating to facebook.com.
  */
 function facebookMobileDialogDisplay(ua: string): 'touch' | 'page' {
@@ -73,25 +73,36 @@ function facebookMobileDialogDisplay(ua: string): 'touch' | 'page' {
   return 'touch';
 }
 
+/**
+ * Link-only share so Facebook attaches a link preview (Open Graph title/description/image), not a text post with a naked URL.
+ * Do not send `quote` — it becomes user-visible text above the link and works against the “card” experience.
+ */
+function facebookHrefForLinkPreview(abs: string): string {
+  try {
+    const u = new URL(abs);
+    u.hash = '';
+    return u.toString();
+  } catch {
+    return abs;
+  }
+}
+
 function buildFacebookShareDialogUrl(opts: {
   appId: string;
   display: 'touch' | 'page' | 'popup';
   hrefAbsolute: string;
   redirectUriRaw: string;
-  quote?: string;
 }): string {
   const q = new URLSearchParams();
   q.set('app_id', opts.appId);
   q.set('display', opts.display);
   q.set('href', opts.hrefAbsolute);
   q.set('redirect_uri', opts.redirectUriRaw);
-  const quote = opts.quote?.trim();
-  if (quote) q.set('quote', quote.slice(0, 500));
   return `https://www.facebook.com/dialog/share?${q.toString()}`;
 }
 
-function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: string): void {
-  const abs = getAbsoluteShareUrl(pageUrl);
+function openFacebookShare(pageUrl: string, _shareTitle: string, _shareSnippet: string): void {
+  const abs = facebookHrefForLinkPreview(getAbsoluteShareUrl(pageUrl));
   const hrefEnc = encoded(abs);
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID?.trim();
 
@@ -101,7 +112,6 @@ function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: st
   if (appId && typeof window !== 'undefined') {
     const origin = facebookShareRedirectOrigin();
     const redirectUriRaw = origin ? `${origin}/` : `${window.location.origin}/`;
-    const quote = (shareSnippet || shareTitle).trim().length > 0 ? (shareSnippet || shareTitle).slice(0, 500) : undefined;
 
     if (mobileUa) {
       const display = facebookMobileDialogDisplay(ua);
@@ -110,7 +120,6 @@ function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: st
         display,
         hrefAbsolute: abs,
         redirectUriRaw,
-        quote,
       });
       window.location.assign(dialogUrl);
       return;
@@ -121,7 +130,6 @@ function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: st
       display: 'popup',
       hrefAbsolute: abs,
       redirectUriRaw,
-      quote,
     });
     const w = window.open(dialogUrl, '_blank', 'noopener,noreferrer,width=626,height=600,scrollbars=yes');
     if (w) w.opener = null;
