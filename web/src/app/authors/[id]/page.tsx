@@ -8,13 +8,15 @@ import User from '@/models/User';
 import Listing from '@/models/Listing';
 import { LISTING_STATUS } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { isPublicVerifiedAccount } from '@/lib/verification';
 import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { toFirstName } from '@/lib/display-name';
 
-const PUBLIC_USER_SELECT = 'firstName name image role companyPosition';
+const PUBLIC_USER_SELECT =
+  'firstName name image role companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt';
 const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images videos';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -61,12 +63,29 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
 
   if (!user) notFound();
 
-  const u = user as { firstName?: string; name?: string; image?: string; role?: string; companyPosition?: string };
+  const u = user as {
+    firstName?: string;
+    name?: string;
+    image?: string;
+    role?: string;
+    companyPosition?: string;
+    verifiedAt?: Date;
+    phoneVerifiedAt?: Date;
+    identityVerifiedAt?: Date;
+    livenessVerifiedAt?: Date;
+  };
   const name = toFirstName(u.firstName, u.name, 'Author');
   const image = u.image;
   const role = u.role;
   const companyPosition = u.companyPosition;
   const totalListings = listings.length;
+  const isVerifiedPublic = isPublicVerifiedAccount({
+    role: u.role,
+    verifiedAt: u.verifiedAt,
+    phoneVerifiedAt: u.phoneVerifiedAt,
+    identityVerifiedAt: u.identityVerifiedAt,
+    livenessVerifiedAt: u.livenessVerifiedAt,
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -92,7 +111,9 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              {role && role !== 'guest' && <VerifiedBadge role={role} showCaveat />}
+              {isVerifiedPublic && (
+                <VerifiedBadge role={role ?? ''} isVerifiedAccount={isVerifiedPublic} showCaveat />
+              )}
               {companyPosition && (
                 <span className="text-sm text-gray-600">{companyPosition}</span>
               )}

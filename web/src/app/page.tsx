@@ -67,7 +67,7 @@ export default function HomePage() {
               </div>
               <h3 className="mt-4 font-semibold text-gray-900">Connect</h3>
               <p className="mt-2 text-gray-600">
-                Sign in to view contact details and reach out via WhatsApp or phone.
+                View the number, call, or start a WhatsApp chat with the seller or agent—no account required.
               </p>
             </div>
             <div>

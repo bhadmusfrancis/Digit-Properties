@@ -6,6 +6,7 @@ import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
+import { shapePublicCreatedBy } from '@/lib/verification';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 24;
@@ -26,7 +27,7 @@ type SimilarListingItem = {
   isBoosted: boolean;
   soldAt?: string;
   rentedAt?: string;
-  createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
+  createdBy?: { _id: string; firstName?: string; name?: string; role?: string; isVerifiedAccount: boolean };
 };
 
 /** GET /api/listings/[id]/similar?skip=0&limit=12 — paginated similar listings (same propertyType, by proximity then date). */
@@ -127,6 +128,20 @@ export async function GET(
           localField: 'createdBy',
           foreignField: '_id',
           as: 'createdByDoc',
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                name: 1,
+                image: 1,
+                role: 1,
+                verifiedAt: 1,
+                phoneVerifiedAt: 1,
+                identityVerifiedAt: 1,
+                livenessVerifiedAt: 1,
+              },
+            },
+          ],
         },
       },
     ];
@@ -137,9 +152,7 @@ export async function GET(
 
     const listings: SimilarListingItem[] = slice.map((doc: Record<string, unknown>) => {
       const createdByDoc = Array.isArray(doc.createdByDoc) ? doc.createdByDoc[0] : null;
-      const cb = createdByDoc && typeof createdByDoc === 'object'
-        ? (createdByDoc as { _id?: unknown; firstName?: string; name?: string; role?: string })
-        : null;
+      const cb = createdByDoc && typeof createdByDoc === 'object' ? createdByDoc : null;
       const loc = doc.location as Record<string, unknown> | undefined;
       const location = loc && typeof loc === 'object'
         ? {
@@ -184,9 +197,7 @@ export async function GET(
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
         soldAt: doc.soldAt ? new Date(doc.soldAt as Date).toISOString() : undefined,
         rentedAt: doc.rentedAt ? new Date(doc.rentedAt as Date).toISOString() : undefined,
-        createdBy: cb
-          ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }
-          : undefined,
+        createdBy: cb ? shapePublicCreatedBy(cb) ?? undefined : undefined,
       };
     });
 

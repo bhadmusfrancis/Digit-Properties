@@ -27,7 +27,7 @@ export interface Listing {
   images?: { url: string }[];
   videos?: { url: string; public_id?: string }[];
   isBoosted?: boolean;
-  createdBy?: { name?: string; role?: string };
+  createdBy?: { name?: string; role?: string; isVerifiedAccount?: boolean };
 }
 
 type ListingCarouselProps = {
@@ -120,9 +120,14 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
                 {formatPropertyTypesLine(listing.propertyTypes, listing.propertyType)}
               </span>
             </div>
-            {listing.createdBy?.role && listing.createdBy.role !== 'guest' && (
+            {(listing.createdBy?.isVerifiedAccount ||
+              (listing.createdBy?.role && listing.createdBy.role !== 'guest')) && (
               <div className="mt-2">
-                <VerifiedBadge role={listing.createdBy.role} />
+                <VerifiedBadge
+                  role={listing.createdBy?.role ?? ''}
+                  isVerifiedAccount={listing.createdBy?.isVerifiedAccount ?? false}
+                  compact
+                />
               </div>
             )}
           </div>

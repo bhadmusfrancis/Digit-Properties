@@ -26,7 +26,7 @@ export interface Listing {
   isBoosted?: boolean;
   soldAt?: string | Date;
   rentedAt?: string | Date;
-  createdBy?: { _id?: string; firstName?: string; name?: string; role?: string };
+  createdBy?: { _id?: string; firstName?: string; name?: string; role?: string; isVerifiedAccount?: boolean };
 }
 
 export function ListingGrid({ listings }: { listings: Listing[] }) {
@@ -99,11 +99,15 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
               </div>
             </div>
           </Link>
-          {(listing.createdBy?.role || listing.createdBy?._id) && (
+          {(listing.createdBy?._id ||
+            listing.createdBy?.isVerifiedAccount ||
+            (listing.createdBy?.role && listing.createdBy.role !== 'guest')) && (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-4 pb-4">
-              {listing.createdBy.role && listing.createdBy.role !== 'guest' && (
-                <VerifiedBadge role={listing.createdBy.role} />
-              )}
+              <VerifiedBadge
+                role={listing.createdBy?.role ?? ''}
+                isVerifiedAccount={listing.createdBy?.isVerifiedAccount ?? false}
+                compact
+              />
               {listing.createdBy._id && (
                 <Link
                   href={`/authors/${listing.createdBy._id}`}

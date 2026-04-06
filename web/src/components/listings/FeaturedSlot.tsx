@@ -26,7 +26,7 @@ type ListingPayload = {
   amenities?: string[];
   images?: { url: string }[];
   videos?: { url: string; public_id?: string }[];
-  createdBy?: { name?: string; role?: string };
+  createdBy?: { name?: string; role?: string; isVerifiedAccount?: boolean };
 };
 
 type AdPayload = {
@@ -184,9 +184,11 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
               </div>
             )}
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              {listing.createdBy?.role && listing.createdBy.role !== 'guest' && (
-                <VerifiedBadge role={listing.createdBy.role} />
-              )}
+              <VerifiedBadge
+                role={listing.createdBy?.role ?? ''}
+                isVerifiedAccount={listing.createdBy?.isVerifiedAccount ?? false}
+                compact
+              />
               <span className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition group-hover:bg-primary-700">
                 View property →
               </span>
