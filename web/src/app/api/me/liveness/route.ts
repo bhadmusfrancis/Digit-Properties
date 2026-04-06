@@ -13,6 +13,7 @@ import {
   getLastProfileImageChangeForCooldown,
   getNextProfilePictureChangeAt,
   isProfilePictureChangeAllowed,
+  PROFILE_PICTURE_CHANGE_COOLDOWN_MONTHS,
 } from '@/lib/profile-picture-cooldown';
 
 const RATE_PREFIX = 'liveness';
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
         const nextAt = getNextProfilePictureChangeAt(last);
         return NextResponse.json(
           {
-            error: `You can update your profile photo at most once every 6 months. You can change it again on or after ${
+            error: `You can update your profile photo at most once every ${PROFILE_PICTURE_CHANGE_COOLDOWN_MONTHS} months. You can change it again on or after ${
               nextAt
                 ? nextAt.toLocaleDateString('en-NG', {
                     weekday: 'long',
