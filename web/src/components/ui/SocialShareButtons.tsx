@@ -46,29 +46,65 @@ function facebookHrefForLinkPreview(abs: string): string {
   }
 }
 
+const FB_POPUP_FEATURES = 'noopener,noreferrer,width=626,height=436,scrollbars=yes';
+
+function openFacebookSharerPopup(href: string): void {
+  const w = window.open(href, '_blank', FB_POPUP_FEATURES);
+  if (w) w.opener = null;
+}
+
 /**
- * Facebook Share Dialog (`/dialog/share` + `app_id`) requires the user to allow “Apps, Websites and Games”
- * on their Facebook account. Users who opted out of the platform see “User opted out of platform”.
- * The classic sharer does not use your app_id and works for those users; link previews still come from OG tags on `u`.
+ * No Share Dialog / app_id: avoids “User opted out of Facebook platform” when users disable Apps & Websites.
+ *
+ * - **iOS (incl. Chrome)**: `navigator.share({ url })` first so the URL is passed into Facebook correctly; opening
+ *   m.facebook in-page often universal-links into the FB app and drops `u`.
+ * - **Firefox (desktop)**: `www` sharer can redirect into a platform flow; use **m.facebook** sharer in a popup.
+ * - **Android**: full navigation to m.facebook keeps `u=` reliably.
  */
-function openFacebookShare(pageUrl: string, _shareTitle: string, _shareSnippet: string): void {
+async function openFacebookShare(pageUrl: string, _shareTitle: string, _shareSnippet: string): Promise<void> {
   const abs = facebookHrefForLinkPreview(getAbsoluteShareUrl(pageUrl));
   const u = encoded(abs);
-
-  const mobileUa =
-    typeof navigator !== 'undefined' &&
-    /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const sharerWww = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+  const sharerM = `https://m.facebook.com/sharer.php?u=${u}`;
 
   if (typeof window === 'undefined') return;
 
-  if (mobileUa) {
-    window.location.assign(`https://m.facebook.com/sharer.php?u=${u}`);
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isFirefoxDesktop = /\bFirefox\//i.test(ua) && !/Android|iPhone|iPad|iPod/i.test(ua);
+  const mobileUa = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+  if (isIOS && typeof navigator.share === 'function') {
+    try {
+      const can = typeof navigator.canShare !== 'function' || navigator.canShare({ url: abs });
+      if (can) {
+        await navigator.share({ url: abs });
+        return;
+      }
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return;
+    }
+  }
+
+  if (isFirefoxDesktop) {
+    openFacebookSharerPopup(sharerM);
     return;
   }
 
-  const sharer = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
-  const popup = window.open(sharer, '_blank', 'noopener,noreferrer,width=626,height=436,scrollbars=yes');
-  if (popup) popup.opener = null;
+  if (mobileUa) {
+    if (isAndroid) {
+      window.location.assign(sharerM);
+      return;
+    }
+    // iOS: after share API unavailable/cancelled — new tab to www; avoid assign(m.) which tends to hand off to the app without `u`
+    const w = window.open(sharerWww, '_blank', 'noopener,noreferrer');
+    if (w) w.opener = null;
+    else window.location.assign(sharerWww);
+    return;
+  }
+
+  openFacebookSharerPopup(sharerWww);
 }
 
 export function SocialShareButtons({ url, title, text, className = '' }: SocialShareButtonsProps) {
@@ -115,7 +151,7 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
         </a>
         <button
           type="button"
-          onClick={() => openFacebookShare(url, safeTitle, shareText)}
+          onClick={() => void openFacebookShare(url, safeTitle, shareText)}
           className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white hover:shadow-lg focus:ring-[#1877f2]`}
           aria-label="Share on Facebook"
         >
