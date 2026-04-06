@@ -45,7 +45,7 @@ export interface IUser {
   professionalVerifiedAt?: Date;
   /** Set when liveness challenge passed; profile picture from liveness until Agent/Developer. */
   livenessVerifiedAt?: Date;
-  /** Last time the account `image` (display photo) was set by the user or liveness; used for 6-month change limit. */
+  /** Last time the account `image` (display photo) was set by the user or liveness; used for 3-month change limit. */
   profileImageChangedAt?: Date;
   /** True until role is registered_agent or registered_developer; then user can change profile picture. */
   profilePictureLocked?: boolean;
