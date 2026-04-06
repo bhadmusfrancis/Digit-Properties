@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { stripHtml } from '@/lib/utils';
 
 export type SocialShareButtonsProps = {
   url: string;
@@ -60,7 +61,9 @@ function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: st
 
 export function SocialShareButtons({ url, title, text, className = '' }: SocialShareButtonsProps) {
   const [copied, setCopied] = useState(false);
-  const shareText = text ?? title;
+  const safeTitle = stripHtml(title).trim() || title;
+  const fromText = text?.trim() ? stripHtml(text).trim() : '';
+  const shareText = (fromText || safeTitle).trim() || title;
 
   const shareUrls = {
     twitter: `https://twitter.com/intent/tweet?url=${encoded(url)}&text=${encoded(shareText)}`,
@@ -100,7 +103,7 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
         </a>
         <button
           type="button"
-          onClick={() => openFacebookShare(url, title, shareText)}
+          onClick={() => openFacebookShare(url, safeTitle, shareText)}
           className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white hover:shadow-lg focus:ring-[#1877f2]`}
           aria-label="Share on Facebook"
         >

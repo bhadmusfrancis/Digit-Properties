@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { BOOST_PACKAGES, BOOST_VISIBILITY_DISCLAIMER } from '@/lib/boost-packages';
 
 type BoostPackageId = keyof typeof BOOST_PACKAGES;
 
@@ -186,7 +186,10 @@ export function MyListingActions({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
             <h3 className="text-lg font-semibold text-gray-900">Choose a boost package</h3>
-            <p className="mt-1 text-sm text-gray-600">Select a package and continue with Paystack.</p>
+            <p className="mt-1 text-sm text-gray-600">
+              Select a package and continue with Paystack. Visibility scores compare plans using placement, duration, and
+              limits—not live analytics.
+            </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {Object.values(BOOST_PACKAGES).map((pkg) => (
                 <label
@@ -207,6 +210,35 @@ export function MyListingActions({
                       className="h-4 w-4 border-gray-300 text-primary-600"
                     />
                   </div>
+                  <p className="mt-1.5">
+                    <span className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700">
+                      {pkg.visibilityTier} visibility
+                    </span>
+                  </p>
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-[11px] text-gray-600">
+                      <span>Visibility index</span>
+                      <span className="font-semibold tabular-nums text-gray-900">
+                        {pkg.visibilityIndex}/100
+                        {pkg.visibilityVsStarterMultiplier > 1 ? (
+                          <span className="ml-1 font-normal text-gray-500">
+                            (~{pkg.visibilityVsStarterMultiplier}× vs Starter)
+                          </span>
+                        ) : null}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full rounded-full bg-primary-500 transition-all"
+                        style={{ width: `${pkg.visibilityIndex}%` }}
+                        role="progressbar"
+                        aria-valuenow={pkg.visibilityIndex}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${pkg.name} visibility ${pkg.visibilityIndex} out of 100`}
+                      />
+                    </div>
+                  </div>
                   <p className="mt-1 text-xs text-gray-500">{pkg.days} days boost</p>
                   <p className="mt-2 text-sm font-bold text-gray-900">NGN {pkg.amount.toLocaleString()}</p>
                   <ul className="mt-2 space-y-1 text-xs text-gray-600">
@@ -219,6 +251,7 @@ export function MyListingActions({
                 </label>
               ))}
             </div>
+            <p className="mt-3 text-[11px] leading-snug text-gray-500">{BOOST_VISIBILITY_DISCLAIMER}</p>
             <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
               <button
                 type="button"

@@ -21,6 +21,7 @@ import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
+import { plainTextExcerpt } from '@/lib/utils';
 
 function isVideoUrl(url: string): boolean {
   const clean = (url || '').split('?')[0].toLowerCase();
@@ -61,7 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       listing.videos as { url: string; public_id?: string }[] | undefined
     );
     const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`;
-    const description = listing.description?.slice(0, 160) ?? listing.title;
+    const description = plainTextExcerpt(listing.description, 160, listing.title);
     return {
       title: listing.title,
       description,
@@ -367,7 +368,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <SocialShareButtons
                   url={`${baseUrl}/listings/${id}`}
                   title={listing.title}
-                  text={listing.description?.slice(0, 100)}
+                  text={plainTextExcerpt(listing.description, 100, listing.title)}
                 />
               </div>
             </div>

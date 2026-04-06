@@ -44,6 +44,18 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+/** Plain text excerpt for meta tags, share blurbs, and link previews. */
+export function plainTextExcerpt(
+  html: string | null | undefined,
+  maxLen: number,
+  fallback: string
+): string {
+  const t = stripHtml(html ?? '').trim();
+  const base = (t || stripHtml(fallback).trim() || fallback).trim();
+  if (base.length <= maxLen) return base;
+  return base.slice(0, maxLen);
+}
+
 export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
