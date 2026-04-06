@@ -45,6 +45,8 @@ export interface IUser {
   professionalVerifiedAt?: Date;
   /** Set when liveness challenge passed; profile picture from liveness until Agent/Developer. */
   livenessVerifiedAt?: Date;
+  /** Last time the account `image` (display photo) was set by the user or liveness; used for 6-month change limit. */
+  profileImageChangedAt?: Date;
   /** True until role is registered_agent or registered_developer; then user can change profile picture. */
   profilePictureLocked?: boolean;
   /** Position in company (Agent/Developer only), e.g. "Agent", "Director". */
@@ -104,6 +106,7 @@ const UserSchema = new Schema<IUser>(
     livenessCentreImageUrl: String,
     professionalVerifiedAt: Date,
     livenessVerifiedAt: Date,
+    profileImageChangedAt: Date,
     profilePictureLocked: { type: Boolean, default: false },
     companyPosition: String,
     emailVerificationToken: String,

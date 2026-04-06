@@ -9,6 +9,11 @@ import { consumeRateLimit } from '@/lib/rate-limit';
 import { USER_ROLES } from '@/lib/constants';
 import { sendAdminNewVerificationRequest } from '@/lib/email';
 import { livenessSchema } from '@/lib/validations';
+import {
+  getLastProfileImageChangeForCooldown,
+  getNextProfilePictureChangeAt,
+  isProfilePictureChangeAllowed,
+} from '@/lib/profile-picture-cooldown';
 
 const RATE_PREFIX = 'liveness';
 const MAX_LIVENESS_ATTEMPTS = 5;
@@ -45,8 +50,38 @@ export async function POST(req: Request) {
     if (user.role === USER_ROLES.ADMIN) {
       return NextResponse.json({ error: 'Admins do not require liveness verification' }, { status: 400 });
     }
+    const oldUrl = (user.image || '').trim();
+    const newUrl = imageUrl.trim();
+    if (newUrl !== oldUrl) {
+      const last = getLastProfileImageChangeForCooldown({
+        profileImageChangedAt: user.profileImageChangedAt,
+        livenessVerifiedAt: user.livenessVerifiedAt,
+        image: oldUrl || undefined,
+      });
+      if (!isProfilePictureChangeAllowed(last)) {
+        const nextAt = getNextProfilePictureChangeAt(last);
+        return NextResponse.json(
+          {
+            error: `You can update your profile photo at most once every 6 months. You can change it again on or after ${
+              nextAt
+                ? nextAt.toLocaleDateString('en-NG', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                : 'the allowed date'
+            }.`,
+            code: 'PROFILE_IMAGE_COOLDOWN',
+            nextAllowedAt: nextAt?.toISOString(),
+          },
+          { status: 403 }
+        );
+      }
+    }
     user.image = imageUrl;
     user.livenessVerifiedAt = new Date();
+    user.profileImageChangedAt = new Date();
     await user.save();
 
     // Send initial verification to admin for approval (ID + liveness = Verified Individual request)
