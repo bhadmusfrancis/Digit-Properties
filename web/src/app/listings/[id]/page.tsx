@@ -12,7 +12,7 @@ import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULA
 import {
   getCloudinaryVideoThumbnailUrl,
   getDefaultListingImageUrl,
-  getListingDisplayImage,
+  getListingOpenGraphImages,
 } from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
@@ -21,7 +21,11 @@ import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
-import { plainTextExcerpt } from '@/lib/utils';
+import {
+  buildListingOpenGraphImageAlt,
+  buildListingShareDescription,
+  listingDocToShareFields,
+} from '@/lib/listing-share-text';
 
 function isVideoUrl(url: string): boolean {
   const clean = (url || '').split('?')[0].toLowerCase();
@@ -56,13 +60,21 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       notFound();
     }
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
-    const ogImage = getListingDisplayImage(
+    const shareFields = listingDocToShareFields({
+      ...listing,
+      propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
+    });
+    const description = buildListingShareDescription(shareFields, { maxLen: 160 });
+    const ogImageAlt = buildListingOpenGraphImageAlt(shareFields);
+    const ogImages = getListingOpenGraphImages(
+      baseUrl,
       listing.images as { url: string }[] | undefined,
       listing.propertyType ?? 'apartment',
-      listing.videos as { url: string; public_id?: string }[] | undefined
+      listing.videos as { url: string; public_id?: string }[] | undefined,
+      ogImageAlt,
+      4
     );
-    const ogImageUrl = ogImage.startsWith('http') ? ogImage : `${baseUrl}${ogImage}`;
-    const description = plainTextExcerpt(listing.description, 160, listing.title);
+    const twitterImageUrls = ogImages.map((im) => im.url);
     return {
       title: listing.title,
       description,
@@ -73,13 +85,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         url: `${baseUrl}/listings/${id}`,
         siteName: 'Digit Properties',
         locale: 'en_NG',
-        images: [{ url: ogImageUrl, width: 1200, height: 630, alt: listing.title }],
+        images: ogImages,
       },
       twitter: {
         card: 'summary_large_image',
         title: listing.title,
         description,
-        images: [ogImageUrl],
+        images: twitterImageUrls.length ? twitterImageUrls : undefined,
       },
     };
   } catch (e) {
@@ -237,6 +249,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const isOwner = !!session?.user?.id && createdById === session.user.id;
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    const shareFields = listingDocToShareFields({
+      ...listing,
+      propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
+    });
+    const shareDescription = buildListingShareDescription(shareFields, { maxLen: 480 });
     const isBoosted = listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date();
     const derivedAmenities = mergeUniqueLists(
       listing.amenities,
@@ -368,7 +385,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <SocialShareButtons
                   url={`${baseUrl}/listings/${id}`}
                   title={listing.title}
-                  text={plainTextExcerpt(listing.description, 100, listing.title)}
+                  text={shareDescription}
                 />
               </div>
             </div>
