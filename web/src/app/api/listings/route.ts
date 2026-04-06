@@ -11,6 +11,7 @@ import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
+import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -102,7 +103,7 @@ export async function GET(req: Request) {
       const all = await Listing.find(filter)
         .sort({ boostExpiresAt: -1, createdAt: -1 })
         .limit(Math.min(50, limit * 3))
-        .populate('createdBy', 'firstName name image role')
+        .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
         .lean();
       const shuffled = [...all].sort(() => Math.random() - 0.5);
       listings = prioritizeMedia(shuffled).slice(0, limit);
@@ -146,7 +147,20 @@ export async function GET(req: Request) {
               localField: 'createdBy',
               foreignField: '_id',
               as: '_createdByArr',
-              pipeline: [{ $project: { firstName: 1, name: 1, image: 1, role: 1 } }],
+              pipeline: [
+                {
+                  $project: {
+                    firstName: 1,
+                    name: 1,
+                    image: 1,
+                    role: 1,
+                    verifiedAt: 1,
+                    phoneVerifiedAt: 1,
+                    identityVerifiedAt: 1,
+                    livenessVerifiedAt: 1,
+                  },
+                },
+              ],
             },
           } as PipelineStage,
           { $addFields: { createdBy: { $arrayElemAt: ['$_createdByArr', 0] } } } as PipelineStage,
@@ -159,19 +173,14 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({
-      listings: listings.map((l) => ({
-        ...l,
-        createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
-          ? {
-              _id: (l.createdBy as { _id?: unknown })._id != null ? String((l.createdBy as { _id: unknown })._id) : undefined,
-              firstName: (l.createdBy as { firstName?: string }).firstName,
-              name: (l.createdBy as { name?: string }).name,
-              image: (l.createdBy as { image?: string }).image,
-              role: (l.createdBy as { role?: string }).role,
-            }
-          : l.createdBy,
-        isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
-      })),
+      listings: listings.map((l) => {
+        const shaped = shapePublicCreatedBy(l.createdBy);
+        return {
+          ...l,
+          createdBy: shaped ?? l.createdBy,
+          isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
+        };
+      }),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (e) {

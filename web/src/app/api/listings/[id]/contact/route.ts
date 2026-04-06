@@ -12,9 +12,6 @@ export async function GET(
 ) {
   try {
     const session = await getSession(req);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Login required to view contact details' }, { status: 401 });
-    }
     await dbConnect();
 
     const { id } = await params;

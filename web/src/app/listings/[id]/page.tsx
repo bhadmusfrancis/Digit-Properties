@@ -6,6 +6,7 @@ import { canViewListingOnSite } from '@/lib/listing-access';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
+import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
@@ -26,18 +27,11 @@ import {
   buildListingShareDescription,
   listingDocToShareFields,
 } from '@/lib/listing-share-text';
+import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 
 function isVideoUrl(url: string): boolean {
   const clean = (url || '').split('?')[0].toLowerCase();
   return /\.(mp4|webm|mov|m4v|ogg|ogv)$/.test(clean) || clean.includes('/video/upload/');
-}
-
-function serializeCreatedBy(createdBy: unknown): { _id: string; firstName?: string; name?: string; role?: string } | null {
-  if (!createdBy || typeof createdBy !== 'object') return null;
-  const obj = createdBy as { _id?: unknown; firstName?: string; name?: string; role?: string };
-  const id = obj._id != null ? String(obj._id) : null;
-  if (!id) return null;
-  return { _id: id, firstName: obj.firstName, name: obj.name, role: obj.role };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -109,7 +103,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     void User; // Ensure User model is registered for populate
     const [session, listing, likeCount] = await Promise.all([
       getServerSession(authOptions),
-      Listing.findById(id).populate('createdBy', 'firstName name image role').lean(),
+      Listing.findById(id).populate('createdBy', USER_PUBLIC_BADGE_FIELDS).lean(),
       ListingLike.countDocuments({ listingId: new mongoose.Types.ObjectId(id) }),
     ]);
     if (!listing) notFound();
@@ -187,12 +181,26 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           localField: 'createdBy',
           foreignField: '_id',
           as: 'createdByDoc',
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                name: 1,
+                image: 1,
+                role: 1,
+                verifiedAt: 1,
+                phoneVerifiedAt: 1,
+                identityVerifiedAt: 1,
+                livenessVerifiedAt: 1,
+              },
+            },
+          ],
         },
       },
     ]).exec();
     const similarListings = similarAgg.map((doc: Record<string, unknown>) => {
       const createdByDoc = Array.isArray(doc.createdByDoc) ? doc.createdByDoc[0] : null;
-      const cb = createdByDoc && typeof createdByDoc === 'object' ? createdByDoc as { _id?: unknown; firstName?: string; name?: string; role?: string } : null;
+      const cb = createdByDoc && typeof createdByDoc === 'object' ? createdByDoc : null;
       const loc = doc.location as Record<string, unknown> | undefined;
       const location = loc && typeof loc === 'object'
         ? {
@@ -237,9 +245,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         isBoosted: doc.boostExpiresAt ? new Date(doc.boostExpiresAt as Date) > new Date() : false,
         soldAt: doc.soldAt ? new Date(doc.soldAt as Date).toISOString() : undefined,
         rentedAt: doc.rentedAt ? new Date(doc.rentedAt as Date).toISOString() : undefined,
-        createdBy: cb
-          ? { _id: cb._id != null ? String(cb._id) : undefined, firstName: cb.firstName, name: cb.name, role: cb.role }
-          : undefined,
+        createdBy: cb ? shapePublicCreatedBy(cb) ?? undefined : undefined,
       };
     });
 
@@ -324,7 +330,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           <div className="card overflow-hidden">
             <ListingImageGallery images={galleryMedia} title={listing.title} isBoosted={isBoosted} />
             <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
+              <ListingTitleWithVerifiedBadge title={listing.title} createdBy={shapePublicCreatedBy(listing.createdBy)} />
               {(listing.soldAt || listing.rentedAt) && (
                 <div className="mt-2">
                   <span
@@ -400,7 +406,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <ListingDetailClient
               listingId={String(listing._id)}
               title={listing.title}
-              createdBy={serializeCreatedBy(listing.createdBy)}
+              createdBy={shapePublicCreatedBy(listing.createdBy)}
               createdByType={listing.createdByType ?? 'user'}
               baseUrl={baseUrl}
               isOwner={isOwner}

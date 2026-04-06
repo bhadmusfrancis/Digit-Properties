@@ -4,6 +4,7 @@ import Listing from '@/models/Listing';
 import UserAd from '@/models/UserAd';
 import AdConfig from '@/models/AdConfig';
 import { LISTING_STATUS, AD_PLACEMENTS, USER_AD_STATUS } from '@/lib/constants';
+import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
 
 export const dynamic = 'force-dynamic';
@@ -32,11 +33,15 @@ export async function GET(req: Request) {
         .sort({ 'images.0.url': -1, createdAt: -1 })
         .limit(20)
         .select('title description price listingType rentPeriod propertyType location bedrooms bathrooms toilets area amenities images videos createdBy')
-        .populate('createdBy', 'name role')
+        .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
         .lean();
       for (const l of listings) {
-        const row = l as { _id: mongoose.Types.ObjectId; [k: string]: unknown };
-        pool.push({ type: 'listing', listing: { ...row, _id: row._id.toString() } });
+        const row = l as { _id: mongoose.Types.ObjectId; createdBy?: unknown; [k: string]: unknown };
+        const { createdBy: cb, ...rest } = row;
+        pool.push({
+          type: 'listing',
+          listing: { ...rest, _id: row._id.toString(), createdBy: shapePublicCreatedBy(cb) ?? cb },
+        });
       }
     }
 

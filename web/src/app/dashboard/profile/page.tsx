@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { LivenessCamera } from '@/components/verification/LivenessCamera';
 import { IdDocumentCamera } from '@/components/verification/IdDocumentCamera';
 import { ID_TYPES } from '@/lib/constants';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { isPublicVerifiedAccount } from '@/lib/verification';
 
 const ID_TYPE_OPTIONS = [
   { value: ID_TYPES.DRIVERS_LICENSE, label: "Driver's License" },
@@ -89,6 +91,7 @@ type UserMe = {
   image?: string;
   role?: string;
   companyPosition?: string;
+  verifiedAt?: string | null;
   phoneVerifiedAt?: string;
   livenessVerifiedAt?: string;
   identityVerifiedAt?: string;
@@ -663,11 +666,27 @@ export default function ProfilePage() {
   }
 
   const canChangePicture = user.canChangeProfilePicture === true;
+  const showPublicVerifiedBadge = isPublicVerifiedAccount({
+    role: user.role,
+    verifiedAt: user.verifiedAt,
+    phoneVerifiedAt: user.phoneVerifiedAt,
+    identityVerifiedAt: user.identityVerifiedAt,
+    livenessVerifiedAt: user.livenessVerifiedAt,
+  });
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Profile & Verification</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900">Profile & Verification</h2>
+          {showPublicVerifiedBadge && (
+            <VerifiedBadge
+              role={user.role ?? ''}
+              isVerifiedAccount={showPublicVerifiedBadge}
+              compact
+            />
+          )}
+        </div>
         <p className="mt-1 text-sm text-gray-500">
           Verify your phone anytime (independent). For Verified Individual: complete profile → ID → Liveness (sent to admin). Then apply for Registered Agent/Developer.
         </p>
