@@ -14,6 +14,7 @@ import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { toFirstName } from '@/lib/display-name';
+import { siteOrigin } from '@/lib/site-metadata';
 
 const PUBLIC_USER_SELECT =
   'firstName name image role companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt';
@@ -30,16 +31,24 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const name = toFirstName(u.firstName, u.name, 'Author');
     const role = u.role;
     const title = role ? `${name} · ${role.replace(/_/g, ' ')}` : name;
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+    const baseUrl = siteOrigin();
+    const canonical = `${baseUrl}/authors/${id}`;
     return {
       title: `${title} | Digit Properties`,
       description: `View ${name}'s property listings on Digit Properties.`,
+      alternates: { canonical },
       openGraph: {
         type: 'profile',
         title: `${name} | Digit Properties`,
-        url: `${baseUrl}/authors/${id}`,
+        description: `Property listings and profile on Digit Properties.`,
+        url: canonical,
         siteName: 'Digit Properties',
         locale: 'en_NG',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${name} | Digit Properties`,
+        description: `View ${name}'s property listings on Digit Properties.`,
       },
     };
   } catch {

@@ -39,45 +39,14 @@ function facebookShareRedirectOrigin(): string {
   return '';
 }
 
-/** Mobile web sharer used inside the FB app webview and as fallback (keeps `u=` on navigation). */
+/** Fallback when no App ID; m-dot sharer tends to preserve `u=` through redirects. */
 function facebookMobileSharerUrl(pageUrlAbs: string): string {
   return `https://m.facebook.com/sharer.php?u=${encoded(pageUrlAbs)}`;
 }
 
 /**
- * Android: open Facebook app's share composer via intent (not the system share sheet).
- * Falls back to m.facebook sharer in browser if the app is missing. FB may change this activity; fallback still works.
- */
-function openFacebookShareAndroid(abs: string, shareTitle: string, shareSnippet: string): void {
-  const text = `${(shareSnippet || shareTitle).trim()}\n${abs}`.trim();
-  const encText = encoded(text);
-  const fallback = encoded(facebookMobileSharerUrl(abs));
-  const intent =
-    `intent://share/#Intent;action=android.intent.action.SEND;type=text/plain;` +
-    `S.android.intent.extra.TEXT=${encText};` +
-    `component=com.facebook.katana/com.facebook.composer.shareintent.ImplicitShareIntentHandler;` +
-    `S.browser_fallback_url=${fallback};end`;
-  window.location.href = intent;
-}
-
-/**
- * iOS: hand off to the Facebook app (`fb://` in-app modal). If the app does not open, fall back to m.facebook sharer.
- */
-function openFacebookShareIOS(abs: string): void {
-  const inner = facebookMobileSharerUrl(abs);
-  const appUrl = `fb://facewebmodal/f?href=${encodeURIComponent(inner)}`;
-  const timer = window.setTimeout(() => {
-    if (document.visibilityState === 'visible') {
-      window.location.assign(inner);
-    }
-  }, 1200);
-  window.addEventListener('pagehide', () => window.clearTimeout(timer), { once: true });
-  window.location.href = appUrl;
-}
-
-/**
- * Desktop: Meta Share Dialog when App ID is set (reliable previews). Mobile: prefer native Facebook app handoff;
- * facebook.com/dialog/share in mobile Safari often breaks or drops the link.
+ * Meta documents that mobile web must use Share Dialog with display=touch so `href` is applied in their UI.
+ * Custom fb:// URLs and Android intent targets often open the Facebook app with an empty composer; avoid them.
  */
 function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: string): void {
   const abs = getAbsoluteShareUrl(pageUrl);
@@ -87,26 +56,29 @@ function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: st
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
   const mobileUa = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
-  if (mobileUa && typeof window !== 'undefined') {
-    if (/Android/i.test(ua)) {
-      openFacebookShareAndroid(abs, shareTitle, shareSnippet);
-      return;
-    }
-    if (/iPhone|iPad|iPod/i.test(ua)) {
-      openFacebookShareIOS(abs);
-      return;
-    }
-    window.location.assign(facebookMobileSharerUrl(abs));
-    return;
-  }
-
   if (appId && typeof window !== 'undefined') {
     const origin = facebookShareRedirectOrigin();
     const redirectUri = encoded(origin ? `${origin}/` : `${window.location.origin}/`);
-    const quote = encoded((shareSnippet || shareTitle).slice(0, 500));
-    const dialogUrl = `https://www.facebook.com/dialog/share?app_id=${appId}&display=popup&href=${hrefEnc}&redirect_uri=${redirectUri}&quote=${quote}`;
+    const appIdEnc = encodeURIComponent(appId);
+    const quotePart =
+      (shareSnippet || shareTitle).trim().length > 0
+        ? `&quote=${encoded((shareSnippet || shareTitle).slice(0, 500))}`
+        : '';
+
+    if (mobileUa) {
+      const dialogUrl = `https://www.facebook.com/dialog/share?app_id=${appIdEnc}&display=touch&href=${hrefEnc}&redirect_uri=${redirectUri}${quotePart}`;
+      window.location.assign(dialogUrl);
+      return;
+    }
+
+    const dialogUrl = `https://www.facebook.com/dialog/share?app_id=${appIdEnc}&display=popup&href=${hrefEnc}&redirect_uri=${redirectUri}${quotePart}`;
     const w = window.open(dialogUrl, '_blank', 'noopener,noreferrer,width=626,height=600,scrollbars=yes');
     if (w) w.opener = null;
+    return;
+  }
+
+  if (mobileUa && typeof window !== 'undefined') {
+    window.location.assign(facebookMobileSharerUrl(abs));
     return;
   }
 
