@@ -42,9 +42,9 @@ function facebookShareRedirectOrigin(): string {
 /**
  * Opening facebook.com/sharer in a new tab on mobile often hands off to the native app
  * without the `u` query string. Prefer m.facebook.com + full navigation, or Meta Share Dialog when App ID is set.
- * On mobile, try the system share sheet first so users can open the Facebook app (similar UX to X deep links).
+ * We avoid navigator.share here: it shows the generic OS picker, not Facebook directly.
  */
-async function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: string): Promise<void> {
+function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: string): void {
   const abs = getAbsoluteShareUrl(pageUrl);
   const hrefEnc = encoded(abs);
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID?.trim();
@@ -52,21 +52,6 @@ async function openFacebookShare(pageUrl: string, shareTitle: string, shareSnipp
   const mobileUa =
     typeof navigator !== 'undefined' &&
     /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  if (mobileUa && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-    const snippet = (shareSnippet || shareTitle).slice(0, 500);
-    const payload: ShareData = { url: abs, title: shareTitle.slice(0, 200), text: snippet };
-    try {
-      const cannotUrl =
-        typeof navigator.canShare === 'function' && !navigator.canShare({ url: abs });
-      if (!cannotUrl) {
-        await navigator.share(payload);
-        return;
-      }
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') return;
-    }
-  }
 
   if (appId && typeof window !== 'undefined') {
     const origin = facebookShareRedirectOrigin();
@@ -137,7 +122,7 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
         </a>
         <button
           type="button"
-          onClick={() => void openFacebookShare(url, safeTitle, shareText)}
+          onClick={() => openFacebookShare(url, safeTitle, shareText)}
           className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white hover:shadow-lg focus:ring-[#1877f2]`}
           aria-label="Share on Facebook"
         >
