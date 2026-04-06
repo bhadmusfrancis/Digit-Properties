@@ -34,48 +34,7 @@ function getAbsoluteShareUrl(raw: string): string {
 }
 
 /**
- * Meta's Share Dialog `redirect_uri` must match Valid OAuth Redirect URIs exactly.
- * Prefer NEXT_PUBLIC_APP_URL so production matches Vercel/env even when users hit www or another host.
- */
-function facebookShareRedirectOrigin(): string {
-  const env = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (env) {
-    try {
-      return new URL(env).origin;
-    } catch {
-      /* ignore */
-    }
-  }
-  if (typeof window !== 'undefined') return window.location.origin;
-  return '';
-}
-
-/** Fallback when no App ID; m-dot sharer tends to preserve `u=` through redirects. */
-function facebookMobileSharerUrl(pageUrlAbs: string): string {
-  return `https://m.facebook.com/sharer.php?u=${encoded(pageUrlAbs)}`;
-}
-
-function isIOS(ua: string): boolean {
-  return /iPhone|iPad|iPod/i.test(ua);
-}
-
-/** Third‑party browsers on iOS (all use WebKit); Meta’s `display=touch` dialog often breaks here — use full-page `page`. */
-function isIOSNonSafariBrowser(ua: string): boolean {
-  return isIOS(ua) && /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
-}
-
-/**
- * Meta Share Dialog: `touch` on mobile Safari/Android; `page` on iOS Chrome / Firefox / Edge / Opera.
- * No website can reliably force the native Facebook app; universal links may open the app after navigating to facebook.com.
- */
-function facebookMobileDialogDisplay(ua: string): 'touch' | 'page' {
-  if (isIOSNonSafariBrowser(ua)) return 'page';
-  return 'touch';
-}
-
-/**
- * Link-only share so Facebook attaches a link preview (Open Graph title/description/image), not a text post with a naked URL.
- * Do not send `quote` — it becomes user-visible text above the link and works against the “card” experience.
+ * Normalize share target so Facebook’s crawler matches Open Graph (`og:url`) — strip hash only.
  */
 function facebookHrefForLinkPreview(abs: string): string {
   try {
@@ -87,61 +46,27 @@ function facebookHrefForLinkPreview(abs: string): string {
   }
 }
 
-function buildFacebookShareDialogUrl(opts: {
-  appId: string;
-  display: 'touch' | 'page' | 'popup';
-  hrefAbsolute: string;
-  redirectUriRaw: string;
-}): string {
-  const q = new URLSearchParams();
-  q.set('app_id', opts.appId);
-  q.set('display', opts.display);
-  q.set('href', opts.hrefAbsolute);
-  q.set('redirect_uri', opts.redirectUriRaw);
-  return `https://www.facebook.com/dialog/share?${q.toString()}`;
-}
-
+/**
+ * Facebook Share Dialog (`/dialog/share` + `app_id`) requires the user to allow “Apps, Websites and Games”
+ * on their Facebook account. Users who opted out of the platform see “User opted out of platform”.
+ * The classic sharer does not use your app_id and works for those users; link previews still come from OG tags on `u`.
+ */
 function openFacebookShare(pageUrl: string, _shareTitle: string, _shareSnippet: string): void {
   const abs = facebookHrefForLinkPreview(getAbsoluteShareUrl(pageUrl));
-  const hrefEnc = encoded(abs);
-  const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID?.trim();
+  const u = encoded(abs);
 
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  const mobileUa = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const mobileUa =
+    typeof navigator !== 'undefined' &&
+    /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  if (appId && typeof window !== 'undefined') {
-    const origin = facebookShareRedirectOrigin();
-    const redirectUriRaw = origin ? `${origin}/` : `${window.location.origin}/`;
+  if (typeof window === 'undefined') return;
 
-    if (mobileUa) {
-      const display = facebookMobileDialogDisplay(ua);
-      const dialogUrl = buildFacebookShareDialogUrl({
-        appId,
-        display,
-        hrefAbsolute: abs,
-        redirectUriRaw,
-      });
-      window.location.assign(dialogUrl);
-      return;
-    }
-
-    const dialogUrl = buildFacebookShareDialogUrl({
-      appId,
-      display: 'popup',
-      hrefAbsolute: abs,
-      redirectUriRaw,
-    });
-    const w = window.open(dialogUrl, '_blank', 'noopener,noreferrer,width=626,height=600,scrollbars=yes');
-    if (w) w.opener = null;
+  if (mobileUa) {
+    window.location.assign(`https://m.facebook.com/sharer.php?u=${u}`);
     return;
   }
 
-  if (mobileUa && typeof window !== 'undefined') {
-    window.location.assign(facebookMobileSharerUrl(abs));
-    return;
-  }
-
-  const sharer = `https://www.facebook.com/sharer/sharer.php?u=${hrefEnc}`;
+  const sharer = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
   const popup = window.open(sharer, '_blank', 'noopener,noreferrer,width=626,height=436,scrollbars=yes');
   if (popup) popup.opener = null;
 }
