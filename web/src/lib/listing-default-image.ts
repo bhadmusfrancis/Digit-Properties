@@ -112,6 +112,62 @@ export function listingHasVideoMedia(
   return (images ?? []).some((img) => !!img?.url && isVideoUrl(img.url));
 }
 
+/** Photo vs video counts (includes legacy video URLs stored in `images`). */
+export function countListingGalleryItems(
+  images?: { url?: string }[] | undefined,
+  videos?: ListingVideoRef[] | undefined
+): { photos: number; videos: number } {
+  const imgList = images ?? [];
+  const vidList = videos ?? [];
+  const photos = imgList.filter((i) => i?.url?.trim() && !isVideoUrl(i.url || '')).length;
+  const videosCount =
+    vidList.filter((v) => v?.url?.trim() || v?.public_id?.trim()).length +
+    imgList.filter((i) => i?.url?.trim() && isVideoUrl(i.url || '')).length;
+  return { photos, videos: videosCount };
+}
+
+function toAbsoluteOgUrl(baseUrl: string, raw: string): string {
+  const u = (raw || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  const base = baseUrl.replace(/\/$/, '');
+  return `${base}${u.startsWith('/') ? u : `/${u}`}`;
+}
+
+/**
+ * Open Graph / Twitter images: primary preview plus extra listing photos (carousel on some platforms).
+ */
+export function getListingOpenGraphImages(
+  baseUrl: string,
+  images: { url?: string }[] | undefined,
+  propertyType: string,
+  videos: ListingVideoRef[] | undefined,
+  alt: string,
+  maxImages = 4
+): { url: string; width: number; height: number; alt: string }[] {
+  const primaryRaw = getListingDisplayImage(images, propertyType, videos);
+  const out: { url: string; width: number; height: number; alt: string }[] = [];
+  const seen = new Set<string>();
+
+  const push = (raw: string) => {
+    const abs = toAbsoluteOgUrl(baseUrl, raw);
+    if (!abs || seen.has(abs)) return;
+    seen.add(abs);
+    out.push({ url: abs, width: 1200, height: 630, alt });
+  };
+
+  push(primaryRaw);
+
+  for (const img of images ?? []) {
+    const u = typeof img?.url === 'string' ? img.url.trim() : '';
+    if (!u || isVideoUrl(u)) continue;
+    push(u);
+    if (out.length >= maxImages) break;
+  }
+
+  return out;
+}
+
 /**
  * Card / preview image: first real photo wins; if the listing is video-only (no stills), use a Cloudinary video frame.
  */
