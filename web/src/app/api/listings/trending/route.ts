@@ -3,6 +3,7 @@ import type { PipelineStage } from 'mongoose';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { LISTING_STATUS } from '@/lib/constants';
+import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 
 export async function GET(req: Request) {
   try {
@@ -22,14 +23,12 @@ export async function GET(req: Request) {
         .sort({ 'images.0.url': -1, viewCount: -1, createdAt: -1 })
         .skip(offset)
         .limit(limit)
-        .populate('createdBy', 'firstName name image role')
+        .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
         .lean();
       return NextResponse.json({
         listings: listings.map((l) => ({
           ...l,
-          createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
-            ? { firstName: (l.createdBy as { firstName?: string }).firstName, name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
-            : l.createdBy,
+          createdBy: shapePublicCreatedBy(l.createdBy) ?? l.createdBy,
           isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
         })),
       });
@@ -81,7 +80,20 @@ export async function GET(req: Request) {
           localField: 'createdBy',
           foreignField: '_id',
           as: 'createdByDoc',
-          pipeline: [{ $project: { firstName: 1, name: 1, image: 1, role: 1 } }],
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                name: 1,
+                image: 1,
+                role: 1,
+                verifiedAt: 1,
+                phoneVerifiedAt: 1,
+                identityVerifiedAt: 1,
+                livenessVerifiedAt: 1,
+              },
+            },
+          ],
         },
       },
       { $set: { createdBy: { $arrayElemAt: ['$createdByDoc', 0] } } },
@@ -91,9 +103,7 @@ export async function GET(req: Request) {
     const listings = await Listing.aggregate(aggPipeline);
     const mapped = listings.map((l: { createdBy?: unknown; boostExpiresAt?: Date }) => ({
       ...l,
-      createdBy: l.createdBy && typeof l.createdBy === 'object' && 'role' in l.createdBy
-        ? { firstName: (l.createdBy as { firstName?: string }).firstName, name: (l.createdBy as { name?: string }).name, image: (l.createdBy as { image?: string }).image, role: (l.createdBy as { role?: string }).role }
-        : l.createdBy,
+      createdBy: shapePublicCreatedBy(l.createdBy) ?? l.createdBy,
       isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
     }));
 

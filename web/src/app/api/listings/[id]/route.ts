@@ -12,6 +12,7 @@ import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { canViewListingOnSite } from '@/lib/listing-access';
+import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
@@ -46,7 +47,7 @@ export async function GET(
       { $inc: { viewCount: 1 } },
       { new: true }
     )
-      .populate('createdBy', 'firstName name image role verifiedAt')
+      .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
       .lean();
 
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -58,8 +59,10 @@ export async function GET(
           public_id: img?.public_id ?? '',
         })).filter((img: { url: string }) => img.url)
       : [];
+    const { createdBy, ...listingRest } = listing as typeof listing & { createdBy?: unknown };
     return NextResponse.json({
-      ...listing,
+      ...listingRest,
+      createdBy: shapePublicCreatedBy(createdBy) ?? createdBy,
       images,
       likeCount,
       isBoosted: listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date(),

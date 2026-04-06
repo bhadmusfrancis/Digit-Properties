@@ -124,7 +124,7 @@ function SignUpForm() {
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-4 py-12">
       <h1 className="text-2xl font-bold text-gray-900">Create account</h1>
-      <p className="mt-2 text-gray-600">Sign up to list properties and view contact details.</p>
+      <p className="mt-2 text-gray-600">Sign up to list properties and unlock your dashboard.</p>
 
       <SocialAuthButtons callbackUrl={callbackUrl} />
 
