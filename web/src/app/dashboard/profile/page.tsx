@@ -99,6 +99,8 @@ type UserMe = {
   idBackUrl?: string;
   idScannedData?: { firstName?: string; middleName?: string; lastName?: string; dateOfBirth?: string };
   canChangeProfilePicture?: boolean;
+  nextProfileImageChangeAt?: string | null;
+  profileImageChangedAt?: string | null;
 };
 
 type VerificationRequestItem = {
@@ -334,10 +336,11 @@ export default function ProfilePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setUser((u) => (u ? { ...u, image: data.image } : null));
+        setUser((u) => (u ? { ...u, ...data } : null));
         setMessage('success');
       } else {
-        setMessage('error');
+        const errBody = await res.json().catch(() => ({}));
+        setMessage(typeof errBody.error === 'string' ? errBody.error : 'error');
       }
     } catch {
       setMessage('error');
@@ -647,7 +650,9 @@ export default function ProfilePage() {
       const data = await res.json();
       if (res.ok) {
         setLivenessMessage('Liveness verified. This is now your profile picture.');
-        setUser((u) => (u ? { ...u, livenessVerifiedAt: new Date().toISOString() } : null));
+        const refetch = await fetch('/api/me', { cache: 'no-store' });
+        if (refetch.ok) setUser(await refetch.json());
+        else setUser((u) => (u ? { ...u, livenessVerifiedAt: new Date().toISOString(), image: imageUrl } : null));
       } else {
         setLivenessMessage(data.error || 'Verification failed');
       }
@@ -812,8 +817,21 @@ export default function ProfilePage() {
           <div>
             <label className="block text-sm font-medium text-gray-700">Profile picture (optional)</label>
             <p className="mt-1 text-xs text-gray-500">
-              Not required before verification. If you don’t add one, it will be set from your liveness photo.
+              Not required before verification. If you don’t add one, it will be set from your liveness photo. After that, you
+              can replace it at most once every 6 months.
             </p>
+            {!canChangePicture && user.nextProfileImageChangeAt && (
+              <p className="mt-1 text-xs text-amber-800">
+                Next photo change allowed on or after{' '}
+                {new Date(user.nextProfileImageChangeAt).toLocaleDateString('en-NG', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+                .
+              </p>
+            )}
             <div className="relative mt-2 h-24 w-24 overflow-hidden rounded-full bg-gray-100">
               <Image
                 src={livenessOk && user.image ? user.image : '/avatar-guest.svg'}
@@ -835,8 +853,8 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => imageInputRef.current?.click()}
-                disabled={imageUploading}
-                className="btn-secondary text-sm"
+                disabled={imageUploading || !canChangePicture}
+                className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {imageUploading ? 'Uploading…' : 'Upload new photo'}
               </button>

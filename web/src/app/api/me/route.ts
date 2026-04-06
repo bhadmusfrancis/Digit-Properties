@@ -6,9 +6,14 @@ import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
 import { meUpdateSchema } from '@/lib/validations';
 import { normalizePhone, isValidNigerianPhone } from '@/lib/phone-verify';
+import {
+  getLastProfileImageChangeForCooldown,
+  getNextProfilePictureChangeAt,
+  isProfilePictureChangeAllowed,
+} from '@/lib/profile-picture-cooldown';
 
 const ME_SELECT =
-  'name email image phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profilePictureLocked firstName middleName lastName dateOfBirth address idFrontUrl idBackUrl idType idScannedData livenessCentreImageUrl';
+  'name email phone role subscriptionTier createdAt companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt professionalVerifiedAt livenessVerifiedAt profileImageChangedAt profilePictureLocked firstName middleName lastName dateOfBirth address idFrontUrl idBackUrl idType idScannedData livenessCentreImageUrl image';
 
 export async function GET(req: Request) {
   try {
@@ -53,7 +58,22 @@ export async function GET(req: Request) {
       identityVerifiedAt: u.identityVerifiedAt != null ? (u.identityVerifiedAt instanceof Date ? u.identityVerifiedAt.toISOString() : u.identityVerifiedAt) : null,
       professionalVerifiedAt: u.professionalVerifiedAt != null ? (u.professionalVerifiedAt instanceof Date ? u.professionalVerifiedAt.toISOString() : u.professionalVerifiedAt) : null,
       livenessVerifiedAt: u.livenessVerifiedAt != null ? (u.livenessVerifiedAt instanceof Date ? u.livenessVerifiedAt.toISOString() : u.livenessVerifiedAt) : null,
-      canChangeProfilePicture: true,
+      profileImageChangedAt:
+        u.profileImageChangedAt != null
+          ? (u.profileImageChangedAt instanceof Date ? u.profileImageChangedAt.toISOString() : u.profileImageChangedAt)
+          : null,
+      ...(() => {
+        const last = getLastProfileImageChangeForCooldown({
+          profileImageChangedAt: u.profileImageChangedAt as Date | string | null | undefined,
+          livenessVerifiedAt: u.livenessVerifiedAt as Date | string | null | undefined,
+          image: u.image as string | null | undefined,
+        });
+        const nextAt = getNextProfilePictureChangeAt(last);
+        return {
+          canChangeProfilePicture: isProfilePictureChangeAllowed(last),
+          nextProfileImageChangeAt: nextAt ? nextAt.toISOString() : null,
+        };
+      })(),
     });
   } catch (e) {
     console.error(e);
@@ -109,7 +129,39 @@ export async function PATCH(req: Request) {
         set.phone = normalized;
       }
     }
-    if (data.image !== undefined) set.image = data.image;
+    if (data.image !== undefined) {
+      const newUrl = (data.image || '').trim();
+      const oldUrl = ((existing as { image?: string }).image || '').trim();
+      if (newUrl !== oldUrl) {
+        const last = getLastProfileImageChangeForCooldown({
+          profileImageChangedAt: (existing as { profileImageChangedAt?: Date }).profileImageChangedAt,
+          livenessVerifiedAt: (existing as { livenessVerifiedAt?: Date }).livenessVerifiedAt,
+          image: oldUrl || undefined,
+        });
+        if (!isProfilePictureChangeAllowed(last)) {
+          const nextAt = getNextProfilePictureChangeAt(last);
+          return NextResponse.json(
+            {
+              error: `You can update your profile photo at most once every 6 months. You can change it again on or after ${
+                nextAt
+                  ? nextAt.toLocaleDateString('en-NG', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : 'the allowed date'
+              }.`,
+              code: 'PROFILE_IMAGE_COOLDOWN',
+              nextAllowedAt: nextAt?.toISOString(),
+            },
+            { status: 403 }
+          );
+        }
+        set.image = data.image;
+        set.profileImageChangedAt = new Date();
+      }
+    }
     if (data.companyPosition !== undefined && ((existing as { role?: string }).role === USER_ROLES.REGISTERED_AGENT || (existing as { role?: string }).role === USER_ROLES.REGISTERED_DEVELOPER)) {
       set.companyPosition = data.companyPosition || null;
     }
@@ -140,7 +192,22 @@ export async function PATCH(req: Request) {
       address: u.address ?? null,
       phone: u.phone ?? null,
       dateOfBirth: dobSerialized,
-      canChangeProfilePicture: true,
+      profileImageChangedAt:
+        u.profileImageChangedAt != null
+          ? (u.profileImageChangedAt instanceof Date ? u.profileImageChangedAt.toISOString() : u.profileImageChangedAt)
+          : null,
+      ...(() => {
+        const last = getLastProfileImageChangeForCooldown({
+          profileImageChangedAt: u.profileImageChangedAt as Date | string | null | undefined,
+          livenessVerifiedAt: u.livenessVerifiedAt as Date | string | null | undefined,
+          image: u.image as string | null | undefined,
+        });
+        const nextAt = getNextProfilePictureChangeAt(last);
+        return {
+          canChangeProfilePicture: isProfilePictureChangeAllowed(last),
+          nextProfileImageChangeAt: nextAt ? nextAt.toISOString() : null,
+        };
+      })(),
     });
   } catch (e) {
     console.error(e);
