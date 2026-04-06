@@ -46,16 +46,16 @@ export function hasBaseVerification(user: UserVerificationSnapshot): boolean {
 
 /**
  * Whether to show a public trust badge (listing/search/author). False for bots.
- * Agents/developers/admins always qualify; others need full identity verification or verified_individual role.
+ * Only users whose role reflects **admin-approved** verification (not guests pending review).
  */
 export function isPublicVerifiedAccount(user: UserVerificationSnapshot | null | undefined): boolean {
   if (!user || typeof user !== 'object') return false;
   const role = String(user.role || '').toLowerCase();
-  if (role === USER_ROLES.BOT) return false;
+  if (role === USER_ROLES.BOT || role === USER_ROLES.GUEST) return false;
   if (role === USER_ROLES.ADMIN) return true;
   if (role === USER_ROLES.REGISTERED_AGENT || role === USER_ROLES.REGISTERED_DEVELOPER) return true;
   if (role === USER_ROLES.VERIFIED_INDIVIDUAL) return true;
-  return hasBaseVerification(user);
+  return false;
 }
 
 /** Normalize populated `createdBy` for public APIs and UI. */

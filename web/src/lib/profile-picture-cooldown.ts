@@ -1,5 +1,5 @@
 /** Minimum interval between profile photo URL changes (manual upload or liveness replacement). */
-export const PROFILE_PICTURE_CHANGE_COOLDOWN_MONTHS = 6;
+export const PROFILE_PICTURE_CHANGE_COOLDOWN_MONTHS = 3;
 
 export function addMonths(date: Date, months: number): Date {
   const d = new Date(date.getTime());

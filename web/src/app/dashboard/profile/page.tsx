@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { LivenessCamera } from '@/components/verification/LivenessCamera';
 import { IdDocumentCamera } from '@/components/verification/IdDocumentCamera';
 import { ID_TYPES } from '@/lib/constants';
+import { PROFILE_PICTURE_CHANGE_COOLDOWN_MONTHS } from '@/lib/profile-picture-cooldown';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { isPublicVerifiedAccount } from '@/lib/verification';
 
@@ -818,7 +819,7 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-gray-700">Profile picture (optional)</label>
             <p className="mt-1 text-xs text-gray-500">
               Not required before verification. If you don’t add one, it will be set from your liveness photo. After that, you
-              can replace it at most once every 6 months.
+              can replace it at most once every {PROFILE_PICTURE_CHANGE_COOLDOWN_MONTHS} months.
             </p>
             {!canChangePicture && user.nextProfileImageChangeAt && (
               <p className="mt-1 text-xs text-amber-800">
