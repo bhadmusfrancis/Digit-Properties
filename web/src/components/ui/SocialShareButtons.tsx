@@ -13,12 +13,23 @@ export type SocialShareButtonsProps = {
 
 const encoded = (s: string) => encodeURIComponent(s);
 
-/** Facebook requires an absolute https URL; relative paths break sharing. */
+/**
+ * Absolute https URL for sharing. Prefer NEXT_PUBLIC_APP_URL for relative paths so previews match
+ * Open Graph tags and work on staging/preview hosts.
+ */
 function getAbsoluteShareUrl(raw: string): string {
   const t = raw.trim();
   if (/^https?:\/\//i.test(t)) return t;
-  if (typeof window === 'undefined') return t;
   const path = t.startsWith('/') ? t : `/${t}`;
+  const env = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (env) {
+    try {
+      return `${new URL(env).origin}${path}`;
+    } catch {
+      /* ignore */
+    }
+  }
+  if (typeof window === 'undefined') return path;
   return `${window.location.origin}${path}`;
 }
 
@@ -44,10 +55,41 @@ function facebookMobileSharerUrl(pageUrlAbs: string): string {
   return `https://m.facebook.com/sharer.php?u=${encoded(pageUrlAbs)}`;
 }
 
+function isIOS(ua: string): boolean {
+  return /iPhone|iPad|iPod/i.test(ua);
+}
+
+/** Third‑party browsers on iOS (all use WebKit); Meta’s `display=touch` dialog often breaks here — use full-page `page`. */
+function isIOSNonSafariBrowser(ua: string): boolean {
+  return isIOS(ua) && /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+}
+
 /**
- * Meta documents that mobile web must use Share Dialog with display=touch so `href` is applied in their UI.
- * Custom fb:// URLs and Android intent targets often open the Facebook app with an empty composer; avoid them.
+ * Meta Share Dialog: `touch` on mobile Safari/Android. `page` on iOS Chrome / Firefox / Edge / Opera so `href` and quote load.
+ * No website can reliably force the native Facebook app; universal links may open the app after navigating to facebook.com.
  */
+function facebookMobileDialogDisplay(ua: string): 'touch' | 'page' {
+  if (isIOSNonSafariBrowser(ua)) return 'page';
+  return 'touch';
+}
+
+function buildFacebookShareDialogUrl(opts: {
+  appId: string;
+  display: 'touch' | 'page' | 'popup';
+  hrefAbsolute: string;
+  redirectUriRaw: string;
+  quote?: string;
+}): string {
+  const q = new URLSearchParams();
+  q.set('app_id', opts.appId);
+  q.set('display', opts.display);
+  q.set('href', opts.hrefAbsolute);
+  q.set('redirect_uri', opts.redirectUriRaw);
+  const quote = opts.quote?.trim();
+  if (quote) q.set('quote', quote.slice(0, 500));
+  return `https://www.facebook.com/dialog/share?${q.toString()}`;
+}
+
 function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: string): void {
   const abs = getAbsoluteShareUrl(pageUrl);
   const hrefEnc = encoded(abs);
@@ -58,20 +100,29 @@ function openFacebookShare(pageUrl: string, shareTitle: string, shareSnippet: st
 
   if (appId && typeof window !== 'undefined') {
     const origin = facebookShareRedirectOrigin();
-    const redirectUri = encoded(origin ? `${origin}/` : `${window.location.origin}/`);
-    const appIdEnc = encodeURIComponent(appId);
-    const quotePart =
-      (shareSnippet || shareTitle).trim().length > 0
-        ? `&quote=${encoded((shareSnippet || shareTitle).slice(0, 500))}`
-        : '';
+    const redirectUriRaw = origin ? `${origin}/` : `${window.location.origin}/`;
+    const quote = (shareSnippet || shareTitle).trim().length > 0 ? (shareSnippet || shareTitle).slice(0, 500) : undefined;
 
     if (mobileUa) {
-      const dialogUrl = `https://www.facebook.com/dialog/share?app_id=${appIdEnc}&display=touch&href=${hrefEnc}&redirect_uri=${redirectUri}${quotePart}`;
+      const display = facebookMobileDialogDisplay(ua);
+      const dialogUrl = buildFacebookShareDialogUrl({
+        appId,
+        display,
+        hrefAbsolute: abs,
+        redirectUriRaw,
+        quote,
+      });
       window.location.assign(dialogUrl);
       return;
     }
 
-    const dialogUrl = `https://www.facebook.com/dialog/share?app_id=${appIdEnc}&display=popup&href=${hrefEnc}&redirect_uri=${redirectUri}${quotePart}`;
+    const dialogUrl = buildFacebookShareDialogUrl({
+      appId,
+      display: 'popup',
+      hrefAbsolute: abs,
+      redirectUriRaw,
+      quote,
+    });
     const w = window.open(dialogUrl, '_blank', 'noopener,noreferrer,width=626,height=600,scrollbars=yes');
     if (w) w.opener = null;
     return;
