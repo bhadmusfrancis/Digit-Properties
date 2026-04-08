@@ -44,9 +44,27 @@ const wizardStep1Schema = z
       z.number({ required_error: 'Enter a price' }).positive('Enter a price greater than 0')
     ),
     rentPeriod: z.enum(['day', 'month', 'year']).optional(),
-    bedrooms: z.number().int().min(0),
-    bathrooms: z.number().int().min(0),
-    toilets: z.number().int().min(0).optional(),
+    bedrooms: z.preprocess(
+      (v) =>
+        v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+          ? 0
+          : Number(v),
+      z.number().int().min(0)
+    ),
+    bathrooms: z.preprocess(
+      (v) =>
+        v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+          ? 0
+          : Number(v),
+      z.number().int().min(0)
+    ),
+    toilets: z.preprocess(
+      (v) =>
+        v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+          ? 0
+          : Number(v),
+      z.number().int().min(0)
+    ),
     area: z.preprocess(
       (v) =>
         v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
@@ -102,9 +120,27 @@ const wizardSchema = z
     state: z.enum(NIGERIAN_STATES as unknown as [string, ...string[]]),
     suburb: z.string().optional(),
     coordinates: z.object({ lat: z.number(), lng: z.number() }).optional(),
-    bedrooms: z.number().int().min(0),
-    bathrooms: z.number().int().min(0),
-    toilets: z.number().int().min(0).optional(),
+    bedrooms: z.preprocess(
+      (v) =>
+        v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+          ? 0
+          : Number(v),
+      z.number().int().min(0)
+    ),
+    bathrooms: z.preprocess(
+      (v) =>
+        v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+          ? 0
+          : Number(v),
+      z.number().int().min(0)
+    ),
+    toilets: z.preprocess(
+      (v) =>
+        v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+          ? 0
+          : Number(v),
+      z.number().int().min(0)
+    ),
     area: z.preprocess(
       (v) =>
         v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
@@ -279,9 +315,9 @@ export function NewListingWizard() {
       listingType: 'sale',
       status: 'draft',
       propertyTypes: ['apartment'],
-      bedrooms: 0,
-      bathrooms: 0,
-      toilets: 0,
+      bedrooms: undefined,
+      bathrooms: undefined,
+      toilets: undefined,
       state: NIGERIAN_STATES[0],
       contactSource: 'author',
       title: '',
@@ -811,15 +847,15 @@ export function NewListingWizard() {
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">Bedrooms</label>
-                    <input type="number" {...register('bedrooms', { valueAsNumber: true })} className="input mt-1" />
+                    <input type="number" {...register('bedrooms', { valueAsNumber: true })} className="input mt-1" placeholder="Optional" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Bathrooms</label>
-                    <input type="number" {...register('bathrooms', { valueAsNumber: true })} className="input mt-1" />
+                    <input type="number" {...register('bathrooms', { valueAsNumber: true })} className="input mt-1" placeholder="Optional" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Toilets</label>
-                    <input type="number" {...register('toilets', { valueAsNumber: true })} className="input mt-1" />
+                    <input type="number" {...register('toilets', { valueAsNumber: true })} className="input mt-1" placeholder="Optional" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Area (sqm)</label>

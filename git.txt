@@ -16,5 +16,5 @@ cd mobile
 eas update --branch production --message "Rent period display update"
 
 git add .
-git commit -m "all update"
+git commit -m "Facebook share"
 git push origin main
