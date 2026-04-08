@@ -46,9 +46,18 @@ const schema = z.object({
   state: z.enum(NIGERIAN_STATES as unknown as [string, ...string[]]),
   suburb: z.string().optional(),
   coordinates: z.object({ lat: z.number(), lng: z.number() }).optional(),
-  bedrooms: z.number().int().min(0),
-  bathrooms: z.number().int().min(0),
-  toilets: z.number().int().min(0).optional(),
+  bedrooms: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v)) ? 0 : Number(v)),
+    z.number().int().min(0)
+  ),
+  bathrooms: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v)) ? 0 : Number(v)),
+    z.number().int().min(0)
+  ),
+  toilets: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v)) ? 0 : Number(v)),
+    z.number().int().min(0)
+  ),
   area: z.preprocess((v) => (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v)) ? undefined : Number(v)), z.number().positive().optional()),
   amenities: z.string().optional(),
   tags: z.string().optional(),
@@ -204,9 +213,9 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       city: editInitial.city ?? '',
       state: editInitial.state ?? NIGERIAN_STATES[0],
       suburb: editInitial.suburb ?? '',
-      bedrooms: editInitial.bedrooms ?? 0,
-      bathrooms: editInitial.bathrooms ?? 0,
-      toilets: editInitial.toilets ?? 0,
+      bedrooms: editInitial.bedrooms || undefined,
+      bathrooms: editInitial.bathrooms || undefined,
+      toilets: editInitial.toilets || undefined,
       area: editInitial.area,
       amenities: editInitial.amenities ?? '',
       contactSource: (editInitial as Partial<FormData> & { contactSource?: 'author' | 'listing' }).contactSource ?? 'author',
@@ -220,9 +229,9 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       listingType: 'sale',
       status: 'draft',
       propertyTypes: ['apartment'],
-      bedrooms: 0,
-      bathrooms: 0,
-      toilets: 0,
+      bedrooms: undefined,
+      bathrooms: undefined,
+      toilets: undefined,
       state: NIGERIAN_STATES[0],
       contactSource: 'author',
     },
@@ -652,15 +661,15 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
-            <input type="number" {...register('bedrooms', { valueAsNumber: true })} className="input mt-1" />
+            <input type="number" {...register('bedrooms', { valueAsNumber: true })} className="input mt-1" placeholder="Optional" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Bathrooms</label>
-            <input type="number" {...register('bathrooms', { valueAsNumber: true })} className="input mt-1" />
+            <input type="number" {...register('bathrooms', { valueAsNumber: true })} className="input mt-1" placeholder="Optional" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Toilets</label>
-            <input type="number" {...register('toilets', { valueAsNumber: true })} className="input mt-1" />
+            <input type="number" {...register('toilets', { valueAsNumber: true })} className="input mt-1" placeholder="Optional" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Area (sqm) <span className="text-gray-400 font-normal">(optional)</span></label>

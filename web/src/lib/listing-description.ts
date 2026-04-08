@@ -53,7 +53,6 @@ export function generateListingDescriptionHtml(input: DescriptionInput): string 
   ];
   const overviewBody = overviewHooks[Math.floor(Math.random() * overviewHooks.length)];
 
-  parts.push(`<p><strong>Overview</strong></p>`);
   parts.push(`<p>${overviewBody}</p>`);
 
   parts.push(`<p><strong>Asking price</strong></p><p>${escapeHtml(priceLine)}</p>`);

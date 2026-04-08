@@ -18,6 +18,26 @@ export function normalizeTitleForDedupe(title: string): string {
   return (title || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+function tokenSet(s: string): Set<string> {
+  return new Set(
+    s
+      .split(/[^a-z0-9]+/i)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 3)
+  );
+}
+
+/** Jaccard similarity on normalized token sets (0..1). */
+function tokenSimilarity(a: string, b: string): number {
+  const as = tokenSet(a);
+  const bs = tokenSet(b);
+  if (as.size === 0 || bs.size === 0) return 0;
+  let overlap = 0;
+  for (const t of as) if (bs.has(t)) overlap += 1;
+  const union = as.size + bs.size - overlap;
+  return union > 0 ? overlap / union : 0;
+}
+
 type ListingLite = {
   _id: unknown;
   title?: string;
@@ -72,10 +92,19 @@ export function findDuplicateAmongCandidates(
       };
     }
 
-    if (titleNorm.length >= 10 && normalizeTitleForDedupe(c.title || '') === titleNorm) {
+    const candidateDescNorm = normalizeDescriptionForDedupe(c.description || '');
+    const sameTitle = titleNorm.length >= 10 && normalizeTitleForDedupe(c.title || '') === titleNorm;
+    const verySimilarDescription =
+      descNorm.length >= 30 &&
+      candidateDescNorm.length >= 30 &&
+      tokenSimilarity(descNorm, candidateDescNorm) >= 0.9;
+
+    // Permit same titles when listing content is clearly different.
+    if (sameTitle && verySimilarDescription) {
       return {
         code: 'DUPLICATE_TITLE',
-        message: 'You already have a listing with this title. Use a different title.',
+        message:
+          'You already have a listing with this title and very similar description. Change the title or rewrite details.',
       };
     }
   }
