@@ -7,6 +7,7 @@ import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import mongoose from 'mongoose';
+import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 
 export async function PATCH(
   req: Request,
@@ -35,8 +36,20 @@ export async function PATCH(
     }
 
     const wasDraft = listing.status === LISTING_STATUS.DRAFT;
+    const userRequestedActiveFromDraft = wasDraft && status === 'active';
     if (status && ['draft', 'active', 'paused', 'closed'].includes(status)) {
       listing.status = status as 'draft' | 'active' | 'paused' | 'closed';
+    }
+    if (
+      !isAdmin &&
+      session.user.role !== USER_ROLES.BOT &&
+      wasDraft &&
+      listing.status === LISTING_STATUS.ACTIVE
+    ) {
+      const mod = await getListingModerationConfig();
+      if (mod.newListingsRequireApproval) {
+        listing.status = LISTING_STATUS.PENDING_APPROVAL;
+      }
     }
     if (soldAt === true && rentedAt === true) {
       return NextResponse.json({ error: 'Listing cannot be sold and rented at the same time' }, { status: 400 });
@@ -58,6 +71,7 @@ export async function PATCH(
     await listing.save();
 
     const nowActive = listing.status === LISTING_STATUS.ACTIVE;
+    const nowPending = listing.status === LISTING_STATUS.PENDING_APPROVAL;
     if (wasDraft && nowActive) {
       const creator = await User.findById(listing.createdBy).lean();
       sendAdminNewListing(
@@ -68,6 +82,15 @@ export async function PATCH(
         listing.price
       ).catch((e) => console.error('[listings] admin email:', e));
       notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
+    } else if (wasDraft && nowPending && userRequestedActiveFromDraft) {
+      const creator = await User.findById(listing.createdBy).lean();
+      sendAdminNewListing(
+        listing.title,
+        String(listing._id),
+        creator?.name || 'Unknown',
+        listing.listingType,
+        listing.price
+      ).catch((e) => console.error('[listings] admin email:', e));
     }
 
     return NextResponse.json(listing);
