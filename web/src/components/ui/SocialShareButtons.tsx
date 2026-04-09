@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { stripHtml } from '@/lib/utils';
 
 export type SocialShareButtonsProps = {
@@ -108,7 +108,6 @@ async function openFacebookShare(pageUrl: string, _shareTitle: string, _shareSni
 }
 
 export function SocialShareButtons({ url, title, text, className = '' }: SocialShareButtonsProps) {
-  const [copied, setCopied] = useState(false);
   const safeTitle = stripHtml(title).trim() || title;
   const fromText = text?.trim() ? stripHtml(text).trim() : '';
   const shareText = (fromText || safeTitle).trim() || title;
@@ -116,20 +115,7 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
   const shareUrls = {
     twitter: `https://twitter.com/intent/tweet?url=${encoded(url)}&text=${encoded(shareText)}`,
     whatsapp: `https://wa.me/?text=${encoded(shareText + ' ' + url)}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encoded(url)}`,
   };
-
-  const copyUrlAbsolute = useCallback(() => getAbsoluteShareUrl(url), [url]);
-
-  const copyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(copyUrlAbsolute());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }, [copyUrlAbsolute]);
 
   const label = 'Share';
   const baseButtonClass =
@@ -168,29 +154,6 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
           <WhatsAppIcon className="h-6 w-6 shrink-0" />
           <span className="hidden sm:inline">WhatsApp</span>
         </a>
-        <a
-          href={shareUrls.linkedin}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#0a66c2] hover:bg-[#0a66c2] hover:text-white hover:shadow-lg focus:ring-[#0a66c2]`}
-          aria-label="Share on LinkedIn"
-        >
-          <LinkedInIcon className="h-6 w-6 shrink-0" />
-          <span className="hidden sm:inline">LinkedIn</span>
-        </a>
-        <button
-          type="button"
-          onClick={copyLink}
-          className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-primary-500 hover:bg-primary-500 hover:text-white hover:shadow-lg focus:ring-primary-500`}
-          aria-label="Copy link"
-        >
-          {copied ? (
-            <CheckIcon className="h-6 w-6 shrink-0 text-green-600" />
-          ) : (
-            <LinkIcon className="h-6 w-6 shrink-0" />
-          )}
-          <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy link'}</span>
-        </button>
       </div>
     </div>
   );
@@ -220,26 +183,3 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-function LinkedInIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-    </svg>
-  );
-}
-
-function LinkIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
