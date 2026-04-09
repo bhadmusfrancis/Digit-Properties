@@ -15,6 +15,7 @@ import { canViewListingOnSite } from '@/lib/listing-access';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 
 export async function GET(
   _req: Request,
@@ -270,8 +271,17 @@ export async function PATCH(
         );
       }
     }
-    // Non-admin owner edit to an active listing requires approval
-    if (!isAdmin && wasActive) {
+    const mod = await getListingModerationConfig();
+    if (!isAdmin && wasActive && mod.editedListingsRequireApproval) {
+      listing.status = LISTING_STATUS.PENDING_APPROVAL;
+    }
+    if (
+      !isAdmin &&
+      session.user.role !== USER_ROLES.BOT &&
+      wasDraft &&
+      listing.status === LISTING_STATUS.ACTIVE &&
+      mod.newListingsRequireApproval
+    ) {
       listing.status = LISTING_STATUS.PENDING_APPROVAL;
     }
 
@@ -298,6 +308,9 @@ export async function PATCH(
     await listing.save();
 
     const nowActive = listing.status === LISTING_STATUS.ACTIVE;
+    const nowPending = listing.status === LISTING_STATUS.PENDING_APPROVAL;
+    const userRequestedActiveFromDraft = wasDraft && parsed.data.status === LISTING_STATUS.ACTIVE;
+
     if (wasDraft && nowActive) {
       const creator = await User.findById(listing.createdBy).lean();
       sendAdminNewListing(
@@ -308,6 +321,15 @@ export async function PATCH(
         listing.price
       ).catch((e) => console.error('[listings] admin email:', e));
       notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
+    } else if (wasDraft && nowPending && userRequestedActiveFromDraft) {
+      const creator = await User.findById(listing.createdBy).lean();
+      sendAdminNewListing(
+        listing.title,
+        String(listing._id),
+        creator?.name || 'Unknown',
+        listing.listingType,
+        listing.price
+      ).catch((e) => console.error('[listings] admin email:', e));
     } else if (wasPendingApproval && nowActive) {
       notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
     }
