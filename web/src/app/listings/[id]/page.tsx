@@ -10,7 +10,12 @@ import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitl
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
-import { getCloudinaryVideoThumbnailUrl, getDefaultListingImageUrl } from '@/lib/listing-default-image';
+import {
+  getCloudinaryVideoThumbnailUrl,
+  getDefaultListingImageUrl,
+  getListingDisplayImage,
+  getListingOpenGraphImages,
+} from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import Listing from '@/models/Listing';
@@ -55,6 +60,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const description = buildListingShareDescription(shareFields, { maxLen: 160 });
     const createdAt = listing.createdAt ? new Date(listing.createdAt as Date) : undefined;
     const updatedAt = listing.updatedAt ? new Date(listing.updatedAt as Date) : undefined;
+    const ogImages = getListingOpenGraphImages(
+      baseUrl,
+      (listing as { images?: { url?: string }[] }).images,
+      String((listing as { propertyType?: string }).propertyType ?? 'apartment'),
+      (listing as { videos?: { url?: string; public_id?: string }[] }).videos,
+      listing.title ?? 'Property listing'
+    );
+    const primaryOg = ogImages[0];
     return {
       title: listing.title,
       description,
@@ -68,11 +81,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         locale: 'en_NG',
         publishedTime: createdAt?.toISOString(),
         modifiedTime: updatedAt?.toISOString(),
+        ...(ogImages.length > 0 ? { images: ogImages } : {}),
       },
       twitter: {
         card: 'summary_large_image',
         title: listing.title,
         description,
+        ...(primaryOg ? { images: [primaryOg.url] } : {}),
       },
     };
   } catch (e) {
@@ -379,7 +394,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   url={`${baseUrl}/listings/${id}`}
                   title={listing.title}
                   text={shareDescription}
-                  mediaUrl={images[0]?.url ?? (videos[0] ? getCloudinaryVideoThumbnailUrl(videos[0]) ?? undefined : undefined)}
+                  mediaUrl={getListingDisplayImage(
+                    rawImageItems as { url?: string }[],
+                    String(listing.propertyType ?? 'apartment'),
+                    rawVideoItems as { url?: string; public_id?: string }[]
+                  )}
                 />
               </div>
             </div>
