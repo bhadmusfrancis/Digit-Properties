@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { loadGoogleMapsApi } from '@/lib/google-maps-client';
 
 const DEFAULT_LAT = 6.5244;
 const DEFAULT_LNG = 3.3792;
 /** Zoom level when centering on a resolved address or saved listing coordinates */
 const LOCATION_FOCUS_ZOOM = 15;
-const GOOGLE_MAPS_API = 'https://maps.googleapis.com/maps/api/js';
 
 type GoogleMapsGlobal = typeof globalThis & {
   google?: {
@@ -28,33 +28,6 @@ type GoogleMapsGlobal = typeof globalThis & {
     };
   };
 };
-
-let mapsScriptPromise: Promise<void> | null = null;
-
-function ensureGoogleMapsLoaded(apiKey: string): Promise<void> {
-  const g = globalThis as GoogleMapsGlobal;
-  if (g.google?.maps?.Map) return Promise.resolve();
-  if (mapsScriptPromise) return mapsScriptPromise;
-
-  mapsScriptPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById('google-maps-script') as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('Failed to load Google Maps script')), { once: true });
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'google-maps-script';
-    script.src = `${GOOGLE_MAPS_API}?key=${encodeURIComponent(apiKey)}`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Google Maps script'));
-    document.head.appendChild(script);
-  });
-
-  return mapsScriptPromise;
-}
 
 export function MapPicker({
   initialLat,
@@ -92,7 +65,7 @@ export function MapPicker({
     if (!apiKey) return;
 
     let cancelled = false;
-    ensureGoogleMapsLoaded(apiKey)
+    loadGoogleMapsApi(apiKey)
       .then(() => {
         const g = globalThis as GoogleMapsGlobal;
         const maps = g.google?.maps;
