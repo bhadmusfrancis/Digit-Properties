@@ -23,6 +23,11 @@ type AdConfigState = {
   adsense: Record<string, string>;
 };
 
+type ListingModerationState = {
+  newListingsRequireApproval: boolean;
+  editedListingsRequireApproval: boolean;
+};
+
 const PLACEMENT_LABELS: Record<string, string> = {
   home_featured: 'Homepage featured',
   search: 'Search page',
@@ -36,6 +41,24 @@ export default function AdminConfigPage() {
   const [adConfig, setAdConfig] = useState<AdConfigState | null>(null);
   const [adConfigLoading, setAdConfigLoading] = useState(true);
   const [adConfigSaving, setAdConfigSaving] = useState(false);
+  const [listingMod, setListingMod] = useState<ListingModerationState | null>(null);
+  const [listingModLoading, setListingModLoading] = useState(true);
+  const [listingModSaving, setListingModSaving] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/config/listing-moderation')
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d?.newListingsRequireApproval === 'boolean' && typeof d?.editedListingsRequireApproval === 'boolean') {
+          setListingMod({
+            newListingsRequireApproval: d.newListingsRequireApproval,
+            editedListingsRequireApproval: d.editedListingsRequireApproval,
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setListingModLoading(false));
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/config/subscription')
@@ -91,6 +114,78 @@ export default function AdminConfigPage() {
       <p className="mt-1 text-sm text-gray-500">
         Set per tier: price (NGN/month), max listings, images/videos per listing, max Featured & Highlighted slots. Shown on the new listing page.
       </p>
+      <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
+        <h3 className="font-medium text-gray-900">Listing moderation</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Control whether non-admin submissions go live immediately or wait in pending approval (Admin → Listings). Admins and
+          the bot role are not subject to the new-listing gate.
+        </p>
+        {listingModLoading ? (
+          <p className="mt-4 text-sm text-gray-500">Loading…</p>
+        ) : listingMod ? (
+          <div className="mt-4 space-y-4">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={listingMod.newListingsRequireApproval}
+                onChange={(e) => setListingMod((m) => (m ? { ...m, newListingsRequireApproval: e.target.checked } : m))}
+                disabled={listingModSaving}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600"
+              />
+              <span>
+                <span className="font-medium text-gray-800">New listings require approval before going live</span>
+                <span className="mt-0.5 block text-sm text-gray-500">
+                  When someone publishes a new property (wizard, form, or “activate” from draft), set status to pending until an admin activates it.
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={listingMod.editedListingsRequireApproval}
+                onChange={(e) => setListingMod((m) => (m ? { ...m, editedListingsRequireApproval: e.target.checked } : m))}
+                disabled={listingModSaving}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600"
+              />
+              <span>
+                <span className="font-medium text-gray-800">Edits to live listings require re-approval</span>
+                <span className="mt-0.5 block text-sm text-gray-500">
+                  When unchecked, owners can change an active listing and it stays live without going back to pending.
+                </span>
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                if (!listingMod) return;
+                setListingModSaving(true);
+                fetch('/api/admin/config/listing-moderation', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(listingMod),
+                })
+                  .then((r) => r.json())
+                  .then((d) => {
+                    if (typeof d?.newListingsRequireApproval === 'boolean' && typeof d?.editedListingsRequireApproval === 'boolean') {
+                      setListingMod({
+                        newListingsRequireApproval: d.newListingsRequireApproval,
+                        editedListingsRequireApproval: d.editedListingsRequireApproval,
+                      });
+                    }
+                  })
+                  .finally(() => setListingModSaving(false));
+              }}
+              disabled={listingModSaving}
+              className="btn bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+            >
+              {listingModSaving ? 'Saving…' : 'Save moderation settings'}
+            </button>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-amber-700">Could not load moderation settings. Refresh or try again.</p>
+        )}
+      </div>
+
       <div className="mt-6 space-y-6">
         {configs.map((c) => (
           <div key={c.tier} className="rounded-lg border border-gray-200 bg-white p-6">

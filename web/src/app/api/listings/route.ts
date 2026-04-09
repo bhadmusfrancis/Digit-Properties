@@ -12,6 +12,7 @@ import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
+import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -217,7 +218,14 @@ export async function POST(req: Request) {
 
     const listingCount = await Listing.countDocuments({
       createdBy: session.user.id,
-      status: { $in: [LISTING_STATUS.DRAFT, LISTING_STATUS.ACTIVE, LISTING_STATUS.PAUSED] },
+      status: {
+        $in: [
+          LISTING_STATUS.DRAFT,
+          LISTING_STATUS.ACTIVE,
+          LISTING_STATUS.PAUSED,
+          LISTING_STATUS.PENDING_APPROVAL,
+        ],
+      },
     });
     if (listingCount >= limits.maxListings) {
       return NextResponse.json(
@@ -296,6 +304,21 @@ export async function POST(req: Request) {
       propertyTypes: _dropPts,
       ...rest
     } = parsed.data;
+    const requestedPublish =
+      (parsed.data.status || LISTING_STATUS.DRAFT) === LISTING_STATUS.ACTIVE;
+    let finalStatus: (typeof LISTING_STATUS)[keyof typeof LISTING_STATUS] =
+      parsed.data.status || LISTING_STATUS.DRAFT;
+    if (
+      requestedPublish &&
+      session.user.role !== USER_ROLES.ADMIN &&
+      session.user.role !== USER_ROLES.BOT
+    ) {
+      const mod = await getListingModerationConfig();
+      if (mod.newListingsRequireApproval) {
+        finalStatus = LISTING_STATUS.PENDING_APPROVAL;
+      }
+    }
+
     const listing = await Listing.create({
       ...rest,
       propertyType: resolvedPt.propertyType,
@@ -304,13 +327,12 @@ export async function POST(req: Request) {
       tags: tagsMerged,
       images,
       videos: videos.length > 0 ? videos : [],
-      status: parsed.data.status || LISTING_STATUS.DRAFT,
+      status: finalStatus,
       createdBy: session.user.id,
       createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : session.user.role === USER_ROLES.BOT ? 'bot' : 'user',
     });
 
-    const isActive = (parsed.data.status || LISTING_STATUS.DRAFT) === LISTING_STATUS.ACTIVE;
-    if (isActive) {
+    if (requestedPublish) {
       const creator = await User.findById(session.user.id).lean();
       sendAdminNewListing(
         listing.title,
@@ -319,6 +341,8 @@ export async function POST(req: Request) {
         listing.listingType,
         listing.price
       ).catch((e) => console.error('[listings] admin email:', e));
+    }
+    if (finalStatus === LISTING_STATUS.ACTIVE) {
       notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
     }
 
