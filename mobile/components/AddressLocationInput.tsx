@@ -14,6 +14,12 @@ export type GeocodeResult = {
   lng: number;
 };
 
+type PlaceSuggestion = {
+  id: string;
+  label: string;
+  placeId?: string;
+};
+
 type Props = {
   address: string;
   city: string;
@@ -42,12 +48,15 @@ export function AddressLocationInput({
   editable = true,
 }: Props) {
   const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
+  const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [mapVisible, setMapVisible] = useState(false);
   const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionTokenRef = useRef('');
+  const nextSessionToken = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const applyResult = useCallback(
     (r: GeocodeResult) => {
@@ -61,7 +70,9 @@ export function AddressLocationInput({
       onCoordinates?.(r.lat, r.lng);
       setLastCoords({ lat: r.lat, lng: r.lng });
       setSuggestions([]);
+      setPlaceSuggestions([]);
       setShowSuggestions(false);
+      sessionTokenRef.current = '';
     },
     [onAddressChange, onCityChange, onStateChange, onSuburbChange, onCoordinates]
   );
@@ -94,20 +105,90 @@ export function AddressLocationInput({
   );
 
   const fetchSuggestions = useCallback((query: string) => {
+    const fetchGeocodeFallback = () =>
+      fetch(getApiUrl('geocode', { q: query }))
+        .then((res) => {
+          if (!res.ok) throw new Error('Geocode failed');
+          return res.json();
+        })
+        .then((data) => {
+          const results = Array.isArray(data.results) ? (data.results as GeocodeResult[]) : [];
+          setSuggestions(results);
+          setPlaceSuggestions([]);
+          setShowSuggestions(results.length > 0);
+        })
+        .catch(() => {
+          setSuggestions([]);
+          setPlaceSuggestions([]);
+          setShowSuggestions(false);
+        });
+
     if (query.length < 3) {
       setSuggestions([]);
+      setPlaceSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
     setLoading(true);
-    fetch(getApiUrl('geocode', { q: query }))
-      .then((res) => res.json())
-      .then((data) => {
-        setSuggestions(data.results || []);
-        setShowSuggestions(true);
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = nextSessionToken();
+    }
+    fetch(getApiUrl('places', { q: query, sessionToken: sessionTokenRef.current }))
+      .then((res) => {
+        if (!res.ok) throw new Error('Places failed');
+        return res.json();
       })
-      .catch(() => setSuggestions([]))
+      .then((data) => {
+        const places = Array.isArray(data.results) ? (data.results as PlaceSuggestion[]) : [];
+        if (places.length > 0) {
+          setPlaceSuggestions(places);
+          setSuggestions([]);
+          setShowSuggestions(true);
+          return;
+        }
+        return fetchGeocodeFallback();
+      })
+      .catch(fetchGeocodeFallback)
       .finally(() => setLoading(false));
   }, []);
+
+  const applyPlaceSuggestion = useCallback(
+    (p: PlaceSuggestion) => {
+      if (!p.placeId) {
+        fetch(getApiUrl('geocode', { q: p.label }))
+          .then((res) => res.json())
+          .then((data) => {
+            const results = Array.isArray(data.results) ? (data.results as GeocodeResult[]) : [];
+            if (results.length > 0) applyResult(results[0]);
+          })
+          .catch(() => {});
+        return;
+      }
+      setLoading(true);
+      fetch(
+        getApiUrl('places', {
+          placeId: p.placeId,
+          sessionToken: sessionTokenRef.current || nextSessionToken(),
+        })
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.address !== undefined) {
+            applyResult(data as GeocodeResult);
+            return;
+          }
+          return fetch(getApiUrl('geocode', { q: p.label }))
+            .then((res) => res.json())
+            .then((fallback) => {
+              const results = Array.isArray(fallback.results) ? (fallback.results as GeocodeResult[]) : [];
+              if (results.length > 0) applyResult(results[0]);
+            });
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    },
+    [applyResult]
+  );
 
   const onAddressTextChange = (text: string) => {
     onAddressChange(text);
@@ -186,14 +267,20 @@ export function AddressLocationInput({
         initialLat={lastCoords?.lat}
         initialLng={lastCoords?.lng}
       />
-      {showSuggestions && suggestions.length > 0 && (
+      {showSuggestions && (placeSuggestions.length > 0 || suggestions.length > 0) && (
         <View style={styles.suggestions}>
           <ScrollView keyboardShouldPersistTaps="handled" style={styles.suggestionsScroll} nestedScrollEnabled>
-            {suggestions.map((s, i) => (
-              <Pressable key={i} style={styles.suggestionItem} onPress={() => applyResult(s)}>
-                <Text style={styles.suggestionText} numberOfLines={2}>{s.address}</Text>
-              </Pressable>
-            ))}
+            {placeSuggestions.length > 0
+              ? placeSuggestions.map((p, i) => (
+                  <Pressable key={p.id || i} style={styles.suggestionItem} onPress={() => applyPlaceSuggestion(p)}>
+                    <Text style={styles.suggestionText} numberOfLines={2}>{p.label}</Text>
+                  </Pressable>
+                ))
+              : suggestions.map((s, i) => (
+                  <Pressable key={i} style={styles.suggestionItem} onPress={() => applyResult(s)}>
+                    <Text style={styles.suggestionText} numberOfLines={2}>{s.address}</Text>
+                  </Pressable>
+                ))}
           </ScrollView>
         </View>
       )}
