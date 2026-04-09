@@ -8,6 +8,8 @@ export type SocialShareButtonsProps = {
   title: string;
   /** Optional short text for tweet / WhatsApp (e.g. excerpt). Falls back to title. */
   text?: string;
+  /** Optional first media (image/video) to share as file when platform supports native file sharing. */
+  mediaUrl?: string;
   className?: string;
 };
 
@@ -107,14 +109,42 @@ async function openFacebookShare(pageUrl: string, _shareTitle: string, _shareSni
   openFacebookSharerPopup(sharerWww);
 }
 
-export function SocialShareButtons({ url, title, text, className = '' }: SocialShareButtonsProps) {
+function extFromType(mime: string): string {
+  if (mime.includes('png')) return 'png';
+  if (mime.includes('webp')) return 'webp';
+  if (mime.includes('gif')) return 'gif';
+  if (mime.includes('mp4')) return 'mp4';
+  if (mime.includes('webm')) return 'webm';
+  return 'jpg';
+}
+
+async function tryNativeMediaShare(absUrl: string, mediaUrl?: string): Promise<boolean> {
+  if (typeof window === 'undefined' || typeof navigator.share !== 'function' || !mediaUrl) return false;
+  try {
+    const mediaAbs = getAbsoluteShareUrl(mediaUrl);
+    const res = await fetch(mediaAbs, { mode: 'cors' });
+    if (!res.ok) return false;
+    const blob = await res.blob();
+    if (!blob || !blob.type) return false;
+    const file = new File([blob], `share.${extFromType(blob.type)}`, { type: blob.type });
+    if (typeof navigator.canShare === 'function' && !navigator.canShare({ files: [file] })) return false;
+    await navigator.share({ files: [file] });
+    return true;
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') return true;
+    return false;
+  }
+}
+
+export function SocialShareButtons({ url, title, text, mediaUrl, className = '' }: SocialShareButtonsProps) {
   const safeTitle = stripHtml(title).trim() || title;
   const fromText = text?.trim() ? stripHtml(text).trim() : '';
   const shareText = (fromText || safeTitle).trim() || title;
+  const absUrl = getAbsoluteShareUrl(url);
 
   const shareUrls = {
-    twitter: `https://twitter.com/intent/tweet?url=${encoded(url)}&text=${encoded(shareText)}`,
-    whatsapp: `https://wa.me/?text=${encoded(shareText + ' ' + url)}`,
+    twitter: `https://twitter.com/intent/tweet?url=${encoded(absUrl)}&text=${encoded(shareText)}`,
+    whatsapp: `https://wa.me/?text=${encoded(shareText + ' ' + absUrl)}`,
   };
 
   const label = 'Share';
@@ -137,7 +167,10 @@ export function SocialShareButtons({ url, title, text, className = '' }: SocialS
         </a>
         <button
           type="button"
-          onClick={() => void openFacebookShare(url, safeTitle, shareText)}
+          onClick={async () => {
+            if (await tryNativeMediaShare(absUrl, mediaUrl)) return;
+            await openFacebookShare(url, safeTitle, shareText);
+          }}
           className={`${baseButtonClass} border-slate-200 text-slate-700 hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white hover:shadow-lg focus:ring-[#1877f2]`}
           aria-label="Share on Facebook"
         >

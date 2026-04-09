@@ -379,6 +379,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   url={`${baseUrl}/listings/${id}`}
                   title={listing.title}
                   text={shareDescription}
+                  mediaUrl={images[0]?.url ?? (videos[0] ? getCloudinaryVideoThumbnailUrl(videos[0]) ?? undefined : undefined)}
                 />
               </div>
             </div>

@@ -124,6 +124,7 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
                 url={shareUrl ?? (typeof window !== 'undefined' ? `${window.location.origin}/trends/${slug}` : `/trends/${slug}`)}
                 title={shareTitle ?? post.title}
                 text={shareText ?? post.excerpt}
+                mediaUrl={post.imageUrl}
               />
             </div>
 
