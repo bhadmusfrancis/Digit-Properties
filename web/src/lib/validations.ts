@@ -274,3 +274,21 @@ export const listingQuerySchema = z.object({
   highlighted: z.enum(['0', '1']).optional(),
   random: z.enum(['0', '1']).optional(),
 });
+
+const offerAmountSchema = z.number().positive().max(1e15);
+
+export const listingOfferCreateSchema = z.object({
+  amount: offerAmountSchema,
+  message: z.string().max(1000).optional(),
+});
+
+export const listingOfferPatchSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('counter'),
+    amount: offerAmountSchema,
+    message: z.string().max(1000).optional(),
+  }),
+  z.object({ action: z.literal('withdraw') }),
+  z.object({ action: z.literal('accept') }),
+  z.object({ action: z.literal('decline') }),
+]);

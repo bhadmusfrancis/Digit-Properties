@@ -113,7 +113,7 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                   href={`/authors/${listing.createdBy._id}`}
                   className="text-sm text-gray-500 hover:text-primary-600"
                 >
-                  By {toFirstName(listing.createdBy.firstName, listing.createdBy.name, 'Author')}
+                  {toFirstName(listing.createdBy.firstName, listing.createdBy.name, 'Author')}
                 </Link>
               )}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ListingGrid } from './ListingGrid';
 
@@ -65,6 +65,7 @@ function getLocationFromCoords(lat: number, lon: number): Promise<LocationParams
 export function TrendingListings() {
   const [location, setLocation] = useState<LocationParams>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const nationalListingsRef = useRef<ListingRow[] | null>(null);
 
   useEffect(() => {
     if (!navigator?.geolocation) return;
@@ -79,7 +80,7 @@ export function TrendingListings() {
 
   const {
     data,
-    isLoading,
+    isPending,
     isError,
     error,
     fetchNextPage,
@@ -100,12 +101,30 @@ export function TrendingListings() {
       return loaded;
     },
     staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
-  const listings: ListingRow[] = useMemo(
+  const hasLocationFilter = Boolean(location?.suburb || location?.city || location?.state);
+
+  useEffect(() => {
+    if (hasLocationFilter) return;
+    if (!data?.pages?.length) return;
+    const flat = data.pages.flatMap((p) => p.listings ?? []);
+    if (flat.length) nationalListingsRef.current = flat;
+  }, [data?.pages, hasLocationFilter]);
+
+  const rawListings: ListingRow[] = useMemo(
     () => data?.pages.flatMap((p) => p.listings ?? []) ?? [],
     [data?.pages]
   );
+
+  const listings: ListingRow[] = useMemo(() => {
+    if (rawListings.length > 0) return rawListings;
+    if (hasLocationFilter && nationalListingsRef.current?.length) {
+      return nationalListingsRef.current;
+    }
+    return rawListings;
+  }, [hasLocationFilter, rawListings]);
 
   useEffect(() => {
     const el = loadMoreRef.current;
@@ -121,7 +140,7 @@ export function TrendingListings() {
     return () => obs.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, listings.length]);
 
-  if (isLoading) {
+  if (isPending && listings.length === 0) {
     return (
       <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {[...Array(8)].map((_, i) => (
@@ -148,7 +167,7 @@ export function TrendingListings() {
 
   return (
     <>
-      {location && (location.city || location.state) && (
+      {location && (location.city || location.state) && rawListings.length > 0 && (
         <p className="mt-2 text-sm text-gray-500">
           Trending near you: {[location.suburb, location.city, location.state].filter(Boolean).join(', ')}
         </p>
