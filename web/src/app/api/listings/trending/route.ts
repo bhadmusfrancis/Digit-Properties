@@ -65,8 +65,24 @@ export async function GET(req: Request) {
               suburb
                 ? { $cond: [{ $eq: [{ $toLower: { $ifNull: ['$location.suburb', ''] } }, suburb.toLowerCase()] }, 4, 0] }
                 : 0,
-              city ? { $cond: [{ $eq: [{ $toLower: '$location.city' }, city.toLowerCase()] }, 3, 0] } : 0,
-              state ? { $cond: [{ $eq: [{ $toLower: '$location.state' }, state.toLowerCase()] }, 2, 0] } : 0,
+              city
+                ? {
+                    $cond: [
+                      { $eq: [{ $toLower: { $ifNull: ['$location.city', ''] } }, city.toLowerCase()] },
+                      3,
+                      0,
+                    ],
+                  }
+                : 0,
+              state
+                ? {
+                    $cond: [
+                      { $eq: [{ $toLower: { $ifNull: ['$location.state', ''] } }, state.toLowerCase()] },
+                      2,
+                      0,
+                    ],
+                  }
+                : 0,
             ],
           },
         },
@@ -110,6 +126,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ listings: mapped });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ listings: [] });
+    return NextResponse.json({ error: 'Failed to load trending listings' }, { status: 500 });
   }
 }

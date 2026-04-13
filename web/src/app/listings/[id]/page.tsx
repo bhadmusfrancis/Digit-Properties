@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { canViewListingOnSite } from '@/lib/listing-access';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
+import { ListingLocationMap } from '@/components/listings/ListingLocationMap';
+import { ProfessionalOffersPanel } from '@/components/listings/ProfessionalOffersPanel';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
@@ -410,6 +412,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <p className="mt-2 text-gray-600">
               {formatListingLocationDisplay(listing.location)}
             </p>
+            <ListingLocationMap
+              mapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+              addressLine={formatListingLocationDisplay(listing.location)}
+              coordinates={listing.location?.coordinates}
+            />
+            <ProfessionalOffersPanel
+              listingId={id}
+              listingType={String(listing.listingType ?? '')}
+              isOwner={isOwner}
+            />
             <ListingDetailClient
               listingId={String(listing._id)}
               title={listing.title}

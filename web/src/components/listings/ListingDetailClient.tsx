@@ -200,8 +200,7 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
       )}
       {createdBy && (
         <div>
-          <p className="text-sm text-gray-500">Listed by</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {createdBy._id ? (
               <Link href={`/authors/${createdBy._id}`} className="font-medium text-primary-600 hover:underline">
                 {toFirstName(createdBy.firstName, createdBy.name, 'Author')}
