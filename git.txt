@@ -16,5 +16,5 @@ cd mobile
 eas update --branch production --message "Rent period display update"
 
 git add .
-git commit -m "Admin approval"
+git commit -m "listing update"
 git push origin main
