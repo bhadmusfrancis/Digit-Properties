@@ -19,7 +19,8 @@ export type ListingOfferTurn = (typeof LISTING_OFFER_TURN)[keyof typeof LISTING_
 export type OfferEventKind = 'created' | 'counter' | 'accepted' | 'declined' | 'withdrawn';
 
 export interface IOfferEvent {
-  at: Date;
+  /** Filled by schema default when omitted. */
+  at?: Date;
   actorId: mongoose.Types.ObjectId;
   kind: OfferEventKind;
   amount?: number;
