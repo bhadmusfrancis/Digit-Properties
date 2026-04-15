@@ -106,6 +106,9 @@ export async function PATCH(
       if (!isBuyer) {
         return NextResponse.json({ error: 'Only the buyer can withdraw an offer' }, { status: 403 });
       }
+      if (offer.turn !== LISTING_OFFER_TURN.BUYER) {
+        return NextResponse.json({ error: 'You cannot withdraw while waiting for seller response' }, { status: 409 });
+      }
       offer.status = LISTING_OFFER_STATUS.WITHDRAWN;
       offer.events.push({
         actorId: new mongoose.Types.ObjectId(uid),
@@ -196,17 +199,36 @@ export async function PATCH(
       return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });
     }
 
-    if (isBuyer && action.action === 'counter') {
+    if (isBuyer && (action.action === 'counter' || action.action === 'maintain')) {
       if (offer.turn !== LISTING_OFFER_TURN.BUYER) {
-        return NextResponse.json({ error: 'It is not your turn to counter on this offer' }, { status: 409 });
+        return NextResponse.json({ error: 'It is not your turn to respond on this offer' }, { status: 409 });
       }
-      offer.amount = action.amount;
+      if (action.action === 'counter') {
+        offer.amount = action.amount;
+      } else {
+        const previousBuyerAmount = [...offer.events]
+          .reverse()
+          .find(
+            (ev) =>
+              String(ev.actorId) === String(offer.buyerId) &&
+              (ev.kind === 'created' || ev.kind === 'counter') &&
+              typeof ev.amount === 'number' &&
+              ev.amount > 0
+          )?.amount;
+        if (!previousBuyerAmount || !Number.isFinite(previousBuyerAmount)) {
+          return NextResponse.json({ error: 'Could not find your previous offer amount to maintain' }, { status: 409 });
+        }
+        offer.amount = previousBuyerAmount;
+      }
       offer.turn = LISTING_OFFER_TURN.SELLER;
       offer.events.push({
         actorId: new mongoose.Types.ObjectId(uid),
         kind: 'counter',
-        amount: action.amount,
-        message: action.message?.trim() || undefined,
+        amount: offer.amount,
+        message:
+          action.action === 'maintain'
+            ? action.message?.trim() || 'Buyer maintained previous offer amount'
+            : action.message?.trim() || undefined,
       });
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
@@ -217,7 +239,7 @@ export async function PATCH(
           actorName: buyerName,
           listingTitle,
           listingId,
-          offerAmount: action.amount,
+          offerAmount: offer.amount,
         }).catch((e) => console.error('[offers] buyer counter email:', e));
       }
       return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });

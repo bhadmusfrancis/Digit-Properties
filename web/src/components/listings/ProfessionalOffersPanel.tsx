@@ -317,7 +317,7 @@ export function ProfessionalOffersPanel({
                 Current offer on the table: <span className="font-semibold text-gray-900">{formatNgn(negotiatingMine.amount)}</span>
               </p>
               <p className="text-xs text-gray-600">
-                {negotiatingMine.turn === 'seller' ? 'Waiting for the seller to respond.' : 'The seller countered — you can respond with a new amount or withdraw.'}
+                {negotiatingMine.turn === 'seller' ? 'Waiting for the seller to respond.' : 'The seller countered — you can send a new counter or maintain your previous offer.'}
               </p>
               {negotiatingMine.turn === 'buyer' && (
                 <>
@@ -366,22 +366,12 @@ export function ProfessionalOffersPanel({
                       type="button"
                       className="btn-secondary flex-1"
                       disabled={patchOffer.isPending}
-                      onClick={() => patchOffer.mutate({ offerId: negotiatingMine._id, body: { action: 'withdraw' } })}
+                      onClick={() => patchOffer.mutate({ offerId: negotiatingMine._id, body: { action: 'maintain' } })}
                     >
-                      Withdraw offer
+                      Maintain my offer
                     </button>
                   </div>
                 </>
-              )}
-              {negotiatingMine.turn === 'seller' && (
-                <button
-                  type="button"
-                  className="btn-secondary mt-2 w-full"
-                  disabled={patchOffer.isPending}
-                  onClick={() => patchOffer.mutate({ offerId: negotiatingMine._id, body: { action: 'withdraw' } })}
-                >
-                  Withdraw offer
-                </button>
               )}
               {patchOffer.isError && (
                 <p className="text-xs text-red-600">{(patchOffer.error as Error)?.message}</p>
