@@ -90,6 +90,61 @@ const TEMPLATES = [
 <p>If you have questions, please contact us.</p>
 <p><a href="{{appUrl}}" style="color: #0d9488;">Browse listings</a></p>`,
   },
+  {
+    key: 'professional_offer_new',
+    subject: '[{{appName}}] New professional offer on {{listingTitle}}',
+    body: `<p>Hi {{recipientName}},</p>
+<p>You received a new professional offer from <strong>{{buyerName}}</strong>.</p>
+<ul>
+  <li><strong>Listing:</strong> {{listingTitle}}</li>
+  <li><strong>Offer Amount:</strong> {{offerAmount}}</li>
+</ul>
+<p><a href="{{listingUrl}}" style="color: #0d9488;">Review offer</a></p>`,
+  },
+  {
+    key: 'professional_offer_counter',
+    subject: '[{{appName}}] Counter-offer update on {{listingTitle}}',
+    body: `<p>Hi {{recipientName}},</p>
+<p>{{actorName}} has submitted a counter-offer.</p>
+<ul>
+  <li><strong>Listing:</strong> {{listingTitle}}</li>
+  <li><strong>Latest Amount:</strong> {{offerAmount}}</li>
+</ul>
+<p><a href="{{listingUrl}}" style="color: #0d9488;">Respond to offer</a></p>`,
+  },
+  {
+    key: 'professional_offer_accepted',
+    subject: '[{{appName}}] Offer accepted for {{listingTitle}}',
+    body: `<p>Hi {{recipientName}},</p>
+<p>Your professional offer has been <strong>accepted</strong>.</p>
+<ul>
+  <li><strong>Listing:</strong> {{listingTitle}}</li>
+  <li><strong>Accepted Amount:</strong> {{offerAmount}}</li>
+</ul>
+<p><a href="{{listingUrl}}" style="color: #0d9488;">View listing</a></p>`,
+  },
+  {
+    key: 'professional_offer_declined',
+    subject: '[{{appName}}] Offer update for {{listingTitle}}',
+    body: `<p>Hi {{recipientName}},</p>
+<p>Your professional offer was declined by the seller.</p>
+<ul>
+  <li><strong>Listing:</strong> {{listingTitle}}</li>
+  <li><strong>Last Amount:</strong> {{offerAmount}}</li>
+</ul>
+<p><a href="{{listingUrl}}" style="color: #0d9488;">View listing</a></p>`,
+  },
+  {
+    key: 'professional_offer_withdrawn',
+    subject: '[{{appName}}] Offer withdrawn for {{listingTitle}}',
+    body: `<p>Hi {{recipientName}},</p>
+<p>{{buyerName}} has withdrawn their professional offer.</p>
+<ul>
+  <li><strong>Listing:</strong> {{listingTitle}}</li>
+  <li><strong>Withdrawn Amount:</strong> {{offerAmount}}</li>
+</ul>
+<p><a href="{{listingUrl}}" style="color: #0d9488;">View listing</a></p>`,
+  },
 ];
 
 async function main() {
