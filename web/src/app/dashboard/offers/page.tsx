@@ -17,6 +17,7 @@ type DashboardOfferRow = {
   buyer: { _id: string; name: string; firstName: string } | null;
   seller: { _id: string; name: string; firstName: string } | null;
   canCounter: boolean;
+  canMaintain: boolean;
   canAccept: boolean;
   canDecline: boolean;
   canWithdraw: boolean;
@@ -74,10 +75,10 @@ export default function DashboardOffersPage() {
   });
 
   const offers = data?.offers ?? [];
-  const actionNeededCount = offers.filter((o) => o.canAccept || o.canDecline || o.canCounter || o.canWithdraw).length;
+  const actionNeededCount = offers.filter((o) => o.canAccept || o.canDecline || o.canCounter || o.canMaintain || o.canWithdraw).length;
   const visibleOffers = useMemo(() => {
     if (filter === 'all') return offers;
-    return offers.filter((o) => o.canAccept || o.canDecline || o.canCounter || o.canWithdraw);
+    return offers.filter((o) => o.canAccept || o.canDecline || o.canCounter || o.canMaintain || o.canWithdraw);
   }, [offers, filter]);
 
   return (
@@ -150,7 +151,7 @@ export default function DashboardOffersPage() {
                 )}
               </p>
 
-              {(o.canAccept || o.canDecline || o.canCounter || o.canWithdraw) && (
+              {(o.canAccept || o.canDecline || o.canCounter || o.canMaintain || o.canWithdraw) && (
                 <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
                   {o.canCounter && (
                     <>
@@ -211,6 +212,25 @@ export default function DashboardOffersPage() {
                         }
                       >
                         Send counter
+                      </button>
+                    )}
+                    {o.canMaintain && (
+                      <button
+                        type="button"
+                        className="btn-secondary text-sm"
+                        disabled={patchOffer.isPending}
+                        onClick={() =>
+                          patchOffer.mutate({
+                            listingId,
+                            offerId: o._id,
+                            body: {
+                              action: 'maintain',
+                              message: (noteByOffer[o._id] ?? '').trim() || undefined,
+                            },
+                          })
+                        }
+                      >
+                        Maintain my offer
                       </button>
                     )}
                     {o.canWithdraw && (
