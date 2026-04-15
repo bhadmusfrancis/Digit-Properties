@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import ListingProfessionalOffer from '@/models/ListingProfessionalOffer';
+import Listing from '@/models/Listing';
+import User from '@/models/User';
 import { LISTING_OFFER_STATUS, LISTING_OFFER_TURN } from '@/models/ListingProfessionalOffer';
 
 type PopulatedUser = {
@@ -55,14 +57,42 @@ export async function GET(req: Request) {
     })
       .sort({ updatedAt: -1 })
       .limit(200)
-      .populate('listingId', 'title')
-      .populate('buyerId', 'name firstName')
-      .populate('sellerId', 'name firstName')
       .lean();
 
+    const listingIds = new Set<string>();
+    const userIds = new Set<string>();
+    raw.forEach((o) => {
+      const listingId = String(o.listingId ?? '');
+      const buyerId = String(o.buyerId ?? '');
+      const sellerId = String(o.sellerId ?? '');
+      if (mongoose.Types.ObjectId.isValid(listingId)) listingIds.add(listingId);
+      if (mongoose.Types.ObjectId.isValid(buyerId)) userIds.add(buyerId);
+      if (mongoose.Types.ObjectId.isValid(sellerId)) userIds.add(sellerId);
+    });
+
+    const [listings, users] = await Promise.all([
+      listingIds.size
+        ? Listing.find({ _id: { $in: [...listingIds].map((id) => new mongoose.Types.ObjectId(id)) } })
+            .select('title')
+            .lean()
+        : Promise.resolve([]),
+      userIds.size
+        ? User.find({ _id: { $in: [...userIds].map((id) => new mongoose.Types.ObjectId(id)) } })
+            .select('name firstName')
+            .lean()
+        : Promise.resolve([]),
+    ]);
+
+    const listingById = new Map<string, unknown>();
+    listings.forEach((l) => listingById.set(String((l as { _id: unknown })._id), l));
+    const userById = new Map<string, unknown>();
+    users.forEach((u) => userById.set(String((u as { _id: unknown })._id), u));
+
     const offers = raw.map((o) => {
-      const listingId = String(o.listingId && typeof o.listingId === 'object' && '_id' in o.listingId ? o.listingId._id : o.listingId);
-      const isBuyer = String(o.buyerId && typeof o.buyerId === 'object' && '_id' in o.buyerId ? o.buyerId._id : o.buyerId) === uid;
+      const listingId = String(o.listingId ?? '');
+      const buyerId = String(o.buyerId ?? '');
+      const sellerId = String(o.sellerId ?? '');
+      const isBuyer = buyerId === uid;
       const negotiating = o.status === LISTING_OFFER_STATUS.NEGOTIATING;
       const latestEvent = Array.isArray(o.events) && o.events.length > 0 ? o.events[o.events.length - 1] : null;
       const sellerCounterLocked = latestEvent?.kind === 'maintained';
@@ -72,7 +102,7 @@ export async function GET(req: Request) {
               .reverse()
               .find(
                 (ev) =>
-                  String(ev?.actorId ?? '') === String(o.buyerId && typeof o.buyerId === 'object' && '_id' in o.buyerId ? o.buyerId._id : o.buyerId) &&
+                  String(ev?.actorId ?? '') === buyerId &&
                   (ev?.kind === 'created' || ev?.kind === 'counter' || ev?.kind === 'maintained') &&
                   typeof ev?.amount === 'number' &&
                   (ev.amount as number) > 0
@@ -89,7 +119,7 @@ export async function GET(req: Request) {
       return {
         _id: String(o._id),
         listingId,
-        listing: listingSummary(o.listingId),
+        listing: listingSummary(listingById.get(listingId)),
         amount: o.amount,
         status: o.status,
         turn: o.turn,
@@ -99,8 +129,8 @@ export async function GET(req: Request) {
         createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : undefined,
         updatedAt: o.updatedAt ? new Date(o.updatedAt).toISOString() : undefined,
         yourRole: isBuyer ? 'buyer' : 'seller',
-        buyer: userSummary(o.buyerId),
-        seller: userSummary(o.sellerId),
+        buyer: userSummary(userById.get(buyerId)),
+        seller: userSummary(userById.get(sellerId)),
         canCounter,
         canMaintain,
         canAccept,
@@ -112,7 +142,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ offers });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Failed to load dashboard offers' }, { status: 500 });
+    // Keep dashboard usable even if one malformed legacy row exists.
+    return NextResponse.json({ offers: [] });
   }
 }
 
