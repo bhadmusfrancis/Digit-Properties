@@ -14,6 +14,8 @@ type OfferRow = {
   status: string;
   turn: string;
   listingPriceAtCreate: number;
+  maintainAmount?: number;
+  sellerCounterLocked?: boolean;
   createdAt?: string;
   updatedAt?: string;
   buyer: PublicCreatedBy | null;
@@ -317,7 +319,9 @@ export function ProfessionalOffersPanel({
                 Current offer on the table: <span className="font-semibold text-gray-900">{formatNgn(negotiatingMine.amount)}</span>
               </p>
               <p className="text-xs text-gray-600">
-                {negotiatingMine.turn === 'seller' ? 'Waiting for the seller to respond.' : 'The seller countered — you can send a new counter or maintain your previous offer.'}
+                {negotiatingMine.turn === 'seller'
+                  ? 'Waiting for the seller to respond.'
+                  : 'The seller countered — you can send a new counter or maintain your previous offer.'}
               </p>
               {negotiatingMine.turn === 'buyer' && (
                 <>
@@ -368,7 +372,7 @@ export function ProfessionalOffersPanel({
                       disabled={patchOffer.isPending}
                       onClick={() => patchOffer.mutate({ offerId: negotiatingMine._id, body: { action: 'maintain' } })}
                     >
-                      Maintain my offer
+                      Maintain my offer of {formatNgn(negotiatingMine.maintainAmount ?? negotiatingMine.amount)}
                     </button>
                   </div>
                 </>
@@ -567,40 +571,48 @@ export function ProfessionalOffersPanel({
                       Decline
                     </button>
                   </div>
-                  <label className="block text-xs font-medium text-gray-700">Counter amount (NGN)</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    className="input w-full"
-                    placeholder="Counter price"
-                    value={counterByOffer[o._id] ?? ''}
-                    onChange={(e) => setCounterByOffer((m) => ({ ...m, [o._id]: e.target.value.replace(/[^\d.]/g, '') }))}
-                  />
-                  <label className="block text-xs font-medium text-gray-700">Note (optional)</label>
-                  <textarea
-                    className="input min-h-[56px] w-full resize-y"
-                    maxLength={1000}
-                    value={counterMsgByOffer[o._id] ?? ''}
-                    onChange={(e) => setCounterMsgByOffer((m) => ({ ...m, [o._id]: e.target.value }))}
-                  />
-                  <button
-                    type="button"
-                    className="btn-secondary w-full text-sm"
-                    disabled={patchOffer.isPending || !(Number(String(counterByOffer[o._id] ?? '').replace(/,/g, '')) > 0)}
-                    onClick={() => {
-                      const amount = Number(String(counterByOffer[o._id] ?? '').replace(/,/g, ''));
-                      patchOffer.mutate({
-                        offerId: o._id,
-                        body: {
-                          action: 'counter',
-                          amount,
-                          message: (counterMsgByOffer[o._id] ?? '').trim() || undefined,
-                        },
-                      });
-                    }}
-                  >
-                    Send counter-offer
-                  </button>
+                  {!o.sellerCounterLocked ? (
+                    <>
+                      <label className="block text-xs font-medium text-gray-700">Counter amount (NGN)</label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="input w-full"
+                        placeholder="Counter price"
+                        value={counterByOffer[o._id] ?? ''}
+                        onChange={(e) => setCounterByOffer((m) => ({ ...m, [o._id]: e.target.value.replace(/[^\d.]/g, '') }))}
+                      />
+                      <label className="block text-xs font-medium text-gray-700">Note (optional)</label>
+                      <textarea
+                        className="input min-h-[56px] w-full resize-y"
+                        maxLength={1000}
+                        value={counterMsgByOffer[o._id] ?? ''}
+                        onChange={(e) => setCounterMsgByOffer((m) => ({ ...m, [o._id]: e.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary w-full text-sm"
+                        disabled={patchOffer.isPending || !(Number(String(counterByOffer[o._id] ?? '').replace(/,/g, '')) > 0)}
+                        onClick={() => {
+                          const amount = Number(String(counterByOffer[o._id] ?? '').replace(/,/g, ''));
+                          patchOffer.mutate({
+                            offerId: o._id,
+                            body: {
+                              action: 'counter',
+                              amount,
+                              message: (counterMsgByOffer[o._id] ?? '').trim() || undefined,
+                            },
+                          });
+                        }}
+                      >
+                        Send counter-offer
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-amber-700">
+                      Buyer maintained their offer at {formatNgn(o.amount)}. You can accept or decline only.
+                    </p>
+                  )}
                 </div>
               )}
             </li>

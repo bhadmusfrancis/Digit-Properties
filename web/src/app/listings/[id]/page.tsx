@@ -11,7 +11,7 @@ import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsIn
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
-import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
+import { LISTING_STATUS, USER_ROLES, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
 import {
   getCloudinaryVideoThumbnailUrl,
   getDefaultListingImageUrl,
@@ -28,6 +28,8 @@ import type { Metadata } from 'next';
 import { buildListingShareDescription, listingDocToShareFields } from '@/lib/listing-share-text';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { siteOrigin } from '@/lib/site-metadata';
+
+const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function isVideoUrl(url: string): boolean {
   const clean = (url || '').split('?')[0].toLowerCase();
@@ -257,6 +259,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       ? String((listing.createdBy as { _id: unknown })._id)
       : String(listing.createdBy);
     const isOwner = !!session?.user?.id && createdById === session.user.id;
+    const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    const canEditListing =
+      isOwner &&
+      (isAdmin ||
+        (() => {
+          const createdAtMs = new Date(listing.createdAt as Date).getTime();
+          return Number.isFinite(createdAtMs) && Date.now() - createdAtMs <= NON_ADMIN_EDIT_WINDOW_MS;
+        })());
 
     const baseUrl = siteOrigin();
     const shareFields = listingDocToShareFields({
@@ -436,7 +446,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               viewCount={listing.viewCount ?? 0}
               likeCount={likeCount}
             />
-            {isOwner && (
+            {canEditListing && (
               <div className="mt-4 flex gap-3">
                 <Link href={`/listings/${listing._id}/edit`} className="btn-primary flex-1 text-center">
                   Edit listing
