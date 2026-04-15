@@ -9,6 +9,8 @@ import type { ListingFormProps } from '@/components/listings/ListingForm';
 import { USER_ROLES } from '@/lib/constants';
 import mongoose from 'mongoose';
 
+const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export default async function EditListingPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) notFound();
@@ -23,6 +25,10 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   const isAdmin = session.user.role === USER_ROLES.ADMIN;
   const isOwner = String(listing.createdBy) === session.user.id;
   if (!isAdmin && !isOwner) notFound();
+  if (!isAdmin && isOwner) {
+    const createdAtMs = new Date(listing.createdAt as Date).getTime();
+    if (Number.isFinite(createdAtMs) && Date.now() - createdAtMs > NON_ADMIN_EDIT_WINDOW_MS) notFound();
+  }
 
   const loc = listing.location as {
     address?: string;

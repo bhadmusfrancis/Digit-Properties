@@ -17,6 +17,8 @@ import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 
+const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -95,6 +97,15 @@ export async function PATCH(
     const isOwner = listing.createdBy.toString() === session.user.id;
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (!isAdmin && isOwner) {
+      const createdAtMs = new Date(listing.createdAt).getTime();
+      if (Number.isFinite(createdAtMs) && Date.now() - createdAtMs > NON_ADMIN_EDIT_WINDOW_MS) {
+        return NextResponse.json(
+          { error: 'Listings can only be edited within 24 hours of creation for non-admin users.' },
+          { status: 403 }
+        );
+      }
     }
 
     const body = await req.json();

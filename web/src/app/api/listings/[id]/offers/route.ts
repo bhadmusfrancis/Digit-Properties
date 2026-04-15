@@ -21,8 +21,28 @@ function serializeOffer(doc: {
   createdAt?: Date;
   updatedAt?: Date;
   buyerId?: unknown;
+  events?: Array<{ kind?: string; actorId?: unknown; amount?: number }>;
 }) {
   const buyer = doc.buyerId && typeof doc.buyerId === 'object' ? shapePublicCreatedBy(doc.buyerId) : null;
+  const events = Array.isArray(doc.events) ? doc.events : [];
+  const latestEvent = events.length > 0 ? events[events.length - 1] : null;
+  const sellerCounterLocked = latestEvent?.kind === 'maintained';
+  const buyerId =
+    doc.buyerId && typeof doc.buyerId === 'object' && '_id' in doc.buyerId
+      ? String((doc.buyerId as { _id: unknown })._id)
+      : String(doc.buyerId ?? '');
+  const maintainAmount =
+    doc.turn === LISTING_OFFER_TURN.BUYER
+      ? [...events]
+          .reverse()
+          .find(
+            (ev) =>
+              String(ev?.actorId ?? '') === buyerId &&
+              (ev?.kind === 'created' || ev?.kind === 'counter' || ev?.kind === 'maintained') &&
+              typeof ev?.amount === 'number' &&
+              (ev.amount as number) > 0
+          )?.amount
+      : undefined;
   return {
     _id: String(doc._id),
     amount: doc.amount,
@@ -32,6 +52,8 @@ function serializeOffer(doc: {
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : undefined,
     updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : undefined,
     buyer,
+    sellerCounterLocked,
+    maintainAmount: typeof maintainAmount === 'number' ? maintainAmount : undefined,
   };
 }
 

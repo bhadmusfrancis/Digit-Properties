@@ -16,7 +16,7 @@ export const LISTING_OFFER_TURN = {
 
 export type ListingOfferTurn = (typeof LISTING_OFFER_TURN)[keyof typeof LISTING_OFFER_TURN];
 
-export type OfferEventKind = 'created' | 'counter' | 'accepted' | 'declined' | 'withdrawn';
+export type OfferEventKind = 'created' | 'counter' | 'maintained' | 'accepted' | 'declined' | 'withdrawn';
 
 export interface IOfferEvent {
   /** Filled by schema default when omitted. */
@@ -45,7 +45,7 @@ const OfferEventSchema = new Schema<IOfferEvent>(
   {
     at: { type: Date, default: () => new Date() },
     actorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    kind: { type: String, enum: ['created', 'counter', 'accepted', 'declined', 'withdrawn'], required: true },
+    kind: { type: String, enum: ['created', 'counter', 'maintained', 'accepted', 'declined', 'withdrawn'], required: true },
     amount: Number,
     message: { type: String, maxlength: 1000 },
   },
