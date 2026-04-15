@@ -31,16 +31,20 @@ type ListingRow = {
   rentedAt?: string;
 };
 
+const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export function MyListingsTable({
   listings,
   sortKey,
   sortAsc,
   basePath,
+  isAdmin = false,
 }: {
   listings: ListingRow[];
   sortKey: ListingSortKey;
   sortAsc: boolean;
   basePath: string;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
 
@@ -71,6 +75,13 @@ export function MyListingsTable({
     const d = new Date(createdAt);
     if (Number.isNaN(d.getTime())) return '—';
     return d.toISOString().slice(0, 10);
+  };
+
+  const canEdit = (createdAt?: string) => {
+    if (isAdmin) return true;
+    if (!createdAt) return false;
+    const createdAtMs = new Date(createdAt).getTime();
+    return Number.isFinite(createdAtMs) && Date.now() - createdAtMs <= NON_ADMIN_EDIT_WINDOW_MS;
   };
 
   return (
@@ -125,6 +136,7 @@ export function MyListingsTable({
                 listingType={l.listingType}
                 soldAt={l.soldAt}
                 rentedAt={l.rentedAt}
+                canEdit={canEdit(l.createdAt)}
               />
             </div>
           </article>
@@ -225,6 +237,7 @@ export function MyListingsTable({
                   listingType={l.listingType}
                   soldAt={l.soldAt}
                   rentedAt={l.rentedAt}
+                  canEdit={canEdit(l.createdAt)}
                 />
               </td>
             </tr>

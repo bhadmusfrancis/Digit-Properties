@@ -11,6 +11,8 @@ type DashboardOfferRow = {
   amount: number;
   status: string;
   turn: string;
+  maintainAmount?: number;
+  sellerCounterLocked?: boolean;
   createdAt?: string;
   updatedAt?: string;
   yourRole: 'buyer' | 'seller';
@@ -150,6 +152,11 @@ export default function DashboardOffersPage() {
                   <span className="ml-2 text-xs text-gray-500">{o.turn === o.yourRole ? '(your move)' : '(waiting for counterparty)'}</span>
                 )}
               </p>
+              {o.status === 'negotiating' && o.yourRole === 'seller' && o.turn === 'seller' && o.sellerCounterLocked && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Buyer maintained their offer at {formatNgn(o.amount)}. You can accept or decline only.
+                </p>
+              )}
 
               {(o.canAccept || o.canDecline || o.canCounter || o.canMaintain || o.canWithdraw) && (
                 <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
@@ -230,7 +237,7 @@ export default function DashboardOffersPage() {
                           })
                         }
                       >
-                        Maintain my offer
+                        Maintain my offer of {formatNgn(o.maintainAmount ?? o.amount)}
                       </button>
                     )}
                     {o.canWithdraw && (

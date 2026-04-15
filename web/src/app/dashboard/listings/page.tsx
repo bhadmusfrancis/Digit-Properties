@@ -60,6 +60,7 @@ export default async function MyListingsPage({
   }));
 
   const isBot = user?.role === USER_ROLES.BOT;
+  const isAdmin = user?.role === USER_ROLES.ADMIN;
 
   return (
     <div>
@@ -87,6 +88,7 @@ export default async function MyListingsPage({
           sortKey={sortKey}
           sortAsc={sortAsc}
           basePath="/dashboard/listings"
+          isAdmin={isAdmin}
         />
         {totalPages > 1 && (
           <CompactPagination

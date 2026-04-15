@@ -90,6 +90,8 @@ export async function PATCH(
     if (offer.status !== LISTING_OFFER_STATUS.NEGOTIATING) {
       return NextResponse.json({ error: 'This offer is no longer open for changes' }, { status: 409 });
     }
+    const latestEvent = offer.events.length > 0 ? offer.events[offer.events.length - 1] : null;
+    const sellerCounterLocked = latestEvent?.kind === 'maintained';
 
     const [buyerUser, sellerUser] = await Promise.all([
       User.findById(offer.buyerId).select('name email').lean(),
@@ -132,6 +134,9 @@ export async function PATCH(
     if (isSeller && (action.action === 'accept' || action.action === 'decline' || action.action === 'counter')) {
       if (offer.turn !== LISTING_OFFER_TURN.SELLER) {
         return NextResponse.json({ error: 'It is not your turn to respond on this offer' }, { status: 409 });
+      }
+      if (action.action === 'counter' && sellerCounterLocked) {
+        return NextResponse.json({ error: 'Buyer maintained their offer. You can only accept or decline now.' }, { status: 409 });
       }
 
       if (action.action === 'accept') {
@@ -223,7 +228,7 @@ export async function PATCH(
       offer.turn = LISTING_OFFER_TURN.SELLER;
       offer.events.push({
         actorId: new mongoose.Types.ObjectId(uid),
-        kind: 'counter',
+        kind: action.action === 'maintain' ? 'maintained' : 'counter',
         amount: offer.amount,
         message:
           action.action === 'maintain'

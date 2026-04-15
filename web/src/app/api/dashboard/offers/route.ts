@@ -64,7 +64,23 @@ export async function GET(req: Request) {
       const listingId = String(o.listingId && typeof o.listingId === 'object' && '_id' in o.listingId ? o.listingId._id : o.listingId);
       const isBuyer = String(o.buyerId && typeof o.buyerId === 'object' && '_id' in o.buyerId ? o.buyerId._id : o.buyerId) === uid;
       const negotiating = o.status === LISTING_OFFER_STATUS.NEGOTIATING;
-      const canCounter = negotiating && ((isBuyer && o.turn === LISTING_OFFER_TURN.BUYER) || (!isBuyer && o.turn === LISTING_OFFER_TURN.SELLER));
+      const latestEvent = Array.isArray(o.events) && o.events.length > 0 ? o.events[o.events.length - 1] : null;
+      const sellerCounterLocked = latestEvent?.kind === 'maintained';
+      const maintainAmount =
+        isBuyer && o.turn === LISTING_OFFER_TURN.BUYER && Array.isArray(o.events)
+          ? [...o.events]
+              .reverse()
+              .find(
+                (ev) =>
+                  String(ev?.actorId ?? '') === String(o.buyerId && typeof o.buyerId === 'object' && '_id' in o.buyerId ? o.buyerId._id : o.buyerId) &&
+                  (ev?.kind === 'created' || ev?.kind === 'counter' || ev?.kind === 'maintained') &&
+                  typeof ev?.amount === 'number' &&
+                  (ev.amount as number) > 0
+              )?.amount
+          : undefined;
+      const canCounter =
+        negotiating &&
+        ((isBuyer && o.turn === LISTING_OFFER_TURN.BUYER) || (!isBuyer && o.turn === LISTING_OFFER_TURN.SELLER && !sellerCounterLocked));
       const canMaintain = negotiating && isBuyer && o.turn === LISTING_OFFER_TURN.BUYER;
       const canAccept = negotiating && !isBuyer && o.turn === LISTING_OFFER_TURN.SELLER;
       const canDecline = canAccept;
@@ -77,6 +93,8 @@ export async function GET(req: Request) {
         amount: o.amount,
         status: o.status,
         turn: o.turn,
+        maintainAmount: typeof maintainAmount === 'number' ? maintainAmount : undefined,
+        sellerCounterLocked,
         listingPriceAtCreate: o.listingPriceAtCreate,
         createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : undefined,
         updatedAt: o.updatedAt ? new Date(o.updatedAt).toISOString() : undefined,
