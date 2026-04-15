@@ -3,29 +3,25 @@
 type Coords = { lat: number; lng: number };
 
 type ListingLocationMapProps = {
-  /** Maps Embed API key (same as map picker). Optional: links still work without it. */
+  /** Optional, kept for backward compatibility with existing callers. */
   mapsApiKey?: string;
   /** Human-readable address for directions when coordinates are missing. */
   addressLine: string;
   coordinates?: Coords | null;
 };
 
-export function ListingLocationMap({ mapsApiKey, addressLine, coordinates }: ListingLocationMapProps) {
+export function ListingLocationMap({ addressLine, coordinates }: ListingLocationMapProps) {
   const destinationQuery = coordinates ? `${coordinates.lat},${coordinates.lng}` : addressLine;
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinationQuery)}`;
   const streetViewTabUrl = coordinates
     ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${coordinates.lat},${coordinates.lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}`;
 
-  const streetViewEmbedUrl =
-    mapsApiKey && coordinates
-      ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(mapsApiKey)}&location=${coordinates.lat},${coordinates.lng}&heading=210&pitch=5&fov=85`
-      : null;
-
-  const placeEmbedUrl =
-    mapsApiKey && !coordinates
-      ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(mapsApiKey)}&q=${encodeURIComponent(addressLine)}`
-      : null;
+  // Use public Google Maps embed URLs (no API key required) so listing page maps
+  // still render when Maps Embed API is not enabled for the project.
+  const mapEmbedUrl = coordinates
+    ? `https://maps.google.com/maps?q=${coordinates.lat},${coordinates.lng}&z=15&output=embed`
+    : `https://maps.google.com/maps?q=${encodeURIComponent(addressLine)}&z=15&output=embed`;
 
   return (
     <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
@@ -48,36 +44,16 @@ export function ListingLocationMap({ mapsApiKey, addressLine, coordinates }: Lis
           {coordinates ? 'Street View (Google Maps)' : 'View on map'}
         </a>
       </div>
-      {streetViewEmbedUrl && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-          <iframe
-            title="Street View"
-            className="aspect-video h-[220px] w-full sm:h-[280px]"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-            src={streetViewEmbedUrl}
-          />
-        </div>
-      )}
-      {placeEmbedUrl && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-          <iframe
-            title="Property location"
-            className="aspect-video h-[220px] w-full sm:h-[280px]"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-            src={placeEmbedUrl}
-          />
-        </div>
-      )}
-      {!streetViewEmbedUrl && !placeEmbedUrl && (
-        <p className="text-xs text-gray-500">
-          Saved map coordinates unlock an embedded street preview here. Directions and Google Maps still open from the address
-          above.
-        </p>
-      )}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+        <iframe
+          title="Property location map"
+          className="aspect-video h-[220px] w-full sm:h-[280px]"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          allowFullScreen
+          src={mapEmbedUrl}
+        />
+      </div>
     </div>
   );
 }
