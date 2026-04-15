@@ -39,11 +39,16 @@ export async function GET(req: Request) {
   try {
     const session = await getSession(req);
     const uid = session?.user?.id;
-    if (!uid || !mongoose.Types.ObjectId.isValid(uid)) {
+    if (!uid) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
+    // Be tolerant of legacy/non-ObjectId user ids: return a valid empty payload
+    // instead of failing the dashboard for listing owners.
+    if (!mongoose.Types.ObjectId.isValid(uid)) {
+      return NextResponse.json({ offers: [] });
+    }
     const userOid = new mongoose.Types.ObjectId(uid);
     const raw = await ListingProfessionalOffer.find({
       $or: [{ buyerId: userOid }, { sellerId: userOid }],
