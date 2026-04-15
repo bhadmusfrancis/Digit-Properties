@@ -65,9 +65,10 @@ export async function GET(req: Request) {
       const isBuyer = String(o.buyerId && typeof o.buyerId === 'object' && '_id' in o.buyerId ? o.buyerId._id : o.buyerId) === uid;
       const negotiating = o.status === LISTING_OFFER_STATUS.NEGOTIATING;
       const canCounter = negotiating && ((isBuyer && o.turn === LISTING_OFFER_TURN.BUYER) || (!isBuyer && o.turn === LISTING_OFFER_TURN.SELLER));
+      const canMaintain = negotiating && isBuyer && o.turn === LISTING_OFFER_TURN.BUYER;
       const canAccept = negotiating && !isBuyer && o.turn === LISTING_OFFER_TURN.SELLER;
       const canDecline = canAccept;
-      const canWithdraw = negotiating && isBuyer;
+      const canWithdraw = negotiating && isBuyer && o.turn === LISTING_OFFER_TURN.BUYER;
 
       return {
         _id: String(o._id),
@@ -83,6 +84,7 @@ export async function GET(req: Request) {
         buyer: userSummary(o.buyerId),
         seller: userSummary(o.sellerId),
         canCounter,
+        canMaintain,
         canAccept,
         canDecline,
         canWithdraw,

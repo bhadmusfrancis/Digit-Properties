@@ -288,6 +288,10 @@ export const listingOfferPatchSchema = z.discriminatedUnion('action', [
     amount: offerAmountSchema,
     message: z.string().max(1000).optional(),
   }),
+  z.object({
+    action: z.literal('maintain'),
+    message: z.string().max(1000).optional(),
+  }),
   z.object({ action: z.literal('withdraw') }),
   z.object({ action: z.literal('accept') }),
   z.object({ action: z.literal('decline') }),
