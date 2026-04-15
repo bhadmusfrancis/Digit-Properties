@@ -8,6 +8,7 @@ const links = [
   { href: '/dashboard', label: 'Overview', icon: 'overview' },
   { href: '/dashboard/listings', label: 'My Properties', icon: 'home' },
   { href: '/dashboard/saved', label: 'Favorites', icon: 'heart' },
+  { href: '/dashboard/offers', label: 'Offers', icon: 'offers' },
   { href: '/dashboard/alerts', label: 'Property Alerts', icon: 'bell' },
   { href: '/dashboard/claims', label: 'My Claims', icon: 'claim' },
   { href: '/dashboard/payments', label: 'Payments', icon: 'card' },
@@ -35,6 +36,12 @@ function NavIcon({ name, isActive }: { name: string; isActive: boolean }) {
       return (
         <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      );
+    case 'offers':
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h8M8 14h5M6 4h12a2 2 0 012 2v9a2 2 0 01-2 2h-4l-4 3v-3H6a2 2 0 01-2-2V6a2 2 0 012-2z" />
         </svg>
       );
     case 'bell':
