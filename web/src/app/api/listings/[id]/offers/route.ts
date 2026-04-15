@@ -10,6 +10,7 @@ import { LISTING_STATUS, LISTING_TYPE } from '@/lib/constants';
 import { listingOfferCreateSchema } from '@/lib/validations';
 import { isPublicVerifiedAccount, shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { LISTING_OFFER_STATUS, LISTING_OFFER_TURN } from '@/models/ListingProfessionalOffer';
+import { sendProfessionalOfferNewEmail } from '@/lib/email';
 
 function serializeOffer(doc: {
   _id: unknown;
@@ -49,7 +50,7 @@ async function loadListingForOffers(listingId: string) {
     !soldAt &&
     listing.listingType === LISTING_TYPE.SALE &&
     !!seller?.isVerifiedAccount;
-  return { listing, sellerId, offersEnabled, listingPrice: listing.price };
+  return { listing, sellerId, offersEnabled, listingPrice: listing.price, listingTitle: listing.title };
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -125,7 +126,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await dbConnect();
     const meta = await loadListingForOffers(listingId);
     if (!meta) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    const { listing, sellerId, offersEnabled, listingPrice } = meta;
+    const { listing, sellerId, offersEnabled, listingPrice, listingTitle } = meta;
 
     if (
       !canViewListingOnSite({
@@ -187,6 +188,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     const populated = await ListingProfessionalOffer.findById(doc._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
+
+    const [sellerFull, buyerFull] = await Promise.all([
+      User.findById(sellerId).select('name email').lean(),
+      User.findById(session.user.id).select('name email').lean(),
+    ]);
+    const sellerEmail = typeof sellerFull?.email === 'string' ? sellerFull.email : '';
+    if (sellerEmail) {
+      sendProfessionalOfferNewEmail({
+        to: sellerEmail,
+        recipientName: (typeof sellerFull?.name === 'string' && sellerFull.name) || 'Seller',
+        buyerName: (typeof buyerFull?.name === 'string' && buyerFull.name) || session.user.name || 'Buyer',
+        listingTitle: listingTitle || listing.title,
+        listingId,
+        offerAmount: amount,
+      }).catch((e) => console.error('[offers] new offer email:', e));
+    }
+
     return NextResponse.json({ offer: populated ? serializeOffer(populated as Parameters<typeof serializeOffer>[0]) : null });
   } catch (e) {
     console.error(e);

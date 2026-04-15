@@ -15,6 +15,11 @@ const KEYS = [
   'contact_form',
   'claim_approved',
   'claim_rejected',
+  'professional_offer_new',
+  'professional_offer_counter',
+  'professional_offer_accepted',
+  'professional_offer_declined',
+  'professional_offer_withdrawn',
 ];
 
 export async function GET(req: Request) {

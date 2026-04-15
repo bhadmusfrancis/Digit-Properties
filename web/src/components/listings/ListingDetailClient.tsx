@@ -195,7 +195,7 @@ export function ListingDetailClient({ listingId, title, createdBy, createdByType
           className="btn-secondary w-full"
           disabled={toggleLike.isPending}
         >
-          {liked ? 'Unlike' : 'Like'} listing
+          {liked ? 'Unlike' : 'Like'} Property
         </button>
       )}
       {createdBy && (

@@ -333,6 +333,212 @@ export async function sendContactFormEmail(
   return { ok: result.ok };
 }
 
+export async function sendProfessionalOfferNewEmail(params: {
+  to: string;
+  recipientName: string;
+  buyerName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    buyerName: params.buyerName || 'Buyer',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('professional_offer_new');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] New professional offer on ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>You received a new professional offer from <strong>${vars.buyerName}</strong>.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Offer Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Review offer</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('New Professional Offer', body) });
+  return { ok: result.ok };
+}
+
+export async function sendProfessionalOfferCounterEmail(params: {
+  to: string;
+  recipientName: string;
+  actorName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    actorName: params.actorName || 'Counterparty',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('professional_offer_counter');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Counter-offer update on ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>${vars.actorName} has submitted a counter-offer.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Latest Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Respond to offer</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Counter-offer Update', body) });
+  return { ok: result.ok };
+}
+
+export async function sendProfessionalOfferAcceptedEmail(params: {
+  to: string;
+  recipientName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('professional_offer_accepted');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Offer accepted for ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>Your professional offer has been <strong>accepted</strong>.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Accepted Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Accepted', body) });
+  return { ok: result.ok };
+}
+
+export async function sendProfessionalOfferDeclinedEmail(params: {
+  to: string;
+  recipientName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('professional_offer_declined');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Offer update for ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>Your professional offer was declined by the seller.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Last Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Declined', body) });
+  return { ok: result.ok };
+}
+
+export async function sendProfessionalOfferWithdrawnEmail(params: {
+  to: string;
+  recipientName: string;
+  buyerName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    buyerName: params.buyerName || 'Buyer',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('professional_offer_withdrawn');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Offer withdrawn for ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>${vars.buyerName} has withdrawn their professional offer.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Withdrawn Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Withdrawn', body) });
+  return { ok: result.ok };
+}
+
 /** Send a single test email to ADMIN_EMAIL. Returns detailed result for admin diagnostics. */
 export async function sendTestEmail(): Promise<{
   ok: boolean;

@@ -421,6 +421,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               listingId={id}
               listingType={String(listing.listingType ?? '')}
               isOwner={isOwner}
+              listingTitle={listing.title}
+              propertyType={String(listing.propertyType ?? '')}
+              listingDescription={listing.description}
+              locationDisplay={formatListingLocationDisplay(listing.location)}
             />
             <ListingDetailClient
               listingId={String(listing._id)}

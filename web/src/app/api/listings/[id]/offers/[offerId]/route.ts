@@ -8,6 +8,13 @@ import { canViewListingOnSite } from '@/lib/listing-access';
 import { listingOfferPatchSchema } from '@/lib/validations';
 import { LISTING_OFFER_STATUS, LISTING_OFFER_TURN } from '@/models/ListingProfessionalOffer';
 import { USER_PUBLIC_BADGE_FIELDS, shapePublicCreatedBy } from '@/lib/verification';
+import User from '@/models/User';
+import {
+  sendProfessionalOfferAcceptedEmail,
+  sendProfessionalOfferCounterEmail,
+  sendProfessionalOfferDeclinedEmail,
+  sendProfessionalOfferWithdrawnEmail,
+} from '@/lib/email';
 
 function serializeOffer(doc: {
   _id: unknown;
@@ -55,7 +62,7 @@ export async function PATCH(
     const action = parsed.data;
 
     await dbConnect();
-    const listing = await Listing.findById(listingId).select('status createdBy').lean();
+    const listing = await Listing.findById(listingId).select('status createdBy title').lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (
       !canViewListingOnSite({
@@ -84,6 +91,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'This offer is no longer open for changes' }, { status: 409 });
     }
 
+    const [buyerUser, sellerUser] = await Promise.all([
+      User.findById(offer.buyerId).select('name email').lean(),
+      User.findById(offer.sellerId).select('name email').lean(),
+    ]);
+    const buyerEmail = typeof buyerUser?.email === 'string' ? buyerUser.email : '';
+    const sellerEmail = typeof sellerUser?.email === 'string' ? sellerUser.email : '';
+    const buyerName = (typeof buyerUser?.name === 'string' && buyerUser.name) || 'Buyer';
+    const sellerName = (typeof sellerUser?.name === 'string' && sellerUser.name) || 'Seller';
+    const listingTitle = (listing as { title?: string }).title || 'Listing';
+    const latestAmount = offer.amount;
+
     if (action.action === 'withdraw') {
       if (!isBuyer) {
         return NextResponse.json({ error: 'Only the buyer can withdraw an offer' }, { status: 403 });
@@ -95,6 +113,16 @@ export async function PATCH(
       });
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
+      if (sellerEmail) {
+        sendProfessionalOfferWithdrawnEmail({
+          to: sellerEmail,
+          recipientName: sellerName,
+          buyerName,
+          listingTitle,
+          listingId,
+          offerAmount: latestAmount,
+        }).catch((e) => console.error('[offers] withdrawn email:', e));
+      }
       return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });
     }
 
@@ -112,6 +140,15 @@ export async function PATCH(
         });
         await offer.save();
         const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
+        if (buyerEmail) {
+          sendProfessionalOfferAcceptedEmail({
+            to: buyerEmail,
+            recipientName: buyerName,
+            listingTitle,
+            listingId,
+            offerAmount: offer.amount,
+          }).catch((e) => console.error('[offers] accepted email:', e));
+        }
         return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });
       }
 
@@ -124,6 +161,15 @@ export async function PATCH(
         });
         await offer.save();
         const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
+        if (buyerEmail) {
+          sendProfessionalOfferDeclinedEmail({
+            to: buyerEmail,
+            recipientName: buyerName,
+            listingTitle,
+            listingId,
+            offerAmount: offer.amount,
+          }).catch((e) => console.error('[offers] declined email:', e));
+        }
         return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });
       }
 
@@ -137,6 +183,16 @@ export async function PATCH(
       });
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
+      if (buyerEmail) {
+        sendProfessionalOfferCounterEmail({
+          to: buyerEmail,
+          recipientName: buyerName,
+          actorName: sellerName,
+          listingTitle,
+          listingId,
+          offerAmount: action.amount,
+        }).catch((e) => console.error('[offers] seller counter email:', e));
+      }
       return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });
     }
 
@@ -154,6 +210,16 @@ export async function PATCH(
       });
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
+      if (sellerEmail) {
+        sendProfessionalOfferCounterEmail({
+          to: sellerEmail,
+          recipientName: sellerName,
+          actorName: buyerName,
+          listingTitle,
+          listingId,
+          offerAmount: action.amount,
+        }).catch((e) => console.error('[offers] buyer counter email:', e));
+      }
       return NextResponse.json({ offer: lean ? serializeOffer(lean as Parameters<typeof serializeOffer>[0]) : null });
     }
 
