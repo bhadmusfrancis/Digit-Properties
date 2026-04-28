@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { ListingForm } from '@/components/listings/ListingForm';

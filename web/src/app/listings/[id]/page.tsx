@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { canViewListingOnSite } from '@/lib/listing-access';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingLocationMap } from '@/components/listings/ListingLocationMap';
