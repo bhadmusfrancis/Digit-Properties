@@ -10,7 +10,7 @@ import { USER_ROLES } from '@/lib/constants';
 import { sendWelcomeEmail, sendAdminNewUser } from '@/lib/email';
 
 /** Shown for all users until they complete liveness verification. */
-export const GUEST_AVATAR_PATH = '/avatar-guest.svg';
+const GUEST_AVATAR_PATH = '/avatar-guest.svg';
 
 const providers: NextAuthOptions['providers'] = [
   CredentialsProvider({
