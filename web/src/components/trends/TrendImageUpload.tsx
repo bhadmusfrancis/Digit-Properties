@@ -101,22 +101,24 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
               Remove image
             </button>
             {!disabled && (
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={busy}
-                className="rounded border border-primary-300 bg-primary-50 px-3 py-1.5 text-sm text-primary-700 hover:bg-primary-100 disabled:opacity-50"
-              >
-                {uploading ? 'Uploading…' : 'Replace image'}
-              </button>
-              <button
-                type="button"
-                onClick={onGenerateImage}
-                disabled={busy}
-                className="rounded border border-violet-300 bg-violet-50 px-3 py-1.5 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50"
-              >
-                {generating ? 'Generating…' : 'Regenerate with AI'}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  disabled={busy}
+                  className="rounded border border-primary-300 bg-primary-50 px-3 py-1.5 text-sm text-primary-700 hover:bg-primary-100 disabled:opacity-50"
+                >
+                  {uploading ? 'Uploading…' : 'Replace image'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onGenerateImage}
+                  disabled={busy}
+                  className="rounded border border-violet-300 bg-violet-50 px-3 py-1.5 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+                >
+                  {generating ? 'Generating…' : 'Regenerate with AI'}
+                </button>
+              </>
             )}
           </div>
           {!isCloudinary && imageUrl && (
