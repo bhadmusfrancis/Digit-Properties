@@ -2,16 +2,25 @@
 
 import { useRef, useState } from 'react';
 
+type TrendImageGenerationInput = {
+  title: string;
+  excerpt?: string;
+  content?: string;
+  category?: string;
+};
+
 type TrendImageUploadProps = {
   imageUrl: string;
   onImageUrlChange: (url: string) => void;
   disabled?: boolean;
+  generationInput?: TrendImageGenerationInput;
 };
 
 /** Single image upload to Cloudinary (folder: trends). Use for trend post featured image. */
-export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled }: TrendImageUploadProps) {
+export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generationInput }: TrendImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -38,12 +47,45 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled }: Trend
     }
   }
 
+  async function onGenerateImage() {
+    const title = generationInput?.title?.trim() ?? '';
+    const content = generationInput?.content?.trim() ?? '';
+    if (title.length < 3 && !content) {
+      setUploadError('Add a title or content first so AI can generate a relevant image.');
+      return;
+    }
+    setUploadError('');
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/admin/trends/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(generationInput ?? {}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setUploadError(data.error || 'Image generation failed');
+        return;
+      }
+      if (data.url) {
+        onImageUrlChange(data.url);
+      } else {
+        setUploadError('Image generation failed');
+      }
+    } catch {
+      setUploadError('Image generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   const isCloudinary = imageUrl.includes('res.cloudinary.com');
+  const busy = disabled || uploading || generating;
 
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">Featured image (Cloudinary)</label>
-      <p className="text-xs text-gray-500">Upload a content-relevant image. It will be stored on Cloudinary for consistent delivery.</p>
+      <p className="text-xs text-gray-500">Upload an image or auto-generate one from the trend post content. The final image is stored on Cloudinary for consistent delivery.</p>
       {imageUrl ? (
         <div className="flex flex-wrap items-start gap-4">
           <div className="relative h-32 w-48 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
@@ -62,10 +104,18 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled }: Trend
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                disabled={uploading}
+                disabled={busy}
                 className="rounded border border-primary-300 bg-primary-50 px-3 py-1.5 text-sm text-primary-700 hover:bg-primary-100 disabled:opacity-50"
               >
                 {uploading ? 'Uploading…' : 'Replace image'}
+              </button>
+              <button
+                type="button"
+                onClick={onGenerateImage}
+                disabled={busy}
+                className="rounded border border-violet-300 bg-violet-50 px-3 py-1.5 text-sm text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+              >
+                {generating ? 'Generating…' : 'Regenerate with AI'}
               </button>
             )}
           </div>
@@ -85,10 +135,18 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled }: Trend
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            disabled={disabled || uploading}
+            disabled={busy}
             className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm font-medium text-gray-600 hover:border-primary-400 hover:bg-primary-50/50 hover:text-primary-700 disabled:opacity-50"
           >
             {uploading ? 'Uploading…' : 'Upload image (JPEG, PNG, WebP — max 10MB)'}
+          </button>
+          <button
+            type="button"
+            onClick={onGenerateImage}
+            disabled={busy}
+            className="mt-3 rounded-lg border border-violet-300 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+          >
+            {generating ? 'Generating image…' : 'Auto-generate from post content'}
           </button>
         </div>
       )}
