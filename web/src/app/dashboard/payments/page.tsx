@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import Link from 'next/link';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { dbConnect } from '@/lib/db';
 import Payment from '@/models/Payment';
 import { formatPrice } from '@/lib/utils';
