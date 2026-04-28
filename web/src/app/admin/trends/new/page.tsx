@@ -94,7 +94,12 @@ export default function AdminTrendNewPage() {
           )}
         </div>
         <div>
-          <TrendImageUpload imageUrl={imageUrl} onImageUrlChange={setImageUrl} disabled={saving} />
+          <TrendImageUpload
+            imageUrl={imageUrl}
+            onImageUrlChange={setImageUrl}
+            disabled={saving}
+            generationInput={{ title, excerpt, content, category }}
+          />
         </div>
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
