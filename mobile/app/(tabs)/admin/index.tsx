@@ -74,6 +74,11 @@ export default function AdminTabScreen() {
             <Text style={styles.statLabel}>Pending Claims</Text>
             <Text style={styles.statLink}>Review →</Text>
           </Pressable>
+          <Pressable style={[styles.statCard, styles.quickActionCard]} onPress={() => router.push('/admin/trends/new')}>
+            <Text style={styles.quickActionTitle}>Add Blog Post</Text>
+            <Text style={styles.quickActionDesc}>Create and publish trends/news content</Text>
+            <Text style={styles.statLink}>Open editor →</Text>
+          </Pressable>
         </>
       )}
       <View style={styles.bottomPad} />
@@ -103,5 +108,8 @@ const styles = StyleSheet.create({
   amberText: { color: '#d97706' },
   statLabel: { fontSize: 14, color: SLATE_600, marginTop: 4 },
   statLink: { fontSize: 13, color: TEAL, fontWeight: '600', marginTop: 8 },
+  quickActionCard: { marginTop: 12 },
+  quickActionTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  quickActionDesc: { fontSize: 13, color: SLATE_600, marginTop: 6 },
   bottomPad: { height: 40 },
 });
