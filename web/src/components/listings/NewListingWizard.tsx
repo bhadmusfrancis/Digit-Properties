@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   NIGERIAN_STATES,
   PROPERTY_TYPES,
@@ -28,6 +28,8 @@ import {
 import { formatBytes } from '@/lib/format-bytes';
 import { uploadListingMediaFile } from '@/lib/upload-listing-media';
 import { stripHtml } from '@/lib/utils';
+import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
 
@@ -215,6 +217,7 @@ type UploadUiState =
 
 export function NewListingWizard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const stepRef = useRef(step);
   stepRef.current = step;
@@ -225,6 +228,11 @@ export function NewListingWizard() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoPickInputRef = useRef<HTMLInputElement>(null);
   const videoRecordInputRef = useRef<HTMLInputElement>(null);
+  /** Set after we save a draft mid-wizard (e.g. to attach a boost). Subsequent saves PATCH this listing. */
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<{ reason: PaywallReason; pkg?: keyof typeof BOOST_PACKAGES } | null>(null);
+  const [boostBanner, setBoostBanner] = useState<PaywallSuccess | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const isUploading = uploadUi.status === 'uploading';
 
@@ -299,15 +307,23 @@ export function NewListingWizard() {
   }
 
   const { data: stats } = useQuery({
-    queryKey: ['dashboard', 'stats'],
+    queryKey: ['dashboard', 'stats', draftId ?? null],
     queryFn: async () => {
-      const r = await fetch('/api/dashboard/stats');
+      const url = draftId
+        ? `/api/dashboard/stats?listingId=${encodeURIComponent(draftId)}`
+        : '/api/dashboard/stats';
+      const r = await fetch(url);
       if (!r.ok) return {};
       return r.json();
     },
   });
   const maxImages = typeof stats?.maxImages === 'number' ? stats.maxImages : 10;
   const maxVideos = typeof stats?.maxVideos === 'number' ? stats.maxVideos : 1;
+  const maxCategories = typeof stats?.maxCategories === 'number' ? stats.maxCategories : 1;
+  const baseMaxImages = typeof stats?.baseMaxImages === 'number' ? stats.baseMaxImages : maxImages;
+  const baseMaxVideos = typeof stats?.baseMaxVideos === 'number' ? stats.baseMaxVideos : maxVideos;
+  const baseMaxCategories = typeof stats?.baseMaxCategories === 'number' ? stats.baseMaxCategories : maxCategories;
+  const boostActive = !!stats?.boostActive || !!boostBanner;
 
   const methods = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -362,7 +378,11 @@ export function NewListingWizard() {
     if (i >= 0) {
       if (cur.length <= 1) return;
       cur.splice(i, 1);
-    } else if (cur.length < 3) {
+    } else {
+      if (cur.length >= maxCategories) {
+        setPaywall({ reason: 'categories' });
+        return;
+      }
       cur.push(t);
     }
     setValue('propertyTypes', cur, { shouldValidate: true });
@@ -634,23 +654,7 @@ export function NewListingWizard() {
     setVideos(newOrder);
   };
 
-  async function onSubmit(data: WizardFormData) {
-    const dupRes = await fetch('/api/listings/check-new-duplicate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: data.title,
-        description: data.description,
-        imagePublicIds: images.map((i) => i.public_id),
-        videoPublicIds: videos.map((v) => v.public_id),
-      }),
-    });
-    if (dupRes.status === 409) {
-      const err = await dupRes.json().catch(() => ({}));
-      alert(typeof err.error === 'string' ? err.error : 'This listing matches one you already posted.');
-      return;
-    }
-
+  function buildListingPayload(data: WizardFormData, opts: { forDraft?: boolean } = {}) {
     const location: Record<string, unknown> = {
       address: data.address,
       city: data.city,
@@ -671,6 +675,26 @@ export function NewListingWizard() {
       images,
       videos,
     };
+    if (opts.forDraft) {
+      payload.status = 'draft';
+      // For initial draft saves we may not yet have a real title/description
+      // (user could be on step 1/2 when triggering a paywall). Provide safe fallbacks
+      // so the schema accepts the document.
+      const v = data;
+      const fallbackTitle = generateListingTitle({ ...buildTitleInput(v), description: v.description });
+      const fallbackDescription = generateListingDescriptionHtml({
+        ...buildTitleInput(v),
+        price: v.price,
+        locationLine: locationLine(v),
+        rentPeriod: v.rentPeriod,
+      });
+      if (!String(payload.title || '').trim() || stripHtml(String(payload.title)).length < 5) {
+        payload.title = fallbackTitle;
+      }
+      if (!String(payload.description || '').trim() || stripHtml(String(payload.description)).length < 20) {
+        payload.description = fallbackDescription;
+      }
+    }
     if (payload.area === undefined || (typeof payload.area === 'number' && Number.isNaN(payload.area))) {
       delete payload.area;
     }
@@ -679,6 +703,159 @@ export function NewListingWizard() {
     delete payload.state;
     delete payload.suburb;
     delete payload.coordinates;
+    return payload;
+  }
+
+  /** Compact, human readable description of any Zod / server validation issue. */
+  function describeServerError(err: unknown): string {
+    const obj = err as { error?: unknown; code?: unknown };
+    const code = typeof obj?.code === 'string' ? obj.code : '';
+    if (typeof obj?.error === 'string') return obj.error;
+    // Zod flatten() shape: { fieldErrors: { field: [msg] }, formErrors: [msg] }
+    if (obj?.error && typeof obj.error === 'object') {
+      const e = obj.error as { fieldErrors?: Record<string, string[]>; formErrors?: string[] };
+      const parts: string[] = [];
+      if (e.fieldErrors) {
+        for (const [field, msgs] of Object.entries(e.fieldErrors)) {
+          if (Array.isArray(msgs) && msgs.length) parts.push(`${field}: ${msgs.join(', ')}`);
+        }
+      }
+      if (Array.isArray(e.formErrors) && e.formErrors.length) parts.push(...e.formErrors);
+      if (parts.length) return parts.join(' · ');
+    }
+    return code || 'Could not save draft listing.';
+  }
+
+  /** Returns null when the wizard has enough data to save a draft listing. */
+  function getDraftBlockReason(v: WizardFormData): string | null {
+    const step1 = wizardStep1Schema.safeParse({
+      listingType: v.listingType,
+      propertyTypes: v.propertyTypes,
+      price: v.price,
+      rentPeriod: v.rentPeriod,
+      bedrooms: v.bedrooms,
+      bathrooms: v.bathrooms,
+      toilets: v.toilets,
+      area: v.area,
+    });
+    if (!step1.success) {
+      return 'Finish the Property step (price, type, etc.) — then come back to pay.';
+    }
+    const step2 = wizardStep2Schema.safeParse({
+      address: v.address,
+      city: v.city,
+      state: v.state,
+      suburb: v.suburb,
+      contactSource: v.contactSource,
+      agentName: v.agentName,
+      agentPhone: v.agentPhone,
+      agentEmail: v.agentEmail,
+    });
+    if (!step2.success) {
+      return 'Add the Location & contact details — then come back to pay.';
+    }
+    return null;
+  }
+
+  /**
+   * Persist the current form as a draft listing if we don't yet have one,
+   * otherwise return the existing one. Used by the boost paywall to attach the
+   * purchased boost to a real listing.
+   *
+   * Returns the listing ID on success, or `{ ok: false, message }` when the
+   * wizard isn't ready (so the modal can show a friendly message instead of
+   * an alert dialog).
+   */
+  const ensureDraftId = useCallback(async (): Promise<
+    string | { ok: false; message: string } | null
+  > => {
+    if (draftId) return draftId;
+    const v = getValues();
+    const blockReason = getDraftBlockReason(v);
+    if (blockReason) {
+      // Auto-advance the user toward the missing step so they can finish.
+      const step1 = wizardStep1Schema.safeParse({
+        listingType: v.listingType,
+        propertyTypes: v.propertyTypes,
+        price: v.price,
+        rentPeriod: v.rentPeriod,
+        bedrooms: v.bedrooms,
+        bathrooms: v.bathrooms,
+        toilets: v.toilets,
+        area: v.area,
+      });
+      if (!step1.success) setStep(1);
+      else setStep(2);
+      return { ok: false, message: blockReason };
+    }
+    setSavingDraft(true);
+    try {
+      const payload = buildListingPayload(v, { forDraft: true });
+      const res = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { ok: false, message: describeServerError(err) };
+      }
+      const listing = await res.json();
+      const id: string | undefined = listing?._id ? String(listing._id) : undefined;
+      if (!id) return { ok: false, message: 'Server did not return a listing ID.' };
+      setDraftId(id);
+      return id;
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [draftId, getValues]);
+
+  const onPaywallSuccess = (info: PaywallSuccess) => {
+    setBoostBanner(info);
+    setPaywall(null);
+    queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+  };
+
+  async function onSubmit(data: WizardFormData) {
+    const dupRes = await fetch('/api/listings/check-new-duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+        imagePublicIds: images.map((i) => i.public_id),
+        videoPublicIds: videos.map((v) => v.public_id),
+        ...(draftId ? { excludeListingId: draftId } : {}),
+      }),
+    });
+    if (dupRes.status === 409) {
+      const err = await dupRes.json().catch(() => ({}));
+      alert(typeof err.error === 'string' ? err.error : 'This listing matches one you already posted.');
+      return;
+    }
+
+    const payload = buildListingPayload(data);
+
+    // If we already saved a draft (e.g. to attach a boost), publish via PATCH
+    // so the boost stays attached to the same document.
+    if (draftId) {
+      const res = await fetch(`/api/listings/${draftId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (err.code === 'DUPLICATE_TITLE' || err.code === 'DUPLICATE_DESCRIPTION' || err.code === 'DUPLICATE_MEDIA') {
+          alert(err.error || 'This listing looks like a duplicate.');
+          return;
+        }
+        alert(err.error || 'Failed to publish listing');
+        return;
+      }
+      router.push('/listings/' + draftId);
+      return;
+    }
 
     const res = await fetch('/api/listings', {
       method: 'POST',
@@ -788,8 +965,20 @@ export function NewListingWizard() {
 
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Property types</h2>
-                <p className="mt-1 text-sm text-gray-600">Select up to three if the property fits multiple categories.</p>
-                <p className="mt-2 text-xs font-medium text-sky-700">Selected: {propertyTypes.length} / 3</p>
+                <p className="mt-1 text-sm text-gray-600">Select up to {maxCategories} if the property fits multiple categories.</p>
+                <p className="mt-2 text-xs font-medium text-sky-700">Selected: {propertyTypes.length} / {maxCategories}</p>
+                {maxCategories < 3 && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    Free plan allows {baseMaxCategories} category. {' '}
+                    <button
+                      type="button"
+                      onClick={() => setPaywall({ reason: 'categories' })}
+                      className="font-semibold underline"
+                    >
+                      Boost to add up to 5
+                    </button>
+                  </p>
+                )}
                 {errors.propertyTypes && (
                   <p className="mt-1 text-sm text-red-600">{(errors.propertyTypes as { message?: string }).message}</p>
                 )}
@@ -993,10 +1182,28 @@ export function NewListingWizard() {
               </div>
 
               <div className="rounded-2xl border border-dashed border-sky-200/80 bg-gradient-to-br from-sky-50/50 to-white p-5">
-                <h3 className="font-semibold text-gray-900">Photos &amp; videos</h3>
-                <p className="mt-1 text-sm text-gray-600">
-                  Up to {maxImages} photos (first is used in search) and {maxVideos} video{maxVideos === 1 ? '' : 's'} (MP4, WebM, MOV up to 50MB). On your phone you can add videos from your gallery or record a clip.
-                </p>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Photos &amp; videos</h3>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Up to {maxImages} photos (first is used in search) and {maxVideos} video{maxVideos === 1 ? '' : 's'} (MP4, WebM, MOV up to 50MB). On your phone you can add videos from your gallery or record a clip.
+                    </p>
+                  </div>
+                  {!boostActive && (maxImages < 25 || maxVideos < 5) && (
+                    <button
+                      type="button"
+                      onClick={() => setPaywall({ reason: 'general' })}
+                      className="shrink-0 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                    >
+                      Boost for more slots
+                    </button>
+                  )}
+                </div>
+                {boostBanner && (
+                  <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                    Boost active — {BOOST_PACKAGES[boostBanner.boostPackage].name} package. You now have {maxImages} photos and {maxVideos} video slots.
+                  </div>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <input
                     type="file"
@@ -1009,16 +1216,24 @@ export function NewListingWizard() {
                     className="hidden"
                     id="wizard-file-upload"
                   />
-                  <label
-                    htmlFor="wizard-file-upload"
-                    className={`cursor-pointer rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95 ${
-                      isUploading || (images.length >= maxImages && videos.length >= maxVideos)
-                        ? 'pointer-events-none opacity-50'
-                        : ''
-                    }`}
-                  >
-                    Upload photos / videos
-                  </label>
+                  {images.length >= maxImages && videos.length >= maxVideos && !isUploading ? (
+                    <button
+                      type="button"
+                      onClick={() => setPaywall({ reason: images.length >= maxImages ? 'images' : 'videos' })}
+                      className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100"
+                    >
+                      Upgrade to add more
+                    </button>
+                  ) : (
+                    <label
+                      htmlFor="wizard-file-upload"
+                      className={`cursor-pointer rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95 ${
+                        isUploading ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      Upload photos / videos
+                    </label>
+                  )}
                   <input
                     type="file"
                     accept="image/*"
@@ -1031,8 +1246,14 @@ export function NewListingWizard() {
                   />
                   <button
                     type="button"
-                    onClick={() => cameraInputRef.current?.click()}
-                    disabled={isUploading || images.length >= maxImages}
+                    onClick={() => {
+                      if (images.length >= maxImages) {
+                        setPaywall({ reason: 'images' });
+                        return;
+                      }
+                      cameraInputRef.current?.click();
+                    }}
+                    disabled={isUploading}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Photo (camera)
@@ -1049,8 +1270,14 @@ export function NewListingWizard() {
                   />
                   <button
                     type="button"
-                    onClick={() => videoPickInputRef.current?.click()}
-                    disabled={isUploading || videos.length >= maxVideos}
+                    onClick={() => {
+                      if (videos.length >= maxVideos) {
+                        setPaywall({ reason: 'videos' });
+                        return;
+                      }
+                      videoPickInputRef.current?.click();
+                    }}
+                    disabled={isUploading}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Add video
@@ -1067,8 +1294,14 @@ export function NewListingWizard() {
                   />
                   <button
                     type="button"
-                    onClick={() => videoRecordInputRef.current?.click()}
-                    disabled={isUploading || videos.length >= maxVideos}
+                    onClick={() => {
+                      if (videos.length >= maxVideos) {
+                        setPaywall({ reason: 'videos' });
+                        return;
+                      }
+                      videoRecordInputRef.current?.click();
+                    }}
+                    disabled={isUploading}
                     className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Record video
@@ -1239,6 +1472,25 @@ export function NewListingWizard() {
           </div>
         </form>
       </div>
+
+      <BoostPaywallModal
+        open={!!paywall}
+        reason={paywall?.reason}
+        listingId={draftId ?? undefined}
+        ensureListingId={ensureDraftId}
+        disabledReason={
+          paywall && !draftId
+            ? getDraftBlockReason(getValues())
+            : null
+        }
+        onClose={() => setPaywall(null)}
+        onPaid={onPaywallSuccess}
+      />
+      {savingDraft && (
+        <div className="fixed inset-x-0 top-0 z-[110] bg-sky-700 px-4 py-2 text-center text-xs font-medium text-white shadow">
+          Saving draft so we can attach the boost…
+        </div>
+      )}
     </FormProvider>
   );
 }

@@ -7,6 +7,7 @@ import Claim from '@/models/Claim';
 import User from '@/models/User';
 import { USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
+import { applyBoostToLimits } from '@/lib/listing-effective-limits';
 
 export async function GET(req: Request) {
   try {
@@ -22,7 +23,24 @@ export async function GET(req: Request) {
         ? SUBSCRIPTION_TIERS.PREMIUM
         : (user?.subscriptionTier as string) ||
           (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
-    const limits = await getSubscriptionLimits(tier);
+    const baseLimits = await getSubscriptionLimits(tier);
+
+    const url = new URL(req.url);
+    const listingId = url.searchParams.get('listingId');
+    let listingBoost: { boostPackage?: string | null; boostExpiresAt?: Date | null } | null = null;
+    if (listingId && mongoose.Types.ObjectId.isValid(listingId)) {
+      const listing = await Listing.findOne({ _id: listingId, createdBy: userId })
+        .select('boostPackage boostExpiresAt')
+        .lean();
+      if (listing) {
+        listingBoost = {
+          boostPackage: listing.boostPackage ?? null,
+          boostExpiresAt: listing.boostExpiresAt ?? null,
+        };
+      }
+    }
+
+    const limits = applyBoostToLimits(baseLimits, listingBoost);
 
     const [listingsCount, claimsCount, featuredCount, highlightedCount] = await Promise.all([
       Listing.countDocuments({ createdBy: userId }),
@@ -36,6 +54,7 @@ export async function GET(req: Request) {
       maxListings: limits.maxListings,
       maxImages: limits.maxImages,
       maxVideos: limits.maxVideos,
+      maxCategories: limits.maxCategories,
       tier,
       featuredCount,
       highlightedCount,
@@ -43,6 +62,15 @@ export async function GET(req: Request) {
       maxHighlighted: limits.maxHighlighted,
       canFeatured: limits.canFeatured,
       canHighlighted: limits.canHighlighted,
+      boostActive: limits.boostActive,
+      boostPackage: limits.boostPackage,
+      boostExpiresAt: limits.boostExpiresAt,
+      // Base (non-boosted) caps so the client can show how much extra a boost unlocks.
+      baseMaxImages: baseLimits.maxImages,
+      baseMaxVideos: baseLimits.maxVideos,
+      baseMaxCategories: baseLimits.maxCategories,
+      baseCanFeatured: baseLimits.canFeatured,
+      baseCanHighlighted: baseLimits.canHighlighted,
     });
   } catch (e) {
     console.error(e);

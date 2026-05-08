@@ -9,6 +9,7 @@ import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } fro
 import { sendAdminNewListing } from '@/lib/email';
 import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
+import { applyBoostToLimits } from '@/lib/listing-effective-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { canViewListingOnSite } from '@/lib/listing-access';
@@ -152,18 +153,22 @@ export async function PATCH(
           ? SUBSCRIPTION_TIERS.PREMIUM
           : (user?.subscriptionTier as string) ||
             (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
-      const limits = await getSubscriptionLimits(tier);
+      const baseLimits = await getSubscriptionLimits(tier);
+      const limits = applyBoostToLimits(baseLimits, {
+        boostPackage: listing.boostPackage,
+        boostExpiresAt: listing.boostExpiresAt,
+      });
       const images = normalizedImages ?? (listing.images ?? []).map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }));
       const videos = normalizedVideos ?? (listing.videos ?? []).map((v: { url?: string; public_id?: string }) => ({ url: v?.url ?? '', public_id: v?.public_id ?? '' }));
       if (images.length > limits.maxImages) {
         return NextResponse.json(
-          { error: `You can add up to ${limits.maxImages} images per listing.` },
+          { error: `You can add up to ${limits.maxImages} images per listing.${limits.boostActive ? '' : ' Boost this listing to unlock more.'}` },
           { status: 400 }
         );
       }
       if (videos.length > limits.maxVideos) {
         return NextResponse.json(
-          { error: `You can add up to ${limits.maxVideos} video(s) per listing.` },
+          { error: `You can add up to ${limits.maxVideos} video(s) per listing.${limits.boostActive ? '' : ' Boost this listing to unlock more.'}` },
           { status: 400 }
         );
       }
@@ -178,23 +183,27 @@ export async function PATCH(
           ? SUBSCRIPTION_TIERS.PREMIUM
           : (user?.subscriptionTier as string) ||
             (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
-      const limits = await getSubscriptionLimits(tier);
+      const baseLimits = await getSubscriptionLimits(tier);
+      const limits = applyBoostToLimits(baseLimits, {
+        boostPackage: listing.boostPackage,
+        boostExpiresAt: listing.boostExpiresAt,
+      });
       const ownerId = listing.createdBy;
       if (parsed.data.featured === true && !listing.featured) {
         if (!limits.canFeatured || limits.maxFeatured <= 0) {
-          return NextResponse.json({ error: 'Featured listings not available on your plan. Upgrade to Gold or Premium.' }, { status: 400 });
+          return NextResponse.json({ error: 'Featured listings not available on your plan. Boost this listing or upgrade to Gold/Premium.' }, { status: 400 });
         }
         const featuredCount = await Listing.countDocuments({ createdBy: ownerId, featured: true });
-        if (featuredCount >= limits.maxFeatured) {
+        if (featuredCount >= limits.maxFeatured && !limits.boostActive) {
           return NextResponse.json({ error: `You can have maximum ${limits.maxFeatured} Featured listing(s). Upgrade for more.` }, { status: 400 });
         }
       }
       if (parsed.data.highlighted === true && !listing.highlighted) {
         if (!limits.canHighlighted || limits.maxHighlighted <= 0) {
-          return NextResponse.json({ error: 'Highlighted listings not available on your plan. Upgrade to Gold or Premium.' }, { status: 400 });
+          return NextResponse.json({ error: 'Highlighted listings not available on your plan. Boost this listing or upgrade to Gold/Premium.' }, { status: 400 });
         }
         const highlightedCount = await Listing.countDocuments({ createdBy: ownerId, highlighted: true });
-        if (highlightedCount >= limits.maxHighlighted) {
+        if (highlightedCount >= limits.maxHighlighted && !limits.boostActive) {
           return NextResponse.json({ error: `You can have maximum of ${limits.maxHighlighted} Highlighted listing(s). Upgrade for more.` }, { status: 400 });
         }
       }
