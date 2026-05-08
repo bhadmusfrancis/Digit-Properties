@@ -126,7 +126,7 @@ export default function DashboardAdsPage() {
       .finally(() => setSubmitting(false));
   }
 
-  function startPayment(adId: string, gateway: 'paystack' | 'flutterwave') {
+  function startPayment(adId: string, gateway: 'paystack' | 'flutterwave' | 'wallet') {
     setPayingAdId(adId);
     setError(null);
     fetch('/api/payments/ad', {
@@ -137,6 +137,11 @@ export default function DashboardAdsPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
+        if (data.paidWithWallet) {
+          fetchAds();
+          setCreatedAd(null);
+          return;
+        }
         if (data.authorization_url) window.location.href = data.authorization_url;
         else if (data.link) window.location.href = data.link;
         else throw new Error('No payment link');
@@ -179,6 +184,14 @@ export default function DashboardAdsPage() {
             Amount: {formatPrice(createdAd.amount)} ({createdAd.currency})
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => startPayment(createdAd.adId, 'wallet')}
+              disabled={!!payingAdId}
+              className="btn bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              Pay with Ad credit
+            </button>
             <button
               type="button"
               onClick={() => startPayment(createdAd.adId, 'paystack')}
@@ -333,6 +346,14 @@ export default function DashboardAdsPage() {
                     <td className="px-3 py-3 sm:px-4">
                       {!ad.paymentId && ad.status === 'pending_approval' && (
                         <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startPayment(ad._id, 'wallet')}
+                            disabled={!!payingAdId}
+                            className="text-sm font-medium text-emerald-700 hover:underline"
+                          >
+                            Pay (Ad credit)
+                          </button>
                           <button
                             type="button"
                             onClick={() => startPayment(ad._id, 'paystack')}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES, LISTING_TYPE } from '@/lib/constants';
 import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
@@ -20,6 +20,8 @@ import {
 } from '@/lib/listing-media-accept';
 import { formatBytes } from '@/lib/format-bytes';
 import { uploadListingMediaFile } from '@/lib/upload-listing-media';
+import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
 
@@ -99,6 +101,7 @@ export type ListingFormProps = {
 
 export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProps = {}) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [images, setImages] = useState<{ url: string; public_id: string }[]>(editInitial?.images ?? []);
   const [videos, setVideos] = useState<{ url: string; public_id: string }[]>(editInitial?.videos ?? []);
   const [uploadUi, setUploadUi] = useState<UploadUiState>({ status: 'idle' });
@@ -106,6 +109,8 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoPickInputRef = useRef<HTMLInputElement>(null);
   const videoRecordInputRef = useRef<HTMLInputElement>(null);
+  const [paywall, setPaywall] = useState<{ reason: PaywallReason } | null>(null);
+  const [boostBanner, setBoostBanner] = useState<PaywallSuccess | null>(null);
 
   const isUploading = uploadUi.status === 'uploading';
 
@@ -180,15 +185,28 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
   }
 
   const { data: stats } = useQuery({
-    queryKey: ['dashboard', 'stats'],
+    queryKey: ['dashboard', 'stats', editId ?? null],
     queryFn: async () => {
-      const r = await fetch('/api/dashboard/stats');
+      const url = editId
+        ? `/api/dashboard/stats?listingId=${encodeURIComponent(editId)}`
+        : '/api/dashboard/stats';
+      const r = await fetch(url);
       if (!r.ok) return {};
       return r.json();
     },
   });
   const maxImages = typeof stats?.maxImages === 'number' ? stats.maxImages : 10;
   const maxVideos = typeof stats?.maxVideos === 'number' ? stats.maxVideos : 1;
+  const maxCategories = typeof stats?.maxCategories === 'number' ? stats.maxCategories : 1;
+  const baseMaxCategories = typeof stats?.baseMaxCategories === 'number' ? stats.baseMaxCategories : maxCategories;
+  const boostActive = !!stats?.boostActive || !!boostBanner;
+
+  const onPaywallSuccess = (info: PaywallSuccess) => {
+    setBoostBanner(info);
+    setPaywall(null);
+    queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    router.refresh();
+  };
 
   const resolvedInitialTypes =
     editInitial &&
@@ -269,7 +287,13 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     if (i >= 0) {
       if (cur.length <= 1) return;
       cur.splice(i, 1);
-    } else if (cur.length < 3) cur.push(t);
+    } else {
+      if (cur.length >= maxCategories) {
+        setPaywall({ reason: 'categories' });
+        return;
+      }
+      cur.push(t);
+    }
     setValue('propertyTypes', cur, { shouldValidate: true });
   };
 
@@ -596,8 +620,20 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">Property types (up to 3)</label>
-            <p className="mt-0.5 text-xs text-gray-500">Selected: {propertyTypesSel.length} / 3</p>
+            <label className="block text-sm font-medium text-gray-700">Property types (up to {maxCategories})</label>
+            <p className="mt-0.5 text-xs text-gray-500">Selected: {propertyTypesSel.length} / {maxCategories}</p>
+            {maxCategories < 3 && (
+              <p className="mt-0.5 text-xs text-amber-700">
+                Free plan: {baseMaxCategories} category. {' '}
+                <button
+                  type="button"
+                  onClick={() => setPaywall({ reason: 'categories' })}
+                  className="font-semibold underline"
+                >
+                  Boost to add more
+                </button>
+              </p>
+            )}
             {errors.propertyTypes && (
               <p className="mt-1 text-sm text-red-600">{(errors.propertyTypes as { message?: string }).message}</p>
             )}
@@ -682,10 +718,26 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Images &amp; media</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Photos &amp; videos</label>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <label className="block text-sm font-medium text-gray-700">Photos &amp; videos</label>
+            {editId && !boostActive && (maxImages < 25 || maxVideos < 5) && (
+              <button
+                type="button"
+                onClick={() => setPaywall({ reason: 'general' })}
+                className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-100"
+              >
+                Boost for more slots
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-xs text-gray-500">
             Up to {maxImages} photos (first is used in search) and {maxVideos} video{maxVideos === 1 ? '' : 's'} (MP4/WebM/MOV, max 50MB). On mobile you can pick videos from your library or record.
           </p>
+          {boostBanner && (
+            <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800">
+              Boost active — {BOOST_PACKAGES[boostBanner.boostPackage].name} package. {maxImages} photos / {maxVideos} videos available.
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap gap-2">
             <input
               type="file"
@@ -696,9 +748,19 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
               className="hidden"
               id="file-upload"
             />
-            <label htmlFor="file-upload" className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Choose photos / videos
-            </label>
+            {editId && images.length >= maxImages && videos.length >= maxVideos && !isUploading ? (
+              <button
+                type="button"
+                onClick={() => setPaywall({ reason: images.length >= maxImages ? 'images' : 'videos' })}
+                className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100"
+              >
+                Upgrade to add more
+              </button>
+            ) : (
+              <label htmlFor="file-upload" className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Choose photos / videos
+              </label>
+            )}
             <input
               type="file"
               accept="image/*"
@@ -709,7 +771,18 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
               className="hidden"
               aria-hidden
             />
-            <button type="button" onClick={onCameraCapture} disabled={isUploading || images.length >= maxImages} className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <button
+              type="button"
+              onClick={() => {
+                if (images.length >= maxImages) {
+                  if (editId) setPaywall({ reason: 'images' });
+                  return;
+                }
+                onCameraCapture();
+              }}
+              disabled={isUploading}
+              className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
               Photo (camera)
             </button>
             <input
@@ -724,8 +797,14 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
             />
             <button
               type="button"
-              onClick={() => videoPickInputRef.current?.click()}
-              disabled={isUploading || videos.length >= maxVideos}
+              onClick={() => {
+                if (videos.length >= maxVideos) {
+                  if (editId) setPaywall({ reason: 'videos' });
+                  return;
+                }
+                videoPickInputRef.current?.click();
+              }}
+              disabled={isUploading}
               className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               Add video
@@ -742,8 +821,14 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
             />
             <button
               type="button"
-              onClick={() => videoRecordInputRef.current?.click()}
-              disabled={isUploading || videos.length >= maxVideos}
+              onClick={() => {
+                if (videos.length >= maxVideos) {
+                  if (editId) setPaywall({ reason: 'videos' });
+                  return;
+                }
+                videoRecordInputRef.current?.click();
+              }}
+              disabled={isUploading}
               className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               Record video
@@ -934,6 +1019,13 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
           </button>
         </section>
       </form>
+      <BoostPaywallModal
+        open={!!paywall}
+        reason={paywall?.reason}
+        listingId={editId}
+        onClose={() => setPaywall(null)}
+        onPaid={onPaywallSuccess}
+      />
     </FormProvider>
   );
 }

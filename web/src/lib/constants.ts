@@ -135,6 +135,36 @@ export const PAYMENT_PURPOSE = {
   BANNER_AD: 'banner_ad',
   SUBSCRIPTION_TIER: 'subscription_tier',
   USER_AD: 'user_ad',
+  /** Top up the user's Ad credit wallet via Paystack. */
+  WALLET_TOPUP: 'wallet_topup',
+} as const;
+
+/** Payment gateways supported. `wallet` indicates the payment was settled from the user's Ad credit balance. */
+export const PAYMENT_GATEWAYS = ['paystack', 'flutterwave', 'wallet'] as const;
+
+/** Direction of a wallet ledger entry. */
+export const WALLET_TX_TYPES = {
+  CREDIT: 'credit',
+  DEBIT: 'debit',
+} as const;
+
+/** Reason / source of a wallet ledger entry (audit trail). */
+export const WALLET_TX_REASONS = {
+  TOPUP: 'topup',
+  ADMIN_CREDIT: 'admin_credit',
+  ADMIN_DEBIT: 'admin_debit',
+  COUPON_REDEMPTION: 'coupon_redemption',
+  BOOST_LISTING: 'boost_listing',
+  USER_AD: 'user_ad',
+  SUBSCRIPTION_TIER: 'subscription_tier',
+  REFUND: 'refund',
+  ADJUSTMENT: 'adjustment',
+} as const;
+
+/** Minimum / maximum top-up amounts (NGN). */
+export const WALLET_TOPUP_LIMITS = {
+  MIN: 500,
+  MAX: 5_000_000,
 } as const;
 
 /** Ad placement slots (homescreen, search, listings). */

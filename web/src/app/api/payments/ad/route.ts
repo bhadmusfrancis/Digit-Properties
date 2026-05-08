@@ -5,6 +5,8 @@ import UserAd from '@/models/UserAd';
 import Payment from '@/models/Payment';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+import { debitWallet, getWalletBalance } from '@/lib/wallet';
+import { PAYMENT_PURPOSE, WALLET_TX_REASONS } from '@/lib/constants';
 
 function generateRef() {
   return `ad_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -16,7 +18,7 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { adId, gateway } = body as { adId?: string; gateway?: 'paystack' | 'flutterwave' };
+    const { adId, gateway } = body as { adId?: string; gateway?: 'paystack' | 'flutterwave' | 'wallet' };
 
     if (!adId || !gateway) {
       return NextResponse.json({ error: 'adId and gateway required' }, { status: 400 });
@@ -47,13 +49,50 @@ export async function POST(req: Request) {
     const ref = generateRef();
     const idempotencyKey = `ad_${adId}_${session.user.id}_${Date.now()}`;
 
+    if (gateway === 'wallet') {
+      const balance = await getWalletBalance(session.user.id);
+      if (balance < amount) {
+        return NextResponse.json(
+          { error: `Insufficient Ad credit. Balance ₦${balance.toLocaleString()}, needs ₦${amount.toLocaleString()}.` },
+          { status: 400 }
+        );
+      }
+      const payment = await Payment.create({
+        userId: session.user.id,
+        amount,
+        currency: 'NGN',
+        gateway: 'wallet',
+        gatewayRef: ref,
+        purpose: PAYMENT_PURPOSE.USER_AD,
+        status: 'success',
+        idempotencyKey,
+        metadata: { adId },
+      });
+      const debit = await debitWallet(session.user.id, amount, {
+        reason: WALLET_TX_REASONS.USER_AD,
+        adId,
+        paymentId: payment._id,
+        description: `Advert ${ad.placement}`,
+      });
+      if (!debit.ok) {
+        await Payment.findByIdAndUpdate(payment._id, { status: 'failed' });
+        return NextResponse.json({ error: 'Insufficient Ad credit (race).' }, { status: 400 });
+      }
+      await UserAd.findByIdAndUpdate(adId, { paymentId: payment._id });
+      return NextResponse.json({
+        paidWithWallet: true,
+        balance: debit.balanceAfter,
+        reference: ref,
+      });
+    }
+
     await Payment.create({
       userId: session.user.id,
       amount,
       currency: 'NGN',
       gateway,
       gatewayRef: ref,
-      purpose: 'user_ad',
+      purpose: PAYMENT_PURPOSE.USER_AD,
       status: 'pending',
       idempotencyKey,
       metadata: { adId },
@@ -88,25 +127,35 @@ export async function POST(req: Request) {
     }
 
     if (gateway === 'flutterwave') {
-      const Flutterwave = (await import('flutterwave-node-v3')).default;
-      const flw = new Flutterwave(
-        process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY!,
-        process.env.FLUTTERWAVE_SECRET_KEY!
-      );
-      const res = await flw.PaymentLink.initiate({
-        tx_ref: ref,
-        amount,
-        currency: 'NGN',
-        redirect_url: callbackUrl,
-        customer: {
-          email: session.user.email!,
-          name: session.user.name!,
+      if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+        return NextResponse.json({ error: 'Flutterwave is not configured' }, { status: 503 });
+      }
+      const response = await fetch('https://api.flutterwave.com/v3/payments', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          'Content-Type': 'application/json',
         },
-        customizations: { title: 'Advert - Digit Properties' },
-        meta: { adId, userId: session.user.id, purpose: 'user_ad' },
+        body: JSON.stringify({
+          tx_ref: ref,
+          amount,
+          currency: 'NGN',
+          redirect_url: callbackUrl,
+          customer: {
+            email: session.user.email,
+            name: session.user.name || session.user.email,
+          },
+          customizations: { title: 'Advert - Digit Properties' },
+          meta: { adId, userId: session.user.id, purpose: 'user_ad' },
+        }),
       });
+      const data = await response.json();
+      const link = data?.data?.link as string | undefined;
+      if (!response.ok || !link) {
+        return NextResponse.json({ error: data?.message || 'Flutterwave error' }, { status: 400 });
+      }
       return NextResponse.json({
-        link: res.data?.link,
+        link,
         reference: ref,
       });
     }

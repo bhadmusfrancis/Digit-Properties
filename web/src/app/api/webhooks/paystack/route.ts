@@ -5,6 +5,8 @@ import Payment from '@/models/Payment';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { creditWallet } from '@/lib/wallet';
+import { PAYMENT_PURPOSE, WALLET_TX_REASONS } from '@/lib/constants';
 
 export async function POST(req: Request) {
   try {
@@ -59,6 +61,19 @@ export async function POST(req: Request) {
           status: 'success',
           metadata: { adId: meta.adId },
         });
+      } else if (meta.purpose === PAYMENT_PURPOSE.WALLET_TOPUP && meta.userId) {
+        const amountKobo = event.data?.amount;
+        const amount = typeof amountKobo === 'number' ? Math.round(amountKobo / 100) : 0;
+        payment = await Payment.create({
+          userId: new mongoose.Types.ObjectId(meta.userId),
+          amount,
+          currency: 'NGN',
+          gateway: 'paystack',
+          gatewayRef: ref,
+          purpose: PAYMENT_PURPOSE.WALLET_TOPUP,
+          status: 'success',
+          metadata: {},
+        });
       } else {
         return NextResponse.json({ received: true });
       }
@@ -99,6 +114,23 @@ export async function POST(req: Request) {
       const adId = (payment.metadata as { adId?: string }).adId;
       if (adId) {
         await UserAd.findByIdAndUpdate(adId, { paymentId: payment._id });
+      }
+    }
+
+    if (payment.purpose === PAYMENT_PURPOSE.WALLET_TOPUP && payment.userId && payment.amount > 0) {
+      try {
+        // Idempotency: only credit once per Payment.
+        const WalletTransaction = (await import('@/models/WalletTransaction')).default;
+        const already = await WalletTransaction.findOne({ paymentId: payment._id }).select('_id').lean();
+        if (!already) {
+          await creditWallet(payment.userId, payment.amount, {
+            reason: WALLET_TX_REASONS.TOPUP,
+            paymentId: payment._id,
+            description: 'Wallet top-up via Paystack',
+          });
+        }
+      } catch (creditErr) {
+        console.error('[paystack webhook] wallet topup credit failed', creditErr);
       }
     }
 

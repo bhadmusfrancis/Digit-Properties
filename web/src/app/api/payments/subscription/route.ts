@@ -107,28 +107,35 @@ export async function POST(req: Request) {
     }
 
     if (gateway === 'flutterwave') {
-      if (!process.env.FLUTTERWAVE_SECRET_KEY || !process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
+      if (!process.env.FLUTTERWAVE_SECRET_KEY) {
         return NextResponse.json({ error: 'Flutterwave is not configured' }, { status: 503 });
       }
-      const Flutterwave = (await import('flutterwave-node-v3')).default;
-      const flw = new Flutterwave(
-        process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-        process.env.FLUTTERWAVE_SECRET_KEY
-      );
-      const flwRes = await flw.PaymentLink.initiate({
-        tx_ref: ref,
-        amount,
-        currency: 'NGN',
-        redirect_url: callbackUrl,
-        customer: {
-          email: session.user.email!,
-          name: session.user.name!,
+      const response = await fetch('https://api.flutterwave.com/v3/payments', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          'Content-Type': 'application/json',
         },
-        customizations: { title: `Subscription ${tier} - Digit Properties` },
-        meta: { userId: session.user.id, purpose: PAYMENT_PURPOSE.SUBSCRIPTION_TIER, tier },
+        body: JSON.stringify({
+          tx_ref: ref,
+          amount,
+          currency: 'NGN',
+          redirect_url: callbackUrl,
+          customer: {
+            email: session.user.email,
+            name: session.user.name || session.user.email,
+          },
+          customizations: { title: `Subscription ${tier} - Digit Properties` },
+          meta: { userId: session.user.id, purpose: PAYMENT_PURPOSE.SUBSCRIPTION_TIER, tier },
+        }),
       });
+      const data = await response.json();
+      const link = data?.data?.link as string | undefined;
+      if (!response.ok || !link) {
+        return NextResponse.json({ error: data?.message || 'Flutterwave error' }, { status: 400 });
+      }
       return NextResponse.json({
-        link: flwRes.data?.link,
+        link,
         reference: ref,
         dbOffline: !dbOk,
       });

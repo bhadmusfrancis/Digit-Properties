@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { USER_ROLES } from '@/lib/constants';
+import { formatPrice } from '@/lib/utils';
 
 type Role = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
@@ -24,6 +25,14 @@ export default function AdminUsersPageClient() {
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState<typeof defaultForm>(defaultForm);
+  const [crediting, setCrediting] = useState<User | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [creditAmount, setCreditAmount] = useState<number | ''>(1000);
+  const [creditAction, setCreditAction] = useState<'credit' | 'debit'>('credit');
+  const [creditDescription, setCreditDescription] = useState('');
+  const [creditSubmitting, setCreditSubmitting] = useState(false);
+  const [creditError, setCreditError] = useState<string | null>(null);
+  const [creditSuccess, setCreditSuccess] = useState<string | null>(null);
 
   const load = () => {
     fetch('/api/admin/users')
@@ -98,6 +107,57 @@ export default function AdminUsersPageClient() {
       role,
       phone: u.phone || '',
     });
+  };
+
+  const startCredit = (u: User) => {
+    setCrediting(u);
+    setCreditBalance(null);
+    setCreditAmount(1000);
+    setCreditAction('credit');
+    setCreditDescription('');
+    setCreditError(null);
+    setCreditSuccess(null);
+    fetch(`/api/admin/users/${u._id}/credit`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d?.balance === 'number') setCreditBalance(d.balance);
+      })
+      .catch(() => {});
+  };
+
+  const submitCredit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!crediting) return;
+    const amount = Number(creditAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setCreditError('Enter a positive amount.');
+      return;
+    }
+    setCreditSubmitting(true);
+    setCreditError(null);
+    setCreditSuccess(null);
+    try {
+      const res = await fetch(`/api/admin/users/${crediting._id}/credit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          action: creditAction,
+          description: creditDescription || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setCreditBalance(data.balance);
+      setCreditSuccess(
+        `${creditAction === 'credit' ? 'Credited' : 'Debited'} ${formatPrice(amount)}. New balance: ${formatPrice(data.balance)}.`
+      );
+      setCreditAmount('');
+    } catch (err) {
+      setCreditError(err instanceof Error ? err.message : 'Failed');
+    } finally {
+      setCreditSubmitting(false);
+    }
   };
 
   if (loading) return <p className="text-gray-500">Loading users...</p>;
@@ -201,6 +261,109 @@ export default function AdminUsersPageClient() {
           </div>
         </form>
       )}
+      {crediting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setCrediting(null)}>
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Adjust wallet</h3>
+                <p className="mt-0.5 text-sm text-gray-600">{crediting.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCrediting(null)}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mt-3 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+              Current balance:{' '}
+              <span className="font-semibold text-gray-900">
+                {creditBalance === null ? 'Loading…' : formatPrice(creditBalance)}
+              </span>
+            </p>
+            <form onSubmit={submitCredit} className="mt-4 space-y-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreditAction('credit')}
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                    creditAction === 'credit'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                      : 'border-gray-300 text-gray-700 hover:border-emerald-300'
+                  }`}
+                >
+                  Credit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreditAction('debit')}
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                    creditAction === 'debit'
+                      ? 'border-amber-500 bg-amber-50 text-amber-800'
+                      : 'border-gray-300 text-gray-700 hover:border-amber-300'
+                  }`}
+                >
+                  Debit
+                </button>
+              </div>
+              <label className="block text-sm font-medium text-gray-700">
+                Amount (NGN)
+                <input
+                  type="number"
+                  min={1}
+                  step={100}
+                  required
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <label className="block text-sm font-medium text-gray-700">
+                Reason / note (optional)
+                <input
+                  value={creditDescription}
+                  onChange={(e) => setCreditDescription(e.target.value)}
+                  maxLength={200}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                  placeholder="e.g. Promo, refund, manual top-up"
+                />
+              </label>
+              {creditError && (
+                <p className="rounded bg-red-50 p-2 text-sm text-red-700">{creditError}</p>
+              )}
+              {creditSuccess && (
+                <p className="rounded bg-green-50 p-2 text-sm text-green-700">{creditSuccess}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={creditSubmitting}
+                  className={`flex-1 min-h-[44px] rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+                    creditAction === 'credit'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
+                >
+                  {creditSubmitting ? 'Processing…' : creditAction === 'credit' ? 'Credit wallet' : 'Debit wallet'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCrediting(null)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       <div className="mt-4 overflow-x-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <table className="w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -227,6 +390,8 @@ export default function AdminUsersPageClient() {
                 </td>
                 <td className="px-3 py-3 text-right">
                   <button type="button" onClick={() => startEdit(u)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-primary-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Edit</button>
+                  <span className="text-gray-300 mx-1">|</span>
+                  <button type="button" onClick={() => startCredit(u)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-emerald-700 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Credit</button>
                   <span className="text-gray-300 mx-1">|</span>
                   <button type="button" onClick={() => deleteUser(u._id)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Delete</button>
                 </td>
