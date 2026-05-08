@@ -1,12 +1,12 @@
 import mongoose, { Schema, Model } from 'mongoose';
-import { PAYMENT_PURPOSE } from '@/lib/constants';
+import { PAYMENT_PURPOSE, PAYMENT_GATEWAYS } from '@/lib/constants';
 
 export interface IPayment {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   amount: number;
   currency: string;
-  gateway: 'flutterwave' | 'paystack';
+  gateway: (typeof PAYMENT_GATEWAYS)[number];
   gatewayRef: string;
   purpose: (typeof PAYMENT_PURPOSE)[keyof typeof PAYMENT_PURPOSE];
   listingId?: mongoose.Types.ObjectId;
@@ -22,7 +22,7 @@ const PaymentSchema = new Schema<IPayment>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     amount: { type: Number, required: true },
     currency: { type: String, default: 'NGN' },
-    gateway: { type: String, enum: ['flutterwave', 'paystack'], required: true },
+    gateway: { type: String, enum: PAYMENT_GATEWAYS, required: true },
     gatewayRef: { type: String, required: true },
     purpose: { type: String, enum: Object.values(PAYMENT_PURPOSE), required: true },
     listingId: { type: Schema.Types.ObjectId, ref: 'Listing' },

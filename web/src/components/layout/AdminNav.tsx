@@ -12,6 +12,7 @@ const links = [
   { href: '/admin/listings', label: 'Listings' },
   { href: '/admin/config', label: 'Subscription config' },
   { href: '/admin/ads', label: 'Ads' },
+  { href: '/admin/coupons', label: 'Coupons' },
   { href: '/admin/emails', label: 'Email templates' },
   { href: '/admin/trends', label: 'Trends' },
 ];

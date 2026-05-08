@@ -40,18 +40,26 @@ export function MyListingActions({
     }
   }
 
-  async function handleBoost() {
+  async function handleBoost(gateway: 'paystack' | 'wallet') {
     if (boosting) return;
     setBoosting(true);
     try {
       const res = await fetch('/api/payments/boost', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId, gateway: 'paystack', packageId: selectedPackage }),
+        body: JSON.stringify({ listingId, gateway, packageId: selectedPackage }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.error || 'Failed to start boost payment');
+        return;
+      }
+      if (data.paidWithWallet) {
+        alert(
+          `Boost paid from Ad credit. New balance: ₦${Number(data.balance ?? 0).toLocaleString()}.`
+        );
+        setBoostOpen(false);
+        router.refresh();
         return;
       }
       const url = data.authorization_url || data.link;
@@ -266,14 +274,22 @@ export function MyListingActions({
               ))}
             </div>
             <p className="mt-3 text-[11px] leading-snug text-gray-500">{BOOST_VISIBILITY_DISCLAIMER}</p>
-            <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
-                onClick={handleBoost}
+                onClick={() => handleBoost('wallet')}
+                disabled={boosting}
+                className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {boosting ? '…' : 'Pay with Ad credit'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBoost('paystack')}
                 disabled={boosting}
                 className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {boosting ? 'Processing…' : 'Pay with Paystack'}
+                {boosting ? '…' : 'Pay with Paystack'}
               </button>
               <button
                 type="button"
