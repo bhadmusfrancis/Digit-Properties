@@ -25,4 +25,24 @@
   .card {
     @apply overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200;
   }
+
+  /**
+   * Wrapper for stored HTML (listings, blog posts). Keeps intentional vertical space:
+   * empty <p>, <p><br></p>, WordPress spacer blocks, figures/embeds.
+   */
+  .rich-html-content {
+    overflow-wrap: anywhere;
+  }
+  .rich-html-content p:empty {
+    min-height: 1.625em;
+  }
+  .rich-html-content p:has(> br:only-child) {
+    min-height: 1.625em;
+  }
+  .rich-html-content figure {
+    @apply my-6 max-w-full;
+  }
+  .rich-html-content iframe {
+    @apply my-4 max-w-full;
+  }
 }
