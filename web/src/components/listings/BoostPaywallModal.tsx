@@ -133,10 +133,10 @@ export function BoostPaywallModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, paying, onClose]);
 
-  const isPayDisabled = !!disabledReason;
+  const isWalletDraftBlocked = !!disabledReason;
   const canPayWithWallet = useMemo(
-    () => !isPayDisabled && !!wallet && wallet.balance >= selected.amount,
-    [isPayDisabled, wallet, selected.amount]
+    () => !isWalletDraftBlocked && !!wallet && wallet.balance >= selected.amount,
+    [isWalletDraftBlocked, wallet, selected.amount]
   );
 
   const ensureId = async (): Promise<string | null> => {
@@ -228,7 +228,6 @@ export function BoostPaywallModal({
     try {
       const id = await ensureId();
       if (!id) {
-        setError('Listing could not be prepared. Try again.');
         return;
       }
       const res = await fetch('/api/payments/boost', {
@@ -257,7 +256,6 @@ export function BoostPaywallModal({
     try {
       const id = await ensureId();
       if (!id) {
-        setError('Listing could not be prepared. Try again.');
         return;
       }
       const res = await fetch('/api/payments/boost', {
@@ -340,6 +338,22 @@ export function BoostPaywallModal({
               <p className="mt-1">{disabledReason}</p>
             </div>
           )}
+          {reason === 'categories' && (
+            <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50/80 p-3 text-sm text-sky-900">
+              <p className="font-medium">Stay on your current plan with one category</p>
+              <p className="mt-1 text-sky-800">
+                Close this dialog and tap a different property type to replace your selection — no boost required for a single category.
+              </p>
+              <button
+                type="button"
+                onClick={() => !paying && onClose()}
+                disabled={!!paying}
+                className="mt-3 w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-50 disabled:opacity-50"
+              >
+                Back to category selection
+              </button>
+            </div>
+          )}
           {/* Package picker */}
           <div className="grid gap-2 sm:grid-cols-3">
             {Object.values(BOOST_PACKAGES).map((pkg) => (
@@ -387,20 +401,20 @@ export function BoostPaywallModal({
               </div>
               <button
                 type="button"
-                disabled={paying !== null || !canPayWithWallet || walletLoading}
+                disabled={paying !== null || !canPayWithWallet || walletLoading || isWalletDraftBlocked}
                 onClick={payWithWallet}
                 className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {paying === 'wallet'
                   ? 'Charging…'
-                  : isPayDisabled
+                  : isWalletDraftBlocked
                     ? 'Locked'
                     : canPayWithWallet
                       ? 'Pay with Ad credit'
                       : 'Insufficient credit'}
               </button>
             </div>
-            {!canPayWithWallet && !walletLoading && wallet && (
+            {!isWalletDraftBlocked && !canPayWithWallet && !walletLoading && wallet && (
               <p className="mt-2 text-xs text-emerald-800">
                 You need {formatPrice(Math.max(0, selected.amount - wallet.balance))} more — top up below or pay with Paystack.
               </p>
@@ -451,15 +465,11 @@ export function BoostPaywallModal({
               </div>
               <button
                 type="button"
-                disabled={paying !== null || isPayDisabled}
+                disabled={paying !== null}
                 onClick={payWithPaystack}
                 className="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50"
               >
-                {paying === 'paystack'
-                  ? 'Processing…'
-                  : isPayDisabled
-                    ? 'Locked'
-                    : `Pay ${formatPrice(selected.amount)}`}
+                {paying === 'paystack' ? 'Processing…' : `Pay ${formatPrice(selected.amount)}`}
               </button>
             </div>
           </div>

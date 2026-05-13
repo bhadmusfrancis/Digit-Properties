@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 
 export type PackageDisplay = {
   tier: string;
@@ -25,6 +24,7 @@ export function ListingPackages() {
   const [packages, setPackages] = useState<PackageDisplay[]>([]);
   const [currentTier, setCurrentTier] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [freePlanBusy, setFreePlanBusy] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -35,6 +35,26 @@ export function ListingPackages() {
       setCurrentTier(me?.subscriptionTier ?? 'free');
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
+
+  async function chooseFreePlan() {
+    setFreePlanBusy(true);
+    try {
+      const res = await fetch('/api/me/subscription-tier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: 'free' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(typeof data.error === 'string' ? data.error : 'Could not switch to the free plan.');
+        return;
+      }
+      const me = await fetch('/api/me').then((r) => (r.ok ? r.json() : null));
+      setCurrentTier(me?.subscriptionTier ?? 'free');
+    } finally {
+      setFreePlanBusy(false);
+    }
+  }
 
   if (loading || packages.length === 0) {
     return (
@@ -62,12 +82,12 @@ export function ListingPackages() {
           Choose your listing plan
         </h2>
         <p className="mt-2 text-base text-gray-600 max-w-xl mx-auto">
-          Guests use the free plan by default. Upgrade for more listings, media, and visibility with Featured & Highlighted spots.
+          Start on the free plan or upgrade for more listings, media, and visibility with Featured and Highlighted spots.
         </p>
       </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-3">
-        {packages.map((pkg, index) => {
+        {packages.map((pkg) => {
           const isCurrent = isCurrentTier(pkg.tier);
           const isGold = pkg.tier === 'gold';
           const isPremium = pkg.tier === 'premium';
@@ -145,9 +165,33 @@ export function ListingPackages() {
                 )}
               </ul>
 
-              {!isCurrent && pkg.priceMonthly > 0 && (
-                <div className="mt-6 border-t border-gray-100 pt-4 text-center text-xs text-gray-500">
-                  Subscription upgrades are disabled for users.
+              {pkg.isGuestOrFree && !isCurrent && (
+                <div className="mt-6 border-t border-gray-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => void chooseFreePlan()}
+                    disabled={freePlanBusy}
+                    className="w-full rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-60"
+                  >
+                    {freePlanBusy ? 'Updating…' : 'Use free plan'}
+                  </button>
+                  <p className="mt-2 text-center text-xs text-gray-500">
+                    Same limits as a new account — one category per listing on the free tier unless you boost a listing.
+                  </p>
+                </div>
+              )}
+
+              {!isCurrent && pkg.priceMonthly > 0 && currentTier !== 'free' && currentTier !== 'guest' && (
+                <div className="mt-6 border-t border-gray-100 pt-4 space-y-3 text-center">
+                  <p className="text-xs text-gray-500">Subscription checkout for account tiers is not available here.</p>
+                  <button
+                    type="button"
+                    onClick={() => void chooseFreePlan()}
+                    disabled={freePlanBusy}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    {freePlanBusy ? 'Updating…' : 'Use free plan instead'}
+                  </button>
                 </div>
               )}
             </div>
