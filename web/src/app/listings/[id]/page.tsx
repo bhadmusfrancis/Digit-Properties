@@ -377,13 +377,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 </span>
                 <span>{formatListingTypeLabel(String(listing.listingType ?? ''))}</span>
               </div>
-              <div className="mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0 prose-img:max-w-full prose-table:my-4 prose-table:border-collapse prose-th:border prose-td:border prose-a:text-primary-600">
-                {listing.description && /<[a-z][\s\S]*>/i.test(listing.description) ? (
-                  <div dangerouslySetInnerHTML={{ __html: listing.description }} />
-                ) : (
+              {listing.description && /<[a-z][\s\S]*>/i.test(listing.description) ? (
+                <div
+                  className="rich-html-content mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0 prose-img:max-w-full prose-table:my-4 prose-table:border-collapse prose-th:border prose-td:border prose-a:text-primary-600"
+                  dangerouslySetInnerHTML={{ __html: listing.description }}
+                />
+              ) : (
+                <div className="mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2">
                   <p>{listing.description}</p>
-                )}
-              </div>
+                </div>
+              )}
               {derivedAmenities.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold text-gray-900">Amenities</h3>

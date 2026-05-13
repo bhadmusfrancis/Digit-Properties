@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       title: title.trim(),
       slug: uniqueSlug,
       excerpt: typeof excerpt === 'string' ? excerpt.trim() : '',
-      content: typeof content === 'string' ? content.trim() : '',
+      content: typeof content === 'string' ? content : '',
       category,
       imageUrl: typeof imageUrl === 'string' ? imageUrl.trim() || undefined : undefined,
       author: typeof author === 'string' ? author.trim() || undefined : undefined,

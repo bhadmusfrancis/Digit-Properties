@@ -129,7 +129,7 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
             </div>
 
             <div
-              className="trend-prose mt-10 rounded-xl bg-white/80 px-6 py-8 shadow-sm ring-1 ring-slate-200/50 sm:px-8
+              className="trend-prose rich-html-content mt-10 rounded-xl bg-white/80 px-6 py-8 shadow-sm ring-1 ring-slate-200/50 sm:px-8
                 prose prose-slate prose-lg max-w-none
                 prose-headings:font-bold prose-headings:tracking-tight
                 prose-h2:mt-14 prose-h2:mb-5 prose-h2:text-2xl prose-h2:text-slate-900 prose-h2:border-b-2 prose-h2:border-primary-200 prose-h2:pb-2 prose-h2:first:mt-8
