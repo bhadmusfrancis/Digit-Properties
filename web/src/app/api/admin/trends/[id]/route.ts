@@ -71,7 +71,7 @@ export async function PUT(
       post.slug = slugify(body.title);
     }
     if (body.excerpt != null) post.excerpt = typeof body.excerpt === 'string' ? body.excerpt.trim() : '';
-    if (body.content != null) post.content = typeof body.content === 'string' ? body.content.trim() : '';
+    if (body.content != null) post.content = typeof body.content === 'string' ? body.content : '';
     if (body.category != null && TREND_CATEGORIES.includes(body.category)) post.category = body.category;
     if (body.imageUrl !== undefined) post.imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.trim() || undefined : undefined;
     if (body.author !== undefined) post.author = typeof body.author === 'string' ? body.author.trim() || undefined : undefined;
