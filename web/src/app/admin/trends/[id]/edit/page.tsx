@@ -135,7 +135,10 @@ export default function AdminTrendEditPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Content *</label>
-          <p className="mt-1 text-xs text-gray-500">Use the toolbar for bold, headings (H2, H3), and lists. Use significant section headings for SEO.</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Toolbar matches common WordPress options; you can also paste HTML from WordPress (headings, lists, links,
+            images, alignment, tables). Use clear section headings for SEO.
+          </p>
           <div className="mt-2">
             <RichTextEditor value={content} onChange={setContent} minHeight="280px" disabled={saving} />
           </div>
