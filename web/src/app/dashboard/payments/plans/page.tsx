@@ -3,7 +3,7 @@ import { ListingPackages } from '@/components/listings/ListingPackages';
 
 export const metadata = {
   title: 'Subscription Plans | Digit Properties',
-  description: 'Choose a listing plan: Guest/Free, Gold, or Premium. Upgrade for more listings, Featured and Highlighted spots.',
+  description: 'Choose a listing plan: Free, Gold, or Premium. Upgrade for more listings, Featured and Highlighted spots.',
 };
 
 export default function SubscriptionPlansPage() {

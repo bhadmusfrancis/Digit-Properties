@@ -20,6 +20,7 @@ import {
 } from '@/lib/listing-media-accept';
 import { formatBytes } from '@/lib/format-bytes';
 import { uploadListingMediaFile } from '@/lib/upload-listing-media';
+import { optionalListingAgentEmailSchema } from '@/lib/validations';
 import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
@@ -66,7 +67,7 @@ const schema = z.object({
   contactSource: z.enum(['author', 'listing']).default('author'),
   agentName: z.string().optional(),
   agentPhone: z.string().optional(),
-  agentEmail: z.string().email().optional().or(z.literal('')),
+  agentEmail: optionalListingAgentEmailSchema,
   rentPeriod: z.enum(['day', 'month', 'year']).optional(),
   leaseDuration: z.string().optional(),
   status: z.enum(['draft', 'active']).optional(),
@@ -289,6 +290,10 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       cur.splice(i, 1);
     } else {
       if (cur.length >= maxCategories) {
+        if (maxCategories === 1) {
+          setValue('propertyTypes', [t], { shouldValidate: true });
+          return;
+        }
         setPaywall({ reason: 'categories' });
         return;
       }

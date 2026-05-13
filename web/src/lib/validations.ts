@@ -19,6 +19,12 @@ export function resolveListingPropertyTypes(data: {
 /** MongoDB ObjectId: 24 hex characters */
 export const objectIdSchema = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid ID format');
 
+/** Blank or whitespace-only → undefined so optional email passes (plain `z.string().email().optional()` rejects ""). */
+export const optionalListingAgentEmailSchema = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().email('Invalid email').optional()
+);
+
 /** Reusable string bounds to prevent oversized payloads */
 const MAX_STRING = 10_000;
 const MAX_EMAIL = 254;
@@ -71,7 +77,7 @@ const listingBaseSchema = z.object({
   contactSource: z.enum(['author', 'listing']).optional(),
   agentName: z.string().optional(),
   agentPhone: z.string().optional(),
-  agentEmail: z.string().email().optional().or(z.literal('')),
+  agentEmail: optionalListingAgentEmailSchema,
   rentPeriod: z.enum(Object.values(RENT_PERIOD) as [string, ...string[]]).optional(),
   leaseDuration: z.string().optional(),
   status: z.enum(['draft', 'active']).optional(),
