@@ -16,5 +16,5 @@ cd mobile
 eas update --branch production --message "Rent period display update"
 
 git add .
-git commit -m "Trends Auto pics"
+git commit -m "Ad wallet and Listing boost"
 git push origin main

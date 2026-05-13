@@ -28,6 +28,7 @@ import {
 import { formatBytes } from '@/lib/format-bytes';
 import { uploadListingMediaFile } from '@/lib/upload-listing-media';
 import { stripHtml } from '@/lib/utils';
+import { optionalListingAgentEmailSchema } from '@/lib/validations';
 import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
@@ -89,7 +90,7 @@ const wizardStep2Schema = z
     contactSource: z.enum(['author', 'listing']),
     agentName: z.string().optional(),
     agentPhone: z.string().optional(),
-    agentEmail: z.string().email('Invalid email').optional().or(z.literal('')),
+    agentEmail: optionalListingAgentEmailSchema,
   })
   .refine(
     (d) =>
@@ -155,7 +156,7 @@ const wizardSchema = z
     contactSource: z.enum(['author', 'listing']).default('author'),
     agentName: z.string().optional(),
     agentPhone: z.string().optional(),
-    agentEmail: z.string().email().optional().or(z.literal('')),
+    agentEmail: optionalListingAgentEmailSchema,
     rentPeriod: z.enum(['day', 'month', 'year']).optional(),
     status: z.enum(['draft', 'active']).optional(),
   })
@@ -380,6 +381,11 @@ export function NewListingWizard() {
       cur.splice(i, 1);
     } else {
       if (cur.length >= maxCategories) {
+        // Single-category plans: switch the one slot instead of forcing the boost paywall.
+        if (maxCategories === 1) {
+          setValue('propertyTypes', [t], { shouldValidate: true });
+          return;
+        }
         setPaywall({ reason: 'categories' });
         return;
       }

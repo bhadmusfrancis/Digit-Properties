@@ -31,7 +31,7 @@ function buildPackagesFromDefaults(configs: { tier: string; maxListings?: number
     const priceMonthly = found?.priceMonthly ?? def.priceMonthly ?? 0;
     const label =
       tier === SUBSCRIPTION_TIERS.GUEST
-        ? 'Guest / Free'
+        ? 'Free plan'
         : tier === SUBSCRIPTION_TIERS.GOLD
           ? 'Gold'
           : tier === SUBSCRIPTION_TIERS.PREMIUM
