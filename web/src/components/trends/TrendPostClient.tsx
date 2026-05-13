@@ -134,6 +134,9 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
                 prose-headings:font-bold prose-headings:tracking-tight
                 prose-h2:mt-14 prose-h2:mb-5 prose-h2:text-2xl prose-h2:text-slate-900 prose-h2:border-b-2 prose-h2:border-primary-200 prose-h2:pb-2 prose-h2:first:mt-8
                 prose-h3:mt-10 prose-h3:mb-4 prose-h3:text-xl prose-h3:text-slate-800
+                prose-h4:mt-8 prose-h4:mb-3 prose-h4:text-lg prose-h4:text-slate-800
+                prose-img:my-6 prose-img:max-w-full prose-img:rounded-lg
+                prose-table:my-8 prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-slate-200 prose-th:px-3 prose-th:py-2 prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-2
                 prose-p:leading-[1.9] prose-p:mb-6 prose-p:text-slate-700 prose-p:text-[1.0625rem]
                 prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
                 prose-ul:my-6 prose-ul:pl-6 prose-li:my-2 prose-li:leading-relaxed prose-li:pl-1
