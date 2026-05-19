@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { existsSync, statSync } from 'fs';
+import { existsSync, readFileSync, statSync } from 'fs';
 import path from 'path';
 
 export const ATTACHED_RE = /<attached:\s*([^>]+)>/gi;
@@ -183,6 +183,13 @@ export type ParsedChatMessage = {
   sentAt: Date | null;
 };
 
+/** Upload timeout: images 2 min; videos scale ~25s/MB, capped at 10 min. */
+export function cloudinaryUploadTimeoutMs(filePath: string, kind: 'image' | 'video'): number {
+  if (kind === 'image') return 120_000;
+  const mb = statSync(filePath).size / (1024 * 1024);
+  return Math.min(600_000, 120_000 + Math.round(mb * 25_000));
+}
+
 export function looksLikeListingFromClean(
   clean: string,
   parsed: { parsed: { price: number; bedrooms: number; area?: number } }
@@ -196,4 +203,126 @@ export function looksLikeListingFromClean(
         clean
       ))
   );
+}
+
+const LARGE_VIDEO_MB = 18;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetryableUploadError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { http_code?: number; name?: string; message?: string };
+  if (e.http_code === 499 || e.http_code === 504 || e.http_code === 503) return true;
+  if (e.name === 'TimeoutError') return true;
+  const msg = String(e.message ?? err);
+  return /timeout|timed out|econnreset|network/i.test(msg);
+}
+
+type CloudinaryUploadResult = { secure_url?: string; public_id?: string };
+
+function promisifyUpload<T>(
+  fn: (opts: object, cb: (err: unknown, res: T) => void) => void,
+  opts: object
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    fn(opts, (err, res) => {
+      if (err) reject(err);
+      else resolve(res);
+    });
+  });
+}
+
+/**
+ * Upload listing media to Cloudinary with retries.
+ * Large videos (≥18MB) use chunked upload_large; others upload from disk path.
+ */
+export async function uploadListingMediaToCloudinary(
+  cloudinary: typeof import('cloudinary').v2,
+  filePath: string,
+  kind: 'image' | 'video'
+): Promise<{ url: string; public_id: string }> {
+  const resource_type = kind === 'video' ? 'video' : 'image';
+  const mb = statSync(filePath).size / (1024 * 1024);
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      let res: CloudinaryUploadResult;
+
+      if (kind === 'image') {
+        const buffer = readFileSync(filePath);
+        const timeoutMs = cloudinaryUploadTimeoutMs(filePath, kind);
+        res = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+          const timer = setTimeout(() => {
+            reject(new Error(`Upload timeout (${Math.round(timeoutMs / 1000)}s)`));
+          }, timeoutMs);
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'listings',
+              resource_type: 'image',
+              transformation: [{ width: 1920, crop: 'limit', quality: 'auto' }],
+            },
+            (err, result) => {
+              clearTimeout(timer);
+              if (err) reject(err);
+              else resolve(result ?? {});
+            }
+          );
+          stream.end(buffer);
+        });
+      } else if (mb >= LARGE_VIDEO_MB) {
+        const uploader = cloudinary.uploader as typeof cloudinary.uploader & {
+          upload_large?: (
+            file: string,
+            opts: object,
+            cb?: (err: unknown, res: CloudinaryUploadResult) => void
+          ) => Promise<CloudinaryUploadResult> | void;
+        };
+        const opts = {
+          folder: 'listings',
+          resource_type: 'video' as const,
+          chunk_size: 6_000_000,
+          timeout: 600_000,
+        };
+        if (typeof uploader.upload_large === 'function') {
+          const maybe = uploader.upload_large(filePath, opts);
+          res =
+            maybe && typeof (maybe as Promise<CloudinaryUploadResult>).then === 'function'
+              ? await (maybe as Promise<CloudinaryUploadResult>)
+              : await promisifyUpload<CloudinaryUploadResult>(
+                  (o, cb) => uploader.upload_large!(filePath, o, cb),
+                  opts
+                );
+        } else {
+          res = await cloudinary.uploader.upload(filePath, { ...opts, resource_type: 'video' });
+        }
+      } else {
+        const timeoutMs = cloudinaryUploadTimeoutMs(filePath, kind);
+        res = await cloudinary.uploader.upload(filePath, {
+          folder: 'listings',
+          resource_type: 'video',
+          timeout: timeoutMs,
+        });
+      }
+
+      if (res?.secure_url && res?.public_id) {
+        return { url: res.secure_url, public_id: res.public_id };
+      }
+      throw new Error('Upload failed: missing secure_url');
+    } catch (err) {
+      if (attempt < maxAttempts && isRetryableUploadError(err)) {
+        console.warn(
+          `  upload retry ${attempt}/${maxAttempts - 1} for ${path.basename(filePath)}:`,
+          err
+        );
+        await sleep(8000 * attempt);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error('Upload failed after retries');
 }

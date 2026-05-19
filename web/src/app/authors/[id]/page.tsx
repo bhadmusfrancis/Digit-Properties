@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const baseUrl = siteOrigin();
     const canonical = `${baseUrl}/authors/${id}`;
     return {
-      title: `${title} | Digit Properties`,
+      title,
       description: `View ${name}'s property listings on Digit Properties.`,
       alternates: { canonical },
       openGraph: {

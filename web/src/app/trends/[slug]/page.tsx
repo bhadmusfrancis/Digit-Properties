@@ -5,6 +5,8 @@ import { TREND_STATUS } from '@/lib/constants';
 import { TrendPostClient } from '@/components/trends/TrendPostClient';
 import type { Metadata } from 'next';
 import { siteOrigin } from '@/lib/site-metadata';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/structured-data';
 
 const baseUrl = () => siteOrigin();
 
@@ -23,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const publishedTime = post.publishedAt ? new Date(post.publishedAt).toISOString() : undefined;
     const modifiedTime = post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined;
     return {
-      title: `${title} | Digit Properties Trends`,
+      title,
       description: description ?? title,
       alternates: { canonical: url },
       openGraph: {
@@ -69,5 +71,36 @@ export default async function TrendPostPage({ params }: { params: Promise<{ slug
   };
 
   const shareUrl = `${baseUrl()}/trends/${slug}`;
-  return <TrendPostClient initialPost={initialPost} shareUrl={shareUrl} shareTitle={post.title} shareText={post.excerpt ?? undefined} />;
+  const description = (post.excerpt ?? post.title)?.slice(0, 160) ?? post.title;
+  const publishedAt = post.publishedAt?.toISOString();
+  const modifiedAt = post.updatedAt?.toISOString();
+
+  return (
+    <>
+      <JsonLd
+        data={[
+          buildBreadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Trends', path: '/trends' },
+            { name: post.title, path: `/trends/${slug}` },
+          ]),
+          buildArticleJsonLd({
+            title: post.title,
+            description,
+            slug,
+            imageUrl: post.imageUrl,
+            publishedAt,
+            modifiedAt,
+            authorName: post.author,
+          }),
+        ]}
+      />
+      <TrendPostClient
+        initialPost={initialPost}
+        shareUrl={shareUrl}
+        shareTitle={post.title}
+        shareText={post.excerpt ?? undefined}
+      />
+    </>
+  );
 }

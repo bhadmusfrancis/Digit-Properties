@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'About Us | Digit Properties',
+  title: 'About Us',
   description:
     'Digit Properties offers real estate advertisement, property development, land titling, development documentation, and document verification including Survey and Certificate of Occupancy (C of O) in Nigeria.',
 };

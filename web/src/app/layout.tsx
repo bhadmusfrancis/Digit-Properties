@@ -6,6 +6,8 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { siteMetadataBase, siteOrigin } from '@/lib/site-metadata';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/GoogleTagManager';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/seo/structured-data';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-geist-sans' });
 
@@ -17,7 +19,11 @@ export const metadata: Metadata = {
   title: { default: 'Digit Properties | Buy, Sell, Rent Properties in Nigeria', template: '%s | Digit Properties' },
   description:
     'Find your dream property in Nigeria. Browse apartments, houses, land, and commercial properties for sale and rent. Lagos, Abuja, Port Harcourt and more.',
-  keywords: ['real estate', 'Nigeria', 'property', 'buy', 'sell', 'rent', 'Lagos', 'Abuja', 'properties'],
+  alternates: { canonical: siteUrl },
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.svg',
+  },
   openGraph: {
     type: 'website',
     title: 'Digit Properties | Buy, Sell, Rent in Nigeria',
@@ -39,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+        <JsonLd data={[buildOrganizationJsonLd(), buildWebSiteJsonLd()]} />
         <GoogleTagManager />
         <GoogleTagManagerNoScript />
         <Providers>
