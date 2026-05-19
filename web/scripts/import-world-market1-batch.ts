@@ -79,7 +79,7 @@ function parseMessagesFromRaw(raw: string): ParsedChatMessage[] {
       clean: cleanBodyForParser(body),
       senderName,
       senderPhone,
-      files: extractAttachmentFilenames(body),
+      files: extractAttachmentFilenames(full),
       sentAt,
     };
   });
@@ -171,8 +171,13 @@ async function main() {
   let skippedNoMedia = 0;
   let skippedNotListing = 0;
 
+  const mediaMergePreview = buildMediaMergeMap(allMarket1, parseWhatsAppListingText);
+
   for (const msg of allMarket1) {
-    if (!hasResolvableMedia(msg.files, MARKET1_DIR)) {
+    const previewFiles = [
+      ...new Set([...(msg.files ?? []), ...(mediaMergePreview.get(msg.index) ?? [])]),
+    ];
+    if (!hasResolvableMedia(previewFiles, MARKET1_DIR)) {
       skippedNoMedia++;
       continue;
     }
@@ -299,26 +304,32 @@ async function main() {
   let duplicates = 0;
   let uploadErrors = 0;
 
+  const logSkip = (reason: string, titleHint: string) => {
+    skipped++;
+    console.warn(`  skip: ${titleHint.slice(0, 55)} — ${reason}`);
+  };
+
   console.log('\nStep 4: Import new listings to database…');
 
   for (let mi = 0; mi < newMessages.length; mi++) {
     const msg = newMessages[mi];
     const clean = msg.clean;
+    const titleHint = clean.slice(0, 60) || msg.full.slice(0, 60);
     if (clean.length < 15) {
-      skipped++;
+      logSkip('body too short', titleHint);
       continue;
     }
 
     const one = parseWhatsAppListingText(clean);
     if (!one.parsed.agentPhone && msg.senderPhone) one.parsed.agentPhone = msg.senderPhone;
     if (!looksLikeListingFromClean(clean, one)) {
-      skipped++;
+      logSkip('not a property listing', titleHint);
       continue;
     }
 
     const mergedFiles = [...new Set([...(msg.files ?? []), ...(mediaMergeMap.get(mi) ?? [])])];
     if (!hasResolvableMedia(mergedFiles, MARKET1_DIR)) {
-      skipped++;
+      logSkip('no resolvable media files on disk', titleHint);
       continue;
     }
 
@@ -360,7 +371,10 @@ async function main() {
     }
 
     if (images.length === 0 && videos.length === 0) {
-      skipped++;
+      logSkip(
+        `no media uploaded (files: ${mergedFiles.join(', ') || 'none'})`,
+        one.parsed.title || titleHint
+      );
       continue;
     }
 
@@ -407,13 +421,18 @@ async function main() {
     };
 
     if (payload.price <= 0) {
-      skipped++;
+      logSkip('price missing or zero', payload.title);
       continue;
+    }
+
+    if (payload.listingType === 'rent' && !payload.rentPeriod) {
+      payload.rentPeriod = 'year';
     }
 
     const validated = listingSchema.safeParse(payload);
     if (!validated.success) {
-      skipped++;
+      const issues = validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+      logSkip(`validation failed (${issues})`, payload.title);
       continue;
     }
 

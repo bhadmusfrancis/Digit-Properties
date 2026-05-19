@@ -372,7 +372,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           buildListingJsonLd({
             id,
             title: String(listing.title ?? ''),
-            description: plainTextExcerpt(String(listing.description ?? ''), 500),
+            description: plainTextExcerpt(String(listing.description ?? ''), 500, String(listing.title ?? '')),
             price: Number(listing.price) || 0,
             listingType: String(listing.listingType ?? ''),
             propertyType: String(listing.propertyType ?? ''),
