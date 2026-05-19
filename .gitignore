@@ -48,6 +48,33 @@ env/
 # Local scratch & personal exports (not application source)
 ocr_tmp/
 WhatsApp Chat*/
+**/WhatsApp Chat*/
+_chat.txt
+chat upload.txt
+**/chat.txt
+contacts.txt
+
+# Ad-hoc Python / OCR / contact extraction (local tooling only)
+extract_whatsapp*.py
+postprocess_contacts.py
+debug_*.py
+ocr_test*.txt
+git.txt
+
+# One-off web scripts (seeds & shared maintenance under web/scripts/ stay tracked)
+web/scripts/local/
+web/scripts/import-chat-listings.ts
+web/scripts/delete-chat-import-listings.ts
+web/scripts/lib/chat-import-utils.ts
+web/scripts/import-*-batch.ts
+web/scripts/import-*-remaining.ts
+web/scripts/diagnose-*.ts
+web/scripts/test-parse-*.ts
+web/scripts/inspect-*.ts
+web/scripts/enforce-location-from-post-text.ts
+web/scripts/cleanup-multi-listing-posts.js
+web/scripts/fix-listing-type-rent-sale.ts
+web/scripts/seed-listings-ade.ts
 
 # Vercel
 .vercel
