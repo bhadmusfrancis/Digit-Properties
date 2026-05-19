@@ -43,15 +43,17 @@ function parseArgs() {
   let mediaDir: string | null = null;
   let email = AUTHOR_EMAIL_DEFAULT;
   let dryRun = false;
+  let requireMedia = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry-run') dryRun = true;
+    else if (a === '--require-media') requireMedia = true;
     else if (a === '--chat' && argv[i + 1]) chatPath = path.resolve(argv[++i]);
     else if (a === '--media-dir' && argv[i + 1]) mediaDir = path.resolve(argv[++i]);
     else if (a === '--email' && argv[i + 1]) email = argv[++i];
   }
   if (!mediaDir) mediaDir = path.dirname(chatPath);
-  return { chatPath, mediaDir, email, dryRun };
+  return { chatPath, mediaDir, email, dryRun, requireMedia };
 }
 
 function splitChatMessages(raw: string): string[] {
@@ -232,7 +234,7 @@ async function main() {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  const { chatPath, mediaDir, email: authorEmail, dryRun } = parseArgs();
+  const { chatPath, mediaDir, email: authorEmail, dryRun, requireMedia } = parseArgs();
 
   if (!existsSync(chatPath)) {
     console.error(`chat file not found: ${chatPath}`);
@@ -434,6 +436,11 @@ async function main() {
     };
 
     if (payload.price <= 0) {
+      skipped++;
+      continue;
+    }
+
+    if (requireMedia && images.length === 0 && videos.length === 0) {
       skipped++;
       continue;
     }
