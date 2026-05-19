@@ -16,6 +16,7 @@ import {
   getCloudinaryVideoThumbnailUrl,
   getDefaultListingImageUrl,
   getListingDisplayImage,
+  getListingImagesForDisplay,
   getListingOpenGraphImages,
 } from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
@@ -28,6 +29,9 @@ import type { Metadata } from 'next';
 import { buildListingShareDescription, listingDocToShareFields } from '@/lib/listing-share-text';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { siteOrigin } from '@/lib/site-metadata';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { buildBreadcrumbJsonLd, buildListingJsonLd } from '@/lib/seo/structured-data';
+import { plainTextExcerpt } from '@/lib/utils';
 
 const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -337,7 +341,55 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       galleryMedia = [...images, ...videos, ...videosFromImages];
     }
 
+    const listingImages = getListingImagesForDisplay(
+      rawImageItems as { url: string; public_id?: string }[],
+      String(listing.propertyType ?? 'apartment'),
+      rawVideoItems as { url?: string; public_id?: string }[]
+    );
+    const structuredImages = listingImages
+      .map((img) => img.url)
+      .filter(Boolean)
+      .slice(0, 5);
+    if (structuredImages.length === 0) {
+      structuredImages.push(
+        getListingDisplayImage(
+          rawImageItems as { url?: string }[],
+          String(listing.propertyType ?? 'apartment'),
+          rawVideoItems as { url?: string; public_id?: string }[]
+        )
+      );
+    }
+
     return (
+    <>
+      <JsonLd
+        data={[
+          buildBreadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Listings', path: '/listings' },
+            { name: String(listing.title ?? 'Property'), path: `/listings/${id}` },
+          ]),
+          buildListingJsonLd({
+            id,
+            title: String(listing.title ?? ''),
+            description: plainTextExcerpt(String(listing.description ?? ''), 500),
+            price: Number(listing.price) || 0,
+            listingType: String(listing.listingType ?? ''),
+            propertyType: String(listing.propertyType ?? ''),
+            imageUrls: structuredImages,
+            bedrooms: Number(listing.bedrooms) || undefined,
+            bathrooms: Number(listing.bathrooms) || undefined,
+            location: {
+              address: listing.location?.address,
+              city: listing.location?.city,
+              state: listing.location?.state,
+              suburb: listing.location?.suburb,
+            },
+            datePosted: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
+            dateModified: listing.updatedAt ? new Date(listing.updatedAt as Date).toISOString() : undefined,
+          }),
+        ]}
+      />
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -470,6 +522,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         <SimilarListingsInfinite listingId={id} initialListings={similarListings} />
       )}
     </div>
+    </>
     );
   } catch (e) {
     console.error('[ListingPage]', e);

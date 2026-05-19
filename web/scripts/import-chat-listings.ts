@@ -16,6 +16,7 @@
 import { readFileSync, existsSync, statSync } from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
+import { uploadListingMediaToCloudinary } from './lib/chat-import-utils';
 
 const AUTHOR_EMAIL_DEFAULT = 'fabhainternation@gmail.com';
 
@@ -185,36 +186,6 @@ function parseTsTag(tag: string): Date | null {
   const mi = Number(s.slice(10, 12));
   const se = Number(s.slice(12, 14));
   return new Date(y, mo - 1, d, h, mi, se);
-}
-
-async function uploadFileToCloudinary(
-  cloudinary: typeof import('cloudinary').v2,
-  filePath: string,
-  kind: 'image' | 'video'
-): Promise<{ url: string; public_id: string }> {
-  const buffer = readFileSync(filePath);
-  const resource_type = kind === 'video' ? 'video' : 'image';
-  const opts: {
-    folder: string;
-    resource_type: 'image' | 'video';
-    transformation?: Array<{ width: number; crop: string; quality: string }>;
-  } = { folder: 'listings', resource_type };
-  if (kind === 'image') {
-    opts.transformation = [{ width: 1920, crop: 'limit', quality: 'auto' }];
-  }
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Upload timeout for ${path.basename(filePath)}`));
-    }, 120000);
-    const stream = cloudinary.uploader.upload_stream(opts, (err, res) => {
-      clearTimeout(timer);
-      if (err) reject(err);
-      else if (res?.secure_url && res.public_id) {
-        resolve({ url: res.secure_url, public_id: res.public_id });
-      } else reject(new Error('Upload failed'));
-    });
-    stream.end(buffer);
-  });
 }
 
 async function main() {
@@ -392,7 +363,7 @@ async function main() {
         continue;
       }
       try {
-        const up = await uploadFileToCloudinary(cloudinary, localPath, kind);
+        const up = await uploadListingMediaToCloudinary(cloudinary, localPath, kind);
         uploadCache.set(cacheKey, { ...up, kind });
         if (kind === 'image') images.push(up);
         else videos.push(up);
