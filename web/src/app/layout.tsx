@@ -5,6 +5,7 @@ import { Providers } from '@/components/Providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { siteMetadataBase, siteOrigin } from '@/lib/site-metadata';
+import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/GoogleTagManager';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-geist-sans' });
 
@@ -38,6 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+        <GoogleTagManager />
+        <GoogleTagManagerNoScript />
         <Providers>
           <div className="flex min-h-screen flex-col">
             <Header />
