@@ -284,7 +284,7 @@ async function main() {
       clean: cleanBodyForParser(body),
       senderName,
       senderPhone,
-      files: extractAttachmentFilenames(body),
+      files: extractAttachmentFilenames(full),
       sentAt,
     };
   });
