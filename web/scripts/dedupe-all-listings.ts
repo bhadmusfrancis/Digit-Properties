@@ -1,6 +1,7 @@
 /**
  * Remove duplicate listings cluster-wise:
  * - Same WhatsApp fingerprint tag wa-fp:… (any listing).
+ * - Same wa-att:… attachment filename (whatsapp imports).
  * - Same Cloudinary public_ids on images+videos (only listings tagged whatsapp-chat-import),
  *   so accidental collisions on manually created listings are unlikely.
  *
@@ -9,11 +10,19 @@
  *   npx tsx scripts/dedupe-all-listings.ts           # dry-run (report only)
  *   npx tsx scripts/dedupe-all-listings.ts --apply    # delete losers + related docs
  */
+import dns from 'node:dns';
 import { existsSync } from 'fs';
 import path from 'path';
+import { mongoUriForConnect } from './lib/mongo-uri';
+
+/** Avoid querySrv ECONNREFUSED on some Windows DNS setups. */
+if (process.platform === 'win32') {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+}
 
 type Row = {
   _id: { toString(): string };
+  title?: string;
   tags?: string[];
   images?: { url?: string; public_id?: string }[];
   videos?: { url?: string; public_id?: string }[];
@@ -33,6 +42,7 @@ function waFpFromTags(tags?: string[]): string | null {
   }
   return null;
 }
+
 
 /** Stable key from media public_ids; null if no public_ids (URLs-only listings skip media-key dedupe). */
 function mediaPublicIdsKey(row: Row, requireChatImport: boolean): string | null {
@@ -90,10 +100,10 @@ async function main() {
     process.exit(1);
   }
 
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(mongoUriForConnect(process.env.MONGODB_URI));
 
   const rows = (await Listing.find({})
-    .select('_id tags images videos createdAt')
+    .select('_id title tags images videos createdAt')
     .lean()
     .exec()) as Row[];
 
@@ -103,6 +113,7 @@ async function main() {
   }
 
   const fpBuckets = new Map<string, string[]>();
+  const attBuckets = new Map<string, string[]>();
   const mediaBuckets = new Map<string, string[]>();
 
   for (const row of rows) {
@@ -112,6 +123,13 @@ async function main() {
       const list = fpBuckets.get(fp) ?? [];
       list.push(id);
       fpBuckets.set(fp, list);
+    }
+    for (const t of row.tags ?? []) {
+      if (typeof t === 'string' && t.startsWith('wa-att:')) {
+        const list = attBuckets.get(t) ?? [];
+        list.push(id);
+        attBuckets.set(t, list);
+      }
     }
     const mk = mediaPublicIdsKey(row, true);
     if (mk) {
@@ -129,10 +147,14 @@ async function main() {
   };
 
   for (const ids of fpBuckets.values()) touchBucket(ids);
+  for (const ids of attBuckets.values()) touchBucket(ids);
   for (const ids of mediaBuckets.values()) touchBucket(ids);
 
   const idsInPlay = new Set<string>();
   for (const ids of fpBuckets.values()) {
+    if (ids.length > 1) for (const id of ids) idsInPlay.add(id);
+  }
+  for (const ids of attBuckets.values()) {
     if (ids.length > 1) for (const id of ids) idsInPlay.add(id);
   }
   for (const ids of mediaBuckets.values()) {
@@ -197,10 +219,34 @@ async function main() {
     return;
   }
 
+  console.log('\nClusters to dedupe (winner kept):');
+  for (const group of finalGroups.slice(0, 40)) {
+    let winner = group[0];
+    let bestScore = mediaScore(rowById.get(winner)!);
+    let bestCreated = new Date(rowById.get(winner)!.createdAt ?? 0).getTime();
+    for (let i = 1; i < group.length; i++) {
+      const gid = group[i];
+      const row = rowById.get(gid)!;
+      const sc = mediaScore(row);
+      const cr = new Date(row.createdAt ?? 0).getTime();
+      if (sc > bestScore || (sc === bestScore && cr < bestCreated)) {
+        winner = gid;
+        bestScore = sc;
+        bestCreated = cr;
+      }
+    }
+    const w = rowById.get(winner)!;
+    console.log(`\n  KEEP ${winner} "${(w.title ?? '').slice(0, 60)}"`);
+    for (const gid of group) {
+      if (gid === winner) continue;
+      const row = rowById.get(gid)!;
+      console.log(`  DEL  ${gid} "${(row.title ?? '').slice(0, 60)}"`);
+    }
+  }
+  if (finalGroups.length > 40) console.log(`\n  … and ${finalGroups.length - 40} more clusters`);
+
   if (!apply) {
-    console.log('Dry run only. Re-run with --apply to delete duplicates.');
-    const sample = [...toDelete].slice(0, 15);
-    console.log('Sample loser IDs:', sample);
+    console.log('\nDry run only. Re-run with --apply to delete duplicates.');
     await mongoose.disconnect();
     return;
   }

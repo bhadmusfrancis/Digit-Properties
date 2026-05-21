@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { getEmailTemplate } from '@/lib/email-templates';
+import { siteOrigin } from '@/lib/site-metadata';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contact@digitproperties.com';
@@ -10,7 +11,7 @@ const FROM_EMAIL =
   process.env.RESEND_FROM_OVERRIDE ||
   process.env.FROM_EMAIL ||
   'Digit Properties <noreply@digitproperties.com>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 const APP_NAME = 'Digit Properties';
 
 function applyTemplate(template: string, vars: Record<string, string>): string {
@@ -530,6 +531,200 @@ export async function sendProfessionalOfferWithdrawnEmail(params: {
     : `
     <p>Hi ${vars.recipientName},</p>
     <p>${vars.buyerName} has withdrawn their professional offer.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Withdrawn Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Withdrawn', body) });
+  return { ok: result.ok };
+}
+
+function formatOfferAmountNgn(amount: number) {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export async function sendSimpleOfferNewEmail(params: {
+  to: string;
+  recipientName: string;
+  buyerName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    buyerName: params.buyerName || 'Buyer',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('send_offer_new');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] New offer on ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>You received a new offer from <strong>${vars.buyerName}</strong>.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Offer Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Review offer</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('New Offer', body) });
+  return { ok: result.ok };
+}
+
+export async function sendSimpleOfferCounterEmail(params: {
+  to: string;
+  recipientName: string;
+  actorName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    actorName: params.actorName || 'Counterparty',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('send_offer_counter');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Counter-offer on ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>${vars.actorName} sent a counter-offer on your listing.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Latest Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Respond to offer</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Counter-offer', body) });
+  return { ok: result.ok };
+}
+
+export async function sendSimpleOfferAcceptedEmail(params: {
+  to: string;
+  recipientName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('send_offer_accepted');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Your offer was accepted — ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>Your offer has been <strong>accepted</strong>.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Accepted Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Accepted', body) });
+  return { ok: result.ok };
+}
+
+export async function sendSimpleOfferDeclinedEmail(params: {
+  to: string;
+  recipientName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('send_offer_declined');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Offer declined — ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>Your offer was declined by the seller.</p>
+    <ul>
+      <li><strong>Listing:</strong> ${vars.listingTitle}</li>
+      <li><strong>Last Amount:</strong> ${vars.offerAmount}</li>
+    </ul>
+    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Declined', body) });
+  return { ok: result.ok };
+}
+
+export async function sendSimpleOfferWithdrawnEmail(params: {
+  to: string;
+  recipientName: string;
+  buyerName: string;
+  listingTitle: string;
+  listingId: string;
+  offerAmount: number;
+}): Promise<{ ok: boolean }> {
+  const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
+  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const vars = {
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    recipientName: params.recipientName || 'there',
+    buyerName: params.buyerName || 'Buyer',
+    listingTitle: params.listingTitle,
+    listingId: params.listingId,
+    listingUrl,
+    offerAmount: offerAmountFormatted,
+  };
+  const t = await getEmailTemplate('send_offer_withdrawn');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Offer withdrawn — ${params.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.recipientName},</p>
+    <p>${vars.buyerName} withdrew their offer.</p>
     <ul>
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Withdrawn Amount:</strong> ${vars.offerAmount}</li>

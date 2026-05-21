@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { siteOrigin } from '@/lib/site-metadata';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 
 /**
  * GET /api/auth/verify-phone?token=xxx

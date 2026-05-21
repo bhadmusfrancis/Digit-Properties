@@ -6,8 +6,9 @@ import User from '@/models/User';
 import { registerSchema } from '@/lib/validations';
 import { USER_ROLES } from '@/lib/constants';
 import { sendWelcomeEmail, sendAdminNewUser, sendVerificationEmail } from '@/lib/email';
+import { siteOrigin } from '@/lib/site-metadata';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 const VERIFY_EXPIRY_HOURS = 24;
 
 export async function POST(req: Request) {

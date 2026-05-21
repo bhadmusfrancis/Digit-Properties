@@ -8,7 +8,8 @@ export function siteOrigin(): string {
       /* ignore */
     }
   }
-  return 'https://digitproperties.com';
+  // Production Vercel redirects apex → www; canonicals/sitemap must match the live host.
+  return 'https://www.digitproperties.com';
 }
 
 export function siteMetadataBase(): URL {

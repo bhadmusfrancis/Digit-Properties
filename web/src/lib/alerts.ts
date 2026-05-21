@@ -6,9 +6,10 @@ import { dbConnect } from '@/lib/db';
 import Alert from '@/models/Alert';
 import { sendAlertMatchEmail } from '@/lib/email';
 import { sendPushNotification } from '@/lib/send-push';
+import { siteOrigin } from '@/lib/site-metadata';
 import type { IListing } from '@/models/Listing';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const BASE_URL = siteOrigin();
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Digit Properties';
 
 interface ListingMatch {

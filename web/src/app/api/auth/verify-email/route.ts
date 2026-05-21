@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
+import { siteOrigin } from '@/lib/site-metadata';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 
 /**
  * GET /api/auth/verify-email?token=xxx

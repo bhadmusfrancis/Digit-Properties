@@ -4,8 +4,9 @@ import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { forgotPasswordSchema } from '@/lib/validations';
+import { siteOrigin } from '@/lib/site-metadata';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 const RESET_EXPIRY_HOURS = 1;
 
 /**

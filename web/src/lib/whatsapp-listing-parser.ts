@@ -101,6 +101,8 @@ const COMMON_AREAS: Record<string, { city: string; state: string }> = {
   'elliott': { city: 'Ishaga', state: 'Lagos' },
   'ketu': { city: 'Ketu', state: 'Lagos' },
   'ibafo': { city: 'Ibafo', state: 'Ogun' },
+  'ibadan': { city: 'Ibadan', state: 'Oyo' },
+  'mokola': { city: 'Ibadan', state: 'Oyo' },
 };
 
 function normalizeText(s: string): string {
@@ -116,6 +118,14 @@ function includesPhrase(haystack: string, phrase: string): boolean {
   const compact = phrase.trim().toLowerCase().replace(/\s+/g, '\\s+');
   if (!compact) return false;
   return new RegExp(`\\b${compact}\\b`, 'i').test(haystack);
+}
+
+function applyPriceMultiplier(num: number, mult: string): number {
+  const m = mult.toLowerCase();
+  if (m === 'bn' || m === 'billion' || m === 'b') return num * 1_000_000_000;
+  if (m === 'm' || m === 'million') return num * 1_000_000;
+  if (m === 'k' || m === 'thousand') return num * 1_000;
+  return num;
 }
 
 function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'month' | 'year'; pricePerSqm?: number; rest: string } {
@@ -139,6 +149,9 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
     else rentPeriod = 'year';
   }
 
+  // Land sizes (e.g. 3.9 Acres) — strip so "on 3.9" is not read as ₦N 3.9
+  rest = rest.replace(/\b[\d.,]+\s*(?:acres?|hectares?|hectare|ha)\b/gi, ' ');
+
   // Price per sqm (e.g. 4m/sqm, 3.5m/sqm) - capture for later * area
   const perSqmMatch = rest.match(/(?:price|price:)\s*([\d.,]+)\s*m\s*\/\s*sqm/i) ?? rest.match(/\b([\d.,]+)\s*m\s*\/\s*sqm/i);
   if (perSqmMatch) {
@@ -146,22 +159,36 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
     rest = rest.replace(perSqmMatch[0], ' ');
   }
 
-  // ₦5m, 5m, 5 million, 500k, 2.7bn, 3.5bn
-  const patterns = [
-    /(?:₦|N|NGN)\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion)?/i,
-    /(?:price|#|amount)\s*[:\s]*([\d.,]+)\s*(m|million|k|thousand|bn|billion)?/i,
-    /([\d.,]+)\s*(m|million|k|thousand|bn|billion)\b/i,
-    /(?:₦|N|NGN)\s*([\d.,]+)/i,
+  const multSuffix = '(m|million|k|thousand|bn|billion|b)';
+    // 11b NET, 2.7bn net (billion shorthand common in WhatsApp posts)
+  const billionMatch =
+    rest.match(new RegExp(`\\b([\\d.,]+)\\s*${multSuffix}\\s*net\\b`, 'i')) ??
+    rest.match(new RegExp(`\\b([\\d.,]+)\\s*${multSuffix}\\b`, 'i'));
+  if (billionMatch) {
+    const num = parseFloat(billionMatch[1].replace(/,/g, ''));
+    const mult = (billionMatch[2] || 'b').toLowerCase();
+    if (['b', 'bn', 'billion'].includes(mult)) {
+      value = applyPriceMultiplier(num, mult);
+      rest = rest.replace(billionMatch[0], ' ');
+      return { value, rentPeriod, pricePerSqm, rest };
+    }
+  }
+
+  // ₦5m, NGN 5m, N5m (word-boundary N only — not the "n" in "on")
+  const patterns: RegExp[] = [
+    /(?:₦|NGN)\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b)?/i,
+    /(?:^|[\s,(])N\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b)?/i,
+    /(?:price|#|amount)\s*[:\s]*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b)?/i,
+    new RegExp(`\\b([\\d.,]+)\\s*${multSuffix}\\b`, 'i'),
+    /(?:₦|NGN)\s*([\d.,]+)/i,
+    /(?:^|[\s,(])N\s*([\d.,]+)/i,
   ];
   for (const re of patterns) {
     const m = rest.match(re);
     if (m) {
       const num = parseFloat(m[1].replace(/,/g, ''));
       const mult = (m[2] || '').toLowerCase();
-      if (mult === 'bn' || mult === 'billion') value = num * 1_000_000_000;
-      else if (mult === 'm' || mult === 'million') value = num * 1_000_000;
-      else if (mult === 'k' || mult === 'thousand') value = num * 1_000;
-      else value = num;
+      value = mult ? applyPriceMultiplier(num, mult) : num;
       if (value > 0) {
         rest = rest.replace(m[0], ' ');
         break;
@@ -292,6 +319,12 @@ function extractLocation(text: string): { state: string; city: string; address: 
       rest = rest.replace(locationMatch[0], ' ');
     }
   }
+  if (!address) {
+    const situatedMatch = text.match(/\b(?:situated|located)\s+at\s+([^\n.]{5,200})/i);
+    if (situatedMatch) {
+      address = situatedMatch[1].trim();
+    }
+  }
 
   for (const [alias, s] of Object.entries(STATE_ALIASES)) {
     if (includesPhrase(lower, escapeRegex(alias.toLowerCase()))) {
@@ -323,6 +356,11 @@ function extractLocation(text: string): { state: string; city: string; address: 
     const parts = [suburb || city, validState].filter(Boolean).map((p) => p.trim());
     const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
     address = dedup.join(', ');
+  }
+  if (address.length < 5) {
+    const cityState =
+      city.toLowerCase() !== validState.toLowerCase() ? `${city}, ${validState}` : `${validState}, Nigeria`;
+    if (cityState.length >= 5) address = cityState;
   }
   return { state: validState, city, address, suburb, rest };
 }

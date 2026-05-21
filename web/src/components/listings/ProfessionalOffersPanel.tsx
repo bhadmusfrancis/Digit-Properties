@@ -123,6 +123,8 @@ export function ProfessionalOffersPanel({
 }) {
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
+  const [simpleAmount, setSimpleAmount] = useState('');
+  const [simpleNote, setSimpleNote] = useState('');
   const [amountInput, setAmountInput] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [buyerDetails, setBuyerDetails] = useState<BuyerOfferDetails>({
@@ -150,7 +152,35 @@ export function ProfessionalOffersPanel({
     enabled: listingType === LISTING_TYPE.SALE && !!listingId,
   });
 
-  const createOffer = useMutation({
+  const signInUrl = `/auth/signin?callbackUrl=/listings/${listingId}`;
+  const signUpUrl = `/auth/signup?callbackUrl=/listings/${listingId}`;
+
+  const createSimpleOffer = useMutation({
+    mutationFn: async () => {
+      const amount = Number(String(simpleAmount).replace(/,/g, ''));
+      if (!(amount > 0)) {
+        throw new Error('Enter a valid offer amount');
+      }
+      const r = await fetch(`/api/listings/${listingId}/offers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          message: simpleNote.trim() || undefined,
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof j?.error === 'string' ? j.error : 'Could not send offer');
+      return j;
+    },
+    onSuccess: () => {
+      setSimpleAmount('');
+      setSimpleNote('');
+      queryClient.invalidateQueries({ queryKey: ['listing-offers', listingId] });
+    },
+  });
+
+  const createProfessionalOffer = useMutation({
     mutationFn: async () => {
       const amount = Number(String(amountInput).replace(/,/g, ''));
       const legalName = buyerDetails.legalName.trim();
@@ -164,6 +194,7 @@ export function ProfessionalOffersPanel({
         body: JSON.stringify({
           amount,
           message: message || undefined,
+          isProfessional: true,
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -273,55 +304,41 @@ export function ProfessionalOffersPanel({
   const { offersEnabled, listingPrice, offers } = data;
   const legalNameReady = buyerDetails.legalName.trim().length > 0;
 
+  const trySendSimpleOffer = () => {
+    if (status === 'unauthenticated') {
+      window.location.href = signInUrl;
+      return;
+    }
+    createSimpleOffer.mutate();
+  };
+
   return (
     <div className="mt-4 border-t border-gray-100 pt-4">
-      <h4 className="text-sm font-semibold text-gray-900">Professional offers</h4>
-      <p className="mt-1 text-xs text-gray-500">
-        A professional offer is a formal written intent to purchase. This draft includes buyer legal name, property description, location,
-        and key terms you can edit before sending.
-      </p>
+      <h4 className="text-sm font-semibold text-gray-900">Send offer</h4>
+      <p className="mt-1 text-xs text-gray-500">Submit your price. The seller can accept, decline, or counter.</p>
 
-      {!offersEnabled && (
-        <p className="mt-2 text-sm text-gray-600">
-          Offers are not enabled for this listing (must be active, for sale, and listed by a verified account).
-        </p>
-      )}
-
-      {offersEnabled && status === 'unauthenticated' && !isOwner && (
-        <p className="mt-3 text-sm text-gray-700">
-          <Link href={`/auth/signin?callbackUrl=/listings/${listingId}`} className="font-medium text-primary-600 hover:underline">
-            Sign in
-          </Link>{' '}
-          to send a professional offer.
-        </p>
-      )}
-
-      {offersEnabled && session && !isOwner && (
+      {!offersEnabled ? (
+        <p className="mt-2 text-sm text-gray-600">Offers aren&apos;t available on this listing.</p>
+      ) : !isOwner ? (
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-          {!negotiatingMine && (
-            <>
-              <p className="text-xs text-gray-600">Asking price: {formatNgn(listingPrice)}</p>
-              <div className="mt-3 rounded-md border border-gray-200 bg-white p-3">
-                <p className="text-sm text-gray-700">Open a full-screen editor to review and adjust your offer letter before sending.</p>
-                <button
-                  type="button"
-                  className="btn-primary mt-3 w-full sm:w-auto"
-                  onClick={() => setShowCreateForm(true)}
-                >
-                  Give an offer
-                </button>
-              </div>
-            </>
+          <p className="text-xs text-gray-600">Asking price: {formatNgn(listingPrice)}</p>
+          {negotiatingMine && status === 'unauthenticated' && (
+            <p className="mt-2 text-sm text-gray-700">
+              <Link href={signInUrl} className="font-medium text-primary-600 hover:underline">
+                Sign in
+              </Link>{' '}
+              to view or update your offer.
+            </p>
           )}
-          {negotiatingMine && (
-            <div className="space-y-2 text-sm">
+          {negotiatingMine && session && (
+            <div className="mt-3 space-y-2 text-sm">
               <p>
-                Current offer on the table: <span className="font-semibold text-gray-900">{formatNgn(negotiatingMine.amount)}</span>
+                Your offer: <span className="font-semibold text-gray-900">{formatNgn(negotiatingMine.amount)}</span>
               </p>
               <p className="text-xs text-gray-600">
                 {negotiatingMine.turn === 'seller'
                   ? 'Waiting for the seller to respond.'
-                  : 'The seller countered — you can send a new counter or maintain your previous offer.'}
+                  : 'Seller countered — send a new amount or keep your previous offer.'}
               </p>
               {negotiatingMine.turn === 'buyer' && (
                 <>
@@ -372,19 +389,83 @@ export function ProfessionalOffersPanel({
                       disabled={patchOffer.isPending}
                       onClick={() => patchOffer.mutate({ offerId: negotiatingMine._id, body: { action: 'maintain' } })}
                     >
-                      Maintain my offer of {formatNgn(negotiatingMine.maintainAmount ?? negotiatingMine.amount)}
+                      Keep {formatNgn(negotiatingMine.maintainAmount ?? negotiatingMine.amount)}
                     </button>
                   </div>
                 </>
               )}
-              {patchOffer.isError && (
-                <p className="text-xs text-red-600">{(patchOffer.error as Error)?.message}</p>
+              {patchOffer.isError && <p className="text-xs text-red-600">{(patchOffer.error as Error)?.message}</p>}
+            </div>
+          )}
+          {!negotiatingMine && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-xs font-medium text-gray-700">Your offer (NGN)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="input w-full"
+                placeholder="e.g. 45000000"
+                value={simpleAmount}
+                onChange={(e) => setSimpleAmount(e.target.value.replace(/[^\d.]/g, ''))}
+              />
+              <label className="block text-xs font-medium text-gray-700">Note (optional)</label>
+              <textarea
+                className="input min-h-[56px] w-full resize-y"
+                maxLength={500}
+                placeholder="Short message for the seller"
+                value={simpleNote}
+                onChange={(e) => setSimpleNote(e.target.value)}
+              />
+              <button
+                type="button"
+                className="btn-primary w-full sm:w-auto"
+                disabled={createSimpleOffer.isPending || !simpleAmount}
+                onClick={trySendSimpleOffer}
+              >
+                {createSimpleOffer.isPending ? 'Sending…' : 'Send offer'}
+              </button>
+              {status === 'unauthenticated' && (
+                <p className="text-xs text-gray-600">
+                  <Link href={signInUrl} className="font-medium text-primary-600 hover:underline">
+                    Sign in
+                  </Link>{' '}
+                  or{' '}
+                  <Link href={signUpUrl} className="font-medium text-primary-600 hover:underline">
+                    create an account
+                  </Link>{' '}
+                  to send your offer.
+                </p>
+              )}
+              {createSimpleOffer.isError && (
+                <p className="text-xs text-red-600">{(createSimpleOffer.error as Error)?.message}</p>
               )}
             </div>
           )}
         </div>
+      ) : null}
+
+      {offersEnabled && !isOwner && (
+        <div className="mt-6 border-t border-gray-100 pt-4">
+          <h4 className="text-sm font-semibold text-gray-900">Professional offers</h4>
+          <p className="mt-1 text-xs text-gray-500">Formal purchase letter with buyer details and terms.</p>
+          {status === 'unauthenticated' ? (
+            <p className="mt-2 text-sm text-gray-700">
+              <Link href={signInUrl} className="font-medium text-primary-600 hover:underline">
+                Sign in
+              </Link>{' '}
+              to send a professional offer.
+            </p>
+          ) : session && !negotiatingMine ? (
+            <button type="button" className="btn-secondary mt-3 w-full sm:w-auto" onClick={() => setShowCreateForm(true)}>
+              Prepare offer letter
+            </button>
+          ) : session && negotiatingMine ? (
+            <p className="mt-2 text-xs text-gray-500">Finish or close your current offer before sending a new professional letter.</p>
+          ) : null}
+        </div>
       )}
-      {offersEnabled && session && !isOwner && !negotiatingMine && showCreateForm && (
+
+      {offersEnabled && session && !isOwner && showCreateForm && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white" role="dialog" aria-modal="true" aria-labelledby="offer-editor-title">
           <div className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
             <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3">
@@ -503,15 +584,17 @@ export function ProfessionalOffersPanel({
                   <button
                     type="button"
                     className="btn-primary"
-                    disabled={createOffer.isPending || !amountInput || !legalNameReady}
-                    onClick={() => createOffer.mutate()}
+                    disabled={createProfessionalOffer.isPending || !amountInput || !legalNameReady}
+                    onClick={() => createProfessionalOffer.mutate()}
                   >
-                    {createOffer.isPending ? 'Sending...' : 'Send professional offer'}
+                    {createProfessionalOffer.isPending ? 'Sending...' : 'Send professional offer'}
                   </button>
                 </div>
               </div>
               {!legalNameReady && <p className="text-xs text-amber-700">Enter your legal name to send a professional offer.</p>}
-              {createOffer.isError && <p className="text-xs text-red-600">{(createOffer.error as Error)?.message}</p>}
+              {createProfessionalOffer.isError && (
+                <p className="text-xs text-red-600">{(createProfessionalOffer.error as Error)?.message}</p>
+              )}
             </div>
           </div>
         </div>
@@ -621,7 +704,7 @@ export function ProfessionalOffersPanel({
       )}
 
       {isOwner && offers.length === 0 && offersEnabled && (
-        <p className="mt-2 text-sm text-gray-500">No offers yet. Buyers with accounts will see the option to send one here.</p>
+        <p className="mt-2 text-sm text-gray-500">No offers yet.</p>
       )}
 
       {!isOwner && offersEnabled && session && negotiatingMine === null && offers.some((o) => o.status !== 'negotiating') && (

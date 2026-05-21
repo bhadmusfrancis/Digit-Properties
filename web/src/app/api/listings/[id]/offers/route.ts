@@ -9,8 +9,8 @@ import { canViewListingOnSite } from '@/lib/listing-access';
 import { LISTING_STATUS, LISTING_TYPE } from '@/lib/constants';
 import { listingOfferCreateSchema } from '@/lib/validations';
 import { isPublicVerifiedAccount, shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
-import { LISTING_OFFER_STATUS, LISTING_OFFER_TURN } from '@/models/ListingProfessionalOffer';
-import { sendProfessionalOfferNewEmail } from '@/lib/email';
+import { LISTING_OFFER_KIND, LISTING_OFFER_STATUS, LISTING_OFFER_TURN } from '@/models/ListingProfessionalOffer';
+import { notifyOfferNew } from '@/lib/offer-emails';
 
 function serializeOffer(doc: {
   _id: unknown;
@@ -130,7 +130,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const session = await getSession(req);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Sign in to send a professional offer' }, { status: 401 });
+      return NextResponse.json({ error: 'Sign in to send an offer' }, { status: 401 });
     }
 
     const { id: listingId } = await params;
@@ -143,7 +143,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-    const { amount, message } = parsed.data;
+    const { amount, message, isProfessional } = parsed.data;
+    const offerKind = isProfessional ? LISTING_OFFER_KIND.PROFESSIONAL : LISTING_OFFER_KIND.SIMPLE;
 
     await dbConnect();
     const meta = await loadListingForOffers(listingId);
@@ -199,6 +200,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       status: LISTING_OFFER_STATUS.NEGOTIATING,
       turn: LISTING_OFFER_TURN.SELLER,
       listingPriceAtCreate: listingPrice,
+      offerKind,
       events: [
         {
           actorId: buyerOid,
@@ -217,7 +219,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ]);
     const sellerEmail = typeof sellerFull?.email === 'string' ? sellerFull.email : '';
     if (sellerEmail) {
-      sendProfessionalOfferNewEmail({
+      notifyOfferNew(offerKind, {
         to: sellerEmail,
         recipientName: (typeof sellerFull?.name === 'string' && sellerFull.name) || 'Seller',
         buyerName: (typeof buyerFull?.name === 'string' && buyerFull.name) || session.user.name || 'Buyer',
