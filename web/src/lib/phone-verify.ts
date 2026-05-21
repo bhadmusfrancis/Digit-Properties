@@ -5,11 +5,12 @@
  */
 
 import crypto from 'crypto';
+import { siteOrigin } from '@/lib/site-metadata';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const TERMII_SENDER_ID = process.env.TERMII_SENDER_ID || 'DigitProp';
 const TERMII_BASE_URL = process.env.TERMII_BASE_URL || 'https://api.termii.com';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;

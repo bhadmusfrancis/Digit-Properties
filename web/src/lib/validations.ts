@@ -286,6 +286,7 @@ const offerAmountSchema = z.number().positive().max(1e15);
 export const listingOfferCreateSchema = z.object({
   amount: offerAmountSchema,
   message: z.string().max(1000).optional(),
+  isProfessional: z.boolean().optional(),
 });
 
 export const listingOfferPatchSchema = z.discriminatedUnion('action', [

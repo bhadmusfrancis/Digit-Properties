@@ -10,11 +10,12 @@ import { LISTING_OFFER_STATUS, LISTING_OFFER_TURN } from '@/models/ListingProfes
 import { USER_PUBLIC_BADGE_FIELDS, shapePublicCreatedBy } from '@/lib/verification';
 import User from '@/models/User';
 import {
-  sendProfessionalOfferAcceptedEmail,
-  sendProfessionalOfferCounterEmail,
-  sendProfessionalOfferDeclinedEmail,
-  sendProfessionalOfferWithdrawnEmail,
-} from '@/lib/email';
+  notifyOfferAccepted,
+  notifyOfferCounter,
+  notifyOfferDeclined,
+  notifyOfferWithdrawn,
+} from '@/lib/offer-emails';
+import type { ListingOfferKind } from '@/models/ListingProfessionalOffer';
 
 function serializeOffer(doc: {
   _id: unknown;
@@ -103,6 +104,7 @@ export async function PATCH(
     const sellerName = (typeof sellerUser?.name === 'string' && sellerUser.name) || 'Seller';
     const listingTitle = (listing as { title?: string }).title || 'Listing';
     const latestAmount = offer.amount;
+    const offerKind = (offer as { offerKind?: ListingOfferKind }).offerKind;
 
     if (action.action === 'withdraw') {
       if (!isBuyer) {
@@ -119,7 +121,7 @@ export async function PATCH(
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
       if (sellerEmail) {
-        sendProfessionalOfferWithdrawnEmail({
+        notifyOfferWithdrawn(offerKind, {
           to: sellerEmail,
           recipientName: sellerName,
           buyerName,
@@ -149,7 +151,7 @@ export async function PATCH(
         await offer.save();
         const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
         if (buyerEmail) {
-          sendProfessionalOfferAcceptedEmail({
+          notifyOfferAccepted(offerKind, {
             to: buyerEmail,
             recipientName: buyerName,
             listingTitle,
@@ -170,7 +172,7 @@ export async function PATCH(
         await offer.save();
         const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
         if (buyerEmail) {
-          sendProfessionalOfferDeclinedEmail({
+          notifyOfferDeclined(offerKind, {
             to: buyerEmail,
             recipientName: buyerName,
             listingTitle,
@@ -192,7 +194,7 @@ export async function PATCH(
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
       if (buyerEmail) {
-        sendProfessionalOfferCounterEmail({
+        notifyOfferCounter(offerKind, {
           to: buyerEmail,
           recipientName: buyerName,
           actorName: sellerName,
@@ -238,7 +240,7 @@ export async function PATCH(
       await offer.save();
       const lean = await ListingProfessionalOffer.findById(offer._id).populate('buyerId', USER_PUBLIC_BADGE_FIELDS).lean();
       if (sellerEmail) {
-        sendProfessionalOfferCounterEmail({
+        notifyOfferCounter(offerKind, {
           to: sellerEmail,
           recipientName: sellerName,
           actorName: buyerName,

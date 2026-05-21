@@ -61,20 +61,16 @@ debug_*.py
 ocr_test*.txt
 git.txt
 
-# One-off web scripts (seeds & shared maintenance under web/scripts/ stay tracked)
+# One-off web scripts (tracked: seed-*, normalize-listing-locations, dedupe-all-listings, chat import below)
 web/scripts/local/
-web/scripts/import-chat-listings.ts
-web/scripts/delete-chat-import-listings.ts
-web/scripts/lib/chat-import-utils.ts
-web/scripts/import-*-batch.ts
-web/scripts/import-*-remaining.ts
-web/scripts/diagnose-*.ts
-web/scripts/test-parse-*.ts
 web/scripts/inspect-*.ts
-web/scripts/enforce-location-from-post-text.ts
-web/scripts/cleanup-multi-listing-posts.js
-web/scripts/fix-listing-type-rent-sale.ts
+web/scripts/enforce-*.ts
+web/scripts/cleanup-*.js
+web/scripts/fix-*.ts
 web/scripts/seed-listings-ade.ts
+
+# Local OCR training data (tesseract)
+web/eng.traineddata
 
 # Vercel
 .vercel
