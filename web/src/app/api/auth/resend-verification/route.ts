@@ -4,8 +4,9 @@ import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import { sendVerificationEmail } from '@/lib/email';
 import { resendVerificationSchema } from '@/lib/validations';
+import { siteOrigin } from '@/lib/site-metadata';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://digitproperties.com';
+const APP_URL = siteOrigin();
 const VERIFY_EXPIRY_HOURS = 24;
 
 /**

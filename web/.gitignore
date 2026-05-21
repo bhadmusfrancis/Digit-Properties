@@ -34,5 +34,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local one-off scripts (see repo root .gitignore for full list)
+# Local one-off scripts (chat import scripts under /scripts/ are tracked; see repo root .gitignore)
 /scripts/local/
+/scripts/inspect-*.ts
+/scripts/enforce-*.ts
+/scripts/cleanup-*.js
+/scripts/fix-*.ts
+/scripts/seed-listings-ade.ts
+/eng.traineddata

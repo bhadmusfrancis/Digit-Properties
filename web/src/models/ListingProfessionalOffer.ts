@@ -16,6 +16,13 @@ export const LISTING_OFFER_TURN = {
 
 export type ListingOfferTurn = (typeof LISTING_OFFER_TURN)[keyof typeof LISTING_OFFER_TURN];
 
+export const LISTING_OFFER_KIND = {
+  SIMPLE: 'simple',
+  PROFESSIONAL: 'professional',
+} as const;
+
+export type ListingOfferKind = (typeof LISTING_OFFER_KIND)[keyof typeof LISTING_OFFER_KIND];
+
 export type OfferEventKind = 'created' | 'counter' | 'maintained' | 'accepted' | 'declined' | 'withdrawn';
 
 export interface IOfferEvent {
@@ -36,6 +43,7 @@ export interface IListingProfessionalOffer {
   status: ListingOfferStatus;
   turn: ListingOfferTurn;
   listingPriceAtCreate: number;
+  offerKind: ListingOfferKind;
   events: IOfferEvent[];
   createdAt: Date;
   updatedAt: Date;
@@ -66,6 +74,12 @@ const ListingProfessionalOfferSchema = new Schema<IListingProfessionalOffer>(
     },
     turn: { type: String, enum: Object.values(LISTING_OFFER_TURN), required: true },
     listingPriceAtCreate: { type: Number, required: true },
+    offerKind: {
+      type: String,
+      enum: Object.values(LISTING_OFFER_KIND),
+      default: LISTING_OFFER_KIND.SIMPLE,
+      index: true,
+    },
     events: { type: [OfferEventSchema], default: [] },
   },
   { timestamps: true }
