@@ -6,9 +6,16 @@ import Link from 'next/link';
 
 interface AuthorLikeButtonProps {
   authorId: string;
+  /** Full-width layout for listing author panel. */
+  variant?: 'default' | 'panel';
+  signInCallbackUrl?: string;
 }
 
-export function AuthorLikeButton({ authorId }: AuthorLikeButtonProps) {
+export function AuthorLikeButton({
+  authorId,
+  variant = 'default',
+  signInCallbackUrl,
+}: AuthorLikeButtonProps) {
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
   const isOwnProfile = !!session?.user?.id && session.user.id === authorId;
@@ -35,9 +42,17 @@ export function AuthorLikeButton({ authorId }: AuthorLikeButtonProps) {
     },
   });
 
+  const isPanel = variant === 'panel';
+
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-3">
-      <span className="text-sm text-gray-500">
+    <div
+      className={
+        isPanel
+          ? 'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'
+          : 'mt-3 flex flex-wrap items-center gap-3'
+      }
+    >
+      <span className={`tabular-nums ${isPanel ? 'text-sm font-medium text-gray-700' : 'text-sm text-gray-500'}`}>
         {likeCount} like{likeCount !== 1 ? 's' : ''}
       </span>
       {status === 'loading' ? null : session ? (
@@ -48,13 +63,16 @@ export function AuthorLikeButton({ authorId }: AuthorLikeButtonProps) {
             type="button"
             onClick={() => toggleLike.mutate()}
             disabled={toggleLike.isPending}
-            className="btn-secondary text-sm"
+            className={isPanel ? 'btn-secondary w-full sm:w-auto' : 'btn-secondary text-sm'}
           >
             {toggleLike.isPending ? '…' : liked ? 'Unlike' : 'Like'} author
           </button>
         )
       ) : (
-        <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(`/authors/${authorId}`)}`} className="text-sm text-primary-600 hover:underline">
+        <Link
+          href={`/auth/signin?callbackUrl=${encodeURIComponent(signInCallbackUrl ?? `/authors/${authorId}`)}`}
+          className={isPanel ? 'btn-secondary w-full text-center text-sm sm:w-auto' : 'text-sm text-primary-600 hover:underline'}
+        >
           Sign in to like
         </Link>
       )}

@@ -3,9 +3,8 @@ import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { canViewListingOnSite } from '@/lib/listing-access';
-import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ListingLocationMap } from '@/components/listings/ListingLocationMap';
-import { ProfessionalOffersPanel } from '@/components/listings/ProfessionalOffersPanel';
+import { ListingSidebarTabs } from '@/components/listings/ListingSidebarTabs';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
@@ -13,11 +12,11 @@ import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, USER_ROLES, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
 import {
-  getCloudinaryVideoThumbnailUrl,
   getDefaultListingImageUrl,
   getListingDisplayImage,
   getListingImagesForDisplay,
   getListingOpenGraphImages,
+  isVideoUrl,
 } from '@/lib/listing-default-image';
 import { extractAmenitiesFromText, mergeUniqueLists } from '@/lib/listing-amenities';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
@@ -34,11 +33,6 @@ import { buildBreadcrumbJsonLd, buildListingJsonLd } from '@/lib/seo/structured-
 import { plainTextExcerpt } from '@/lib/utils';
 
 const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-function isVideoUrl(url: string): boolean {
-  const clean = (url || '').split('?')[0].toLowerCase();
-  return /\.(mp4|webm|mov|m4v|ogg|ogv)$/.test(clean) || clean.includes('/video/upload/');
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
@@ -325,18 +319,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         },
       ];
     } else if (!hasGalleryStills && hasGalleryVideos) {
-      const firstVideo = videos[0] ?? videosFromImages[0];
-      const posterUrl = firstVideo ? getCloudinaryVideoThumbnailUrl(firstVideo) : null;
-      const posterSlide = posterUrl
-        ? [
-            {
-              url: posterUrl,
-              public_id: firstVideo.public_id ? `${firstVideo.public_id}_poster` : 'video-poster',
-              type: 'image' as const,
-            },
-          ]
-        : [];
-      galleryMedia = [...posterSlide, ...videos, ...videosFromImages];
+      // Video-only: no extra frame slide (cards use getListingDisplayImage). Listings that already
+      // store frame thumbnails in images[] are handled above as stills via isCloudinaryVideoFrameThumbnailUrl.
+      galleryMedia = [...videos, ...videosFromImages];
     } else {
       galleryMedia = [...images, ...videos, ...videosFromImages];
     }
@@ -391,7 +376,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         ]}
       />
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid min-w-0 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">
             <ListingImageGallery images={galleryMedia} title={listing.title} isBoosted={isBoosted} />
@@ -471,8 +456,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         </div>
-        <div>
-          <div className="card p-6">
+        <div className="min-w-0 lg:sticky lg:top-8 lg:self-start">
+          <div className="card min-w-0 overflow-hidden p-6">
             <h3 className="font-semibold text-gray-900">Location</h3>
             <p className="mt-2 text-gray-600">
               {formatListingLocationDisplay(listing.location)}
@@ -482,17 +467,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               addressLine={formatListingLocationDisplay(listing.location)}
               coordinates={listing.location?.coordinates}
             />
-            <ProfessionalOffersPanel
+            <ListingSidebarTabs
               listingId={id}
               listingType={String(listing.listingType ?? '')}
-              isOwner={isOwner}
               listingTitle={listing.title}
               propertyType={String(listing.propertyType ?? '')}
-              listingDescription={listing.description}
+              listingDescription={listing.description ?? ''}
               locationDisplay={formatListingLocationDisplay(listing.location)}
-            />
-            <ListingDetailClient
-              listingId={String(listing._id)}
               title={listing.title}
               createdBy={shapePublicCreatedBy(listing.createdBy)}
               createdByType={listing.createdByType ?? 'user'}
@@ -511,9 +492,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 </Link>
               </div>
             )}
-            <Link href="/listings" className="btn-secondary mt-4 block text-center">
-              Back to listings
-            </Link>
           </div>
         </div>
       </div>

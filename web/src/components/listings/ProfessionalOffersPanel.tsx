@@ -112,6 +112,7 @@ export function ProfessionalOffersPanel({
   propertyType,
   listingDescription,
   locationDisplay,
+  embedded = false,
 }: {
   listingId: string;
   listingType: string;
@@ -120,6 +121,7 @@ export function ProfessionalOffersPanel({
   propertyType: string;
   listingDescription: string;
   locationDisplay: string;
+  embedded?: boolean;
 }) {
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
@@ -285,9 +287,11 @@ export function ProfessionalOffersPanel({
 
   if (listingType !== LISTING_TYPE.SALE) return null;
 
+  const shellClass = embedded ? '' : 'mt-4 border-t border-gray-100 pt-4';
+
   if (isPending || !data) {
     return (
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className={shellClass}>
         <div className="h-24 animate-pulse rounded-lg bg-gray-100" aria-hidden />
       </div>
     );
@@ -295,7 +299,7 @@ export function ProfessionalOffersPanel({
 
   if (isError) {
     return (
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className={shellClass}>
         <p className="text-sm text-red-600">{(error as Error)?.message}</p>
       </div>
     );
@@ -313,7 +317,7 @@ export function ProfessionalOffersPanel({
   };
 
   return (
-    <div className="mt-4 border-t border-gray-100 pt-4">
+    <div className={shellClass}>
       <h4 className="text-sm font-semibold text-gray-900">Send offer</h4>
       <p className="mt-1 text-xs text-gray-500">Submit your price. The seller can accept, decline, or counter.</p>
 
@@ -444,24 +448,17 @@ export function ProfessionalOffersPanel({
         </div>
       ) : null}
 
-      {offersEnabled && !isOwner && (
+      {offersEnabled && session && !isOwner && (
         <div className="mt-6 border-t border-gray-100 pt-4">
           <h4 className="text-sm font-semibold text-gray-900">Professional offers</h4>
           <p className="mt-1 text-xs text-gray-500">Formal purchase letter with buyer details and terms.</p>
-          {status === 'unauthenticated' ? (
-            <p className="mt-2 text-sm text-gray-700">
-              <Link href={signInUrl} className="font-medium text-primary-600 hover:underline">
-                Sign in
-              </Link>{' '}
-              to send a professional offer.
-            </p>
-          ) : session && !negotiatingMine ? (
+          {!negotiatingMine ? (
             <button type="button" className="btn-secondary mt-3 w-full sm:w-auto" onClick={() => setShowCreateForm(true)}>
               Prepare offer letter
             </button>
-          ) : session && negotiatingMine ? (
+          ) : (
             <p className="mt-2 text-xs text-gray-500">Finish or close your current offer before sending a new professional letter.</p>
-          ) : null}
+          )}
         </div>
       )}
 
