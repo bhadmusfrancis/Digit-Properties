@@ -95,7 +95,18 @@ export function getCloudinaryVideoThumbnailUrl(
 
 export type ListingVideoRef = { url?: string; public_id?: string };
 
-function isVideoUrl(url: string): boolean {
+/** Cloudinary first-frame JPG/WebP derived from a video (not playable video delivery). */
+export function isCloudinaryVideoFrameThumbnailUrl(url: string): boolean {
+  const u = (url || '').toLowerCase();
+  if (!u.includes(CLOUDINARY_HOST) || !u.includes('/video/upload/')) return false;
+  return (
+    /\/video\/upload\/[^/]*so_\d/i.test(u) ||
+    /\bf_(?:jpg|jpeg|webp|png)\b/.test(u)
+  );
+}
+
+export function isVideoUrl(url: string): boolean {
+  if (isCloudinaryVideoFrameThumbnailUrl(url)) return false;
   const clean = (url || '').split('?')[0].toLowerCase();
   return /\.(mp4|webm|mov|m4v|ogg|ogv|mkv|avi)$/.test(clean) || clean.includes('/video/upload/');
 }
@@ -193,7 +204,8 @@ export function getListingDisplayImage(
 }
 
 /**
- * Gallery images: listing photos, or a single video frame thumbnail when there are only videos, else default placeholder.
+ * Structured-data / fallback image list: real photos when present; for video-only listings, a single
+ * Cloudinary frame thumbnail (same as search cards). Not used for the on-page media gallery.
  */
 export function getListingImagesForDisplay(
   images: { url: string; public_id?: string }[] | undefined,

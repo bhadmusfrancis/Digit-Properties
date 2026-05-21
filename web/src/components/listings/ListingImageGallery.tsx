@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
 
@@ -9,6 +9,90 @@ type MediaItem = { url: string; public_id?: string; type?: 'image' | 'video' };
 const ZOOM_LEVELS = [1, 1.5, 2, 2.5, 3];
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
+
+function ListingGalleryVideo({
+  videoRef,
+  src,
+  poster,
+  className,
+  size = 'md',
+  objectFit = 'cover',
+}: {
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  src: string;
+  poster?: string;
+  className?: string;
+  size?: 'md' | 'lg';
+  objectFit?: 'cover' | 'contain';
+}) {
+  const [playing, setPlaying] = useState(false);
+  const iconBox = size === 'lg' ? 'h-20 w-20' : 'h-16 w-16';
+  const icon = size === 'lg' ? 'h-10 w-10' : 'h-8 w-8';
+
+  useEffect(() => {
+    setPlaying(false);
+  }, [src]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    const onEnded = () => setPlaying(false);
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+    el.addEventListener('ended', onEnded);
+    return () => {
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.removeEventListener('ended', onEnded);
+    };
+  }, [videoRef, src]);
+
+  const togglePlay = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const el = videoRef.current;
+      if (!el) return;
+      if (el.paused) void el.play().catch(() => setPlaying(false));
+      else el.pause();
+    },
+    [videoRef]
+  );
+
+  const objectClass = objectFit === 'contain' ? 'object-contain' : 'object-cover';
+
+  return (
+    <div className={`relative h-full w-full ${className ?? ''}`}>
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        preload="none"
+        playsInline
+        className={`h-full w-full ${objectClass}`}
+      />
+      <button
+        type="button"
+        onClick={togglePlay}
+        className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow-lg transition hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white/60"
+        aria-label={playing ? 'Pause video' : 'Play video'}
+      >
+        <span className={`flex items-center justify-center rounded-full ${iconBox}`}>
+          {playing ? (
+            <svg className={icon} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" />
+            </svg>
+          ) : (
+            <svg className={`${icon} ml-1`} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </span>
+      </button>
+    </div>
+  );
+}
 
 export function ListingImageGallery({
   images,
@@ -22,6 +106,8 @@ export function ListingImageGallery({
   const [index, setIndex] = useState(0);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
+  const inlineVideoRef = useRef<HTMLVideoElement>(null);
+  const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
   const list = images?.filter((img) => img?.url) ?? [];
   const current = list[index] ?? list[0];
   const total = list.length;
@@ -89,6 +175,11 @@ export function ListingImageGallery({
     };
   }, [fullscreenOpen]);
 
+  useEffect(() => {
+    inlineVideoRef.current?.pause();
+    fullscreenVideoRef.current?.pause();
+  }, [index, current?.url]);
+
   if (list.length === 0) {
     return (
       <div className="relative aspect-video bg-gray-200">
@@ -127,14 +218,14 @@ export function ListingImageGallery({
         aria-label="View media fullscreen"
       >
         {current.type === 'video' ? (
-          <video
-            src={current.url}
-            poster={getCloudinaryVideoThumbnailUrl(current) ?? undefined}
-            controls
-            preload="metadata"
-            playsInline
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
+            <ListingGalleryVideo
+              videoRef={inlineVideoRef}
+              src={current.url}
+              poster={getCloudinaryVideoThumbnailUrl(current) ?? undefined}
+              className="h-full w-full"
+            />
+          </div>
         ) : (
           <Image
             src={current.url}
@@ -268,14 +359,13 @@ export function ListingImageGallery({
             >
               <div className="relative h-full w-full">
                 {current.type === 'video' ? (
-                  <video
+                  <ListingGalleryVideo
+                    videoRef={fullscreenVideoRef}
                     src={current.url}
                     poster={getCloudinaryVideoThumbnailUrl(current) ?? undefined}
-                    controls
-                    autoPlay
-                    preload="metadata"
-                    playsInline
-                    className="h-full w-full object-contain"
+                    className="h-full w-full"
+                    size="lg"
+                    objectFit="contain"
                   />
                 ) : (
                   <Image
