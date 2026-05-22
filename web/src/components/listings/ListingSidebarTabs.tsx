@@ -9,7 +9,7 @@ import { ProfessionalOffersPanel } from '@/components/listings/ProfessionalOffer
 
 type SidebarTab = 'contact' | 'offers';
 
-const TAB_META: Record<SidebarTab, { label: string; icon: JSX.Element }> = {
+const TAB_META: Record<SidebarTab, { label: string; icon: React.ReactNode }> = {
   contact: {
     label: 'Contact',
     icon: (
