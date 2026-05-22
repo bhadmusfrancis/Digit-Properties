@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface AuthorLikeButtonProps {
   authorId: string;
@@ -16,9 +16,11 @@ export function AuthorLikeButton({
   variant = 'default',
   signInCallbackUrl,
 }: AuthorLikeButtonProps) {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
   const isOwnProfile = !!session?.user?.id && session.user.id === authorId;
+  const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(signInCallbackUrl ?? `/authors/${authorId}`)}`;
 
   const { data: likeData } = useQuery({
     queryKey: ['author-like', authorId],
@@ -55,26 +57,24 @@ export function AuthorLikeButton({
       <span className={`tabular-nums ${isPanel ? 'text-sm font-medium text-gray-700' : 'text-sm text-gray-500'}`}>
         {likeCount} like{likeCount !== 1 ? 's' : ''}
       </span>
-      {status === 'loading' ? null : session ? (
-        isOwnProfile ? (
-          <span className="text-sm text-gray-400">Your profile</span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => toggleLike.mutate()}
-            disabled={toggleLike.isPending}
-            className={isPanel ? 'btn-secondary w-full sm:w-auto' : 'btn-secondary text-sm'}
-          >
-            {toggleLike.isPending ? '…' : liked ? 'Unlike' : 'Like'} author
-          </button>
-        )
+      {status === 'loading' ? null : isOwnProfile ? (
+        <span className="text-sm text-gray-400">Your profile</span>
       ) : (
-        <Link
-          href={`/auth/signin?callbackUrl=${encodeURIComponent(signInCallbackUrl ?? `/authors/${authorId}`)}`}
-          className={isPanel ? 'btn-secondary w-full text-center text-sm sm:w-auto' : 'text-sm text-primary-600 hover:underline'}
+        <button
+          type="button"
+          onClick={() => {
+            if (status === 'loading') return;
+            if (!session) {
+              router.push(signInUrl);
+              return;
+            }
+            toggleLike.mutate();
+          }}
+          disabled={toggleLike.isPending}
+          className={isPanel ? 'btn-secondary w-full sm:w-auto' : 'btn-secondary text-sm'}
         >
-          Sign in to like
-        </Link>
+          {toggleLike.isPending ? '…' : liked ? 'Unlike' : 'Like'} author
+        </button>
       )}
     </div>
   );

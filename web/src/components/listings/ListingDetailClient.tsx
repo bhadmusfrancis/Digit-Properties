@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getWhatsAppUrl, getTelHref } from '@/lib/utils';
 import { USER_ROLES } from '@/lib/constants';
@@ -183,6 +182,16 @@ export function ListingDetailClient({
 
   const listingUrl = `${baseUrl}/listings/${listingId}`;
   const whatsappMessage = `Hi, I'm interested in this property: ${title} - ${listingUrl}`;
+  const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(`/listings/${listingId}`)}`;
+
+  const requireSignIn = () => {
+    if (status === 'loading') return false;
+    if (!session) {
+      router.push(signInUrl);
+      return false;
+    }
+    return true;
+  };
 
   return (
     <div className={embedded ? 'space-y-4' : 'mt-6 space-y-4'}>
@@ -190,10 +199,13 @@ export function ListingDetailClient({
         <span>{viewCount} view{viewCount !== 1 ? 's' : ''}</span>
         <span>{likeCount} like{likeCount !== 1 ? 's' : ''}</span>
       </div>
-      {session && !isOwner && (
+      {!isOwner && (
         <button
           type="button"
-          onClick={() => toggleLike.mutate()}
+          onClick={() => {
+            if (!requireSignIn()) return;
+            toggleLike.mutate();
+          }}
           className="btn-secondary w-full"
           disabled={toggleLike.isPending}
         >
@@ -273,30 +285,26 @@ export function ListingDetailClient({
         </div>
       )}
 
-      {session && !isOwner && (
+      {!isOwner && (
         <button
           type="button"
-          onClick={() => toggleSaved.mutate()}
+          onClick={() => {
+            if (!requireSignIn()) return;
+            toggleSaved.mutate();
+          }}
           className="btn-secondary w-full"
+          disabled={toggleSaved.isPending}
         >
           {isSaved ? 'Remove from Favorites' : 'Add to Favorites'}
         </button>
       )}
-      {status === 'unauthenticated' && !isOwner && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm text-gray-700">
-            <Link href="/auth/signin" className="font-medium text-primary-600 hover:underline">
-              Sign in
-            </Link>{' '}
-            to save this listing to your favorites.
-          </p>
-        </div>
-      )}
 
-      {(createdByType === 'bot' || createdBy?.role === USER_ROLES.BOT) && session && (
+      {(createdByType === 'bot' || createdBy?.role === USER_ROLES.BOT) && (
         <div className="border-t pt-4">
           <button
+            type="button"
             onClick={() => {
+              if (!requireSignIn()) return;
               setClaimStep('send');
               setClaimPinId(null);
               setClaimPhoneDisplay('');
