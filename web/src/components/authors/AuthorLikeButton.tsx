@@ -63,7 +63,6 @@ export function AuthorLikeButton({
         <button
           type="button"
           onClick={() => {
-            if (status === 'loading') return;
             if (!session) {
               router.push(signInUrl);
               return;
