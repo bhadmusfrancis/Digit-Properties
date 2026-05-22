@@ -492,6 +492,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 </Link>
               </div>
             )}
+            <Link href="/listings" className="btn-secondary mt-4 block text-center">
+              Back to listings
+            </Link>
           </div>
         </div>
       </div>

@@ -155,7 +155,6 @@ export function ProfessionalOffersPanel({
   });
 
   const signInUrl = `/auth/signin?callbackUrl=/listings/${listingId}`;
-  const signUpUrl = `/auth/signup?callbackUrl=/listings/${listingId}`;
 
   const createSimpleOffer = useMutation({
     mutationFn: async () => {
@@ -327,12 +326,15 @@ export function ProfessionalOffersPanel({
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
           <p className="text-xs text-gray-600">Asking price: {formatNgn(listingPrice)}</p>
           {negotiatingMine && status === 'unauthenticated' && (
-            <p className="mt-2 text-sm text-gray-700">
-              <Link href={signInUrl} className="font-medium text-primary-600 hover:underline">
-                Sign in
-              </Link>{' '}
-              to view or update your offer.
-            </p>
+            <button
+              type="button"
+              className="btn-secondary mt-3 w-full sm:w-auto"
+              onClick={() => {
+                window.location.href = signInUrl;
+              }}
+            >
+              View or update your offer
+            </button>
           )}
           {negotiatingMine && session && (
             <div className="mt-3 space-y-2 text-sm">
@@ -428,18 +430,6 @@ export function ProfessionalOffersPanel({
               >
                 {createSimpleOffer.isPending ? 'Sending…' : 'Send offer'}
               </button>
-              {status === 'unauthenticated' && (
-                <p className="text-xs text-gray-600">
-                  <Link href={signInUrl} className="font-medium text-primary-600 hover:underline">
-                    Sign in
-                  </Link>{' '}
-                  or{' '}
-                  <Link href={signUpUrl} className="font-medium text-primary-600 hover:underline">
-                    create an account
-                  </Link>{' '}
-                  to send your offer.
-                </p>
-              )}
               {createSimpleOffer.isError && (
                 <p className="text-xs text-red-600">{(createSimpleOffer.error as Error)?.message}</p>
               )}
