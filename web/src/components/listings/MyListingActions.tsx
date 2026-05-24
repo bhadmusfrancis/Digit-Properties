@@ -27,6 +27,8 @@ export function MyListingActions({
   const [selectedPackage, setSelectedPackage] = useState<BoostPackageId>('starter');
   const [marking, setMarking] = useState<'sold' | 'rented' | null>(null);
   const isRentListing = listingType === 'rent';
+  const isMarked = isRentListing ? Boolean(rentedAt) : Boolean(soldAt);
+  const marketKind = isRentListing ? 'rented' : 'sold';
 
   async function handleDelete() {
     if (!confirm('Delete this listing? This cannot be undone.')) return;
@@ -97,8 +99,47 @@ export function MyListingActions({
     }
   }
 
+  const marketButtonLabel = (() => {
+    if (marking === marketKind) return 'Updating…';
+    if (isMarked) {
+      return isRentListing ? 'Marked Rented — set available' : 'Marked Sold — set available';
+    }
+    return isRentListing ? 'Mark as Rented' : 'Mark as Sold';
+  })();
+
+  const marketButtonClass = isRentListing
+    ? isMarked
+      ? 'border-indigo-700 bg-indigo-600 text-white hover:bg-indigo-700'
+      : 'border-indigo-600 bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+    : isMarked
+      ? 'border-red-700 bg-red-600 text-white hover:bg-red-700'
+      : 'border-red-600 bg-red-50 text-red-800 hover:bg-red-100';
+
   return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:items-end">
+      <button
+        type="button"
+        onClick={() => toggleMarketStatus(marketKind)}
+        disabled={marking !== null}
+        className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:opacity-50 sm:min-w-[220px] sm:w-auto ${marketButtonClass}`}
+        title={
+          isMarked
+            ? 'Remove sold/rented status and show as available again'
+            : isRentListing
+              ? 'Quickly mark this rental as rented'
+              : 'Quickly mark this property as sold'
+        }
+      >
+        <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          {isMarked ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          )}
+        </svg>
+        {marketButtonLabel}
+      </button>
+      <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
       <Link
         href={`/listings/${listingId}`}
         className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 sm:min-h-[34px]"
@@ -145,53 +186,6 @@ export function MyListingActions({
         </svg>
         {boosting ? '…' : 'Boost'}
       </button>
-      {isRentListing ? (
-        <button
-          type="button"
-          role="switch"
-          aria-checked={Boolean(rentedAt)}
-          onClick={() => toggleMarketStatus('rented')}
-          disabled={marking !== null}
-          className="inline-flex min-h-[36px] items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:min-h-[34px]"
-          title={rentedAt ? 'Mark as available (turn rented off)' : 'Mark listing as rented'}
-        >
-          <span>{marking === 'rented' ? 'Updating…' : 'Rented'}</span>
-          <span
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
-              rentedAt ? 'bg-indigo-600' : 'bg-gray-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                rentedAt ? 'translate-x-4' : 'translate-x-0.5'
-              }`}
-            />
-          </span>
-        </button>
-      ) : (
-        <button
-          type="button"
-          role="switch"
-          aria-checked={Boolean(soldAt)}
-          onClick={() => toggleMarketStatus('sold')}
-          disabled={marking !== null}
-          className="inline-flex min-h-[36px] items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:min-h-[34px]"
-          title={soldAt ? 'Mark as available (turn sold off)' : 'Mark listing as sold'}
-        >
-          <span>{marking === 'sold' ? 'Updating…' : 'Sold'}</span>
-          <span
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
-              soldAt ? 'bg-red-600' : 'bg-gray-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                soldAt ? 'translate-x-4' : 'translate-x-0.5'
-              }`}
-            />
-          </span>
-        </button>
-      )}
       <button
         type="button"
         onClick={handleDelete}
@@ -204,6 +198,7 @@ export function MyListingActions({
         </svg>
         {deleting ? '…' : 'Delete'}
       </button>
+      </span>
       {boostOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
@@ -302,6 +297,6 @@ export function MyListingActions({
           </div>
         </div>
       )}
-    </span>
+    </div>
   );
 }

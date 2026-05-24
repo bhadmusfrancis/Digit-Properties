@@ -1,8 +1,12 @@
 /** In-memory rate limit: max attempts per key within windowMs. For production consider Redis (e.g. @upstash/ratelimit). */
 const store = new Map<string, { count: number; resetAt: number }>();
 
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_ATTEMPTS = 5;
+/** Same caps as /api/me/verify-phone OTP send. */
+export const PHONE_OTP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+export const PHONE_OTP_RATE_LIMIT_MAX_ATTEMPTS = 5;
+
+const WINDOW_MS = PHONE_OTP_RATE_LIMIT_WINDOW_MS;
+const MAX_ATTEMPTS = PHONE_OTP_RATE_LIMIT_MAX_ATTEMPTS;
 
 function getKey(identifier: string, prefix: string): string {
   return `${prefix}:${identifier}`;

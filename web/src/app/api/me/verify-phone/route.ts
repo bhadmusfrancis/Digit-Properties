@@ -13,9 +13,25 @@ import {
   sendPhoneOtpViaTermii,
   isTwilioVerifyConfigured,
   isTermiiConfigured,
-  PHONE_OTP_COOLDOWN_MS,
 } from '@/lib/phone-verify';
+import {
+  assertPhoneOtpCooldown,
+  assertPhoneOtpDailyCap,
+  nextPhoneOtpSendsCount,
+} from '@/lib/phone-otp-send-limits';
 import { phoneVerifySchema } from '@/lib/validations';
+import type { IUser } from '@/models/User';
+
+function recordUserPhoneOtpSent(user: IUser, now = new Date()) {
+  user.phoneOtpLastSentAt = now;
+  const { sendsDayKey, sendsCount } = nextPhoneOtpSendsCount(
+    user.phoneOtpSendsDayKey,
+    user.phoneOtpSendsCount,
+    now
+  );
+  user.phoneOtpSendsDayKey = sendsDayKey;
+  user.phoneOtpSendsCount = sendsCount;
+}
 
 const RATE_PREFIX = 'verify-phone';
 
@@ -61,13 +77,17 @@ export async function POST(req: Request) {
     const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // Prevent multiple pins: enforce cooldown since last OTP send
-    const lastSent = user.phoneOtpLastSentAt ? new Date(user.phoneOtpLastSentAt).getTime() : 0;
-    const now = Date.now();
-    if (lastSent && now - lastSent < PHONE_OTP_COOLDOWN_MS) {
-      const waitMinutes = Math.ceil((PHONE_OTP_COOLDOWN_MS - (now - lastSent)) / 60000);
+    const daily = assertPhoneOtpDailyCap(user.phoneOtpSendsDayKey, user.phoneOtpSendsCount);
+    if (daily) {
       return NextResponse.json(
-        { error: `Please wait ${waitMinutes} minute(s) before requesting another code.` },
+        { error: daily.error, code: daily.code, retryAfter: daily.retryAfter },
+        { status: 429 }
+      );
+    }
+    const cooldown = assertPhoneOtpCooldown(user.phoneOtpLastSentAt);
+    if (cooldown) {
+      return NextResponse.json(
+        { error: cooldown.error, code: cooldown.code, retryAfter: cooldown.retryAfter },
         { status: 429 }
       );
     }
@@ -84,7 +104,7 @@ export async function POST(req: Request) {
         user.phoneVerificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
         user.phoneVerificationCode = undefined;
         user.phoneVerificationToken = undefined;
-        user.phoneOtpLastSentAt = new Date();
+        recordUserPhoneOtpSent(user);
         await user.save();
         return NextResponse.json({
           ok: true,
@@ -104,7 +124,7 @@ export async function POST(req: Request) {
         user.phoneVerificationCode = undefined;
         user.phoneVerificationToken = undefined;
         user.phoneVerificationPinId = undefined;
-        user.phoneOtpLastSentAt = new Date();
+        recordUserPhoneOtpSent(user);
         await user.save();
         const channel = twilioResult.channel || 'sms';
         return NextResponse.json({
@@ -132,7 +152,7 @@ export async function POST(req: Request) {
 
     const sendResult = await sendPhoneOtp(normalized, code);
     if (sendResult.ok) {
-      user.phoneOtpLastSentAt = new Date();
+      recordUserPhoneOtpSent(user);
       await user.save();
       return NextResponse.json({
         ok: true,

@@ -13,6 +13,7 @@ import { MyListingActions } from './MyListingActions';
 import { SortColumnHeader } from './SortColumnHeader';
 import { ListingSortMobileBar } from './ListingSortMobileBar';
 import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
+import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 
 type ListingRow = {
   _id: string;
@@ -62,10 +63,17 @@ export function MyListingsTable({
 
   const thumb = (l: ListingRow) => {
     const url = getListingDisplayImage(l.images, l.propertyType, l.videos);
-    if (url && !isDefaultListingImageUrl(url)) {
-      return <img src={url} alt="" className="h-12 w-16 rounded object-cover bg-gray-100" />;
-    }
-    return <div className="h-12 w-16 rounded bg-gray-200 flex items-center justify-center text-gray-400 text-xs">No img</div>;
+    const image = url && !isDefaultListingImageUrl(url) ? (
+      <img src={url} alt="" className="h-12 w-16 rounded object-cover bg-gray-100" />
+    ) : (
+      <div className="flex h-12 w-16 items-center justify-center rounded bg-gray-200 text-xs text-gray-400">No img</div>
+    );
+    return (
+      <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded">
+        {image}
+        <ListingMarketStatusSticker soldAt={l.soldAt} rentedAt={l.rentedAt} variant="thumbnail" />
+      </div>
+    );
   };
 
   // Must be deterministic between server-render and browser hydration.

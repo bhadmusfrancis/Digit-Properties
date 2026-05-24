@@ -65,6 +65,10 @@ export interface IUser {
   phoneVerificationPinId?: string;
   /** When last OTP was sent; used to enforce cooldown and prevent multiple pins. */
   phoneOtpLastSentAt?: Date;
+  /** UTC calendar day (YYYY-MM-DD) for daily OTP send cap */
+  phoneOtpSendsDayKey?: string;
+  /** OTP sends recorded for phoneOtpSendsDayKey */
+  phoneOtpSendsCount?: number;
   /** One-time token for password reset link; cleared after reset. */
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -117,6 +121,8 @@ const UserSchema = new Schema<IUser>(
     phoneVerificationProvider: String,
     phoneVerificationPinId: String,
     phoneOtpLastSentAt: Date,
+    phoneOtpSendsDayKey: String,
+    phoneOtpSendsCount: { type: Number, default: 0 },
     passwordResetToken: String,
     passwordResetExpires: Date,
     termsAcceptedAt: Date,

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { getWhatsAppUrl, getTelHref } from '@/lib/utils';
-import { USER_ROLES } from '@/lib/constants';
+import { isBotListingAuthor } from '@/lib/claimable-listing';
 import type { PublicCreatedBy } from '@/lib/verification';
 
 type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
@@ -36,11 +36,11 @@ export function ListingDetailClient({
 }: Props) {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [showDesktopPhone, setShowDesktopPhone] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
-  const [claimStep, setClaimStep] = useState<'send' | 'verify' | 'list'>('send');
+  const [claimStep, setClaimStep] = useState<'digits' | 'otp' | 'list'>('digits');
+  const [claimPhoneSuffix, setClaimPhoneSuffix] = useState('');
+  const [claimPhoneHint, setClaimPhoneHint] = useState('');
   const [claimPinId, setClaimPinId] = useState<string | null>(null);
-  const [claimPhoneDisplay, setClaimPhoneDisplay] = useState<string>('');
   const [claimOtp, setClaimOtp] = useState('');
   const [claimListings, setClaimListings] = useState<ClaimListing[]>([]);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
@@ -52,10 +52,6 @@ export function ListingDetailClient({
     if (!listingId || viewRecorded.current) return;
     viewRecorded.current = true;
     fetch(`/api/listings/${listingId}/view`, { method: 'POST' }).catch(() => {});
-  }, [listingId]);
-
-  useEffect(() => {
-    setShowDesktopPhone(false);
   }, [listingId]);
 
   type ContactPayload = {
@@ -123,6 +119,33 @@ export function ListingDetailClient({
     },
   });
 
+  const { data: phoneHintData, isError: phoneHintError } = useQuery({
+    queryKey: ['claim-phone-hint', listingId],
+    queryFn: () => fetch(`/api/claims/phone-hint?listingId=${listingId}`).then((r) => r.json()),
+    enabled: claimOpen && !!listingId && !!session,
+  });
+
+  useEffect(() => {
+    if (phoneHintData?.phoneHint) setClaimPhoneHint(phoneHintData.phoneHint);
+  }, [phoneHintData]);
+
+  const verifyClaimDigits = useMutation({
+    mutationFn: (suffix: string) =>
+      fetch('/api/claims/verify-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, suffix }),
+      }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
+    onSuccess: (data: { suffixVerified?: boolean; phoneHint?: string }) => {
+      if (data.suffixVerified) {
+        if (data.phoneHint) setClaimPhoneHint(data.phoneHint);
+        setClaimStep('otp');
+        setClaimPinId(null);
+        setClaimOtp('');
+      }
+    },
+  });
+
   const sendClaimOtp = useMutation({
     mutationFn: () =>
       fetch('/api/claims/send-otp', {
@@ -130,10 +153,8 @@ export function ListingDetailClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId }),
       }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
-    onSuccess: (data: { pinId: string; phoneDisplay: string }) => {
+    onSuccess: (data: { pinId: string }) => {
       setClaimPinId(data.pinId);
-      setClaimPhoneDisplay(data.phoneDisplay || '');
-      setClaimStep('verify');
     },
   });
 
@@ -161,9 +182,10 @@ export function ListingDetailClient({
       }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
     onSuccess: () => {
       setClaimOpen(false);
-      setClaimStep('send');
+      setClaimStep('digits');
+      setClaimPhoneSuffix('');
+      setClaimPhoneHint('');
       setClaimPinId(null);
-      setClaimPhoneDisplay('');
       setClaimOtp('');
       setClaimListings([]);
       queryClient.invalidateQueries({ queryKey: ['contact', listingId] });
@@ -173,9 +195,10 @@ export function ListingDetailClient({
 
   const closeClaimModal = () => {
     setClaimOpen(false);
-    setClaimStep('send');
+    setClaimStep('digits');
+    setClaimPhoneSuffix('');
+    setClaimPhoneHint('');
     setClaimPinId(null);
-    setClaimPhoneDisplay('');
     setClaimOtp('');
     setClaimListings([]);
   };
@@ -226,36 +249,9 @@ export function ListingDetailClient({
           {contact.agentName && <p className="mt-1">{contact.agentName}</p>}
           {contact.agentPhone && (
             <>
-              {showDesktopPhone ? (
-                <>
-                  <p className="mt-1 hidden lg:block">{contact.agentPhone}</p>
-                  <a
-                    href={getTelHref(contact.agentPhone)}
-                    className="btn-primary mt-2 hidden w-full items-center justify-center gap-2 lg:inline-flex"
-                  >
-                    <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                      />
-                    </svg>
-                    Call now
-                  </a>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowDesktopPhone(true)}
-                  className="btn-secondary mt-2 hidden lg:inline-flex items-center justify-center"
-                >
-                  View number
-                </button>
-              )}
               <a
                 href={getTelHref(contact.agentPhone)}
-                className="btn-primary mt-2 inline-flex w-full items-center justify-center gap-2 lg:hidden"
+                className="btn-primary mt-3 flex w-full items-center justify-center gap-2"
               >
                 <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path
@@ -267,20 +263,18 @@ export function ListingDetailClient({
                 </svg>
                 Call now
               </a>
+              <a
+                href={getWhatsAppUrl(contact.agentPhone, whatsappMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary mt-3 flex w-full items-center justify-center gap-2"
+              >
+                <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                </svg>
+                Send WhatsApp message
+              </a>
             </>
-          )}
-          {contact.agentPhone && (
-            <a
-              href={getWhatsAppUrl(contact.agentPhone, whatsappMessage)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary mt-3 flex w-full items-center justify-center gap-2"
-            >
-              <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-              </svg>
-              Send WhatsApp message
-            </a>
           )}
         </div>
       )}
@@ -299,15 +293,16 @@ export function ListingDetailClient({
         </button>
       )}
 
-      {(createdByType === 'bot' || createdBy?.role === USER_ROLES.BOT) && (
+      {isBotListingAuthor({ createdByType, createdBy }) && (
         <div className="border-t pt-4">
           <button
             type="button"
             onClick={() => {
               if (!requireSignIn()) return;
-              setClaimStep('send');
+              setClaimStep('digits');
+              setClaimPhoneSuffix('');
+              setClaimPhoneHint('');
               setClaimPinId(null);
-              setClaimPhoneDisplay('');
               setClaimOtp('');
               setClaimListings([]);
               setClaimOpen(true);
@@ -324,66 +319,125 @@ export function ListingDetailClient({
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
             <h2 id="claim-modal-title" className="text-lg font-semibold text-gray-900">Claim property</h2>
 
-            {claimStep === 'send' && (
+            {claimStep === 'digits' && (
               <>
                 <p className="mt-2 text-sm text-gray-600">
-                  Verify the listing contact number to claim. We&apos;ll send a one-time code via SMS to that number. After you verify once, you can claim every bot listing that uses the same number—no second OTP needed.
+                  This listing&apos;s contact number starts with the digits below. Enter the last 5 digits to continue,
+                  then confirm with a one-time SMS code.
                 </p>
-                {contact?.agentPhone ? (
-                  <p className="mt-2 font-medium text-gray-900">Number on listing: {contact.agentPhone}</p>
-                ) : (
-                  <p className="mt-2 text-sm text-gray-500">
-                    The code is sent to the phone stored on this listing (you may not see the number until you complete profile verification).
+                {claimPhoneHint ? (
+                  <p className="mt-3 rounded-lg bg-gray-100 px-4 py-3 text-center font-mono text-lg tracking-wide text-gray-900">
+                    {claimPhoneHint}
                   </p>
+                ) : phoneHintError ? (
+                  <p className="mt-3 text-sm text-red-600">Could not load phone hint for this listing.</p>
+                ) : (
+                  <div className="mt-3 h-12 animate-pulse rounded-lg bg-gray-200" aria-hidden />
                 )}
+                <label className="mt-3 block text-sm font-medium text-gray-700" htmlFor="claim-phone-suffix">
+                  Last 5 digits
+                </label>
+                <input
+                  id="claim-phone-suffix"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={5}
+                  placeholder="•••••"
+                  value={claimPhoneSuffix}
+                  onChange={(e) => setClaimPhoneSuffix(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  className="input mt-1 w-full text-center text-lg tracking-widest"
+                />
                 <div className="mt-4 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => sendClaimOtp.mutate()}
-                    disabled={sendClaimOtp.isPending}
+                    onClick={() => verifyClaimDigits.mutate(claimPhoneSuffix)}
+                    disabled={verifyClaimDigits.isPending || claimPhoneSuffix.length !== 5 || !claimPhoneHint}
                     className="btn-primary flex-1"
                   >
-                    {sendClaimOtp.isPending ? 'Sending…' : 'Send code'}
+                    {verifyClaimDigits.isPending ? 'Checking…' : 'Continue'}
                   </button>
                   <button type="button" onClick={closeClaimModal} className="btn-secondary">
                     Cancel
                   </button>
                 </div>
-                {sendClaimOtp.isError && (
-                  <p className="mt-2 text-sm text-red-600">{(sendClaimOtp.error as { error?: string })?.error || 'Failed to send code'}</p>
+                {verifyClaimDigits.isError && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {(verifyClaimDigits.error as { error?: string })?.error || 'Could not verify those digits'}
+                  </p>
                 )}
               </>
             )}
 
-            {claimStep === 'verify' && (
+            {claimStep === 'otp' && (
               <>
                 <p className="mt-2 text-sm text-gray-600">
-                  Enter the 6-digit code sent to {claimPhoneDisplay || 'your phone'}.
+                  Last 5 digits matched{' '}
+                  {claimPhoneHint ? (
+                    <span className="font-mono font-medium text-gray-900">{claimPhoneHint}</span>
+                  ) : (
+                    'this listing'
+                  )}
+                  . Send a verification code to that number for final confirmation.
                 </p>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={claimOtp}
-                  onChange={(e) => setClaimOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="input mt-3 w-full text-center text-lg tracking-widest"
-                />
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => sendClaimOtp.mutate()}
+                    disabled={sendClaimOtp.isPending}
+                    className="btn-secondary flex-1"
+                  >
+                    {sendClaimOtp.isPending ? 'Sending…' : claimPinId ? 'Resend code' : 'Send verification code'}
+                  </button>
+                </div>
+                {sendClaimOtp.isError && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {(sendClaimOtp.error as { error?: string })?.error || 'Failed to send code'}
+                  </p>
+                )}
+                {claimPinId && (
+                  <>
+                    <label className="mt-4 block text-sm font-medium text-gray-700" htmlFor="claim-otp">
+                      SMS code
+                    </label>
+                    <input
+                      id="claim-otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="000000"
+                      value={claimOtp}
+                      onChange={(e) => setClaimOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="input mt-1 w-full text-center text-lg tracking-widest"
+                    />
+                  </>
+                )}
                 <div className="mt-4 flex gap-2">
                   <button
                     type="button"
                     onClick={() => claimPinId && verifyClaimOtp.mutate({ pin: claimOtp, pinId: claimPinId })}
-                    disabled={verifyClaimOtp.isPending || claimOtp.length !== 6 || !claimPinId}
+                    disabled={verifyClaimOtp.isPending || !claimPinId || claimOtp.length < 4}
                     className="btn-primary flex-1"
                   >
-                    {verifyClaimOtp.isPending ? 'Verifying…' : 'Verify'}
+                    {verifyClaimOtp.isPending ? 'Verifying…' : 'Verify & claim'}
                   </button>
-                  <button type="button" onClick={() => { setClaimStep('send'); setClaimPinId(null); setClaimOtp(''); }} className="btn-secondary">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClaimStep('digits');
+                      setClaimPinId(null);
+                      setClaimOtp('');
+                    }}
+                    className="btn-secondary"
+                  >
                     Back
                   </button>
                 </div>
                 {verifyClaimOtp.isError && (
-                  <p className="mt-2 text-sm text-red-600">{(verifyClaimOtp.error as { error?: string })?.error || 'Invalid or expired code'}</p>
+                  <p className="mt-2 text-sm text-red-600">
+                    {(verifyClaimOtp.error as { error?: string })?.error || 'Invalid or expired code'}
+                  </p>
                 )}
               </>
             )}
@@ -391,7 +445,7 @@ export function ListingDetailClient({
             {claimStep === 'list' && (
               <>
                 <p className="mt-2 text-sm text-gray-600">
-                  The following {claimListings.length} claimable listing{claimListings.length !== 1 ? 's' : ''} share this phone number. Claim them together in one step—no extra OTP per listing.
+                  The following {claimListings.length} claimable listing{claimListings.length !== 1 ? 's' : ''} share this phone number. Claim them together in one step.
                 </p>
                 <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
                   {claimListings.map((l) => (
