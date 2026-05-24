@@ -222,6 +222,7 @@ export const NIGERIA_STATE_CITY_SUBURBS: StateCitiesSuburbs = {
     Ikoyi: [
       'Ikoyi', 'Ikoyi GRA', 'Bourdillon', 'Gerrard Road', 'Glover Road', 'Alfred Rewane', 'Queen Drive',
       'Parkview', 'Lugard Avenue', 'Ribadu Road', 'Thompson Avenue', 'Osborne Road', 'Ikoyi Club',
+      'Banana Island',
     ],
     Lekki: [
       'Lekki Phase 1', 'Lekki Phase 2', 'Chevron', 'Admiralty Way', 'Osapa', 'Osapa London', 'Jakande',
