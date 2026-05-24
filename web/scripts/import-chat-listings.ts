@@ -198,6 +198,7 @@ async function main() {
   const User = (await import('../src/models/User')).default;
   const { listingSchema } = await import('../src/lib/validations');
   const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
+  const { ensureUniqueListingSlug } = await import('../src/lib/listing-slug');
   const cloudinary = (await import('cloudinary')).v2;
   cloudinary.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -443,6 +444,11 @@ async function main() {
       const oldHasMedia = oldImages.length > 0 || oldVideos.length > 0;
       const newHasMedia = validated.data.images.length > 0 || (validated.data.videos?.length ?? 0) > 0;
       if (newHasMedia && !oldHasMedia) {
+        const slug = await ensureUniqueListingSlug({
+          title: validated.data.title,
+          location: validated.data.location,
+          excludeId: String((existing as { _id: unknown })._id),
+        });
         await Listing.findByIdAndUpdate((existing as { _id: unknown })._id, {
           $set: {
             images: validated.data.images ?? [],
@@ -463,6 +469,7 @@ async function main() {
             agentPhone: validated.data.agentPhone,
             agentEmail: validated.data.agentEmail,
             rentPeriod: validated.data.rentPeriod,
+            slug,
           },
         });
         updated++;
@@ -477,6 +484,10 @@ async function main() {
       ...validated.data,
       images: validated.data.images ?? [],
       videos: validated.data.videos?.length ? validated.data.videos : [],
+      slug: await ensureUniqueListingSlug({
+        title: validated.data.title,
+        location: validated.data.location,
+      }),
       createdBy: author!._id,
       createdByType: 'user',
       viewCount: 0,

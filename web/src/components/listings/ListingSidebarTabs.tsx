@@ -5,6 +5,7 @@ import { LISTING_TYPE } from '@/lib/constants';
 import { isBotListingAuthor } from '@/lib/claimable-listing';
 import type { PublicCreatedBy } from '@/lib/verification';
 import { ListingAuthorPanel } from '@/components/listings/ListingAuthorPanel';
+import { ListingListedByContact } from '@/components/listings/ListingListedByContact';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ProfessionalOffersPanel } from '@/components/listings/ProfessionalOffersPanel';
 
@@ -39,6 +40,7 @@ export function ListingSidebarTabs({
   title,
   createdBy,
   createdByType,
+  listingContactName,
   baseUrl,
   isOwner,
   viewCount,
@@ -53,6 +55,8 @@ export function ListingSidebarTabs({
   title: string;
   createdBy: PublicCreatedBy | null;
   createdByType: string;
+  /** Listing agent/contact name for bot posts (shown instead of author profile). */
+  listingContactName?: string;
   baseUrl: string;
   isOwner: boolean;
   viewCount: number;
@@ -118,7 +122,7 @@ export function ListingSidebarTabs({
               viewCount={viewCount}
               likeCount={likeCount}
             />
-            {showAuthorSection && (
+            {showAuthorSection ? (
               <div className="border-t border-gray-200 pt-5">
                 <ListingAuthorPanel
                   embedded
@@ -128,6 +132,8 @@ export function ListingSidebarTabs({
                   currentListingId={listingId}
                 />
               </div>
+            ) : (
+              listingContactName && <ListingListedByContact contactName={listingContactName} />
             )}
           </div>
         </div>

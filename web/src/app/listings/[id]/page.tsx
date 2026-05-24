@@ -6,6 +6,7 @@ import { canViewListingOnSite } from '@/lib/listing-access';
 import { ListingLocationMap } from '@/components/listings/ListingLocationMap';
 import { ListingSidebarTabs } from '@/components/listings/ListingSidebarTabs';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
+import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
@@ -26,6 +27,8 @@ import User from '@/models/User';
 import mongoose from 'mongoose';
 import type { Metadata } from 'next';
 import { buildListingShareDescription, listingDocToShareFields } from '@/lib/listing-share-text';
+import { isBotListingAuthor } from '@/lib/claimable-listing';
+import { listingListedByContactName } from '@/lib/listing-contact-display';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -279,6 +282,20 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       ? String((listing.createdBy as { _id: unknown })._id)
       : String(listing.createdBy);
     const isOwner = !!session?.user?.id && createdById === session.user.id;
+    const isBotListing = isBotListingAuthor({
+      createdByType: listing.createdByType ?? 'user',
+      createdBy: listing.createdBy,
+    });
+    const listingContactName = isBotListing
+      ? listingListedByContactName({
+          agentName: (listing as { agentName?: string }).agentName,
+          agentPhone: (listing as { agentPhone?: string }).agentPhone,
+          agentEmail: (listing as { agentEmail?: string }).agentEmail,
+          contactSource: (listing as { contactSource?: string }).contactSource,
+          createdByType: listing.createdByType,
+          createdBy: listing.createdBy,
+        })
+      : '';
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
     const canEditListing =
       isOwner &&
@@ -415,20 +432,26 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       <div className="grid min-w-0 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">
-            <ListingImageGallery images={galleryMedia} title={listing.title} isBoosted={isBoosted} />
+            <ListingImageGallery
+              images={galleryMedia}
+              title={listing.title}
+              isBoosted={isBoosted}
+              soldAt={listing.soldAt}
+              rentedAt={listing.rentedAt}
+            />
             <div className="p-6">
-              <ListingTitleWithVerifiedBadge title={listing.title} createdBy={shapePublicCreatedBy(listing.createdBy)} />
-              {(listing.soldAt || listing.rentedAt) && (
-                <div className="mt-2">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      listing.soldAt ? 'bg-red-100 text-red-700' : 'bg-indigo-100 text-indigo-700'
-                    }`}
-                  >
-                    {listing.soldAt ? 'Sold' : 'Rented'}
-                  </span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-start gap-3">
+                <ListingTitleWithVerifiedBadge
+                  title={listing.title}
+                  createdBy={shapePublicCreatedBy(listing.createdBy)}
+                  showVerifiedBadge={!isBotListing}
+                />
+                <ListingMarketStatusSticker
+                  soldAt={listing.soldAt}
+                  rentedAt={listing.rentedAt}
+                  variant="inline"
+                />
+              </div>
               <p className="mt-2 text-2xl font-bold text-primary-600">
                 {new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(listing.price)}
                 {listing.listingType === 'rent' && listing.rentPeriod && (
@@ -529,6 +552,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               title={listing.title}
               createdBy={shapePublicCreatedBy(listing.createdBy)}
               createdByType={listing.createdByType ?? 'user'}
+              listingContactName={listingContactName || undefined}
               baseUrl={baseUrl}
               isOwner={isOwner}
               viewCount={listing.viewCount ?? 0}

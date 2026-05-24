@@ -11,6 +11,7 @@ import { sendAdminNewClaim, sendClaimApproved } from '@/lib/email';
 import { normalizePhone } from '@/lib/phone-verify';
 import { claimableListingsMatch } from '@/lib/claimable-listing-server';
 import { isClaimableListingDoc } from '@/lib/claimable-listing';
+import { getListingClaimPhone } from '@/lib/listing-claim-phone';
 import mongoose from 'mongoose';
 
 export async function GET(req: Request) {
@@ -66,11 +67,19 @@ export async function POST(req: Request) {
       const verifiedSet = new Set(verifiedPhones.map((v) => v.phone));
       const claimsCreated: { _id: string; listingId: string; status: string }[] = [];
       for (const listing of listings) {
-        const listingObj = listing as { _id: mongoose.Types.ObjectId; agentPhone?: string; title?: string };
-        const phone = listingObj.agentPhone ? normalizePhone(listingObj.agentPhone) : '';
+        const listingObj = listing as {
+          _id: mongoose.Types.ObjectId;
+          agentPhone?: string;
+          agentEmail?: string;
+          contactSource?: string;
+          createdByType?: string;
+          createdBy?: unknown;
+          title?: string;
+        };
+        const phone = getListingClaimPhone(listingObj) ?? '';
         if (!phone || !verifiedSet.has(phone)) {
           return NextResponse.json(
-            { error: 'Verify the listing phone first (OTP) to claim. One or more listings are not verified.' },
+            { error: 'Verify the listing phone first to claim. One or more listings are not verified.' },
             { status: 403 }
           );
         }
@@ -131,9 +140,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'A claim is already pending for this listing' }, { status: 400 });
     }
 
-    const listingPhone = (listing as { agentPhone?: string }).agentPhone
-      ? normalizePhone((listing as { agentPhone: string }).agentPhone)
-      : '';
+    const listingPhone = getListingClaimPhone(listing as Parameters<typeof getListingClaimPhone>[0]) ?? '';
     const phoneVerified = listingPhone
       ? await ClaimPhoneVerification.findOne({ userId, phone: listingPhone }).lean()
       : null;
@@ -143,7 +150,7 @@ export async function POST(req: Request) {
     if (!proofUrls || proofUrls.length === 0) {
       if (!phoneVerified) {
         return NextResponse.json(
-          { error: 'Add at least one proof document, or verify the listing phone with OTP first.' },
+          { error: 'Add at least one proof document, or verify the listing phone first.' },
           { status: 400 }
         );
       }

@@ -81,6 +81,7 @@ async function main() {
 
   const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
   const { listingSchema } = await import('../src/lib/validations');
+  const { ensureUniqueListingSlug } = await import('../src/lib/listing-slug');
   const mongoose = (await import('mongoose')).default;
   const Listing = (await import('../src/models/Listing')).default;
   const User = (await import('../src/models/User')).default;
@@ -261,6 +262,10 @@ async function main() {
 
     await Listing.create({
       ...validated.data,
+      slug: await ensureUniqueListingSlug({
+        title: validated.data.title,
+        location: validated.data.location,
+      }),
       createdBy: author!._id,
       createdByType: 'user',
       viewCount: 0,

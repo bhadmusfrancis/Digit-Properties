@@ -288,6 +288,7 @@ async function main() {
   const Listing = (await import('../src/models/Listing')).default;
   const User = (await import('../src/models/User')).default;
   const { listingSchema } = await import('../src/lib/validations');
+  const { ensureUniqueListingSlug } = await import('../src/lib/listing-slug');
   const cloudinary = (await import('cloudinary')).v2;
   cloudinary.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -459,6 +460,10 @@ async function main() {
       ...validated.data,
       images: validated.data.images ?? [],
       videos: validated.data.videos?.length ? validated.data.videos : [],
+      slug: await ensureUniqueListingSlug({
+        title: validated.data.title,
+        location: validated.data.location,
+      }),
       createdBy: author!._id,
       createdByType: 'user',
       viewCount: 0,

@@ -8,6 +8,7 @@ import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { toFirstName } from '@/lib/display-name';
+import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 
 export interface Listing {
   _id: string;
@@ -60,15 +61,11 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                   Sponsored
                 </span>
               )}
-              {(listing.soldAt || listing.rentedAt) && (
-                <span
-                  className={`absolute left-2 ${listing.isBoosted ? 'top-9' : 'top-2'} rounded px-2 py-0.5 text-xs font-semibold text-white ${
-                    listing.soldAt ? 'bg-red-600' : 'bg-indigo-600'
-                  }`}
-                >
-                  {listing.soldAt ? 'Sold' : 'Rented'}
-                </span>
-              )}
+              <ListingMarketStatusSticker
+                soldAt={listing.soldAt}
+                rentedAt={listing.rentedAt}
+                variant="thumbnail"
+              />
               <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800">
                 {formatListingTypeLabel(listing.listingType)}
                 {listing.listingType === 'rent' && listing.rentPeriod && (
