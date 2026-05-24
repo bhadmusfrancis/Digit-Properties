@@ -28,7 +28,7 @@ import mongoose from 'mongoose';
 import type { Metadata } from 'next';
 import { buildListingShareDescription, listingDocToShareFields } from '@/lib/listing-share-text';
 import { isBotListingAuthor } from '@/lib/claimable-listing';
-import { listingListedByContactName } from '@/lib/listing-contact-display';
+import { getBotUserObjectIds } from '@/lib/claimable-listing-server';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -281,21 +281,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const createdById = listing.createdBy && typeof listing.createdBy === 'object' && '_id' in listing.createdBy
       ? String((listing.createdBy as { _id: unknown })._id)
       : String(listing.createdBy);
+    const createdByOid = mongoose.Types.ObjectId.isValid(createdById)
+      ? new mongoose.Types.ObjectId(createdById)
+      : null;
+    const botUserIds = await getBotUserObjectIds();
     const isOwner = !!session?.user?.id && createdById === session.user.id;
-    const isBotListing = isBotListingAuthor({
-      createdByType: listing.createdByType ?? 'user',
-      createdBy: listing.createdBy,
-    });
-    const listingContactName = isBotListing
-      ? listingListedByContactName({
-          agentName: (listing as { agentName?: string }).agentName,
-          agentPhone: (listing as { agentPhone?: string }).agentPhone,
-          agentEmail: (listing as { agentEmail?: string }).agentEmail,
-          contactSource: (listing as { contactSource?: string }).contactSource,
-          createdByType: listing.createdByType,
-          createdBy: listing.createdBy,
-        })
-      : '';
+    const isBotListing =
+      isBotListingAuthor({
+        createdByType: listing.createdByType,
+        createdBy: listing.createdBy,
+        tags: listing.tags,
+      }) ||
+      (createdByOid != null && botUserIds.some((id) => id.equals(createdByOid)));
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
     const canEditListing =
       isOwner &&
@@ -552,7 +549,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               title={listing.title}
               createdBy={shapePublicCreatedBy(listing.createdBy)}
               createdByType={listing.createdByType ?? 'user'}
-              listingContactName={listingContactName || undefined}
+              listingTags={listing.tags}
+              isBotListing={isBotListing}
               baseUrl={baseUrl}
               isOwner={isOwner}
               viewCount={listing.viewCount ?? 0}

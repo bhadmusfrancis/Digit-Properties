@@ -5,21 +5,33 @@ import { USER_ROLES } from '@/lib/constants';
  * OR when the listing owner account is a BOT user (e.g. imports attributed to the bot user).
  */
 export function isClaimableListingDoc(doc: {
-  createdByType?: string;
+  createdByType?: string | null;
   createdBy?: unknown;
+  tags?: string[] | null;
 }): boolean {
   return isBotListingAuthor(doc);
 }
 
+const BOT_LISTING_TYPES = new Set(['bot', 'ai']);
+
 /** Listing posted via bot ingest or owned by a BOT user account. */
 export function isBotListingAuthor(doc: {
-  createdByType?: string;
+  createdByType?: string | null;
   createdBy?: unknown;
+  tags?: string[] | null;
 }): boolean {
-  if (doc?.createdByType === 'bot') return true;
+  const createdByType = (doc?.createdByType || '').toLowerCase();
+  if (BOT_LISTING_TYPES.has(createdByType)) return true;
+  if (
+    Array.isArray(doc?.tags) &&
+    doc.tags.some((t) => String(t).toLowerCase() === 'whatsapp-import')
+  ) {
+    return true;
+  }
   const cb = doc?.createdBy;
   if (cb && typeof cb === 'object' && cb !== null && 'role' in cb) {
-    if ((cb as { role?: string }).role === USER_ROLES.BOT) return true;
+    const role = String((cb as { role?: string }).role || '').toLowerCase();
+    if (role === USER_ROLES.BOT) return true;
   }
   return false;
 }
