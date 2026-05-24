@@ -6,10 +6,12 @@ import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { getListingPublicPath } from '@/lib/listing-path';
 import { toFirstName } from '@/lib/display-name';
 
 export interface Listing {
   _id: string;
+  slug?: string;
   title: string;
   price: number;
   listingType: string;
@@ -36,7 +38,7 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
     <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {listings.map((listing) => (
         <article key={listing._id} className="card group transition hover:shadow-md">
-          <Link href={`/listings/${listing._id}`} className="block">
+          <Link href={getListingPublicPath(listing)} className="block">
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
               <Image
                 src={getListingDisplayImage(listing.images, listing.propertyType, listing.videos)}

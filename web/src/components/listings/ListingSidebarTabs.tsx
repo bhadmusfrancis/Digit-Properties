@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LISTING_TYPE } from '@/lib/constants';
+import { isBotListingAuthor } from '@/lib/claimable-listing';
 import type { PublicCreatedBy } from '@/lib/verification';
 import { ListingAuthorPanel } from '@/components/listings/ListingAuthorPanel';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
@@ -58,6 +59,7 @@ export function ListingSidebarTabs({
   likeCount: number;
 }) {
   const showOffersTab = listingType === LISTING_TYPE.SALE;
+  const showAuthorSection = !isBotListingAuthor({ createdByType, createdBy });
   const tabs: SidebarTab[] = showOffersTab ? ['contact', 'offers'] : ['contact'];
   const [activeTab, setActiveTab] = useState<SidebarTab>('contact');
 
@@ -116,15 +118,17 @@ export function ListingSidebarTabs({
               viewCount={viewCount}
               likeCount={likeCount}
             />
-            <div className="border-t border-gray-200 pt-5">
-              <ListingAuthorPanel
-                embedded
-                authorId={createdBy?._id}
-                createdBy={createdBy}
-                createdByType={createdByType}
-                currentListingId={listingId}
-              />
-            </div>
+            {showAuthorSection && (
+              <div className="border-t border-gray-200 pt-5">
+                <ListingAuthorPanel
+                  embedded
+                  authorId={createdBy?._id}
+                  createdBy={createdBy}
+                  createdByType={createdByType}
+                  currentListingId={listingId}
+                />
+              </div>
+            )}
           </div>
         </div>
         {showOffersTab && (

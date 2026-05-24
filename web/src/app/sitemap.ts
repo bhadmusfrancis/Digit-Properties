@@ -4,8 +4,61 @@ import { siteOrigin } from '@/lib/site-metadata';
 import { LISTING_STATUS, TREND_STATUS } from '@/lib/constants';
 import Listing from '@/models/Listing';
 import Trend from '@/models/Trend';
+import {
+  buildLocationLandingPath,
+} from '@/lib/location-seo';
+import { getListingPathSegment } from '@/lib/listing-path';
 
 export const revalidate = 3600;
+
+async function buildLocationSitemapEntries(base: string, now: Date): Promise<MetadataRoute.Sitemap> {
+  const rows = await Listing.aggregate<{ _id: { state: string; city?: string }; count: number }>([
+    { $match: { status: LISTING_STATUS.ACTIVE, 'location.state': { $exists: true, $ne: '' } } },
+    {
+      $group: {
+        _id: { state: '$location.state', city: '$location.city' },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const seen = new Set<string>();
+  const entries: MetadataRoute.Sitemap = [];
+
+  const push = (path: string, priority: number) => {
+    if (seen.has(path)) return;
+    seen.add(path);
+    entries.push({
+      url: `${base}${path}`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority,
+    });
+  };
+
+  const states = new Set<string>();
+  for (const row of rows) {
+    const state = row._id.state;
+    if (!state) continue;
+    states.add(state);
+    push(buildLocationLandingPath(state), 0.85);
+    push(buildLocationLandingPath(state, { listingType: 'sale' }), 0.82);
+    push(buildLocationLandingPath(state, { listingType: 'rent' }), 0.82);
+    const city = row._id.city?.trim();
+    if (city) {
+      push(buildLocationLandingPath(state, { city }), 0.8);
+      push(buildLocationLandingPath(state, { city, listingType: 'sale' }), 0.78);
+      push(buildLocationLandingPath(state, { city, listingType: 'rent' }), 0.78);
+    }
+  }
+
+  // Ensure featured markets appear even with zero listings yet
+  for (const state of ['Lagos', 'FCT', 'Rivers', 'Ogun']) {
+    if (!states.has(state)) push(buildLocationLandingPath(state), 0.85);
+  }
+
+  return entries;
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteOrigin();
@@ -27,19 +80,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     await dbConnect();
-    const [listings, trends] = await Promise.all([
+    const [listings, trends, locationRoutes] = await Promise.all([
       Listing.find({ status: LISTING_STATUS.ACTIVE })
-        .select('_id updatedAt')
+        .select('_id slug updatedAt')
         .lean(),
       Trend.find({ status: TREND_STATUS.PUBLISHED })
         .select('slug updatedAt publishedAt')
         .lean(),
+      buildLocationSitemapEntries(base, now),
     ]);
 
     const listingRoutes: MetadataRoute.Sitemap = listings.map((row) => {
       const updated = row.updatedAt ? new Date(row.updatedAt as Date) : now;
+      const segment = getListingPathSegment({
+        _id: String(row._id),
+        slug: (row as { slug?: string }).slug,
+      });
       return {
-        url: `${base}/listings/${String(row._id)}`,
+        url: `${base}/listings/${segment}`,
         lastModified: updated,
         changeFrequency: 'weekly' as const,
         priority: 0.7,
@@ -60,7 +118,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
-    return [...staticRoutes, ...listingRoutes, ...trendRoutes];
+    return [...staticRoutes, ...locationRoutes, ...listingRoutes, ...trendRoutes];
   } catch (e) {
     console.error('[sitemap]', e);
     return staticRoutes;

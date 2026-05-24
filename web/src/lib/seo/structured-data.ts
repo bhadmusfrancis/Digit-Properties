@@ -61,6 +61,7 @@ export function buildBreadcrumbJsonLd(items: { name: string; path: string }[]) {
 
 export type ListingStructuredDataInput = {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   price: number;
@@ -80,7 +81,8 @@ export type ListingStructuredDataInput = {
 };
 
 export function buildListingJsonLd(input: ListingStructuredDataInput) {
-  const url = absoluteUrl(`/listings/${input.id}`);
+  const pathSegment = input.slug?.trim() || input.id;
+  const url = absoluteUrl(`/listings/${pathSegment}`);
   const streetAddress = [input.location?.address, input.location?.suburb].filter(Boolean).join(', ') || undefined;
 
   return {
@@ -141,5 +143,21 @@ export function buildArticleJsonLd(input: ArticleStructuredDataInput) {
       name: 'Digit Properties',
       logo: { '@type': 'ImageObject', url: absoluteUrl('/logo.svg') },
     },
+  };
+}
+
+export function buildCollectionPageJsonLd(input: {
+  name: string;
+  description: string;
+  path: string;
+}) {
+  const url = absoluteUrl(input.path);
+  return {
+    '@context': SCHEMA,
+    '@type': 'CollectionPage',
+    name: input.name,
+    description: input.description.slice(0, 5000),
+    url,
+    isPartOf: { '@type': 'WebSite', name: 'Digit Properties', url: siteOrigin() },
   };
 }

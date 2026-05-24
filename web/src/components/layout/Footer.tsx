@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { buildLocationLandingPath } from '@/lib/location-seo';
+import { LISTING_TYPE } from '@/lib/constants';
 
 export function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-gray-900 text-gray-300">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-4">
           <div>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white font-bold">
               DP
@@ -12,6 +14,31 @@ export function Footer() {
             <p className="mt-4 text-sm">
               Nigeria premier real estate platform. Buy, sell, and rent properties with confidence.
             </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-white">Popular Locations</h3>
+            <ul className="mt-4 space-y-2">
+              <li>
+                <Link href={buildLocationLandingPath('Lagos')} className="hover:text-white">
+                  Lagos
+                </Link>
+              </li>
+              <li>
+                <Link href={buildLocationLandingPath('FCT')} className="hover:text-white">
+                  Abuja
+                </Link>
+              </li>
+              <li>
+                <Link href={buildLocationLandingPath('Rivers', { city: 'Port Harcourt' })} className="hover:text-white">
+                  Port Harcourt
+                </Link>
+              </li>
+              <li>
+                <Link href={buildLocationLandingPath('Ogun')} className="hover:text-white">
+                  Ogun
+                </Link>
+              </li>
+            </ul>
           </div>
           <div>
             <h3 className="font-semibold text-white">Buy and Rent</h3>
@@ -22,12 +49,12 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/listings?listingType=sale" className="hover:text-white">
+                <Link href={buildLocationLandingPath('Lagos', { listingType: LISTING_TYPE.SALE })} className="hover:text-white">
                   For Sale
                 </Link>
               </li>
               <li>
-                <Link href="/listings?listingType=rent" className="hover:text-white">
+                <Link href={buildLocationLandingPath('Lagos', { listingType: LISTING_TYPE.RENT })} className="hover:text-white">
                   For Rent
                 </Link>
               </li>
@@ -68,3 +95,4 @@ export function Footer() {
     </footer>
   );
 }
+

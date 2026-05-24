@@ -13,6 +13,7 @@ const MAX_LIMIT = 24;
 
 type SimilarListingItem = {
   _id: string;
+  slug?: string;
   title: string;
   price: number;
   listingType: string;
@@ -180,6 +181,7 @@ export async function GET(
       });
       return {
         _id: String(doc._id),
+        slug: typeof doc.slug === 'string' ? doc.slug : undefined,
         title: typeof doc.title === 'string' ? doc.title : '',
         price: typeof doc.price === 'number' ? doc.price : 0,
         listingType: typeof doc.listingType === 'string' ? doc.listingType : 'sale',

@@ -9,6 +9,7 @@ import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel } from '@/lib/constants';
 import { toFirstName } from '@/lib/display-name';
+import { isBotListingAuthor } from '@/lib/claimable-listing';
 import {
   LISTING_TRUST_CAVEAT_TEXT,
   shouldShowListingTrustCaveat,
@@ -83,6 +84,10 @@ export function ListingAuthorPanel({
   /** Compact layout inside the combined Contact tab; constrains horizontal scroll. */
   embedded?: boolean;
 }) {
+  if (isBotListingAuthor({ createdByType, createdBy })) {
+    return null;
+  }
+
   const displayName = toFirstName(createdBy?.firstName, createdBy?.name, 'Author');
   const showTrustCaveat = shouldShowListingTrustCaveat({
     role: createdBy?.role,

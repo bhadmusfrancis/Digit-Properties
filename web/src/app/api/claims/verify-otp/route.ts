@@ -5,7 +5,7 @@ import Listing from '@/models/Listing';
 import { verifyTermiiPin, normalizePhone } from '@/lib/phone-verify';
 import { getClaimOtp, deleteClaimOtp } from '@/lib/claim-otp-cache';
 import ClaimPhoneVerification from '@/models/ClaimPhoneVerification';
-import { claimableListingsMatch } from '@/lib/claimable-listing';
+import { claimableListingsMatch } from '@/lib/claimable-listing-server';
 import {
   assertClaimOtpNotLocked,
   recordClaimVerifyFailure,

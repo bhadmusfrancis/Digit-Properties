@@ -11,6 +11,7 @@ import { notifyMatchingAlerts } from '@/lib/alerts';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
+import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 
@@ -328,6 +329,10 @@ export async function POST(req: Request) {
       images,
       videos: videos.length > 0 ? videos : [],
       status: finalStatus,
+      slug: await ensureUniqueListingSlug({
+        title: parsed.data.title,
+        location: parsed.data.location,
+      }),
       createdBy: session.user.id,
       createdByType: session.user.role === USER_ROLES.ADMIN ? 'admin' : session.user.role === USER_ROLES.BOT ? 'bot' : 'user',
     });
