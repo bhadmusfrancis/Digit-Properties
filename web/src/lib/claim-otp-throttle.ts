@@ -3,12 +3,14 @@ import ClaimOtpUserState from '@/models/ClaimOtpUserState';
 import {
   PHONE_OTP_COOLDOWN_MS,
   PHONE_OTP_MAX_SENDS_PER_DAY,
-  PHONE_OTP_RATE_LIMIT_MAX_ATTEMPTS,
-  PHONE_OTP_RATE_LIMIT_WINDOW_MS,
   assertPhoneOtpCooldown,
   assertPhoneOtpDailyCap,
   nextPhoneOtpSendsCount,
 } from '@/lib/phone-otp-send-limits';
+import {
+  PHONE_OTP_RATE_LIMIT_MAX_ATTEMPTS,
+  PHONE_OTP_RATE_LIMIT_WINDOW_MS,
+} from '@/lib/rate-limit';
 
 export {
   PHONE_OTP_COOLDOWN_MS as CLAIM_OTP_COOLDOWN_MS,
