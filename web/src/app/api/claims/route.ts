@@ -9,7 +9,8 @@ import { objectIdSchema } from '@/lib/validations';
 import { CLAIM_STATUS, USER_ROLES } from '@/lib/constants';
 import { sendAdminNewClaim, sendClaimApproved } from '@/lib/email';
 import { normalizePhone } from '@/lib/phone-verify';
-import { claimableListingsMatch, isClaimableListingDoc } from '@/lib/claimable-listing';
+import { claimableListingsMatch } from '@/lib/claimable-listing-server';
+import { isClaimableListingDoc } from '@/lib/claimable-listing';
 import mongoose from 'mongoose';
 
 export async function GET(req: Request) {

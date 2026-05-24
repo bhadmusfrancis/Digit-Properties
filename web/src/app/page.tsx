@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { TrendingListings } from '@/components/listings/TrendingListings';
 import { TrendHighlights } from '@/components/trends/TrendHighlights';
+import { LocationHighlights } from '@/components/listings/LocationHighlights';
+import { buildLocationLandingPath } from '@/lib/location-seo';
+import { LISTING_TYPE } from '@/lib/constants';
 
 export default function HomePage() {
 
@@ -16,10 +19,10 @@ export default function HomePage() {
             Browse thousands of apartments, houses, land, and commercial properties for sale and rent across Lagos, Abuja, Port Harcourt, and beyond.
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
-            <Link href="/listings?listingType=sale" className="btn bg-white text-primary-700 hover:bg-primary-50">
+            <Link href={buildLocationLandingPath('Lagos', { listingType: LISTING_TYPE.SALE })} className="btn bg-white text-primary-700 hover:bg-primary-50">
               Buy Property
             </Link>
-            <Link href="/listings?listingType=rent" className="btn border-2 border-white text-white hover:bg-white/10">
+            <Link href={buildLocationLandingPath('Lagos', { listingType: LISTING_TYPE.RENT })} className="btn border-2 border-white text-white hover:bg-white/10">
               Rent Property
             </Link>
           </div>
@@ -47,6 +50,8 @@ export default function HomePage() {
       </section>
 
       <TrendHighlights />
+
+      <LocationHighlights />
 
       <section className="border-t border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

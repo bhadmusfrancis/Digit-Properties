@@ -3,6 +3,7 @@
  * Digit Properties listing payload. Used by "Import from WhatsApp" flow.
  */
 import { NIGERIAN_STATES, PROPERTY_TYPES, LISTING_TYPE } from './constants';
+import { formatListingLocationDisplay } from '@/lib/listing-location';
 
 export type ParsedListing = {
   title: string;
@@ -393,7 +394,8 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
   if (area) titleParts.push(`${area} sqm`);
   if (bedrooms) titleParts.push(`${bedrooms} Bed`);
   titleParts.push(propertyType.charAt(0).toUpperCase() + propertyType.slice(1));
-  if (address) titleParts.push('at ' + (suburb || city || state));
+  const titleLocation = formatListingLocationDisplay({ suburb, city, state, address });
+  if (titleLocation) titleParts.push('at ' + titleLocation);
   const title = titleParts.length >= 2 ? titleParts.join(' ') : (text.slice(0, 80) || 'Imported listing');
 
   if (!price) missing.push('price');

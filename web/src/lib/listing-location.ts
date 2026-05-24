@@ -1,6 +1,7 @@
 /**
- * One line for cards and detail sidebars. Prefer structured suburb/city/state so we
- * do not repeat place names that are usually already inside the free-text address.
+ * One line for cards, detail sidebars, and generated listing titles.
+ * Order: suburb, then city, then state. Free-text address is used only when
+ * structured fields are empty.
  */
 export function formatListingLocationDisplay(loc: {
   address?: string | null;

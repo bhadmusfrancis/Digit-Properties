@@ -1,7 +1,23 @@
 /**
- * Generate listing title with "at" for location (same as web).
- * e.g. "3 Bed Apartment at Jakande, Baale Street, Lagos"
+ * Generate listing title with "at" for location (same rules as web).
+ * e.g. "3 Bed Apartment at Ikotun, Lagos"
  */
+
+function formatTitleLocation(loc: {
+  address?: string;
+  suburb?: string;
+  city?: string;
+  state?: string;
+}): string {
+  const structured = [loc.suburb, loc.city, loc.state]
+    .map((s) => (typeof s === 'string' ? s.trim() : ''))
+    .filter((s) => s.length > 0);
+  if (structured.length > 0) {
+    return Array.from(new Map(structured.map((p) => [p.toLowerCase(), p])).values()).join(', ');
+  }
+  const addr = typeof loc.address === 'string' ? loc.address.trim() : '';
+  return addr;
+}
 
 export function generateListingTitle(params: {
   listingType: string;
@@ -20,12 +36,7 @@ export function generateListingTitle(params: {
       : params.listingType === 'joint_venture'
         ? 'Joint Venture'
         : 'for Sale';
-  const parts: string[] = [];
-  if (params.suburb?.trim()) parts.push(params.suburb.trim());
-  if (params.address?.trim()) parts.push(params.address.trim());
-  if (params.city?.trim()) parts.push(params.city.trim());
-  if (params.state?.trim()) parts.push(params.state.trim());
-  const loc = parts.join(', ') || 'Nigeria';
+  const loc = formatTitleLocation(params) || 'Nigeria';
   if (beds > 0) {
     return `${beds} Bed ${prop} at ${loc}`;
   }

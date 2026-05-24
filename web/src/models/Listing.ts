@@ -44,6 +44,8 @@ export interface IListing {
   featured?: boolean;
   /** Highlighted in search when true (respects subscription maxHighlighted). */
   highlighted?: boolean;
+  /** SEO-friendly URL slug (unique when set). */
+  slug?: string;
   viewCount: number;
   soldAt?: Date;
   rentedAt?: Date;
@@ -105,6 +107,7 @@ const ListingSchema = new Schema<IListing>(
     boostExpiresAt: Date,
     featured: { type: Boolean, default: false },
     highlighted: { type: Boolean, default: false },
+    slug: { type: String, trim: true, sparse: true, unique: true },
     viewCount: { type: Number, default: 0 },
     soldAt: Date,
     rentedAt: Date,

@@ -17,6 +17,7 @@ import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verificati
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { getListingModerationConfig } from '@/lib/listing-moderation-config';
+import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 
 const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -322,6 +323,19 @@ export async function PATCH(
       return NextResponse.json(
         { error: duplicateCheck.message, code: duplicateCheck.code },
         { status: 409 }
+      );
+    }
+
+    const titleOrLocationChanged =
+      parsed.data.title !== undefined ||
+      parsed.data.location !== undefined;
+    if (titleOrLocationChanged) {
+      listing.slug = await ensureUniqueListingSlug(
+        {
+          title: listing.title,
+          location: listing.location,
+          excludeId: String(listing._id),
+        }
       );
     }
 

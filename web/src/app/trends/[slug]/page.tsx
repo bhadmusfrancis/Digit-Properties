@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/db';
 import Trend from '@/models/Trend';
 import { TREND_STATUS } from '@/lib/constants';
 import { TrendPostClient } from '@/components/trends/TrendPostClient';
+import { PropertyLocationLinks } from '@/components/listings/PropertyLocationLinks';
 import type { Metadata } from 'next';
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -101,6 +102,7 @@ export default async function TrendPostPage({ params }: { params: Promise<{ slug
         shareTitle={post.title}
         shareText={post.excerpt ?? undefined}
       />
+      <PropertyLocationLinks />
     </>
   );
 }

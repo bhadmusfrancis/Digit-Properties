@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
@@ -15,8 +16,20 @@ type ListingsApiPage = {
 
 const AUTO_LOAD_LIMIT = 50;
 
-function buildBaseQuery(params: URLSearchParams) {
+type ListingsPageClientProps = {
+  presetFilters?: Record<string, string>;
+  pageTitle?: string;
+  pageDescription?: string;
+  relatedLinks?: { href: string; label: string }[];
+};
+
+function buildBaseQuery(params: URLSearchParams, preset?: Record<string, string>) {
   const q = new URLSearchParams();
+  if (preset) {
+    for (const [k, v] of Object.entries(preset)) {
+      if (v?.trim()) q.set(k, v);
+    }
+  }
   params.forEach((v, k) => {
     if (!v || k === 'page') return;
     q.set(k, v);
@@ -24,9 +37,17 @@ function buildBaseQuery(params: URLSearchParams) {
   return q.toString();
 }
 
-function ListingsContent() {
+function ListingsContent({
+  presetFilters,
+  pageTitle,
+  pageDescription,
+  relatedLinks,
+}: ListingsPageClientProps) {
   const searchParams = useSearchParams();
-  const query = buildBaseQuery(searchParams);
+  const usePresetOnly = Boolean(presetFilters && Object.keys(presetFilters).length > 0);
+  const query = usePresetOnly
+    ? buildBaseQuery(new URLSearchParams(), presetFilters)
+    : buildBaseQuery(searchParams);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<
@@ -75,8 +96,31 @@ function ListingsContent() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold text-gray-900">Property Listings</h1>
-      <ListingFilters />
+      <h1 className="text-2xl font-bold text-gray-900">{pageTitle ?? 'Property Listings'}</h1>
+      {pageDescription && <p className="mt-2 max-w-3xl text-gray-600">{pageDescription}</p>}
+      {relatedLinks && relatedLinks.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {relatedLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-full bg-primary-50 px-3 py-1 text-sm text-primary-700 hover:bg-primary-100"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      )}
+      {!usePresetOnly && <ListingFilters />}
+      {usePresetOnly && (
+        <p className="mt-4 text-sm text-gray-500">
+          <Link href="/listings" className="text-primary-600 hover:underline">
+            Browse all Nigeria listings
+          </Link>
+          {' · '}
+          Adjust filters on the main listings page for advanced search.
+        </p>
+      )}
       <div className="mt-6">
         <FeaturedSlot placement="listings" />
       </div>
@@ -138,10 +182,10 @@ function ListingsContent() {
   );
 }
 
-export function ListingsPageClient() {
+export function ListingsPageClient(props: ListingsPageClientProps = {}) {
   return (
     <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8">Loading...</div>}>
-      <ListingsContent />
+      <ListingsContent {...props} />
     </Suspense>
   );
 }

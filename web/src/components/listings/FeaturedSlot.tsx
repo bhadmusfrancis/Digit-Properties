@@ -8,9 +8,11 @@ import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { getListingPublicPath } from '@/lib/listing-path';
 
 type ListingPayload = {
   _id: string;
+  slug?: string;
   title: string;
   description?: string;
   price: number;
@@ -111,7 +113,7 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
     return (
       <div className="mt-6">
         <Link
-          href={`/listings/${listing._id}`}
+          href={getListingPublicPath(listing)}
           className="card group block w-full overflow-hidden transition hover:shadow-xl md:flex md:flex-row"
         >
           {/* Image: full width on small, ~42% on md+ with fixed min height */}

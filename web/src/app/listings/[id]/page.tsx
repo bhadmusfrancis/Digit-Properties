@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
@@ -30,20 +30,28 @@ import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verificati
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildBreadcrumbJsonLd, buildListingJsonLd } from '@/lib/seo/structured-data';
-import { plainTextExcerpt } from '@/lib/utils';
+import { plainTextExcerpt, isNextNavigationError } from '@/lib/utils';
+import { getListingPublicPath } from '@/lib/listing-path';
+import {
+  buildLocationLandingPath,
+  relatedLocationLinks,
+} from '@/lib/location-seo';
+import { resolveListingPublicSegment } from '@/lib/resolve-listing';
 
 const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
     const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return {};
     await dbConnect();
-    const [session, listing] = await Promise.all([
-      getServerSession(authOptions),
-      Listing.findById(id).lean(),
-    ]);
-    if (!listing) return {};
+    const session = await getServerSession(authOptions);
+    let resolved;
+    try {
+      resolved = await resolveListingPublicSegment(id);
+    } catch {
+      return {};
+    }
+    const { listing, publicSegment } = resolved;
     if (
       !canViewListingOnSite({
         status: listing.status,
@@ -54,7 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       notFound();
     }
     const baseUrl = siteOrigin();
-    const canonical = `${baseUrl}/listings/${id}`;
+    const canonical = `${baseUrl}/listings/${publicSegment}`;
     const shareFields = listingDocToShareFields({
       ...listing,
       propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
@@ -93,24 +101,37 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       },
     };
   } catch (e) {
+    if (isNextNavigationError(e)) throw e;
     console.error('[ListingPage generateMetadata]', e);
     return {};
   }
 }
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) notFound();
+  const { id } = await params;
+  await dbConnect();
+  void User; // Ensure User model is registered for populate
+  const session = await getServerSession(authOptions);
 
-    await dbConnect();
-    void User; // Ensure User model is registered for populate
-    const [session, listing, likeCount] = await Promise.all([
-      getServerSession(authOptions),
-      Listing.findById(id).populate('createdBy', USER_PUBLIC_BADGE_FIELDS).lean(),
-      ListingLike.countDocuments({ listingId: new mongoose.Types.ObjectId(id) }),
-    ]);
+  let resolved;
+  try {
+    resolved = await resolveListingPublicSegment(id);
+  } catch {
+    notFound();
+  }
+  const { listing: listingPre, publicSegment, shouldRedirect } = resolved;
+  if (shouldRedirect) {
+    permanentRedirect(`/listings/${publicSegment}`);
+  }
+
+  try {
+    const listingId = String(listingPre._id);
+    const listing = await Listing.findById(listingId).populate('createdBy', USER_PUBLIC_BADGE_FIELDS).lean();
     if (!listing) notFound();
+
+    const [likeCount] = await Promise.all([
+      ListingLike.countDocuments({ listingId: new mongoose.Types.ObjectId(listingId) }),
+    ]);
 
     if (
       !canViewListingOnSite({
@@ -124,7 +145,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     const currentCity = listing.location?.city ?? '';
     const currentState = listing.location?.state ?? '';
-    const listingIdOid = new mongoose.Types.ObjectId(id);
+    const listingIdOid = new mongoose.Types.ObjectId(listingId);
     const similarAgg = await Listing.aggregate([
       {
         $match: {
@@ -232,6 +253,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       });
       return {
         _id: String(doc._id),
+        slug: typeof doc.slug === 'string' ? doc.slug : undefined,
         title: typeof doc.title === 'string' ? doc.title : '',
         price: typeof doc.price === 'number' ? doc.price : 0,
         listingType: typeof doc.listingType === 'string' ? doc.listingType : 'sale',
@@ -345,6 +367,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       );
     }
 
+    const listingState = listing.location?.state ?? '';
+    const listingCity = listing.location?.city ?? '';
+    const listingPublicPath = getListingPublicPath({ _id: listingId, slug: publicSegment });
+    const locationLinks = listingState
+      ? relatedLocationLinks(listingState, listingCity ? { city: listingCity } : undefined)
+      : [];
+
     return (
     <>
       <JsonLd
@@ -352,10 +381,17 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           buildBreadcrumbJsonLd([
             { name: 'Home', path: '/' },
             { name: 'Listings', path: '/listings' },
-            { name: String(listing.title ?? 'Property'), path: `/listings/${id}` },
+            ...(listingState
+              ? [{ name: listingState, path: buildLocationLandingPath(listingState) }]
+              : []),
+            ...(listingCity && listingState
+              ? [{ name: listingCity, path: buildLocationLandingPath(listingState, { city: listingCity }) }]
+              : []),
+            { name: String(listing.title ?? 'Property'), path: listingPublicPath },
           ]),
           buildListingJsonLd({
-            id,
+            id: listingId,
+            slug: publicSegment,
             title: String(listing.title ?? ''),
             description: plainTextExcerpt(String(listing.description ?? ''), 500, String(listing.title ?? '')),
             price: Number(listing.price) || 0,
@@ -441,9 +477,25 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
               )}
+              {locationLinks.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-semibold text-gray-900">Explore {listingCity || listingState}</h3>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {locationLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="rounded-full bg-primary-50 px-3 py-1 text-sm text-primary-700 hover:bg-primary-100"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="mt-6 border-t border-gray-200 pt-6">
                 <SocialShareButtons
-                  url={`${baseUrl}/listings/${id}`}
+                  url={`${baseUrl}${listingPublicPath}`}
                   title={listing.title}
                   text={shareDescription}
                   mediaUrl={getListingDisplayImage(
@@ -468,7 +520,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               coordinates={listing.location?.coordinates}
             />
             <ListingSidebarTabs
-              listingId={id}
+              listingId={listingId}
               listingType={String(listing.listingType ?? '')}
               listingTitle={listing.title}
               propertyType={String(listing.propertyType ?? '')}
@@ -500,12 +552,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       </div>
 
       {similarListings.length > 0 && (
-        <SimilarListingsInfinite listingId={id} initialListings={similarListings} />
+        <SimilarListingsInfinite listingId={listingId} initialListings={similarListings} />
       )}
     </div>
     </>
     );
   } catch (e) {
+    if (isNextNavigationError(e)) throw e;
     console.error('[ListingPage]', e);
     notFound();
   }

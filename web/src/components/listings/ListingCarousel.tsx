@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { getListingPublicPath } from '@/lib/listing-path';
 
 const CARD_WIDTH = 280;
 const GAP = 16;
@@ -14,6 +15,7 @@ const SCROLL_AMOUNT = CARD_WIDTH + GAP;
 
 export interface Listing {
   _id: string;
+  slug?: string;
   title: string;
   price: number;
   listingType: string;
@@ -66,7 +68,7 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
       {listings.map((listing) => (
         <Link
           key={listing._id}
-          href={`/listings/${listing._id}`}
+          href={getListingPublicPath(listing)}
           className="card group min-w-[280px] max-w-[280px] flex-shrink-0 snap-start transition hover:shadow-md"
         >
           <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
