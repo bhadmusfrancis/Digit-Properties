@@ -135,19 +135,10 @@ export function LivenessCamera({ onSuccess, onCancel, onError, isUploading }: Pr
     modelsLoadedRef.current = false;
     setModelsReady(false);
     setModelsError(null);
-    Promise.all([
-      import('@tensorflow/tfjs'),
-      import('@vladmandic/face-api'),
-    ])
-      .then(([tf, faceapi]) => {
+    import('@vladmandic/face-api')
+      .then((faceapi) => {
         if (cancelled) return;
         faceApiRef.current = faceapi;
-        // Ensure TensorFlow.js backend is ready before loading face-api models
-        return (tf as typeof import('@tensorflow/tfjs')).ready?.() ?? Promise.resolve();
-      })
-      .then(() => {
-        if (cancelled || !faceApiRef.current) return;
-        const faceapi = faceApiRef.current;
         return faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_BASE).then(() => {
           if (cancelled) return;
           return faceapi.nets.faceLandmark68Net.loadFromUri(MODELS_BASE);

@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { LISTING_TYPE } from '@/lib/constants';
-import { isBotListingAuthor } from '@/lib/claimable-listing';
 import type { PublicCreatedBy } from '@/lib/verification';
+import { isBotListingAuthor } from '@/lib/claimable-listing';
 import { ListingAuthorPanel } from '@/components/listings/ListingAuthorPanel';
-import { ListingListedByContact } from '@/components/listings/ListingListedByContact';
 import { ListingDetailClient } from '@/components/listings/ListingDetailClient';
 import { ProfessionalOffersPanel } from '@/components/listings/ProfessionalOffersPanel';
 
-type SidebarTab = 'contact' | 'offers';
+type SidebarTab = 'contact' | 'author' | 'offers';
 
 const TAB_META: Record<SidebarTab, { label: string; icon: React.ReactNode }> = {
   contact: {
@@ -17,6 +16,14 @@ const TAB_META: Record<SidebarTab, { label: string; icon: React.ReactNode }> = {
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+      </svg>
+    ),
+  },
+  author: {
+    label: 'Author',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
     ),
   },
@@ -41,6 +48,7 @@ export function ListingSidebarTabs({
   createdBy,
   createdByType,
   listingContactName,
+  isBotListing,
   baseUrl,
   isOwner,
   viewCount,
@@ -55,23 +63,33 @@ export function ListingSidebarTabs({
   title: string;
   createdBy: PublicCreatedBy | null;
   createdByType: string;
-  /** Listing agent/contact name for bot posts (shown instead of author profile). */
-  listingContactName?: string;
+  listingTags?: string[];
+  /** Bot-ingested or BOT-user listings: hide Author / Listed-by tab. */
+  isBotListing?: boolean;
   baseUrl: string;
   isOwner: boolean;
   viewCount: number;
   likeCount: number;
 }) {
   const showOffersTab = listingType === LISTING_TYPE.SALE;
-  const showAuthorSection = !isBotListingAuthor({ createdByType, createdBy });
-  const tabs: SidebarTab[] = showOffersTab ? ['contact', 'offers'] : ['contact'];
+  const hideAuthorTab =
+    isBotListing ??
+    isBotListingAuthor({ createdByType, createdBy, tags: listingTags });
+  const tabs: SidebarTab[] = hideAuthorTab
+    ? showOffersTab
+      ? ['contact', 'offers']
+      : ['contact']
+    : showOffersTab
+      ? ['contact', 'author', 'offers']
+      : ['contact', 'author'];
+  const showTabBar = tabs.length > 1;
   const [activeTab, setActiveTab] = useState<SidebarTab>('contact');
 
   const resolvedTab = tabs.includes(activeTab) ? activeTab : 'contact';
 
   return (
     <div className="mt-6 min-w-0">
-      {showOffersTab && (
+      {showTabBar && (
         <div
           className="flex gap-1 rounded-xl bg-gray-100/90 p-1"
           role="tablist"
@@ -102,12 +120,12 @@ export function ListingSidebarTabs({
         </div>
       )}
 
-      <div className={`min-w-0 ${showOffersTab ? 'mt-4' : ''}`}>
+      <div className={`min-w-0 ${showTabBar ? 'mt-4' : ''}`}>
         <div
           id="listing-sidebar-panel-contact"
           role="tabpanel"
           aria-labelledby="listing-sidebar-tab-contact"
-          hidden={showOffersTab && resolvedTab !== 'contact'}
+          hidden={showTabBar && resolvedTab !== 'contact'}
           className="min-w-0"
         >
           <div className="min-w-0 space-y-5">
@@ -122,27 +140,33 @@ export function ListingSidebarTabs({
               viewCount={viewCount}
               likeCount={likeCount}
             />
-            {showAuthorSection ? (
-              <div className="border-t border-gray-200 pt-5">
-                <ListingAuthorPanel
-                  embedded
-                  authorId={createdBy?._id}
-                  createdBy={createdBy}
-                  createdByType={createdByType}
-                  currentListingId={listingId}
-                />
-              </div>
-            ) : (
-              listingContactName && <ListingListedByContact contactName={listingContactName} />
-            )}
           </div>
         </div>
+
+        {!hideAuthorTab && (
+          <div
+            id="listing-sidebar-panel-author"
+            role="tabpanel"
+            aria-labelledby="listing-sidebar-tab-author"
+            hidden={showTabBar && resolvedTab !== 'author'}
+            className="min-w-0"
+          >
+            <ListingAuthorPanel
+              embedded
+              authorId={createdBy?._id}
+              createdBy={createdBy}
+              createdByType={createdByType}
+              currentListingId={listingId}
+            />
+          </div>
+        )}
+
         {showOffersTab && (
           <div
             id="listing-sidebar-panel-offers"
             role="tabpanel"
             aria-labelledby="listing-sidebar-tab-offers"
-            hidden={resolvedTab !== 'offers'}
+            hidden={showTabBar && resolvedTab !== 'offers'}
             className="min-w-0"
           >
             <ProfessionalOffersPanel
