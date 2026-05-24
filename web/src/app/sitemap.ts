@@ -52,6 +52,27 @@ async function buildLocationSitemapEntries(base: string, now: Date): Promise<Met
     }
   }
 
+  const suburbRows = await Listing.aggregate<{ _id: { state: string; suburb?: string } }>([
+    {
+      $match: {
+        status: LISTING_STATUS.ACTIVE,
+        'location.state': { $exists: true, $ne: '' },
+        'location.suburb': { $exists: true, $nin: [null, ''] },
+      },
+    },
+    { $group: { _id: { state: '$location.state', suburb: '$location.suburb' } } },
+  ]);
+
+  for (const row of suburbRows) {
+    const state = row._id.state;
+    const suburb = row._id.suburb?.trim();
+    if (!state || !suburb) continue;
+    states.add(state);
+    push(buildLocationLandingPath(state, { suburb }), 0.78);
+    push(buildLocationLandingPath(state, { suburb, listingType: 'sale' }), 0.76);
+    push(buildLocationLandingPath(state, { suburb, listingType: 'rent' }), 0.76);
+  }
+
   // Ensure featured markets appear even with zero listings yet
   for (const state of ['Lagos', 'FCT', 'Rivers', 'Ogun']) {
     if (!states.has(state)) push(buildLocationLandingPath(state), 0.85);
