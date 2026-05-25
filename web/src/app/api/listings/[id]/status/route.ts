@@ -4,10 +4,12 @@ import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
-import { sendAdminNewListing } from '@/lib/email';
-import { notifyMatchingAlerts } from '@/lib/alerts';
 import mongoose from 'mongoose';
-import { getListingModerationConfig } from '@/lib/listing-moderation-config';
+import {
+  notifyAdminListingPublish,
+  notifyAlertsIfActive,
+  resolvePublishStatus,
+} from '@/lib/listing-publish-moderation';
 
 export async function PATCH(
   req: Request,
@@ -40,15 +42,29 @@ export async function PATCH(
     if (status && ['draft', 'active', 'paused', 'closed'].includes(status)) {
       listing.status = status as 'draft' | 'active' | 'paused' | 'closed';
     }
-    if (
-      !isAdmin &&
-      session.user.role !== USER_ROLES.BOT &&
-      wasDraft &&
-      listing.status === LISTING_STATUS.ACTIVE
-    ) {
-      const mod = await getListingModerationConfig();
-      if (mod.newListingsRequireApproval) {
-        listing.status = LISTING_STATUS.PENDING_APPROVAL;
+    const isBot = session.user.role === USER_ROLES.BOT;
+    if (!isAdmin && !isBot && wasDraft && listing.status === LISTING_STATUS.ACTIVE) {
+      const publishMod = await resolvePublishStatus(
+        {
+          title: listing.title,
+          description: listing.description,
+          listingType: listing.listingType,
+          propertyType: listing.propertyType,
+          propertyTypes: listing.propertyTypes,
+          price: listing.price,
+          rentPeriod: listing.rentPeriod,
+          location: listing.location,
+          bedrooms: listing.bedrooms,
+          bathrooms: listing.bathrooms,
+          toilets: listing.toilets,
+          tags: listing.tags,
+          amenities: listing.amenities,
+        },
+        { isAdmin, isBot, requestedPublish: true, previousStatus: LISTING_STATUS.DRAFT }
+      );
+      listing.status = publishMod.status;
+      if (publishMod.suspicionReasons.length > 0) {
+        listing.pendingApprovalReasons = publishMod.suspicionReasons;
       }
     }
     if (soldAt === true && rentedAt === true) {
@@ -72,25 +88,18 @@ export async function PATCH(
 
     const nowActive = listing.status === LISTING_STATUS.ACTIVE;
     const nowPending = listing.status === LISTING_STATUS.PENDING_APPROVAL;
-    if (wasDraft && nowActive) {
+    if (wasDraft && (nowActive || nowPending) && userRequestedActiveFromDraft) {
       const creator = await User.findById(listing.createdBy).lean();
-      sendAdminNewListing(
-        listing.title,
-        String(listing._id),
-        creator?.name || 'Unknown',
-        listing.listingType,
-        listing.price
-      ).catch((e) => console.error('[listings] admin email:', e));
-      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
-    } else if (wasDraft && nowPending && userRequestedActiveFromDraft) {
-      const creator = await User.findById(listing.createdBy).lean();
-      sendAdminNewListing(
-        listing.title,
-        String(listing._id),
-        creator?.name || 'Unknown',
-        listing.listingType,
-        listing.price
-      ).catch((e) => console.error('[listings] admin email:', e));
+      await notifyAdminListingPublish({
+        listingId: String(listing._id),
+        title: listing.title,
+        listingType: listing.listingType,
+        price: listing.price,
+        createdByName: creator?.name || 'Unknown',
+        status: listing.status,
+        suspicionReasons: listing.pendingApprovalReasons ?? [],
+      });
+      if (nowActive) await notifyAlertsIfActive(listing.status, listing.toObject());
     }
 
     return NextResponse.json(listing);

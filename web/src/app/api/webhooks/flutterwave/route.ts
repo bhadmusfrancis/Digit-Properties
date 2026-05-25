@@ -4,6 +4,7 @@ import Payment from '@/models/Payment';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { notifyPaymentSuccess } from '@/lib/payment-emails';
 
 function verifyWebhook(secret: string): boolean {
   return !!process.env.FLUTTERWAVE_WEBHOOK_SECRET && secret === process.env.FLUTTERWAVE_WEBHOOK_SECRET;
@@ -97,6 +98,15 @@ export async function POST(req: Request) {
         await UserAd.findByIdAndUpdate(adId, { paymentId: payment._id });
       }
     }
+
+    notifyPaymentSuccess({
+      userId: payment.userId,
+      amount: payment.amount,
+      purpose: payment.purpose,
+      gateway: payment.gateway,
+      gatewayRef: payment.gatewayRef,
+      metadata: payment.metadata as Record<string, unknown> | undefined,
+    }).catch((e) => console.error('[flutterwave webhook] payment email:', e));
 
     return NextResponse.json({ status: 'success' });
   } catch (e) {

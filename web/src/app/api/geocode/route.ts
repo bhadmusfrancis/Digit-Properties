@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { extractSuburbFromDisplayName, matchKnownSuburb } from '@/lib/nigeria-suburbs';
 import { NIGERIAN_STATES } from '@/lib/constants';
+import { assessNigeriaLocation, filterLocationsToNigeria } from '@/lib/nigeria-location';
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 const UA = 'DigitProperties/1.0';
@@ -49,7 +50,8 @@ function parseGoogleAddressComponents(components: { long_name: string; short_nam
 
 async function googleGeocodeForward(q: string): Promise<GeoResult[]> {
   if (!GOOGLE_GEOCODE_KEY || q.trim().length < 3) return [];
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q.trim())}&key=${GOOGLE_GEOCODE_KEY}&region=ng`;
+  const query = q.trim().toLowerCase().includes('nigeria') ? q.trim() : `${q.trim()}, Nigeria`;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&components=country:NG&key=${GOOGLE_GEOCODE_KEY}&region=ng`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') return [];
@@ -58,7 +60,7 @@ async function googleGeocodeForward(q: string): Promise<GeoResult[]> {
     geometry: { location: { lat: number; lng: number } };
     address_components: { long_name: string; short_name: string; types: string[] }[];
   }[];
-  return results.slice(0, 8).map((r) => {
+  const mapped = results.slice(0, 12).map((r) => {
     const { city, state, suburb } = parseGoogleAddressComponents(r.address_components || []);
     return {
       address: r.formatted_address || '',
@@ -69,6 +71,7 @@ async function googleGeocodeForward(q: string): Promise<GeoResult[]> {
       lng: r.geometry?.location?.lng ?? 0,
     };
   });
+  return filterLocationsToNigeria(mapped).slice(0, 8);
 }
 
 async function googleReverseGeocode(lat: string, lon: string): Promise<GeoResult | null> {
@@ -103,7 +106,13 @@ export async function GET(req: Request) {
     if (lat != null && lon != null) {
       if (GOOGLE_GEOCODE_KEY) {
         const googleResult = await googleReverseGeocode(lat, lon);
-        if (googleResult) return NextResponse.json(googleResult);
+        if (googleResult) {
+        const locCheck = assessNigeriaLocation(googleResult);
+        if (!locCheck.inNigeria) {
+          return NextResponse.json({ error: locCheck.reason || 'Only locations in Nigeria are allowed' }, { status: 400 });
+        }
+        return NextResponse.json(googleResult);
+      }
       }
       const url = NOMINATIM_BASE + '/reverse?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon) + '&format=json&addressdetails=1';
       const res = await fetch(url, { headers: { 'User-Agent': UA } });
@@ -132,7 +141,12 @@ export async function GET(req: Request) {
       if (googleResults.length > 0) return NextResponse.json({ results: googleResults });
     }
 
-    const searchUrl = NOMINATIM_BASE + '/search?q=' + encodeURIComponent(q.trim()) + '&format=json&addressdetails=1&limit=8';
+    const nominatimQ = q.trim().toLowerCase().includes('nigeria') ? q.trim() : `${q.trim()}, Nigeria`;
+    const searchUrl =
+      NOMINATIM_BASE +
+      '/search?q=' +
+      encodeURIComponent(nominatimQ) +
+      '&countrycodes=ng&format=json&addressdetails=1&limit=12';
     const res = await fetch(searchUrl, { headers: { 'User-Agent': UA } });
     const results = await res.json();
     if (!Array.isArray(results)) return NextResponse.json({ results: [] });
@@ -151,7 +165,7 @@ export async function GET(req: Request) {
         lng: parseFloat(r.lon),
       };
     });
-    return NextResponse.json({ results: out });
+    return NextResponse.json({ results: filterLocationsToNigeria(out) });
   } catch (e) {
     console.error('[geocode]', e);
     return NextResponse.json({ error: 'Geocoding failed' }, { status: 500 });

@@ -6,8 +6,12 @@ import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
 import { listingUpdateSchema } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } from '@/lib/constants';
-import { sendAdminNewListing } from '@/lib/email';
-import { notifyMatchingAlerts } from '@/lib/alerts';
+import {
+  notifyAdminListingPublish,
+  notifyAlertsIfActive,
+  resolveActiveListingEditStatus,
+  resolvePublishStatus,
+} from '@/lib/listing-publish-moderation';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { applyBoostToLimits } from '@/lib/listing-effective-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
@@ -16,7 +20,6 @@ import { canViewListingOnSite } from '@/lib/listing-access';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
-import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 
 const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -292,18 +295,59 @@ export async function PATCH(
         );
       }
     }
-    const mod = await getListingModerationConfig();
-    if (!isAdmin && wasActive && mod.editedListingsRequireApproval) {
-      listing.status = LISTING_STATUS.PENDING_APPROVAL;
+    const isBot = session.user.role === USER_ROLES.BOT;
+    const userRequestedActive =
+      !isAdmin && parsed.data.status === LISTING_STATUS.ACTIVE;
+    const suspicionInput = {
+      title: listing.title,
+      description: listing.description,
+      listingType: listing.listingType,
+      propertyType: listing.propertyType,
+      propertyTypes: listing.propertyTypes,
+      price: listing.price,
+      rentPeriod: listing.rentPeriod,
+      location: listing.location,
+      bedrooms: listing.bedrooms,
+      bathrooms: listing.bathrooms,
+      toilets: listing.toilets,
+      tags: listing.tags,
+      amenities: listing.amenities,
+    };
+    let pendingReasons: string[] = listing.pendingApprovalReasons ?? [];
+
+    if (wasActive && !isAdmin && !isBot) {
+      const editMod = await resolveActiveListingEditStatus(suspicionInput, {
+        isAdmin,
+        isBot,
+        wasActive: true,
+      });
+      if (editMod.forcePending) {
+        listing.status = LISTING_STATUS.PENDING_APPROVAL;
+        pendingReasons =
+          editMod.suspicionReasons.length > 0
+            ? editMod.suspicionReasons
+            : ['Listing edit requires admin re-approval'];
+      }
+    } else if (wasDraft && userRequestedActive && listing.status === LISTING_STATUS.ACTIVE) {
+      const publishMod = await resolvePublishStatus(suspicionInput, {
+        isAdmin,
+        isBot,
+        requestedPublish: true,
+        previousStatus: LISTING_STATUS.DRAFT,
+      });
+      listing.status = publishMod.status;
+      pendingReasons =
+        publishMod.suspicionReasons.length > 0
+          ? publishMod.suspicionReasons
+          : publishMod.status === LISTING_STATUS.PENDING_APPROVAL
+            ? ['New listing requires admin approval']
+            : [];
     }
-    if (
-      !isAdmin &&
-      session.user.role !== USER_ROLES.BOT &&
-      wasDraft &&
-      listing.status === LISTING_STATUS.ACTIVE &&
-      mod.newListingsRequireApproval
-    ) {
-      listing.status = LISTING_STATUS.PENDING_APPROVAL;
+
+    if (pendingReasons.length > 0) {
+      listing.pendingApprovalReasons = pendingReasons;
+    } else if (listing.status === LISTING_STATUS.ACTIVE) {
+      listing.pendingApprovalReasons = undefined;
     }
 
     const mediaIds = [
@@ -344,28 +388,35 @@ export async function PATCH(
     const nowActive = listing.status === LISTING_STATUS.ACTIVE;
     const nowPending = listing.status === LISTING_STATUS.PENDING_APPROVAL;
     const userRequestedActiveFromDraft = wasDraft && parsed.data.status === LISTING_STATUS.ACTIVE;
+    const wentToPendingFromActive = wasActive && nowPending;
+    const wentToPendingFromDraft = wasDraft && nowPending && userRequestedActiveFromDraft;
+    const creator = await User.findById(listing.createdBy).lean();
+    const creatorName = creator?.name || 'Unknown';
 
-    if (wasDraft && nowActive) {
-      const creator = await User.findById(listing.createdBy).lean();
-      sendAdminNewListing(
-        listing.title,
-        String(listing._id),
-        creator?.name || 'Unknown',
-        listing.listingType,
-        listing.price
-      ).catch((e) => console.error('[listings] admin email:', e));
-      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
-    } else if (wasDraft && nowPending && userRequestedActiveFromDraft) {
-      const creator = await User.findById(listing.createdBy).lean();
-      sendAdminNewListing(
-        listing.title,
-        String(listing._id),
-        creator?.name || 'Unknown',
-        listing.listingType,
-        listing.price
-      ).catch((e) => console.error('[listings] admin email:', e));
+    if ((wasDraft && nowActive) || wentToPendingFromDraft) {
+      await notifyAdminListingPublish({
+        listingId: String(listing._id),
+        title: listing.title,
+        listingType: listing.listingType,
+        price: listing.price,
+        createdByName: creatorName,
+        status: listing.status,
+        suspicionReasons: listing.pendingApprovalReasons ?? [],
+      });
+      if (nowActive) await notifyAlertsIfActive(listing.status, listing.toObject());
+    } else if (wentToPendingFromActive) {
+      await notifyAdminListingPublish({
+        listingId: String(listing._id),
+        title: listing.title,
+        listingType: listing.listingType,
+        price: listing.price,
+        createdByName: creatorName,
+        status: listing.status,
+        suspicionReasons: listing.pendingApprovalReasons ?? [],
+        isEdit: true,
+      });
     } else if (wasPendingApproval && nowActive) {
-      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
+      await notifyAlertsIfActive(listing.status, listing.toObject());
     }
 
     return NextResponse.json(listing);
