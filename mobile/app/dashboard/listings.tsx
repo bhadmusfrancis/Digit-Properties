@@ -12,6 +12,8 @@ type Listing = {
   status: string;
   listingType: string;
   rentPeriod?: string;
+  isBoosted?: boolean;
+  boostPackage?: string;
   location?: { city?: string; state?: string };
   images?: Array<{ url: string }>;
 };
@@ -271,7 +273,7 @@ export default function MyListingsScreen() {
               <View style={styles.cardBody}>
                 <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
                 <Text style={styles.cardPrice}>{formatPrice(item.price, item.listingType === 'rent' ? item.rentPeriod : undefined)}</Text>
-                <View style={styles.cardRow}>
+                <View style={styles.badgeRow}>
                   <Text
                     style={[
                       styles.badge,
@@ -284,6 +286,11 @@ export default function MyListingsScreen() {
                   >
                     {item.status === 'pending_approval' ? 'Pending approval' : item.status}
                   </Text>
+                  {item.isBoosted ? (
+                    <Text style={[styles.badge, styles.badgeBoosted]}>Boosted</Text>
+                  ) : null}
+                </View>
+                <View style={styles.cardRow}>
                   <View style={styles.actions}>
                     <Pressable onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item._id } })}><Text style={styles.actionText}>View</Text></Pressable>
                     <Pressable onPress={() => router.push({ pathname: '/listings/[id]/edit', params: { id: item._id } })}><Text style={styles.actionText}>Edit</Text></Pressable>
@@ -363,8 +370,10 @@ const styles = StyleSheet.create({
   cardBody: { padding: 14 },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   cardPrice: { fontSize: 17, fontWeight: 'bold', color: '#0c4a6e', marginTop: 4 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 10 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 },
   badge: { fontSize: 12, fontWeight: '600', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6 },
+  badgeBoosted: { backgroundColor: '#f59e0b', color: '#fff' },
   badgeActive: { backgroundColor: '#dcfce7', color: '#166534' },
   badgeDraft: { backgroundColor: '#f1f5f9', color: '#475569' },
   badgePending: { backgroundColor: '#fef3c7', color: '#b45309' },

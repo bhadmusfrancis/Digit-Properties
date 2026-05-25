@@ -61,6 +61,14 @@ export default async function MyListingsPage({
       : [],
     featured: Boolean(l.featured),
     highlighted: Boolean(l.highlighted),
+    isBoosted: Boolean(
+      (l as { boostExpiresAt?: Date }).boostExpiresAt &&
+        new Date((l as { boostExpiresAt: Date }).boostExpiresAt) > new Date()
+    ),
+    boostPackage:
+      typeof (l as { boostPackage?: unknown }).boostPackage === 'string'
+        ? (l as { boostPackage: string }).boostPackage
+        : undefined,
     soldAt: l.soldAt ? new Date(l.soldAt as unknown as Date).toISOString() : undefined,
     rentedAt: l.rentedAt ? new Date(l.rentedAt as unknown as Date).toISOString() : undefined,
   }));

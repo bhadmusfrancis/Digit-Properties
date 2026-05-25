@@ -13,6 +13,7 @@ type Listing = {
   status: string;
   listingType: string;
   rentPeriod?: string;
+  isBoosted?: boolean;
   soldAt?: string | null;
   rentedAt?: string | null;
   location?: { city?: string; state?: string };
@@ -142,6 +143,9 @@ export default function MyListingsTabScreen() {
                     <Text style={[styles.badge, item.status === 'active' ? styles.badgeActive : item.status === 'pending_approval' ? styles.badgePending : styles.badgeDraft]}>
                       {item.status === 'pending_approval' ? 'Pending approval' : item.status}
                     </Text>
+                    {item.isBoosted ? (
+                      <Text style={[styles.badge, styles.badgeBoosted]}>Boosted</Text>
+                    ) : null}
                   </View>
                   {(isSale || isRent) && (
                     <View style={styles.toggleRow}>
@@ -216,11 +220,12 @@ const styles = StyleSheet.create({
   cardBody: { padding: 14 },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   cardPrice: { fontSize: 17, fontWeight: 'bold', color: '#0d9488', marginTop: 4 },
-  badgeRow: { marginTop: 8 },
-  badge: { fontSize: 12, fontWeight: '600', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6, alignSelf: 'flex-start' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 },
+  badge: { fontSize: 12, fontWeight: '600', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6 },
   badgeActive: { backgroundColor: '#ccfbf1', color: '#0f766e' },
   badgeDraft: { backgroundColor: '#f1f5f9', color: '#475569' },
   badgePending: { backgroundColor: '#fef3c7', color: '#b45309' },
+  badgeBoosted: { backgroundColor: '#f59e0b', color: '#fff' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 20 },
   toggleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   toggleLabel: { fontSize: 14, color: '#475569', fontWeight: '500' },
