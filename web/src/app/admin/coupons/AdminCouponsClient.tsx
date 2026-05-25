@@ -194,7 +194,7 @@ export default function AdminCouponsClient() {
               <input
                 type="number"
                 min={1}
-                step={100}
+                step={1}
                 required
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}

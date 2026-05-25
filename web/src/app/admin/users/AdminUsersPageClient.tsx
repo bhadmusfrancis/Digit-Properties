@@ -317,7 +317,7 @@ export default function AdminUsersPageClient() {
                 <input
                   type="number"
                   min={1}
-                  step={100}
+                  step={1}
                   required
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(e.target.value === '' ? '' : Number(e.target.value))}
