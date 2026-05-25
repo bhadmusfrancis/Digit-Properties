@@ -42,6 +42,20 @@ const TEMPLATES = [
 <p><a href="{{appUrl}}/listings/{{listingId}}" style="color: #0d9488;">View listing</a></p>`,
   },
   {
+    key: 'listing_pending_approval_admin',
+    subject: '[{{appName}}] Listing pending approval: {{listingTitle}}',
+    body: `<p>A listing is waiting for admin approval before it can go live:</p>
+<ul>
+  <li><strong>Title:</strong> {{listingTitle}}</li>
+  <li><strong>Type:</strong> {{listingType}}</li>
+  <li><strong>Price:</strong> {{price}}</li>
+  <li><strong>By:</strong> {{createdByName}}</li>
+  <li><strong>Flags:</strong> {{reasonsList}}</li>
+</ul>
+<p><a href="{{appUrl}}/admin/listings" style="color: #0d9488;">Review in admin</a> ·
+<a href="{{appUrl}}/listings/{{listingId}}" style="color: #0d9488;">Preview listing</a></p>`,
+  },
+  {
     key: 'new_claim_admin',
     subject: '[{{appName}}] New claim: {{listingTitle}}',
     body: `<p>A new listing claim has been submitted:</p>
@@ -204,7 +218,7 @@ const TEMPLATES = [
     key: 'wallet_credit',
     subject: '{{amount}} added to your Ad credit wallet – {{appName}}',
     body: `<p>Hi {{name}},</p>
-<p>Your Ad credit wallet has been credited.</p>
+<p>Your Ad credit wallet has been <strong>credited</strong>.</p>
 <ul>
   <li><strong>Amount:</strong> {{amount}}</li>
   <li><strong>Source:</strong> {{reasonLabel}}</li>
@@ -212,6 +226,32 @@ const TEMPLATES = [
 </ul>
 <p>{{description}}</p>
 <p><a href="{{walletUrl}}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`,
+  },
+  {
+    key: 'wallet_debit',
+    subject: '{{amount}} spent from your Ad credit wallet – {{appName}}',
+    body: `<p>Hi {{name}},</p>
+<p>Your Ad credit wallet has been <strong>debited</strong>.</p>
+<ul>
+  <li><strong>Amount:</strong> {{amount}}</li>
+  <li><strong>For:</strong> {{reasonLabel}}</li>
+  <li><strong>Remaining balance:</strong> {{balance}}</li>
+</ul>
+<p>{{description}}</p>
+<p><a href="{{walletUrl}}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`,
+  },
+  {
+    key: 'payment_activity',
+    subject: 'Payment confirmed: {{amount}} – {{appName}}',
+    body: `<p>Hi {{name}},</p>
+<p>We received your payment.</p>
+<ul>
+  <li><strong>Amount:</strong> {{amount}}</li>
+  <li><strong>Purpose:</strong> {{purposeLabel}}</li>
+  <li><strong>Method:</strong> {{gatewayLabel}}</li>
+  <li><strong>Reference:</strong> {{reference}}</li>
+</ul>
+<p><a href="{{paymentsUrl}}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View payment history</a></p>`,
   },
 ];
 

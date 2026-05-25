@@ -6,14 +6,16 @@ import Listing, { type IListing } from '@/models/Listing';
 import User from '@/models/User';
 import { listingSchema, listingQuerySchema, resolveListingPropertyTypes } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } from '@/lib/constants';
-import { sendAdminNewListing } from '@/lib/email';
-import { notifyMatchingAlerts } from '@/lib/alerts';
+import {
+  notifyAdminListingPublish,
+  notifyAlertsIfActive,
+  resolvePublishStatus,
+} from '@/lib/listing-publish-moderation';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
-import { getListingModerationConfig } from '@/lib/listing-moderation-config';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -307,18 +309,27 @@ export async function POST(req: Request) {
     } = parsed.data;
     const requestedPublish =
       (parsed.data.status || LISTING_STATUS.DRAFT) === LISTING_STATUS.ACTIVE;
-    let finalStatus: (typeof LISTING_STATUS)[keyof typeof LISTING_STATUS] =
-      parsed.data.status || LISTING_STATUS.DRAFT;
-    if (
-      requestedPublish &&
-      session.user.role !== USER_ROLES.ADMIN &&
-      session.user.role !== USER_ROLES.BOT
-    ) {
-      const mod = await getListingModerationConfig();
-      if (mod.newListingsRequireApproval) {
-        finalStatus = LISTING_STATUS.PENDING_APPROVAL;
-      }
-    }
+    const isAdmin = session.user.role === USER_ROLES.ADMIN;
+    const isBot = session.user.role === USER_ROLES.BOT;
+    const moderation = await resolvePublishStatus(
+      {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        listingType: parsed.data.listingType,
+        propertyType: resolvedPt.propertyType,
+        propertyTypes: resolvedPt.propertyTypes,
+        price: parsed.data.price,
+        rentPeriod: parsed.data.rentPeriod,
+        location: parsed.data.location,
+        bedrooms: parsed.data.bedrooms,
+        bathrooms: parsed.data.bathrooms,
+        toilets: parsed.data.toilets,
+        tags: tagsMerged,
+        amenities,
+      },
+      { isAdmin, isBot, requestedPublish }
+    );
+    const finalStatus = requestedPublish ? moderation.status : LISTING_STATUS.DRAFT;
 
     const listing = await Listing.create({
       ...rest,
@@ -329,6 +340,12 @@ export async function POST(req: Request) {
       images,
       videos: videos.length > 0 ? videos : [],
       status: finalStatus,
+      pendingApprovalReasons:
+        finalStatus === LISTING_STATUS.PENDING_APPROVAL
+          ? moderation.suspicionReasons.length > 0
+            ? moderation.suspicionReasons
+            : ['New listing requires admin approval']
+          : undefined,
       slug: await ensureUniqueListingSlug({
         title: parsed.data.title,
         location: parsed.data.location,
@@ -339,17 +356,17 @@ export async function POST(req: Request) {
 
     if (requestedPublish) {
       const creator = await User.findById(session.user.id).lean();
-      sendAdminNewListing(
-        listing.title,
-        String(listing._id),
-        creator?.name || session.user.name || 'Unknown',
-        listing.listingType,
-        listing.price
-      ).catch((e) => console.error('[listings] admin email:', e));
+      await notifyAdminListingPublish({
+        listingId: String(listing._id),
+        title: listing.title,
+        listingType: listing.listingType,
+        price: listing.price,
+        createdByName: creator?.name || session.user.name || 'Unknown',
+        status: finalStatus,
+        suspicionReasons: moderation.suspicionReasons,
+      });
     }
-    if (finalStatus === LISTING_STATUS.ACTIVE) {
-      notifyMatchingAlerts(listing.toObject()).catch((e) => console.error('[listings] alerts:', e));
-    }
+    await notifyAlertsIfActive(finalStatus, listing.toObject());
 
     const doc = listing.toObject ? listing.toObject() : listing;
     return NextResponse.json({ ...doc, images: (doc as { images?: unknown[] }).images ?? images });

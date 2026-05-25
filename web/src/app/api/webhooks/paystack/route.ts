@@ -7,6 +7,7 @@ import User from '@/models/User';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { creditWallet } from '@/lib/wallet';
 import { PAYMENT_PURPOSE, WALLET_TX_REASONS } from '@/lib/constants';
+import { notifyPaymentSuccess } from '@/lib/payment-emails';
 
 export async function POST(req: Request) {
   try {
@@ -133,6 +134,15 @@ export async function POST(req: Request) {
         console.error('[paystack webhook] wallet topup credit failed', creditErr);
       }
     }
+
+    notifyPaymentSuccess({
+      userId: payment.userId,
+      amount: payment.amount,
+      purpose: payment.purpose,
+      gateway: payment.gateway,
+      gatewayRef: payment.gatewayRef,
+      metadata: payment.metadata as Record<string, unknown> | undefined,
+    }).catch((e) => console.error('[paystack webhook] payment email:', e));
 
     return NextResponse.json({ received: true });
   } catch (e) {

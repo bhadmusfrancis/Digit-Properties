@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NIGERIAN_STATES } from '@/lib/constants';
+import { assessNigeriaLocation, nigeriaLocationSortScore } from '@/lib/nigeria-location';
 
 const GOOGLE_PLACES_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_GEOCODING_API_KEY;
 
@@ -101,14 +102,22 @@ export async function GET(req: Request) {
       }
       const details = (await detailsRes.json()) as PlaceDetailsResponse;
       const parts = parseComponents(details.addressComponents || []);
-      return NextResponse.json({
+      const payload = {
         address: details.formattedAddress || '',
         city: parts.city || parts.suburb || 'Nigeria',
         state: parts.state,
         suburb: parts.suburb,
         lat: details.location?.latitude ?? 0,
         lng: details.location?.longitude ?? 0,
-      });
+      };
+      const locCheck = assessNigeriaLocation(payload);
+      if (!locCheck.inNigeria) {
+        return NextResponse.json(
+          { error: locCheck.reason || 'Only locations in Nigeria are allowed' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(payload);
     }
 
     if (q.length < 3) return NextResponse.json({ results: [] });
@@ -149,6 +158,7 @@ export async function GET(req: Request) {
           input: query,
           includeQueryPredictions: true,
           languageCode: 'en',
+          includedRegionCodes: ['ng'],
         }),
       });
       if (!autoRes.ok) continue;
@@ -186,9 +196,10 @@ export async function GET(req: Request) {
           ...(sessionToken ? { 'X-Goog-Maps-Session-Token': sessionToken } : {}),
         },
         body: JSON.stringify({
-          textQuery: normalizedQ,
+          textQuery: normalizedQ.toLowerCase().includes('nigeria') ? normalizedQ : `${normalizedQ}, Nigeria`,
           languageCode: 'en',
           pageSize: 8,
+          regionCode: 'NG',
         }),
       });
       if (textSearchRes.ok) {
@@ -231,7 +242,14 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ results });
+    const nigeriaOnly = results
+      .filter((r) => assessNigeriaLocation({ address: `${r.label} ${r.secondaryText || ''}` }).inNigeria)
+      .sort(
+        (a, b) =>
+          nigeriaLocationSortScore(b.label, b.secondaryText) - nigeriaLocationSortScore(a.label, a.secondaryText)
+      );
+
+    return NextResponse.json({ results: nigeriaOnly });
   } catch (e) {
     console.error('[places]', e);
     return NextResponse.json({ error: 'Places lookup failed' }, { status: 500 });

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { NIGERIAN_STATES } from '@/lib/constants';
+import { assessNigeriaLocation, filterLocationsToNigeria } from '@/lib/nigeria-location';
 import { loadGoogleMapsApi } from '@/lib/google-maps-client';
 import dynamic from 'next/dynamic';
 
@@ -141,6 +142,7 @@ export function LocationAddress() {
   const [showMap, setShowMap] = useState(true);
   /** User placed the pin on the map; do not move it when address/city/suburb change until refresh. */
   const [mapUserPinned, setMapUserPinned] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const blurHideRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
@@ -293,7 +295,9 @@ export function LocationAddress() {
           const res = await fetch('/api/geocode?q=' + encodeURIComponent(fq));
           if (!res.ok) continue;
           const data = await res.json();
-          const results = Array.isArray(data.results) ? (data.results as GeocodeResult[]) : [];
+          const results = filterLocationsToNigeria(
+            Array.isArray(data.results) ? (data.results as GeocodeResult[]) : []
+          );
           if (results.length > 0) {
             setSuggestions(results);
             setHighlightedIndex(0);
@@ -370,7 +374,9 @@ export function LocationAddress() {
       })
       .then((data) => {
         const apiResults = Array.isArray(data.results) ? (data.results as PlaceSuggestion[]) : [];
-        const filteredApiResults = filterByTypedPrefix(apiResults);
+        const filteredApiResults = filterByTypedPrefix(
+          apiResults.filter((s) => assessNigeriaLocation({ address: `${s.label} ${s.secondaryText || ''}` }).inNigeria)
+        );
         if (!filteredApiResults.length) {
           return fetchQuerySuggestions().then((usedQuerySuggestions) => {
             if (!usedQuerySuggestions) return fetchGeocodeFallback();
@@ -468,9 +474,9 @@ export function LocationAddress() {
                 const geocodeRes = await fetch('/api/geocode?q=' + encodeURIComponent(gv));
                 if (!geocodeRes.ok) continue;
                 const geocodeData = await geocodeRes.json();
-                const results = Array.isArray(geocodeData.results)
-                  ? (geocodeData.results as GeocodeResult[])
-                  : [];
+                const results = filterLocationsToNigeria(
+                  Array.isArray(geocodeData.results) ? (geocodeData.results as GeocodeResult[]) : []
+                );
                 if (results.length > 0) {
                   const ranked = [...results].sort((a, b) => {
                     const sa = scoreNigeriaPreference(gv, { label: a.address });
@@ -495,9 +501,8 @@ export function LocationAddress() {
             }
           }
 
-          // Final fallback: still apply best resolved result so selection always populates.
-          if (bestResolved && runId === resolveRunIdRef.current) {
-            applyResult(bestResolved);
+          if (runId === resolveRunIdRef.current) {
+            setLocationError('Please choose an address in Nigeria.');
           }
         };
 
@@ -515,7 +520,17 @@ export function LocationAddress() {
         .then((data) => {
           if (runId !== resolveRunIdRef.current) return;
           if (data.address !== undefined) {
-            applyResult(data as GeocodeResult);
+            const resolved = data as GeocodeResult;
+            if (!assessNigeriaLocation(resolved).inNigeria) {
+              setLocationError('Only locations in Nigeria can be used.');
+              return;
+            }
+            setLocationError('');
+            applyResult(resolved);
+            return;
+          }
+          if (data.error) {
+            setLocationError(typeof data.error === 'string' ? data.error : 'Only locations in Nigeria can be used.');
             return;
           }
           fetch('/api/geocode?q=' + encodeURIComponent(p.label))
@@ -636,8 +651,16 @@ export function LocationAddress() {
         fetch('/api/geocode?lat=' + latitude + '&lon=' + longitude)
           .then((res) => res.json())
           .then((data) => {
-            if (data.address !== undefined) applyResult(data);
-            else alert('Could not resolve address for this location.');
+            if (data.address !== undefined) {
+              if (!assessNigeriaLocation(data as GeocodeResult).inNigeria) {
+                setLocationError('Your location must be in Nigeria.');
+                return;
+              }
+              setLocationError('');
+              applyResult(data as GeocodeResult);
+            } else {
+              alert('Could not resolve address for this location.');
+            }
           })
           .catch(() => alert('Failed to get address from location.'))
           .finally(() => setGpsLoading(false));
@@ -676,6 +699,11 @@ export function LocationAddress() {
               className="input"
               autoComplete="off"
             />
+            {locationError ? (
+              <p className="mt-1 text-sm text-amber-700" role="alert">
+                {locationError}
+              </p>
+            ) : null}
             {showSuggestions && (placeSuggestions.length > 0 || suggestions.length > 0) && (
               <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded border border-gray-200 bg-white py-1 shadow">
                 {placeSuggestions.length > 0

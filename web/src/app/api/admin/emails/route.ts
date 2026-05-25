@@ -26,6 +26,8 @@ const KEYS = [
   'professional_offer_declined',
   'professional_offer_withdrawn',
   'wallet_credit',
+  'wallet_debit',
+  'payment_activity',
 ];
 
 export async function GET(req: Request) {

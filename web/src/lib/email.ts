@@ -224,6 +224,61 @@ export async function sendAdminNewListing(
   return { ok: result.ok };
 }
 
+export async function sendAdminListingPendingApproval(input: {
+  listingTitle: string;
+  listingId: string;
+  createdByName: string;
+  listingType: string;
+  price: number;
+  reasons: string[];
+  isEdit?: boolean;
+}): Promise<{ ok: boolean }> {
+  const priceStr = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(input.price);
+  const reasonsHtml =
+    input.reasons.length > 0
+      ? `<ul>${input.reasons.map((r) => `<li>${r}</li>`).join('')}</ul>`
+      : '<p><em>General moderation policy — review before publishing.</em></p>';
+  const actionLabel = input.isEdit ? 'updated and needs re-approval' : 'submitted and needs approval';
+  const vars = {
+    listingTitle: input.listingTitle,
+    listingId: input.listingId,
+    createdByName: input.createdByName,
+    listingType: input.listingType,
+    price: priceStr,
+    reasonsList: input.reasons.join('; ') || 'Moderation review',
+    appName: APP_NAME,
+    appUrl: APP_URL,
+  };
+  const t = await getEmailTemplate('listing_pending_approval_admin');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `[${APP_NAME}] Listing pending approval: ${input.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `<p>A listing has been ${actionLabel}:</p>
+    <ul>
+      <li><strong>Title:</strong> ${input.listingTitle}</li>
+      <li><strong>Type:</strong> ${input.listingType}</li>
+      <li><strong>Price:</strong> ${priceStr}</li>
+      <li><strong>By:</strong> ${input.createdByName}</li>
+    </ul>
+    <p><strong>Flagged checks:</strong></p>
+    ${reasonsHtml}
+    <p><a href="${APP_URL}/admin/listings" style="color: #0d9488;">Review in admin</a> ·
+    <a href="${APP_URL}/listings/${input.listingId}" style="color: #0d9488;">Preview listing</a></p>`;
+  const result = await sendEmail({
+    to: ADMIN_EMAIL,
+    subject,
+    html: wrapBody('Listing Pending Approval', body),
+  });
+  if (!result.ok) console.error('[email] sendAdminListingPendingApproval failed to', ADMIN_EMAIL, result.error);
+  return { ok: result.ok };
+}
+
 export async function sendAlertMatchEmail(
   to: string,
   alertName: string,
@@ -734,25 +789,27 @@ export async function sendSimpleOfferWithdrawnEmail(params: {
   return { ok: result.ok };
 }
 
-/** Notify user that Ad credit was added to their wallet. */
-export async function sendWalletCreditEmail(params: {
+function formatNgn(amount: number): string {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/** Notify user of an Ad credit wallet credit or debit. */
+export async function sendWalletActivityEmail(params: {
   to: string;
   name: string;
+  direction: 'credit' | 'debit';
   amount: number;
   balanceAfter: number;
   reasonLabel: string;
   description?: string;
 }): Promise<{ ok: boolean }> {
-  const amountStr = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(params.amount);
-  const balanceStr = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(params.balanceAfter);
+  const isCredit = params.direction === 'credit';
+  const amountStr = formatNgn(params.amount);
+  const balanceStr = formatNgn(params.balanceAfter);
   const walletUrl = `${APP_URL}/dashboard/wallet`;
   const noteBlock = params.description
     ? `<p><strong>Note:</strong> ${params.description}</p>`
@@ -763,28 +820,90 @@ export async function sendWalletCreditEmail(params: {
     balance: balanceStr,
     reasonLabel: params.reasonLabel,
     description: params.description || '',
+    direction: isCredit ? 'credited' : 'debited',
+    directionTitle: isCredit ? 'Ad credit added' : 'Ad credit spent',
     appName: APP_NAME,
     appUrl: APP_URL,
     walletUrl,
   };
-  const t = await getEmailTemplate('wallet_credit');
-  const subject = t?.subject
-    ? applyTemplate(t.subject, vars)
-    : `${amountStr} added to your Ad credit wallet – ${APP_NAME}`;
-  const body = t?.body
-    ? applyTemplate(t.body, vars)
-    : `
+  const templateKey = isCredit ? 'wallet_credit' : 'wallet_debit';
+  const t = await getEmailTemplate(templateKey);
+  const defaultSubject = isCredit
+    ? `${amountStr} added to your Ad credit wallet – ${APP_NAME}`
+    : `${amountStr} spent from your Ad credit wallet – ${APP_NAME}`;
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : defaultSubject;
+  const defaultBody = isCredit
+    ? `
     <p>Hi ${vars.name},</p>
-    <p>Your Ad credit wallet has been credited.</p>
+    <p>Your Ad credit wallet has been <strong>credited</strong>.</p>
     <ul>
       <li><strong>Amount:</strong> ${vars.amount}</li>
       <li><strong>Source:</strong> ${vars.reasonLabel}</li>
       <li><strong>New balance:</strong> ${vars.balance}</li>
     </ul>
     ${noteBlock}
+    <p><a href="${walletUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`
+    : `
+    <p>Hi ${vars.name},</p>
+    <p>Your Ad credit wallet has been <strong>debited</strong>.</p>
+    <ul>
+      <li><strong>Amount:</strong> ${vars.amount}</li>
+      <li><strong>For:</strong> ${vars.reasonLabel}</li>
+      <li><strong>Remaining balance:</strong> ${vars.balance}</li>
+    </ul>
+    ${noteBlock}
     <p><a href="${walletUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`;
-  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Ad credit added', body) });
-  if (!result.ok) console.error('[email] sendWalletCreditEmail failed for', params.to, result.error);
+  const body = t?.body ? applyTemplate(t.body, vars) : defaultBody;
+  const result = await sendEmail({
+    to: params.to,
+    subject,
+    html: wrapBody(vars.directionTitle, body),
+  });
+  if (!result.ok) console.error('[email] sendWalletActivityEmail failed for', params.to, result.error);
+  return { ok: result.ok };
+}
+
+/** Email receipt for a successful Paystack / Flutterwave payment. */
+export async function sendPaymentActivityEmail(params: {
+  to: string;
+  name: string;
+  amount: number;
+  purposeLabel: string;
+  gatewayLabel: string;
+  reference?: string;
+}): Promise<{ ok: boolean }> {
+  const amountStr = formatNgn(params.amount);
+  const refLine = params.reference
+    ? `<li><strong>Reference:</strong> ${params.reference}</li>`
+    : '';
+  const vars = {
+    name: params.name || 'there',
+    amount: amountStr,
+    purposeLabel: params.purposeLabel,
+    gatewayLabel: params.gatewayLabel,
+    reference: params.reference || '',
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    paymentsUrl: `${APP_URL}/dashboard/payments`,
+  };
+  const t = await getEmailTemplate('payment_activity');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `Payment confirmed: ${amountStr} – ${APP_NAME}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.name},</p>
+    <p>We received your payment.</p>
+    <ul>
+      <li><strong>Amount:</strong> ${vars.amount}</li>
+      <li><strong>Purpose:</strong> ${vars.purposeLabel}</li>
+      <li><strong>Method:</strong> ${vars.gatewayLabel}</li>
+      ${refLine}
+    </ul>
+    <p><a href="${vars.paymentsUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View payment history</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Payment confirmed', body) });
+  if (!result.ok) console.error('[email] sendPaymentActivityEmail failed for', params.to, result.error);
   return { ok: result.ok };
 }
 

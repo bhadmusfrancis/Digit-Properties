@@ -92,6 +92,9 @@ export default async function AdminListingsPage({
       boostPackage: typeof (l as { boostPackage?: unknown }).boostPackage === 'string'
         ? (l as { boostPackage?: string }).boostPackage
         : undefined,
+      pendingApprovalReasons: Array.isArray((l as { pendingApprovalReasons?: unknown }).pendingApprovalReasons)
+        ? ((l as { pendingApprovalReasons: string[] }).pendingApprovalReasons).filter((r) => typeof r === 'string')
+        : undefined,
       createdBy,
     };
   });

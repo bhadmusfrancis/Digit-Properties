@@ -27,6 +27,7 @@ type Listing = {
   featured?: boolean;
   highlighted?: boolean;
   boostPackage?: string;
+  pendingApprovalReasons?: string[];
   createdBy: unknown;
 };
 
@@ -224,6 +225,12 @@ export function AdminListingsTable({
                     >
                       {l.status}
                     </span>
+                    {l.status === 'pending_approval' && l.pendingApprovalReasons && l.pendingApprovalReasons.length > 0 ? (
+                      <p className="mt-1 max-w-[220px] text-xs text-amber-800" title={l.pendingApprovalReasons.join('; ')}>
+                        {l.pendingApprovalReasons[0]}
+                        {l.pendingApprovalReasons.length > 1 ? ` (+${l.pendingApprovalReasons.length - 1})` : ''}
+                      </p>
+                    ) : null}
                   </td>
                   <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
                     {formatCreatedAt(l.createdAt)}
