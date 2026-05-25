@@ -146,7 +146,7 @@ export default function UpgradePage() {
           </Link>
         </div>
         <p className="mt-6">
-          <Link href="/dashboard/payments" className="text-sm text-gray-600 underline">← Payment history</Link>
+          <Link href="/dashboard/payments" className="text-sm text-gray-600 underline">← Payments</Link>
         </p>
       </div>
     );
@@ -195,7 +195,7 @@ export default function UpgradePage() {
       </div>
 
       <p className="mt-8">
-        <Link href="/dashboard/payments" className="text-sm text-gray-600 underline">← Payment history</Link>
+        <Link href="/dashboard/payments" className="text-sm text-gray-600 underline">← Payments</Link>
       </p>
     </div>
   );

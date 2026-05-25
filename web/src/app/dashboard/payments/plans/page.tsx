@@ -11,7 +11,7 @@ export default function SubscriptionPlansPage() {
     <div className="mx-auto max-w-5xl">
       <p className="mb-6">
         <Link href="/dashboard/payments" className="text-sm text-gray-600 hover:text-gray-900 underline">
-          ← Payment history
+          ← Payments
         </Link>
       </p>
       <ListingPackages />
