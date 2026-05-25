@@ -3,6 +3,7 @@ import Wallet, { type IWallet } from '@/models/Wallet';
 import WalletTransaction from '@/models/WalletTransaction';
 import CouponCode from '@/models/CouponCode';
 import { WALLET_TX_REASONS, WALLET_TX_TYPES } from '@/lib/constants';
+import { notifyWalletCredit } from '@/lib/wallet-emails';
 
 type Reason = (typeof WALLET_TX_REASONS)[keyof typeof WALLET_TX_REASONS];
 
@@ -76,6 +77,11 @@ export async function creditWallet(
     adminId: toId(opts.adminId),
     metadata: opts.metadata,
   });
+
+  notifyWalletCredit(uid, amount, opts.reason, wallet.balance, opts.description).catch((e) =>
+    console.error('[wallet] credit email notification:', e)
+  );
+
   return { balanceAfter: wallet.balance, transactionId: tx._id };
 }
 

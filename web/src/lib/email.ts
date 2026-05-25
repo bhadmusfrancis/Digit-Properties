@@ -734,6 +734,60 @@ export async function sendSimpleOfferWithdrawnEmail(params: {
   return { ok: result.ok };
 }
 
+/** Notify user that Ad credit was added to their wallet. */
+export async function sendWalletCreditEmail(params: {
+  to: string;
+  name: string;
+  amount: number;
+  balanceAfter: number;
+  reasonLabel: string;
+  description?: string;
+}): Promise<{ ok: boolean }> {
+  const amountStr = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.amount);
+  const balanceStr = new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(params.balanceAfter);
+  const walletUrl = `${APP_URL}/dashboard/wallet`;
+  const noteBlock = params.description
+    ? `<p><strong>Note:</strong> ${params.description}</p>`
+    : '';
+  const vars = {
+    name: params.name || 'there',
+    amount: amountStr,
+    balance: balanceStr,
+    reasonLabel: params.reasonLabel,
+    description: params.description || '',
+    appName: APP_NAME,
+    appUrl: APP_URL,
+    walletUrl,
+  };
+  const t = await getEmailTemplate('wallet_credit');
+  const subject = t?.subject
+    ? applyTemplate(t.subject, vars)
+    : `${amountStr} added to your Ad credit wallet – ${APP_NAME}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Hi ${vars.name},</p>
+    <p>Your Ad credit wallet has been credited.</p>
+    <ul>
+      <li><strong>Amount:</strong> ${vars.amount}</li>
+      <li><strong>Source:</strong> ${vars.reasonLabel}</li>
+      <li><strong>New balance:</strong> ${vars.balance}</li>
+    </ul>
+    ${noteBlock}
+    <p><a href="${walletUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`;
+  const result = await sendEmail({ to: params.to, subject, html: wrapBody('Ad credit added', body) });
+  if (!result.ok) console.error('[email] sendWalletCreditEmail failed for', params.to, result.error);
+  return { ok: result.ok };
+}
+
 /** Send a single test email to ADMIN_EMAIL. Returns detailed result for admin diagnostics. */
 export async function sendTestEmail(): Promise<{
   ok: boolean;

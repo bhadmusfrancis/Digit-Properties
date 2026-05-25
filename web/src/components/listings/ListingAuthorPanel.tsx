@@ -10,10 +10,6 @@ import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel } from '@/lib/constants';
 import { toFirstName } from '@/lib/display-name';
 import { isBotListingAuthor } from '@/lib/claimable-listing';
-import {
-  LISTING_TRUST_CAVEAT_TEXT,
-  shouldShowListingTrustCaveat,
-} from '@/lib/listing-trust-caveat';
 import { formatUserRoleLabel } from '@/lib/user-role-label';
 import type { PublicCreatedBy } from '@/lib/verification';
 
@@ -89,10 +85,6 @@ export function ListingAuthorPanel({
   }
 
   const displayName = toFirstName(createdBy?.firstName, createdBy?.name, 'Author');
-  const showTrustCaveat = shouldShowListingTrustCaveat({
-    role: createdBy?.role,
-    createdByType,
-  });
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['author-profile', authorId],
@@ -197,11 +189,6 @@ export function ListingAuthorPanel({
             </div>
           )}
 
-          {showTrustCaveat && (
-            <p className="mt-3 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-              {LISTING_TRUST_CAVEAT_TEXT}
-            </p>
-          )}
         </div>
       </div>
 
