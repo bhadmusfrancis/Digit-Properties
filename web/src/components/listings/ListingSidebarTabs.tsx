@@ -47,7 +47,7 @@ export function ListingSidebarTabs({
   title,
   createdBy,
   createdByType,
-  listingContactName,
+  listingTags,
   isBotListing,
   baseUrl,
   isOwner,
