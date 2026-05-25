@@ -203,7 +203,7 @@ export function WalletPageClient({
               type="number"
               min={WALLET_TOPUP_LIMITS.MIN}
               max={WALLET_TOPUP_LIMITS.MAX}
-              step={100}
+              step={1}
               value={topupAmount}
               onChange={(e) => setTopupAmount(e.target.value === '' ? '' : Number(e.target.value))}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
