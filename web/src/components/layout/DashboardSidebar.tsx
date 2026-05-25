@@ -129,10 +129,11 @@ export function DashboardSidebar() {
           </div>
           <div className="p-2 lg:p-3">
             {links.map(({ href, label, icon, matchWallet }) => {
-              const isActive =
+              const isActive = Boolean(
                 pathname === href ||
-                (href !== '/dashboard' && pathname.startsWith(href)) ||
-                (matchWallet && pathname.startsWith('/dashboard/wallet'));
+                  (href !== '/dashboard' && pathname.startsWith(href)) ||
+                  (matchWallet && pathname.startsWith('/dashboard/wallet'))
+              );
               return (
                 <Link
                   key={href}
