@@ -183,7 +183,8 @@ export async function sendClaimApproved(
   const body = t?.body ? applyTemplate(t.body, vars) : `
     <p>Good news! Your claim for <strong>${listingTitle}</strong> has been approved.</p>
     <p>You now own this listing and can manage it from your dashboard.</p>
-    <p><a href="${APP_URL}/listings/${listingId}" style="color: #0d9488;">View listing</a></p>`;
+    <p><strong>24-hour edit window:</strong> You can update this listing&apos;s details for 24 hours after your claim is approved. After that, only admins can edit it.</p>
+    <p><a href="${APP_URL}/listings/${listingId}/edit" style="color: #0d9488;">Edit listing</a> · <a href="${APP_URL}/listings/${listingId}" style="color: #0d9488;">View listing</a></p>`;
   const result = await sendEmail({ to, subject, html: wrapBody('Claim Approved', body) });
   return { ok: result.ok };
 }

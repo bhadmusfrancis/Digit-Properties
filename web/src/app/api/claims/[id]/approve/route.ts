@@ -6,6 +6,7 @@ import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
 import { sendClaimApproved, sendClaimRejected } from '@/lib/email';
+import { listingOwnershipTransferUpdate } from '@/lib/listing-claim-transfer';
 import mongoose from 'mongoose';
 
 export async function POST(
@@ -38,10 +39,7 @@ export async function POST(
     const claimantEmail = (claimant?.email as string) || '';
 
     if (approve) {
-      await Listing.findByIdAndUpdate(claim.listingId, {
-        createdBy: claim.userId,
-        createdByType: 'user',
-      });
+      await Listing.findByIdAndUpdate(claim.listingId, listingOwnershipTransferUpdate(claim.userId));
       claim.status = 'approved';
     } else {
       claim.status = 'rejected';

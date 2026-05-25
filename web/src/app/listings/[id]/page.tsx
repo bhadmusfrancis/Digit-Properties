@@ -10,6 +10,7 @@ import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketS
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { ListingTrustCaveat } from '@/components/listings/ListingTrustCaveat';
+import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, USER_ROLES, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
@@ -41,8 +42,7 @@ import {
   relatedLocationLinks,
 } from '@/lib/location-seo';
 import { resolveListingPublicSegment } from '@/lib/resolve-listing';
-
-const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+import { canNonAdminEditListing } from '@/lib/listing-edit-window';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
@@ -299,10 +299,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const canEditListing =
       isOwner &&
       (isAdmin ||
-        (() => {
-          const createdAtMs = new Date(listing.createdAt as Date).getTime();
-          return Number.isFinite(createdAtMs) && Date.now() - createdAtMs <= NON_ADMIN_EDIT_WINDOW_MS;
-        })());
+        canNonAdminEditListing({
+          createdAt: listing.createdAt as Date,
+          claimedAt: (listing as { claimedAt?: Date }).claimedAt,
+        }));
 
     const baseUrl = siteOrigin();
     const shareFields = listingDocToShareFields({
@@ -428,6 +428,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         ]}
       />
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {isOwner && listing.status === LISTING_STATUS.PENDING_APPROVAL ? (
+        <div className="mb-6">
+          <ListingOwnerStatusBanner
+            status={String(listing.status)}
+            pendingApprovalReasons={
+              Array.isArray((listing as { pendingApprovalReasons?: string[] }).pendingApprovalReasons)
+                ? (listing as { pendingApprovalReasons: string[] }).pendingApprovalReasons
+                : undefined
+            }
+          />
+        </div>
+      ) : null}
       <div className="grid min-w-0 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">

@@ -187,6 +187,15 @@ export default function ListingDetailScreen() {
         )}
       </View>
 
+      {(listing.status as string) === 'pending_approval' ? (
+        <View style={styles.pendingBanner}>
+          <Text style={styles.pendingBannerTitle}>Pending approval</Text>
+          <Text style={styles.pendingBannerText}>
+            This listing is hidden from search and public browse until an admin approves it.
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.card}>
         <View style={styles.statsRow}>
           <Text style={styles.statsText}>{viewCount} view{viewCount !== 1 ? 's' : ''}</Text>
@@ -328,6 +337,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   dotActive: { backgroundColor: '#fff' },
+  pendingBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  pendingBannerTitle: { fontSize: 15, fontWeight: '700', color: '#b45309' },
+  pendingBannerText: { fontSize: 13, color: '#92400e', marginTop: 6, lineHeight: 18 },
   card: {
     backgroundColor: '#fff',
     marginHorizontal: 16,

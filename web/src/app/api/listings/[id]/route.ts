@@ -21,8 +21,7 @@ import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verificati
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
-
-const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+import { canNonAdminEditListing } from '@/lib/listing-edit-window';
 
 export async function GET(
   _req: Request,
@@ -103,14 +102,11 @@ export async function PATCH(
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    if (!isAdmin && isOwner) {
-      const createdAtMs = new Date(listing.createdAt).getTime();
-      if (Number.isFinite(createdAtMs) && Date.now() - createdAtMs > NON_ADMIN_EDIT_WINDOW_MS) {
-        return NextResponse.json(
-          { error: 'Listings can only be edited within 24 hours of creation for non-admin users.' },
-          { status: 403 }
-        );
-      }
+    if (!isAdmin && isOwner && !canNonAdminEditListing({ createdAt: listing.createdAt, claimedAt: listing.claimedAt })) {
+      return NextResponse.json(
+        { error: 'Listings can only be edited within 24 hours of creation or claim for non-admin users.' },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

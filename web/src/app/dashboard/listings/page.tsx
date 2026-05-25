@@ -43,10 +43,16 @@ export default async function MyListingsPage({
     title: l.title,
     price: Number(l.price),
     status: String(l.status),
+    pendingApprovalReasons: Array.isArray((l as { pendingApprovalReasons?: unknown }).pendingApprovalReasons)
+      ? ((l as { pendingApprovalReasons: string[] }).pendingApprovalReasons).filter((r) => typeof r === 'string')
+      : undefined,
     listingType: String(l.listingType),
     propertyType: typeof l.propertyType === 'string' ? l.propertyType : 'apartment',
     rentPeriod: l.rentPeriod != null ? String(l.rentPeriod) : undefined,
     createdAt: l.createdAt ? new Date(l.createdAt as unknown as Date).toISOString() : undefined,
+    claimedAt: (l as { claimedAt?: Date }).claimedAt
+      ? new Date((l as { claimedAt: Date }).claimedAt).toISOString()
+      : undefined,
     images: Array.isArray(l.images)
       ? l.images.map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }))
       : [],
