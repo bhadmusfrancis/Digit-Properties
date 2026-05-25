@@ -26,6 +26,7 @@
     "@types/leaflet": "^1.9.21",
     "@vladmandic/face-api": "^1.7.15",
     "bcryptjs": "^2.4.3",
+    "bson": "^6.10.4",
     "cloudinary": "^2.5.1",
     "firebase-admin": "^13.0.0",
     "jose": "^6.1.3",
