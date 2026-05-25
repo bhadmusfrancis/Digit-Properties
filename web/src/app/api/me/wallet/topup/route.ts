@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     });
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const callbackUrl = `${baseUrl}/dashboard/wallet?topup=success`;
+    const callbackUrl = `${baseUrl}/dashboard/payments?topup=success`;
 
     const res = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',

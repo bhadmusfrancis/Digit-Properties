@@ -11,8 +11,7 @@ const links = [
   { href: '/dashboard/offers', label: 'Offers', icon: 'offers' },
   { href: '/dashboard/alerts', label: 'Property Alerts', icon: 'bell' },
   { href: '/dashboard/claims', label: 'My Claims', icon: 'claim' },
-  { href: '/dashboard/wallet', label: 'Ad Credit', icon: 'wallet' },
-  { href: '/dashboard/payments', label: 'Payments', icon: 'card' },
+  { href: '/dashboard/payments', label: 'Payments', icon: 'card', matchWallet: true },
   { href: '/dashboard/ads', label: 'Advertise', icon: 'megaphone' },
   { href: '/dashboard/apply', label: 'Apply for Agent / Developer', icon: 'badge' },
   { href: '/dashboard/profile', label: 'Profile & Verification', icon: 'user' },
@@ -129,8 +128,11 @@ export function DashboardSidebar() {
             <p className="mt-0.5 text-xs text-gray-500">Manage your account</p>
           </div>
           <div className="p-2 lg:p-3">
-            {links.map(({ href, label, icon }) => {
-              const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+            {links.map(({ href, label, icon, matchWallet }) => {
+              const isActive =
+                pathname === href ||
+                (href !== '/dashboard' && pathname.startsWith(href)) ||
+                (matchWallet && pathname.startsWith('/dashboard/wallet'));
               return (
                 <Link
                   key={href}

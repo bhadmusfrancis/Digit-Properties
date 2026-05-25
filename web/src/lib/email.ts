@@ -811,7 +811,7 @@ export async function sendWalletActivityEmail(params: {
   const isCredit = params.direction === 'credit';
   const amountStr = formatNgn(params.amount);
   const balanceStr = formatNgn(params.balanceAfter);
-  const walletUrl = `${APP_URL}/dashboard/wallet`;
+  const walletUrl = `${APP_URL}/dashboard/payments`;
   const noteBlock = params.description
     ? `<p><strong>Note:</strong> ${params.description}</p>`
     : '';
