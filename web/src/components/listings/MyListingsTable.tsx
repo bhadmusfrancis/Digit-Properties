@@ -20,6 +20,7 @@ import {
   isListingPendingApproval,
   ownerListingStatusBadgeClass,
 } from '@/lib/listing-status-display';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
 type ListingRow = {
   _id: string;
@@ -35,6 +36,8 @@ type ListingRow = {
   videos?: { url?: string; public_id?: string }[];
   featured?: boolean;
   highlighted?: boolean;
+  isBoosted?: boolean;
+  boostPackage?: string;
   soldAt?: string;
   rentedAt?: string;
   claimedAt?: string;
@@ -96,6 +99,13 @@ export function MyListingsTable({
     return canNonAdminEditListing({ createdAt, claimedAt });
   };
 
+  const boostBadgeLabel = (l: ListingRow) => {
+    if (!l.isBoosted) return null;
+    const pkg = l.boostPackage as keyof typeof BOOST_PACKAGES | undefined;
+    const name = pkg && BOOST_PACKAGES[pkg] ? BOOST_PACKAGES[pkg].name : null;
+    return name ? `Boosted · ${name}` : 'Boosted';
+  };
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white shadow">
       <ListingSortMobileBar
@@ -126,6 +136,11 @@ export function MyListingsTable({
                     {formatOwnerListingStatus(l.status)}
                   </span>
                   <span>{formatCreatedAt(l.createdAt)}</span>
+                  {l.isBoosted && (
+                    <span className="inline-flex rounded-full bg-amber-500 px-2 py-0.5 font-medium text-white">
+                      {boostBadgeLabel(l)}
+                    </span>
+                  )}
                   <span className={`inline-flex rounded-full px-2 py-0.5 ${l.featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
                     {l.featured ? 'Featured' : 'Standard'}
                   </span>
@@ -239,7 +254,12 @@ export function MyListingsTable({
                 {formatCreatedAt(l.createdAt)}
               </td>
               <td className="hidden md:table-cell px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {l.isBoosted && (
+                    <span className="inline-flex rounded-full bg-amber-500 px-2 py-1 text-xs font-medium text-white">
+                      {boostBadgeLabel(l)}
+                    </span>
+                  )}
                   <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${l.featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
                     {l.featured ? 'Featured' : 'Standard'}
                   </span>
