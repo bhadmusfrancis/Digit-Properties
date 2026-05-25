@@ -12,6 +12,7 @@ import { normalizePhone } from '@/lib/phone-verify';
 import { claimableListingsMatch } from '@/lib/claimable-listing-server';
 import { isClaimableListingDoc } from '@/lib/claimable-listing';
 import { getListingClaimPhone } from '@/lib/listing-claim-phone';
+import { listingOwnershipTransferUpdate } from '@/lib/listing-claim-transfer';
 import mongoose from 'mongoose';
 
 export async function GET(req: Request) {
@@ -96,10 +97,7 @@ export async function POST(req: Request) {
           message: 'Claimed after phone verification',
           status: CLAIM_STATUS.APPROVED,
         });
-        await Listing.findByIdAndUpdate(listingObj._id, {
-          createdBy: userId,
-          createdByType: 'user',
-        });
+        await Listing.findByIdAndUpdate(listingObj._id, listingOwnershipTransferUpdate(userId));
         claimsCreated.push({
           _id: String(approvedClaim._id),
           listingId: String(listingObj._id),
@@ -167,10 +165,7 @@ export async function POST(req: Request) {
     });
 
     if (status === CLAIM_STATUS.APPROVED) {
-      await Listing.findByIdAndUpdate(listingId, {
-        createdBy: userId,
-        createdByType: 'user',
-      });
+      await Listing.findByIdAndUpdate(listingId, listingOwnershipTransferUpdate(userId));
       const claimant = await User.findById(session.user.id).lean();
       const claimantEmail = (claimant?.email as string) || session.user.email || '';
       if (claimantEmail) {

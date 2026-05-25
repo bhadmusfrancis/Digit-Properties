@@ -6,10 +6,10 @@ import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { ListingForm } from '@/components/listings/ListingForm';
 import type { ListingFormProps } from '@/components/listings/ListingForm';
-import { USER_ROLES } from '@/lib/constants';
+import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
 import mongoose from 'mongoose';
-
-const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+import { canNonAdminEditListing } from '@/lib/listing-edit-window';
 
 export default async function EditListingPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -25,9 +25,15 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   const isAdmin = session.user.role === USER_ROLES.ADMIN;
   const isOwner = String(listing.createdBy) === session.user.id;
   if (!isAdmin && !isOwner) notFound();
-  if (!isAdmin && isOwner) {
-    const createdAtMs = new Date(listing.createdAt as Date).getTime();
-    if (Number.isFinite(createdAtMs) && Date.now() - createdAtMs > NON_ADMIN_EDIT_WINDOW_MS) notFound();
+  if (
+    !isAdmin &&
+    isOwner &&
+    !canNonAdminEditListing({
+      createdAt: listing.createdAt as Date,
+      claimedAt: (listing as { claimedAt?: Date }).claimedAt,
+    })
+  ) {
+    notFound();
   }
 
   const loc = listing.location as {
@@ -99,6 +105,18 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
           ← View listing
         </Link>
       </div>
+      {listingStatus === LISTING_STATUS.PENDING_APPROVAL ? (
+        <div className="mb-6">
+          <ListingOwnerStatusBanner
+            status={listingStatus}
+            pendingApprovalReasons={
+              Array.isArray((listing as { pendingApprovalReasons?: string[] }).pendingApprovalReasons)
+                ? (listing as { pendingApprovalReasons: string[] }).pendingApprovalReasons
+                : undefined
+            }
+          />
+        </div>
+      ) : null}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         <ListingForm editId={id} editInitial={editInitial} />
       </div>

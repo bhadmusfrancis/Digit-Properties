@@ -4,31 +4,9 @@ import { dbConnect } from '@/lib/db';
 import EmailTemplate from '@/models/EmailTemplate';
 import { USER_ROLES } from '@/lib/constants';
 import { canSend } from '@/lib/email';
+import { EMAIL_TEMPLATE_KEYS } from '@/lib/email-template-seeds';
 
-const KEYS = [
-  'welcome',
-  'email_verification',
-  'password_reset',
-  'new_user_admin',
-  'new_listing_admin',
-  'new_claim_admin',
-  'contact_form',
-  'claim_approved',
-  'claim_rejected',
-  'send_offer_new',
-  'send_offer_counter',
-  'send_offer_accepted',
-  'send_offer_declined',
-  'send_offer_withdrawn',
-  'professional_offer_new',
-  'professional_offer_counter',
-  'professional_offer_accepted',
-  'professional_offer_declined',
-  'professional_offer_withdrawn',
-  'wallet_credit',
-  'wallet_debit',
-  'payment_activity',
-];
+const KEYS = EMAIL_TEMPLATE_KEYS;
 
 export async function GET(req: Request) {
   const session = await getSession(req);

@@ -14,12 +14,19 @@ import { SortColumnHeader } from './SortColumnHeader';
 import { ListingSortMobileBar } from './ListingSortMobileBar';
 import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
+import { canNonAdminEditListing } from '@/lib/listing-edit-window';
+import {
+  formatOwnerListingStatus,
+  isListingPendingApproval,
+  ownerListingStatusBadgeClass,
+} from '@/lib/listing-status-display';
 
 type ListingRow = {
   _id: string;
   title: string;
   price: number;
   status: string;
+  pendingApprovalReasons?: string[];
   listingType: string;
   propertyType: string;
   rentPeriod?: string;
@@ -30,9 +37,8 @@ type ListingRow = {
   highlighted?: boolean;
   soldAt?: string;
   rentedAt?: string;
+  claimedAt?: string;
 };
-
-const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function MyListingsTable({
   listings,
@@ -85,11 +91,9 @@ export function MyListingsTable({
     return d.toISOString().slice(0, 10);
   };
 
-  const canEdit = (createdAt?: string) => {
+  const canEdit = (createdAt?: string, claimedAt?: string) => {
     if (isAdmin) return true;
-    if (!createdAt) return false;
-    const createdAtMs = new Date(createdAt).getTime();
-    return Number.isFinite(createdAtMs) && Date.now() - createdAtMs <= NON_ADMIN_EDIT_WINDOW_MS;
+    return canNonAdminEditListing({ createdAt, claimedAt });
   };
 
   return (
@@ -118,10 +122,8 @@ export function MyListingsTable({
                   {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 ${
-                    l.status === 'active' ? 'bg-green-100 text-green-800' : l.status === 'draft' ? 'bg-gray-100 text-gray-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {l.status}
+                  <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${ownerListingStatusBadgeClass(l.status)}`}>
+                    {formatOwnerListingStatus(l.status)}
                   </span>
                   <span>{formatCreatedAt(l.createdAt)}</span>
                   <span className={`inline-flex rounded-full px-2 py-0.5 ${l.featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
@@ -136,6 +138,12 @@ export function MyListingsTable({
                     </span>
                   )}
                 </div>
+                {isListingPendingApproval(l.status) ? (
+                  <p className="mt-2 text-xs text-amber-800">
+                    Not public until approved
+                    {l.pendingApprovalReasons?.[0] ? ` — ${l.pendingApprovalReasons[0]}` : ''}
+                  </p>
+                ) : null}
               </div>
             </div>
             <div className="mt-3 border-t border-gray-100 pt-3">
@@ -144,7 +152,7 @@ export function MyListingsTable({
                 listingType={l.listingType}
                 soldAt={l.soldAt}
                 rentedAt={l.rentedAt}
-                canEdit={canEdit(l.createdAt)}
+                canEdit={canEdit(l.createdAt, l.claimedAt)}
               />
             </div>
           </article>
@@ -218,13 +226,14 @@ export function MyListingsTable({
                 {formatPrice(l.price, l.listingType === 'rent' ? l.rentPeriod : undefined)}
               </td>
               <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                <span
-                  className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                    l.status === 'active' ? 'bg-green-100 text-green-800' : l.status === 'draft' ? 'bg-gray-100 text-gray-800' : 'bg-amber-100 text-amber-800'
-                  }`}
-                >
-                  {l.status}
+                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${ownerListingStatusBadgeClass(l.status)}`}>
+                  {formatOwnerListingStatus(l.status)}
                 </span>
+                {isListingPendingApproval(l.status) ? (
+                  <p className="mt-1 max-w-[200px] text-xs text-amber-800" title={l.pendingApprovalReasons?.join('; ')}>
+                    Not public until approved
+                  </p>
+                ) : null}
               </td>
               <td className="px-4 py-3 text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
                 {formatCreatedAt(l.createdAt)}
@@ -245,7 +254,7 @@ export function MyListingsTable({
                   listingType={l.listingType}
                   soldAt={l.soldAt}
                   rentedAt={l.rentedAt}
-                  canEdit={canEdit(l.createdAt)}
+                  canEdit={canEdit(l.createdAt, l.claimedAt)}
                 />
               </td>
             </tr>

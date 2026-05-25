@@ -51,6 +51,8 @@ export interface IListing {
   viewCount: number;
   soldAt?: Date;
   rentedAt?: Date;
+  /** When ownership transferred to a user via claim (starts 24h owner edit window). */
+  claimedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,6 +116,7 @@ const ListingSchema = new Schema<IListing>(
     viewCount: { type: Number, default: 0 },
     soldAt: Date,
     rentedAt: Date,
+    claimedAt: Date,
   },
   { timestamps: true }
 );

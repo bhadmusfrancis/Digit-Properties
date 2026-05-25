@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { BOOST_PACKAGES, BOOST_VISIBILITY_DISCLAIMER } from '@/lib/boost-packages';
+import { LISTING_EDIT_LOCKED_TOOLTIP } from '@/lib/listing-edit-window';
 
 type BoostPackageId = keyof typeof BOOST_PACKAGES;
 
@@ -166,7 +167,7 @@ export function MyListingActions({
       ) : (
         <span
           className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 text-xs font-medium text-gray-400 sm:min-h-[34px]"
-          title="Only admins can edit after 24 hours"
+          title={LISTING_EDIT_LOCKED_TOOLTIP}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V5a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />

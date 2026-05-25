@@ -272,13 +272,29 @@ export default function MyListingsScreen() {
                 <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
                 <Text style={styles.cardPrice}>{formatPrice(item.price, item.listingType === 'rent' ? item.rentPeriod : undefined)}</Text>
                 <View style={styles.cardRow}>
-                  <Text style={[styles.badge, item.status === 'active' ? styles.badgeActive : styles.badgeDraft]}>{item.status}</Text>
+                  <Text
+                    style={[
+                      styles.badge,
+                      item.status === 'active'
+                        ? styles.badgeActive
+                        : item.status === 'pending_approval'
+                          ? styles.badgePending
+                          : styles.badgeDraft,
+                    ]}
+                  >
+                    {item.status === 'pending_approval' ? 'Pending approval' : item.status}
+                  </Text>
                   <View style={styles.actions}>
                     <Pressable onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item._id } })}><Text style={styles.actionText}>View</Text></Pressable>
                     <Pressable onPress={() => router.push({ pathname: '/listings/[id]/edit', params: { id: item._id } })}><Text style={styles.actionText}>Edit</Text></Pressable>
                     <Pressable onPress={() => deleteListing(item._id, item.title)}><Text style={[styles.actionText, styles.actionDanger]}>Delete</Text></Pressable>
                   </View>
                 </View>
+                {item.status === 'pending_approval' ? (
+                  <Text style={styles.pendingNote}>
+                    Not visible to the public until an admin approves it.
+                  </Text>
+                ) : null}
               </View>
             </View>
           )}
@@ -351,6 +367,8 @@ const styles = StyleSheet.create({
   badge: { fontSize: 12, fontWeight: '600', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6 },
   badgeActive: { backgroundColor: '#dcfce7', color: '#166534' },
   badgeDraft: { backgroundColor: '#f1f5f9', color: '#475569' },
+  badgePending: { backgroundColor: '#fef3c7', color: '#b45309' },
+  pendingNote: { fontSize: 12, color: '#b45309', marginTop: 8 },
   actions: { flexDirection: 'row', gap: 16 },
   actionText: { fontSize: 14, color: '#0c4a6e', fontWeight: '500' },
   actionDanger: { color: '#dc2626' },

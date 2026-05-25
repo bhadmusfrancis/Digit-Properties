@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed-admin.ts",
+    "seed:emails": "tsx scripts/seed-email-templates.ts",
     "seed:listings": "tsx scripts/seed-listings.ts",
     "backfill:slugs": "tsx scripts/backfill-listing-slugs.ts",
     "backfill:titles": "tsx scripts/backfill-listing-titles.ts"

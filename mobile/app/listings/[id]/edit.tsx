@@ -19,6 +19,7 @@ export default function EditListingScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [error, setError] = useState('');
+  const [listingStatus, setListingStatus] = useState('');
 
   useEffect(() => {
     if (!id || !token) return;
@@ -29,6 +30,7 @@ export default function EditListingScreen() {
           setTitle(data.title || '');
           setDescription(data.description || '');
           setPrice(String(data.price ?? ''));
+          setListingStatus(typeof data.status === 'string' ? data.status : '');
         }
       })
       .catch(() => setError('Failed to load listing'))
@@ -94,7 +96,16 @@ export default function EditListingScreen() {
         <Text style={styles.backText}>← Back</Text>
       </Pressable>
       <Text style={styles.title}>Edit listing</Text>
-      <Text style={styles.hint}>Modified listings are submitted for approval before going live again.</Text>
+      {listingStatus === 'pending_approval' ? (
+        <View style={styles.pendingBanner}>
+          <Text style={styles.pendingBannerTitle}>Pending approval</Text>
+          <Text style={styles.pendingBannerText}>
+            This listing is not visible to the public until an admin approves it.
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.hint}>Modified listings are submitted for approval before going live again.</Text>
+      )}
 
       <Text style={styles.label}>Title</Text>
       <TextInput
@@ -140,6 +151,16 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, color: TEAL, fontWeight: '600' },
   title: { fontSize: 22, fontWeight: '700', color: '#0f172a', marginBottom: 8 },
   hint: { fontSize: 14, color: '#64748b', marginBottom: 20 },
+  pendingBanner: {
+    marginBottom: 20,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  pendingBannerTitle: { fontSize: 15, fontWeight: '700', color: '#b45309' },
+  pendingBannerText: { fontSize: 13, color: '#92400e', marginTop: 6, lineHeight: 18 },
   label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 14, fontSize: 16, color: '#0f172a', backgroundColor: '#fff' },
   textArea: { minHeight: 100, textAlignVertical: 'top' },

@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { getWhatsAppUrl, getTelHref } from '@/lib/utils';
 import { isBotListingAuthor } from '@/lib/claimable-listing';
+import { LISTING_CLAIM_EDIT_NOTICE } from '@/lib/listing-edit-window';
 import type { PublicCreatedBy } from '@/lib/verification';
 
 type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
@@ -37,7 +38,8 @@ export function ListingDetailClient({
   const router = useRouter();
   const { data: session, status } = useSession();
   const [claimOpen, setClaimOpen] = useState(false);
-  const [claimStep, setClaimStep] = useState<'digits' | 'otp' | 'list'>('digits');
+  const [claimStep, setClaimStep] = useState<'digits' | 'otp' | 'list' | 'success'>('digits');
+  const [claimSuccessCount, setClaimSuccessCount] = useState(0);
   const [claimPhoneSuffix, setClaimPhoneSuffix] = useState('');
   const [claimPhoneHint, setClaimPhoneHint] = useState('');
   const [claimPinId, setClaimPinId] = useState<string | null>(null);
@@ -180,16 +182,10 @@ export function ListingDetailClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingIds: ids }),
       }).then((r) => (r.ok ? r.json() : r.json().then((d) => Promise.reject(d)))),
-    onSuccess: () => {
-      setClaimOpen(false);
-      setClaimStep('digits');
-      setClaimPhoneSuffix('');
-      setClaimPhoneHint('');
-      setClaimPinId(null);
-      setClaimOtp('');
-      setClaimListings([]);
+    onSuccess: (data: { count?: number }) => {
+      setClaimSuccessCount(typeof data?.count === 'number' ? data.count : claimListings.length);
+      setClaimStep('success');
       queryClient.invalidateQueries({ queryKey: ['contact', listingId] });
-      router.push('/dashboard/claims');
     },
   });
 
@@ -201,6 +197,12 @@ export function ListingDetailClient({
     setClaimPinId(null);
     setClaimOtp('');
     setClaimListings([]);
+    setClaimSuccessCount(0);
+  };
+
+  const finishClaimFlow = () => {
+    closeClaimModal();
+    router.push('/dashboard/listings');
   };
 
   const listingUrl = `${baseUrl}/listings/${listingId}`;
@@ -318,6 +320,11 @@ export function ListingDetailClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
             <h2 id="claim-modal-title" className="text-lg font-semibold text-gray-900">Claim property</h2>
+            {claimStep !== 'success' && (
+              <p className="mt-2 rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+                {LISTING_CLAIM_EDIT_NOTICE}
+              </p>
+            )}
 
             {claimStep === 'digits' && (
               <>
@@ -473,6 +480,27 @@ export function ListingDetailClient({
                 {claimAllMutation.isError && (
                   <p className="mt-2 text-sm text-red-600">{(claimAllMutation.error as { error?: string })?.error || 'Failed to claim'}</p>
                 )}
+              </>
+            )}
+
+            {claimStep === 'success' && (
+              <>
+                <p className="mt-3 text-sm text-gray-700">
+                  {claimSuccessCount > 0
+                    ? `Successfully claimed ${claimSuccessCount} listing${claimSuccessCount !== 1 ? 's' : ''}.`
+                    : 'Your claim was approved.'}
+                </p>
+                <p className="mt-3 rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+                  {LISTING_CLAIM_EDIT_NOTICE}
+                </p>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <button type="button" onClick={finishClaimFlow} className="btn-primary flex-1">
+                    Go to My Properties
+                  </button>
+                  <button type="button" onClick={closeClaimModal} className="btn-secondary">
+                    Close
+                  </button>
+                </div>
               </>
             )}
           </div>
