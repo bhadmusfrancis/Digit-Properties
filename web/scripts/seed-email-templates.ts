@@ -200,6 +200,19 @@ const TEMPLATES = [
 </ul>
 <p><a href="{{listingUrl}}" style="color: #0d9488;">View listing</a></p>`,
   },
+  {
+    key: 'wallet_credit',
+    subject: '{{amount}} added to your Ad credit wallet – {{appName}}',
+    body: `<p>Hi {{name}},</p>
+<p>Your Ad credit wallet has been credited.</p>
+<ul>
+  <li><strong>Amount:</strong> {{amount}}</li>
+  <li><strong>Source:</strong> {{reasonLabel}}</li>
+  <li><strong>New balance:</strong> {{balance}}</li>
+</ul>
+<p>{{description}}</p>
+<p><a href="{{walletUrl}}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`,
+  },
 ];
 
 async function main() {

@@ -9,6 +9,7 @@ import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
+import { ListingTrustCaveat } from '@/components/listings/ListingTrustCaveat';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, USER_ROLES, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
@@ -286,6 +287,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       : null;
     const botUserIds = await getBotUserObjectIds();
     const isOwner = !!session?.user?.id && createdById === session.user.id;
+    const publicCreatedBy = shapePublicCreatedBy(listing.createdBy);
     const isBotListing =
       isBotListingAuthor({
         createdByType: listing.createdByType,
@@ -440,7 +442,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <div className="flex flex-wrap items-start gap-3">
                 <ListingTitleWithVerifiedBadge
                   title={listing.title}
-                  createdBy={shapePublicCreatedBy(listing.createdBy)}
+                  createdBy={publicCreatedBy}
                   showVerifiedBadge={!isBotListing}
                 />
                 <ListingMarketStatusSticker
@@ -457,6 +459,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   </span>
                 )}
               </p>
+              <ListingTrustCaveat
+                className="mt-3"
+                variant="detail"
+                role={publicCreatedBy?.role}
+                createdByType={listing.createdByType}
+                isVerifiedAccount={publicCreatedBy?.isVerifiedAccount}
+              />
               <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
                 <span>{listing.bedrooms} beds</span>
                 <span>{listing.bathrooms} baths</span>
@@ -547,7 +556,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               listingDescription={listing.description ?? ''}
               locationDisplay={formatListingLocationDisplay(listing.location)}
               title={listing.title}
-              createdBy={shapePublicCreatedBy(listing.createdBy)}
+              createdBy={publicCreatedBy}
               createdByType={listing.createdByType ?? 'user'}
               listingTags={listing.tags}
               isBotListing={isBotListing}
