@@ -13,8 +13,10 @@ import {
 } from '@/lib/listing-publish-moderation';
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
-import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
+import { findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
+import { getListingPublicPath } from '@/lib/listing-path';
+import { prepareListingFieldsForSeo } from '@/lib/listing-seo-prep';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -240,24 +242,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const rawImages = Array.isArray(parsed.data.images) ? parsed.data.images : [];
-    const rawVideos = Array.isArray(parsed.data.videos) ? parsed.data.videos : [];
-    const images = dedupeImagesByPublicId(
-      rawImages
-        .map((img: { url?: string; public_id?: string }) => ({
-          url: typeof img?.url === 'string' ? img.url.trim() : '',
-          public_id: typeof img?.public_id === 'string' ? img.public_id.trim() : '',
-        }))
-        .filter((img) => img.url && img.public_id)
-    );
-    const videos = dedupeImagesByPublicId(
-      rawVideos
-        .map((v: { url?: string; public_id?: string }) => ({
-          url: typeof v?.url === 'string' ? v.url.trim() : '',
-          public_id: typeof v?.public_id === 'string' ? v.public_id.trim() : '',
-        }))
-        .filter((v) => v.url && v.public_id)
-    );
+    const resolvedPtEarly = resolveListingPropertyTypes(parsed.data);
+    const seo = prepareListingFieldsForSeo({
+      title: parsed.data.title,
+      description: parsed.data.description,
+      price: parsed.data.price,
+      listingType: parsed.data.listingType,
+      rentPeriod: parsed.data.rentPeriod,
+      propertyType: resolvedPtEarly?.propertyType ?? parsed.data.propertyType,
+      propertyTypes: resolvedPtEarly?.propertyTypes ?? parsed.data.propertyTypes,
+      location: parsed.data.location,
+      images: parsed.data.images,
+      videos: parsed.data.videos,
+      tags: parsed.data.tags,
+    });
+    const { images, videos, description: seoDescription, tags: seoTags } = seo;
     if (images.length > limits.maxImages) {
       return NextResponse.json(
         { error: `You can add up to ${limits.maxImages} images per listing.` },
@@ -273,7 +272,7 @@ export async function POST(req: Request) {
 
     const duplicateCheck = await findUserListingDuplicate(session.user.id, {
       title: parsed.data.title,
-      description: parsed.data.description,
+      description: seoDescription,
       mediaPublicIds: [
         ...images.map((i) => i.public_id),
         ...videos.map((v) => v.public_id),
@@ -286,18 +285,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const resolvedPt = resolveListingPropertyTypes(parsed.data);
+    const resolvedPt = resolvedPtEarly;
     if (!resolvedPt) {
       return NextResponse.json({ error: 'Select at least one property type' }, { status: 400 });
     }
 
     const amenitiesFromBody = normalizeList(parsed.data.amenities);
     const amenitiesFromText = extractAmenitiesFromText(
-      `${parsed.data.title}\n${parsed.data.description}\n${(parsed.data.tags ?? []).join(', ')}`,
+      `${parsed.data.title}\n${seoDescription}\n${seoTags.join(', ')}`,
       POPULAR_AMENITIES
     );
     const amenities = mergeUniqueLists(amenitiesFromBody, amenitiesFromText);
-    const tagsMerged = mergeUniqueLists(parsed.data.tags, amenities);
+    const tagsMerged = mergeUniqueLists(seoTags, amenities);
     const {
       images: _i,
       videos: _v,
@@ -314,7 +313,7 @@ export async function POST(req: Request) {
     const moderation = await resolvePublishStatus(
       {
         title: parsed.data.title,
-        description: parsed.data.description,
+        description: seoDescription,
         listingType: parsed.data.listingType,
         propertyType: resolvedPt.propertyType,
         propertyTypes: resolvedPt.propertyTypes,
@@ -333,6 +332,7 @@ export async function POST(req: Request) {
 
     const listing = await Listing.create({
       ...rest,
+      description: seoDescription,
       propertyType: resolvedPt.propertyType,
       propertyTypes: resolvedPt.propertyTypes,
       amenities,
@@ -369,7 +369,13 @@ export async function POST(req: Request) {
     await notifyAlertsIfActive(finalStatus, listing.toObject());
 
     const doc = listing.toObject ? listing.toObject() : listing;
-    return NextResponse.json({ ...doc, images: (doc as { images?: unknown[] }).images ?? images });
+    const slug = listing.slug;
+    return NextResponse.json({
+      ...doc,
+      images: (doc as { images?: unknown[] }).images ?? images,
+      slug,
+      publicPath: getListingPublicPath({ _id: listing._id, slug }),
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 });

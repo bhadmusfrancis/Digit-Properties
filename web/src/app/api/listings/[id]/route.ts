@@ -15,12 +15,19 @@ import {
 import { getSubscriptionLimits } from '@/lib/subscription-limits';
 import { applyBoostToLimits } from '@/lib/listing-effective-limits';
 import { extractAmenitiesFromText, mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
-import { dedupeImagesByPublicId, findUserListingDuplicate } from '@/lib/listing-dedupe';
+import { findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { canViewListingOnSite } from '@/lib/listing-access';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
+import { getListingPublicPath } from '@/lib/listing-path';
+import {
+  applyImportSeoTags,
+  enrichListingDescriptionForSeo,
+  normalizeListingMediaForSeo,
+} from '@/lib/listing-seo-prep';
+import { listingDocToShareFields } from '@/lib/listing-share-text';
 import { canNonAdminEditListing } from '@/lib/listing-edit-window';
 
 export async function GET(
@@ -127,26 +134,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const normalizedImages =
-      parsed.data.images !== undefined
-        ? (Array.isArray(parsed.data.images) ? parsed.data.images : [])
-            .map((img: { url?: string; public_id?: string }) => ({
-              url: typeof img?.url === 'string' ? img.url.trim() : '',
-              public_id: typeof img?.public_id === 'string' ? img.public_id.trim() : '',
-            }))
-            .filter((img) => img.url && img.public_id)
-        : undefined;
-    const normalizedVideos =
-      parsed.data.videos !== undefined
-        ? (Array.isArray(parsed.data.videos) ? parsed.data.videos : [])
-            .map((v: { url?: string; public_id?: string }) => ({
-              url: typeof v?.url === 'string' ? v.url.trim() : '',
-              public_id: typeof v?.public_id === 'string' ? v.public_id.trim() : '',
-            }))
-            .filter((v) => v.url && v.public_id)
-        : undefined;
+    const mediaPatchRequested =
+      parsed.data.images !== undefined || parsed.data.videos !== undefined;
 
-    if (normalizedImages !== undefined || normalizedVideos !== undefined) {
+    if (mediaPatchRequested) {
       const user = await User.findById(session.user.id).lean();
       const tier =
         session.user.role === USER_ROLES.ADMIN
@@ -158,8 +149,25 @@ export async function PATCH(
         boostPackage: listing.boostPackage,
         boostExpiresAt: listing.boostExpiresAt,
       });
-      const images = normalizedImages ?? (listing.images ?? []).map((img: { url?: string; public_id?: string }) => ({ url: img?.url ?? '', public_id: img?.public_id ?? '' }));
-      const videos = normalizedVideos ?? (listing.videos ?? []).map((v: { url?: string; public_id?: string }) => ({ url: v?.url ?? '', public_id: v?.public_id ?? '' }));
+      const rawImages =
+        parsed.data.images !== undefined
+          ? Array.isArray(parsed.data.images)
+            ? parsed.data.images
+            : []
+          : (listing.images ?? []).map((img: { url?: string; public_id?: string }) => ({
+              url: img?.url ?? '',
+              public_id: img?.public_id ?? '',
+            }));
+      const rawVideos =
+        parsed.data.videos !== undefined
+          ? Array.isArray(parsed.data.videos)
+            ? parsed.data.videos
+            : []
+          : (listing.videos ?? []).map((v: { url?: string; public_id?: string }) => ({
+              url: v?.url ?? '',
+              public_id: v?.public_id ?? '',
+            }));
+      const { images, videos } = normalizeListingMediaForSeo(rawImages, rawVideos);
       if (images.length > limits.maxImages) {
         return NextResponse.json(
           { error: `You can add up to ${limits.maxImages} images per listing.${limits.boostActive ? '' : ' Boost this listing to unlock more.'}` },
@@ -172,8 +180,8 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      if (normalizedImages !== undefined) listing.images = dedupeImagesByPublicId(images);
-      if (normalizedVideos !== undefined) listing.videos = dedupeImagesByPublicId(videos);
+      listing.images = images;
+      listing.videos = videos;
     }
 
     if (parsed.data.featured === true || parsed.data.highlighted === true) {
@@ -241,11 +249,26 @@ export async function PATCH(
       listing.amenities = mergeUniqueLists(listing.amenities, incomingAmenities, detectedAmenities);
     }
     if (incomingTags !== undefined || incomingAmenities !== undefined) {
-      listing.tags = mergeUniqueLists(
-        listing.tags,
-        incomingTags,
-        incomingAmenities ?? listing.amenities
+      listing.tags = applyImportSeoTags(
+        mergeUniqueLists(
+          listing.tags,
+          incomingTags,
+          incomingAmenities ?? listing.amenities
+        )
       );
+    } else {
+      listing.tags = applyImportSeoTags(listing.tags);
+    }
+
+    const shouldRefreshSeoDescription =
+      parsed.data.description !== undefined ||
+      mediaPatchRequested ||
+      parsed.data.title !== undefined ||
+      parsed.data.location !== undefined ||
+      parsed.data.price !== undefined ||
+      parsed.data.listingType !== undefined;
+    if (shouldRefreshSeoDescription) {
+      listing.description = enrichListingDescriptionForSeo(listingDocToShareFields(listing));
     }
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);
@@ -415,7 +438,11 @@ export async function PATCH(
       await notifyAlertsIfActive(listing.status, listing.toObject());
     }
 
-    return NextResponse.json(listing);
+    return NextResponse.json({
+      ...(listing.toObject ? listing.toObject() : listing),
+      slug: listing.slug,
+      publicPath: getListingPublicPath({ _id: listing._id, slug: listing.slug }),
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 });

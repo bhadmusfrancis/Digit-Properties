@@ -7,8 +7,6 @@ export type ListingPackageLimits = {
   canFeatured: boolean;
   canHighlighted: boolean;
   maxCategories: number;
-  maxFeatured: number;
-  maxHighlighted: number;
   priceMonthly: number;
 };
 
@@ -54,8 +52,6 @@ export function getListingPackageDefaultLimits(tier: ListingPackageTier): Listin
     maxCategories: caps.maxCategories,
     canFeatured: pkg.featured,
     canHighlighted: pkg.highlighted,
-    maxFeatured: pkg.featured ? 5 : 0,
-    maxHighlighted: pkg.highlighted ? 5 : 0,
     priceMonthly: pkg.amount,
   };
 }
@@ -66,8 +62,6 @@ export function getFreeAccountListingLimits(): ListingPackageLimits {
   return {
     ...starter,
     maxCategories: 1,
-    maxFeatured: 0,
-    maxHighlighted: 0,
     canFeatured: false,
     canHighlighted: false,
     priceMonthly: 0,

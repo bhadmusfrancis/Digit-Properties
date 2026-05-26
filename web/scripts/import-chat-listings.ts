@@ -199,6 +199,7 @@ async function main() {
   const { listingSchema } = await import('../src/lib/validations');
   const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
   const { ensureUniqueListingSlug } = await import('../src/lib/listing-slug');
+  const { prepareListingFieldsForSeo } = await import('../src/lib/listing-seo-prep');
   const cloudinary = (await import('cloudinary')).v2;
   cloudinary.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -449,14 +450,27 @@ async function main() {
           location: validated.data.location,
           excludeId: String((existing as { _id: unknown })._id),
         });
+        const seoUpdate = prepareListingFieldsForSeo({
+          title: validated.data.title,
+          description: validated.data.description,
+          price: validated.data.price,
+          listingType: validated.data.listingType,
+          rentPeriod: validated.data.rentPeriod,
+          propertyType: validated.data.propertyType,
+          propertyTypes: validated.data.propertyTypes,
+          location: validated.data.location,
+          images: validated.data.images,
+          videos: validated.data.videos,
+          tags: validated.data.tags,
+        });
         await Listing.findByIdAndUpdate((existing as { _id: unknown })._id, {
           $set: {
-            images: validated.data.images ?? [],
-            videos: validated.data.videos?.length ? validated.data.videos : [],
+            images: seoUpdate.images,
+            videos: seoUpdate.videos.length ? seoUpdate.videos : [],
             amenities: validated.data.amenities ?? [],
-            tags: validated.data.tags ?? [],
+            tags: seoUpdate.tags,
             title: validated.data.title,
-            description: validated.data.description,
+            description: seoUpdate.description,
             price: validated.data.price,
             listingType: validated.data.listingType,
             propertyType: validated.data.propertyType,
@@ -480,10 +494,25 @@ async function main() {
       continue;
     }
 
+    const seoCreate = prepareListingFieldsForSeo({
+      title: validated.data.title,
+      description: validated.data.description,
+      price: validated.data.price,
+      listingType: validated.data.listingType,
+      rentPeriod: validated.data.rentPeriod,
+      propertyType: validated.data.propertyType,
+      propertyTypes: validated.data.propertyTypes,
+      location: validated.data.location,
+      images: validated.data.images,
+      videos: validated.data.videos,
+      tags: validated.data.tags,
+    });
     await Listing.create({
       ...validated.data,
-      images: validated.data.images ?? [],
-      videos: validated.data.videos?.length ? validated.data.videos : [],
+      description: seoCreate.description,
+      images: seoCreate.images,
+      videos: seoCreate.videos.length ? seoCreate.videos : [],
+      tags: seoCreate.tags,
       slug: await ensureUniqueListingSlug({
         title: validated.data.title,
         location: validated.data.location,

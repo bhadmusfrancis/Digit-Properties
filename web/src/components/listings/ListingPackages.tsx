@@ -12,8 +12,8 @@ export type PackageDisplay = {
   maxImages: number;
   maxVideos: number;
   maxCategories: number;
-  maxFeatured: number;
-  maxHighlighted: number;
+  canFeatured: boolean;
+  canHighlighted: boolean;
   isStarter: boolean;
 };
 
@@ -128,15 +128,15 @@ export function ListingPackages() {
                   <span className="mt-0.5 text-emerald-600 shrink-0" aria-hidden>✓</span>
                   <span><strong>{pkg.maxCategories ?? 1}</strong> category selection{(pkg.maxCategories ?? 1) > 1 ? 's' : ''}</span>
                 </li>
-                {pkg.maxFeatured > 0 || pkg.maxHighlighted > 0 ? (
+                {pkg.canFeatured || pkg.canHighlighted ? (
                   <>
-                    {pkg.maxFeatured > 0 && (
+                    {pkg.canFeatured && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 text-amber-600 shrink-0" aria-hidden>★</span>
                         <span>Featured on homepage carousel</span>
                       </li>
                     )}
-                    {pkg.maxHighlighted > 0 && (
+                    {pkg.canHighlighted && (
                       <li className="flex items-start gap-2">
                         <span className="mt-0.5 text-amber-600 shrink-0" aria-hidden>★</span>
                         <span>Highlighted in search results</span>

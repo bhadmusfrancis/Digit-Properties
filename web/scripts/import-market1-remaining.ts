@@ -82,6 +82,7 @@ async function main() {
   const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
   const { listingSchema } = await import('../src/lib/validations');
   const { ensureUniqueListingSlug } = await import('../src/lib/listing-slug');
+  const { prepareListingFieldsForSeo } = await import('../src/lib/listing-seo-prep');
   const mongoose = (await import('mongoose')).default;
   const Listing = (await import('../src/models/Listing')).default;
   const User = (await import('../src/models/User')).default;
@@ -260,8 +261,25 @@ async function main() {
       continue;
     }
 
+    const seoCreate = prepareListingFieldsForSeo({
+      title: validated.data.title,
+      description: validated.data.description,
+      price: validated.data.price,
+      listingType: validated.data.listingType,
+      rentPeriod: validated.data.rentPeriod,
+      propertyType: validated.data.propertyType,
+      propertyTypes: validated.data.propertyTypes,
+      location: validated.data.location,
+      images: validated.data.images,
+      videos: validated.data.videos,
+      tags: validated.data.tags,
+    });
     await Listing.create({
       ...validated.data,
+      description: seoCreate.description,
+      images: seoCreate.images,
+      videos: seoCreate.videos.length ? seoCreate.videos : [],
+      tags: seoCreate.tags,
       slug: await ensureUniqueListingSlug({
         title: validated.data.title,
         location: validated.data.location,

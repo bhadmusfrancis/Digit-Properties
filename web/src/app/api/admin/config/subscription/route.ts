@@ -33,8 +33,6 @@ export async function GET(req: Request) {
         canFeatured: found?.canFeatured ?? def.canFeatured,
         canHighlighted: found?.canHighlighted ?? def.canHighlighted,
         maxCategories: found?.maxCategories ?? def.maxCategories,
-        maxFeatured: found?.maxFeatured ?? def.maxFeatured,
-        maxHighlighted: found?.maxHighlighted ?? def.maxHighlighted,
         priceMonthly: found?.priceMonthly ?? def.priceMonthly,
       };
     });
@@ -52,7 +50,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json();
-    const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted, maxCategories, maxFeatured, maxHighlighted, priceMonthly } = body;
+    const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted, maxCategories, priceMonthly } = body;
     if (!tier || !LISTING_PACKAGE_TIERS.includes(tier as ListingPackageTier)) {
       return NextResponse.json({ error: 'Invalid tier. Use starter, pro, or premium.' }, { status: 400 });
     }
@@ -68,8 +66,6 @@ export async function PUT(req: Request) {
         canFeatured: Boolean(canFeatured),
         canHighlighted: Boolean(canHighlighted),
         maxCategories: Number(maxCategories) >= 1 ? Number(maxCategories) : def.maxCategories,
-        maxFeatured: Number(maxFeatured) >= 0 ? Number(maxFeatured) : def.maxFeatured,
-        maxHighlighted: Number(maxHighlighted) >= 0 ? Number(maxHighlighted) : def.maxHighlighted,
         priceMonthly: Number(priceMonthly) >= 0 ? Number(priceMonthly) : def.priceMonthly,
       },
       { upsert: true, new: true }

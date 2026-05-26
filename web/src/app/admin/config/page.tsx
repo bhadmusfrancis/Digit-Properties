@@ -14,8 +14,6 @@ type TierConfig = {
   canFeatured: boolean;
   canHighlighted: boolean;
   maxCategories: number;
-  maxFeatured: number;
-  maxHighlighted: number;
   priceMonthly: number;
 };
 
@@ -197,7 +195,7 @@ export default function AdminConfigPage() {
                 <span className="ml-2 text-sm font-normal text-gray-500">({c.boostDays} days per boost)</span>
               ) : null}
             </h3>
-            <div className="mt-4 grid gap-4 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
+            <div className="mt-4 grid gap-4 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
               <div>
                 <label className="block text-xs font-medium text-gray-500">Price (NGN per boost)</label>
                 <input
@@ -249,28 +247,6 @@ export default function AdminConfigPage() {
                   min={1}
                   value={c.maxCategories ?? 1}
                   onChange={(e) => updateTier(c.tier, { maxCategories: parseInt(e.target.value, 10) || 1 })}
-                  className="input mt-1 w-full"
-                  disabled={!!saving}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500">Max Featured</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={c.maxFeatured ?? 0}
-                  onChange={(e) => updateTier(c.tier, { maxFeatured: parseInt(e.target.value, 10) || 0 })}
-                  className="input mt-1 w-full"
-                  disabled={!!saving}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500">Max Highlighted</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={c.maxHighlighted ?? 0}
-                  onChange={(e) => updateTier(c.tier, { maxHighlighted: parseInt(e.target.value, 10) || 0 })}
                   className="input mt-1 w-full"
                   disabled={!!saving}
                 />
