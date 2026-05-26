@@ -85,13 +85,22 @@ export function buildListingJsonLd(input: ListingStructuredDataInput) {
   const url = absoluteUrl(`/listings/${pathSegment}`);
   const streetAddress = [input.location?.address, input.location?.suburb].filter(Boolean).join(', ') || undefined;
 
+  const imageObjects = input.imageUrls
+    .map((u) => absoluteUrl(u))
+    .filter(Boolean)
+    .map((imageUrl, i) => ({
+      '@type': 'ImageObject',
+      url: imageUrl,
+      caption: `${input.title} – Listing photo ${i + 1}`.slice(0, 500),
+    }));
+
   return {
     '@context': SCHEMA,
     '@type': 'RealEstateListing',
     name: input.title,
     description: input.description.slice(0, 5000),
     url,
-    image: input.imageUrls.map(absoluteUrl).filter(Boolean),
+    ...(imageObjects.length > 0 ? { image: imageObjects } : {}),
     datePosted: input.datePosted,
     dateModified: input.dateModified,
     numberOfBedrooms: input.bedrooms,
@@ -160,4 +169,44 @@ export function buildCollectionPageJsonLd(input: {
     url,
     isPartOf: { '@type': 'WebSite', name: 'Digit Properties', url: siteOrigin() },
   };
+}
+
+export type VideoObjectStructuredDataInput = {
+  name: string;
+  description: string;
+  thumbnailUrl: string;
+  contentUrl: string;
+  embedUrl: string;
+  uploadDate: string;
+  durationSeconds?: number;
+};
+
+/** Google Video indexing: https://developers.google.com/search/docs/appearance/structured-data/video */
+export function buildVideoObjectJsonLd(input: VideoObjectStructuredDataInput) {
+  const embedUrl = absoluteUrl(input.embedUrl);
+  return {
+    '@context': SCHEMA,
+    '@type': 'VideoObject',
+    name: input.name.slice(0, 200),
+    description: input.description.slice(0, 2048),
+    thumbnailUrl: absoluteUrl(input.thumbnailUrl),
+    uploadDate: input.uploadDate,
+    contentUrl: absoluteUrl(input.contentUrl),
+    embedUrl,
+    url: embedUrl,
+    ...(input.durationSeconds != null && input.durationSeconds > 0
+      ? { duration: `PT${Math.round(input.durationSeconds)}S` }
+      : {}),
+    publisher: {
+      '@type': 'Organization',
+      name: 'Digit Properties',
+      logo: { '@type': 'ImageObject', url: absoluteUrl('/logo.svg') },
+    },
+  };
+}
+
+export function buildListingVideoJsonLdList(
+  videos: VideoObjectStructuredDataInput[]
+): Record<string, unknown>[] {
+  return videos.map((v) => buildVideoObjectJsonLd(v));
 }

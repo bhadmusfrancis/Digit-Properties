@@ -7,6 +7,23 @@ import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketS
 
 type MediaItem = { url: string; public_id?: string; type?: 'image' | 'video' };
 
+function galleryMediaAltText(
+  title: string,
+  locationLabel: string | undefined,
+  list: MediaItem[],
+  index: number
+): string {
+  const loc = locationLabel?.trim() ? ` · ${locationLabel.trim()}` : '';
+  const cur = list[index];
+  if (cur?.type === 'video') {
+    return `${title}${loc} · Property video`;
+  }
+  const stills = list.filter((x) => x.type !== 'video');
+  const n = list.slice(0, index + 1).filter((x) => x.type !== 'video').length;
+  const denom = Math.max(stills.length, 1);
+  return `${title}${loc} · Listing photo ${n} of ${denom}`;
+}
+
 const ZOOM_LEVELS = [1, 1.5, 2, 2.5, 3];
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
@@ -69,7 +86,7 @@ function ListingGalleryVideo({
         ref={videoRef}
         src={src}
         poster={poster}
-        preload="none"
+        preload="metadata"
         playsInline
         className={`h-full w-full ${objectClass}`}
       />
@@ -98,12 +115,15 @@ function ListingGalleryVideo({
 export function ListingImageGallery({
   images,
   title,
+  locationLabel,
   isBoosted,
   soldAt,
   rentedAt,
 }: {
   images: MediaItem[];
   title: string;
+  /** City / state line for descriptive image alt text (Google Images + a11y). */
+  locationLabel?: string;
   isBoosted?: boolean;
   soldAt?: string | Date | null;
   rentedAt?: string | Date | null;
@@ -235,7 +255,7 @@ export function ListingImageGallery({
         ) : (
           <Image
             src={current.url}
-            alt={`${title} – media ${index + 1} of ${total}`}
+            alt={galleryMediaAltText(title, locationLabel, list, index)}
             fill
             className="object-cover"
             priority
@@ -377,7 +397,7 @@ export function ListingImageGallery({
                 ) : (
                   <Image
                     src={current.url}
-                    alt={`${title} – media ${index + 1} of ${total}`}
+                    alt={galleryMediaAltText(title, locationLabel, list, index)}
                     fill
                     className="object-contain"
                     unoptimized={!current.url.includes('res.cloudinary.com')}
