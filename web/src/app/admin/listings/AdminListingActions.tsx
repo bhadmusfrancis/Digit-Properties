@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { formatPrice } from '@/lib/utils';
 
 type User = { _id: string; name?: string; email?: string };
 type Props = {
@@ -26,6 +28,12 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
   const [showAssign, setShowAssign] = useState(false);
   const [packageUpdating, setPackageUpdating] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(boostPackage);
+
+  useEffect(() => {
+    setSelectedPackage(boostPackage);
+  }, [boostPackage]);
+
+  const boostPackageOptions = useMemo(() => Object.values(BOOST_PACKAGES), []);
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -191,12 +199,14 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
           onChange={(e) => setSelectedPackage(e.target.value)}
           className="min-h-[32px] min-w-[112px] rounded border border-gray-300 bg-white px-2 text-[11px]"
           disabled={packageUpdating}
-          title="Assign listing package"
+          title="Assign boost package"
         >
-          <option value="">No package</option>
-          <option value="starter">Starter</option>
-          <option value="pro">Pro</option>
-          <option value="premium">Premium</option>
+          <option value="">No boost</option>
+          {boostPackageOptions.map((pkg) => (
+            <option key={pkg.id} value={pkg.id}>
+              {pkg.name} — {formatPrice(pkg.amount)} · {pkg.days}d
+            </option>
+          ))}
         </select>
         <button
           type="button"

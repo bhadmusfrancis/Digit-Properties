@@ -9,6 +9,7 @@ import { buildListingListQuery } from '@/lib/listing-list-query';
 import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
 import { SortColumnHeader } from '@/components/listings/SortColumnHeader';
 import { ListingSortMobileBar } from '@/components/listings/ListingSortMobileBar';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { AdminListingActions } from './AdminListingActions';
 
 type User = { _id: string; name?: string; email?: string };
@@ -26,6 +27,7 @@ type Listing = {
   videos?: { url?: string; public_id?: string }[];
   featured?: boolean;
   highlighted?: boolean;
+  isBoosted?: boolean;
   boostPackage?: string;
   pendingApprovalReasons?: string[];
   createdBy: unknown;
@@ -88,6 +90,13 @@ export function AdminListingsTable({
     return String(l.createdBy);
   };
 
+  const boostBadgeLabel = (l: Listing) => {
+    if (!l.isBoosted) return null;
+    const pkg = l.boostPackage as keyof typeof BOOST_PACKAGES | undefined;
+    const name = pkg && BOOST_PACKAGES[pkg] ? BOOST_PACKAGES[pkg].name : null;
+    return name ? `Boosted · ${name}` : 'Boosted';
+  };
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white shadow">
       <div className="hidden sm:flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
@@ -130,6 +139,11 @@ export function AdminListingsTable({
                     {l.status}
                   </span>
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">{formatCreatedAt(l.createdAt)}</span>
+                  {l.isBoosted && (
+                    <span className="inline-flex rounded-full bg-amber-500 px-2 py-0.5 font-medium text-white">
+                      {boostBadgeLabel(l)}
+                    </span>
+                  )}
                   <span className={`inline-flex rounded-full px-2 py-0.5 ${l.featured ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
                     {l.featured ? 'Featured' : 'Standard'}
                   </span>
