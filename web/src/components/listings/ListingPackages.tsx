@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { resolveListingPackageTier } from '@/lib/listing-package-defaults';
 
 export type PackageDisplay = {
   tier: string;
   label: string;
   priceMonthly: number;
+  boostDays: number;
   maxListings: number;
   maxImages: number;
   maxVideos: number;
   maxCategories: number;
   maxFeatured: number;
   maxHighlighted: number;
-  isGuestOrFree: boolean;
+  isStarter: boolean;
 };
 
 function formatPrice(n: number): string {
@@ -24,7 +26,6 @@ export function ListingPackages() {
   const [packages, setPackages] = useState<PackageDisplay[]>([]);
   const [currentTier, setCurrentTier] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [freePlanBusy, setFreePlanBusy] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -35,26 +36,6 @@ export function ListingPackages() {
       setCurrentTier(me?.subscriptionTier ?? 'free');
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
-
-  async function chooseFreePlan() {
-    setFreePlanBusy(true);
-    try {
-      const res = await fetch('/api/me/subscription-tier', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: 'free' }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(typeof data.error === 'string' ? data.error : 'Could not switch to the free plan.');
-        return;
-      }
-      const me = await fetch('/api/me').then((r) => (r.ok ? r.json() : null));
-      setCurrentTier(me?.subscriptionTier ?? 'free');
-    } finally {
-      setFreePlanBusy(false);
-    }
-  }
 
   if (loading || packages.length === 0) {
     return (
@@ -69,29 +50,30 @@ export function ListingPackages() {
     );
   }
 
+  const resolvedCurrent = currentTier ? resolveListingPackageTier(currentTier) : 'free';
+
   const isCurrentTier = (tier: string) => {
-    if (!currentTier) return false;
-    if (tier === 'guest' && (currentTier === 'guest' || currentTier === 'free')) return true;
-    return currentTier === tier;
+    if (resolvedCurrent === 'free') return false;
+    return resolvedCurrent === tier;
   };
 
   return (
     <section className="mb-10" aria-labelledby="packages-heading">
       <div className="text-center">
         <h2 id="packages-heading" className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-          Choose your listing plan
+          Listing boost packages
         </h2>
         <p className="mt-2 text-base text-gray-600 max-w-xl mx-auto">
-          Start on the free plan or upgrade for more listings, media, and visibility with Featured and Highlighted spots.
+          Boost a listing to unlock more photos, videos, categories, and visibility. Pick a package when you publish or from My Properties.
         </p>
       </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-3">
         {packages.map((pkg) => {
           const isCurrent = isCurrentTier(pkg.tier);
-          const isGold = pkg.tier === 'gold';
+          const isPro = pkg.tier === 'pro';
           const isPremium = pkg.tier === 'premium';
-          const isPopular = isGold;
+          const isPopular = isPro;
           const isBestValue = isPremium;
 
           return (
@@ -128,7 +110,7 @@ export function ListingPackages() {
                     {formatPrice(pkg.priceMonthly)}
                   </span>
                   {pkg.priceMonthly > 0 && (
-                    <span className="text-sm font-medium text-gray-500">/month</span>
+                    <span className="text-sm font-medium text-gray-500"> / {pkg.boostDays} days</span>
                   )}
                 </p>
               </div>
@@ -148,51 +130,31 @@ export function ListingPackages() {
                 </li>
                 {pkg.maxFeatured > 0 || pkg.maxHighlighted > 0 ? (
                   <>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5 text-amber-600 shrink-0" aria-hidden>★</span>
-                      <span><strong>{pkg.maxFeatured}</strong> Featured listings (home carousel)</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5 text-amber-600 shrink-0" aria-hidden>★</span>
-                      <span><strong>{pkg.maxHighlighted}</strong> Highlighted listings (search)</span>
-                    </li>
+                    {pkg.maxFeatured > 0 && (
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-600 shrink-0" aria-hidden>★</span>
+                        <span>Featured on homepage carousel</span>
+                      </li>
+                    )}
+                    {pkg.maxHighlighted > 0 && (
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-600 shrink-0" aria-hidden>★</span>
+                        <span>Highlighted in search results</span>
+                      </li>
+                    )}
                   </>
                 ) : (
                   <li className="flex items-start gap-2 text-gray-500">
                     <span className="shrink-0" aria-hidden>—</span>
-                    <span>No Featured or Highlighted</span>
+                    <span>Standard search placement</span>
                   </li>
                 )}
               </ul>
 
-              {pkg.isGuestOrFree && !isCurrent && (
-                <div className="mt-6 border-t border-gray-100 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => void chooseFreePlan()}
-                    disabled={freePlanBusy}
-                    className="w-full rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-60"
-                  >
-                    {freePlanBusy ? 'Updating…' : 'Use free plan'}
-                  </button>
-                  <p className="mt-2 text-center text-xs text-gray-500">
-                    Same limits as a new account — one category per listing on the free tier unless you boost a listing.
-                  </p>
-                </div>
-              )}
-
-              {!isCurrent && pkg.priceMonthly > 0 && currentTier !== 'free' && currentTier !== 'guest' && (
-                <div className="mt-6 border-t border-gray-100 pt-4 space-y-3 text-center">
-                  <p className="text-xs text-gray-500">Subscription checkout for account tiers is not available here.</p>
-                  <button
-                    type="button"
-                    onClick={() => void chooseFreePlan()}
-                    disabled={freePlanBusy}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
-                  >
-                    {freePlanBusy ? 'Updating…' : 'Use free plan instead'}
-                  </button>
-                </div>
+              {pkg.isStarter && (
+                <p className="mt-6 border-t border-gray-100 pt-4 text-center text-xs text-gray-500">
+                  New accounts start on the free tier. Boost any listing to apply Starter, Pro, or Premium limits on that property.
+                </p>
               )}
             </div>
           );

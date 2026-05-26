@@ -36,7 +36,12 @@ export async function POST(req: Request) {
     if (!payment) {
       const meta = (event.data?.metadata || {}) as Record<string, string | undefined>;
       const mongoose = await import('mongoose');
-      if (meta.purpose === 'subscription_tier' && meta.userId && (meta.tier === 'gold' || meta.tier === 'premium')) {
+      if (
+        meta.purpose === 'subscription_tier' &&
+        meta.userId &&
+        meta.tier &&
+        (meta.tier === 'starter' || meta.tier === 'pro' || meta.tier === 'premium' || meta.tier === 'gold')
+      ) {
         const amountKobo = event.data?.amount;
         const amount = typeof amountKobo === 'number' ? Math.round(amountKobo / 100) : 10000;
         payment = await Payment.create({
@@ -105,8 +110,9 @@ export async function POST(req: Request) {
 
     if (payment.purpose === 'subscription_tier' && payment.userId) {
       const tier = (payment.metadata as { tier?: string })?.tier;
-      if (tier === 'gold' || tier === 'premium') {
-        await User.findByIdAndUpdate(payment.userId, { subscriptionTier: tier });
+      if (tier === 'starter' || tier === 'pro' || tier === 'premium' || tier === 'gold') {
+        const normalized = tier === 'gold' ? 'pro' : tier;
+        await User.findByIdAndUpdate(payment.userId, { subscriptionTier: normalized });
       }
     }
 

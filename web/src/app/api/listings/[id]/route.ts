@@ -191,7 +191,7 @@ export async function PATCH(
       const ownerId = listing.createdBy;
       if (parsed.data.featured === true && !listing.featured) {
         if (!limits.canFeatured || limits.maxFeatured <= 0) {
-          return NextResponse.json({ error: 'Featured listings not available on your plan. Boost this listing or upgrade to Gold/Premium.' }, { status: 400 });
+          return NextResponse.json({ error: 'Featured listings not available on your plan. Boost this listing with Pro or Premium.' }, { status: 400 });
         }
         const featuredCount = await Listing.countDocuments({ createdBy: ownerId, featured: true });
         if (featuredCount >= limits.maxFeatured && !limits.boostActive) {
@@ -200,7 +200,7 @@ export async function PATCH(
       }
       if (parsed.data.highlighted === true && !listing.highlighted) {
         if (!limits.canHighlighted || limits.maxHighlighted <= 0) {
-          return NextResponse.json({ error: 'Highlighted listings not available on your plan. Boost this listing or upgrade to Gold/Premium.' }, { status: 400 });
+          return NextResponse.json({ error: 'Highlighted listings not available on your plan. Boost this listing with Pro or Premium.' }, { status: 400 });
         }
         const highlightedCount = await Listing.countDocuments({ createdBy: ownerId, highlighted: true });
         if (highlightedCount >= limits.maxHighlighted && !limits.boostActive) {

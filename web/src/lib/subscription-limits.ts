@@ -1,6 +1,12 @@
 import { dbConnect } from '@/lib/db';
 import SubscriptionConfig from '@/models/SubscriptionConfig';
 import { DEFAULT_SUBSCRIPTION_LIMITS } from '@/lib/constants';
+import {
+  getFreeAccountListingLimits,
+  getListingPackageDefaultLimits,
+  resolveListingPackageTier,
+  type ListingPackageTier,
+} from '@/lib/listing-package-defaults';
 
 export type SubscriptionLimits = {
   maxListings: number;
@@ -14,11 +20,24 @@ export type SubscriptionLimits = {
   priceMonthly: number;
 };
 
+function defaultLimitsForTier(tier: string): SubscriptionLimits {
+  const resolved = resolveListingPackageTier(tier);
+  if (resolved === 'free') {
+    return DEFAULT_SUBSCRIPTION_LIMITS.free ?? getFreeAccountListingLimits();
+  }
+  return (
+    DEFAULT_SUBSCRIPTION_LIMITS[resolved] ??
+    getListingPackageDefaultLimits(resolved as ListingPackageTier)
+  );
+}
+
 export async function getSubscriptionLimits(tier: string): Promise<SubscriptionLimits> {
-  const defaults = DEFAULT_SUBSCRIPTION_LIMITS[tier] ?? DEFAULT_SUBSCRIPTION_LIMITS.free;
+  const resolved = resolveListingPackageTier(tier);
+  const configTier = resolved === 'free' ? 'free' : resolved;
+  const defaults = defaultLimitsForTier(tier);
   try {
     await dbConnect();
-    const config = await SubscriptionConfig.findOne({ tier }).lean();
+    const config = await SubscriptionConfig.findOne({ tier: configTier }).lean();
     if (config) {
       return {
         maxListings: config.maxListings,

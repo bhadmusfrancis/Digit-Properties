@@ -182,12 +182,19 @@ export const USER_AD_STATUS = {
 /** Recommended ad image size for SEO/social (og:image). */
 export const AD_MEDIA_RECOMMENDED = { width: 1200, height: 630 };
 
-/** Subscription tiers for listing/media limits. Guest = unauthenticated-style limits. */
+/**
+ * Account listing tier on User.subscriptionTier.
+ * Listing boost packages (starter / pro / premium) are configured in Admin → Config.
+ */
 export const SUBSCRIPTION_TIERS = {
-  GUEST: 'guest',
   FREE: 'free',
-  GOLD: 'gold',
+  STARTER: 'starter',
+  PRO: 'pro',
   PREMIUM: 'premium',
+  /** @deprecated Legacy — resolves to pro limits */
+  GOLD: 'gold',
+  /** @deprecated Legacy — resolves to starter limits */
+  GUEST: 'guest',
 } as const;
 
 /** Trend post categories (Nigeria-focused). */
@@ -221,9 +228,13 @@ export const DEFAULT_SUBSCRIPTION_LIMITS: Record<string, {
   maxHighlighted: number;
   priceMonthly: number;
 }> = {
-  guest: { maxListings: 99999, maxImages: 10, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
   free: { maxListings: 99999, maxImages: 10, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
   bot: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: false, canHighlighted: false, maxCategories: 1, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 0 },
-  gold: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: true, canHighlighted: true, maxCategories: 3, maxFeatured: 5, maxHighlighted: 5, priceMonthly: 10000 },
-  premium: { maxListings: 99999, maxImages: 25, maxVideos: 5, canFeatured: true, canHighlighted: true, maxCategories: 5, maxFeatured: 15, maxHighlighted: 15, priceMonthly: 30000 },
+  starter: { maxListings: 99999, maxImages: 10, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 2, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 5000 },
+  pro: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: false, canHighlighted: true, maxCategories: 3, maxFeatured: 0, maxHighlighted: 5, priceMonthly: 9000 },
+  premium: { maxListings: 99999, maxImages: 25, maxVideos: 5, canFeatured: true, canHighlighted: true, maxCategories: 5, maxFeatured: 5, maxHighlighted: 5, priceMonthly: 18000 },
+  /** @deprecated — use pro */
+  gold: { maxListings: 99999, maxImages: 15, maxVideos: 3, canFeatured: false, canHighlighted: true, maxCategories: 3, maxFeatured: 0, maxHighlighted: 5, priceMonthly: 9000 },
+  /** @deprecated — use starter */
+  guest: { maxListings: 99999, maxImages: 10, maxVideos: 1, canFeatured: false, canHighlighted: false, maxCategories: 2, maxFeatured: 0, maxHighlighted: 0, priceMonthly: 5000 },
 };

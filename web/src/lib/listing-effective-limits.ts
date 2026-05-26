@@ -1,16 +1,6 @@
 import { BOOST_PACKAGES, type BoostPackage } from '@/lib/boost-packages';
+import { BOOST_MEDIA_CAPS } from '@/lib/listing-package-defaults';
 import { getSubscriptionLimits, type SubscriptionLimits } from '@/lib/subscription-limits';
-
-/**
- * Per-package max media counts. Mirrors the package marketing copy
- * (e.g. "Up to 15 images + 3 videos") so a user who paid for a boost can
- * upload up to that amount on the boosted listing.
- */
-const BOOST_MEDIA_CAPS: Record<BoostPackage['id'], { maxImages: number; maxVideos: number; maxCategories: number }> = {
-  starter: { maxImages: 10, maxVideos: 1, maxCategories: 2 },
-  pro: { maxImages: 15, maxVideos: 3, maxCategories: 3 },
-  premium: { maxImages: 25, maxVideos: 5, maxCategories: 5 },
-};
 
 export type ListingBoostState = {
   boostPackage?: BoostPackage['id'] | string | null;
