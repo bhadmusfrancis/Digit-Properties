@@ -1,10 +1,16 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { canonicalAlternates } from '@/lib/seo/canonical';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { TrendingListings } from '@/components/listings/TrendingListings';
 import { TrendHighlights } from '@/components/trends/TrendHighlights';
 import { LocationHighlights } from '@/components/listings/LocationHighlights';
 import { buildLocationLandingPath } from '@/lib/location-seo';
 import { LISTING_TYPE } from '@/lib/constants';
+
+export const metadata: Metadata = {
+  ...canonicalAlternates('/'),
+};
 
 export default function HomePage() {
 

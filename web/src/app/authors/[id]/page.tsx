@@ -6,19 +6,19 @@ import type { Metadata } from 'next';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
 import Listing from '@/models/Listing';
-import { LISTING_STATUS } from '@/lib/constants';
+import { LISTING_STATUS, formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { isPublicVerifiedAccount } from '@/lib/verification';
 import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { formatPrice } from '@/lib/utils';
-import { formatListingTypeLabel, formatPropertyTypeLabel } from '@/lib/constants';
+import { getListingPublicPath } from '@/lib/listing-path';
 import { toFirstName } from '@/lib/display-name';
 import { siteOrigin } from '@/lib/site-metadata';
 
 const PUBLIC_USER_SELECT =
   'firstName name image role companyPosition verifiedAt phoneVerifiedAt identityVerifiedAt livenessVerifiedAt';
-const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images videos';
+const LISTING_SELECT = 'title price listingType rentPeriod propertyType location bedrooms bathrooms toilets images videos slug';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
@@ -172,7 +172,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
               return (
                 <Link
                   key={listingId}
-                  href={`/listings/${listingId}`}
+                  href={getListingPublicPath({ _id: listingId, slug: (l as { slug?: string }).slug })}
                   className="card group overflow-hidden transition hover:shadow-md"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">

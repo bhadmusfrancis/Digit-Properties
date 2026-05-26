@@ -101,7 +101,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     await dbConnect();
-    const [listings, trends, locationRoutes] = await Promise.all([
+    const [listings, trends, locationRoutes, authorIds] = await Promise.all([
       Listing.find({ status: LISTING_STATUS.ACTIVE })
         .select('_id slug updatedAt')
         .lean(),
@@ -109,6 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select('slug updatedAt publishedAt')
         .lean(),
       buildLocationSitemapEntries(base, now),
+      Listing.distinct('createdBy', { status: LISTING_STATUS.ACTIVE }),
     ]);
 
     const listingRoutes: MetadataRoute.Sitemap = listings.map((row) => {
@@ -139,7 +140,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
-    return [...staticRoutes, ...locationRoutes, ...listingRoutes, ...trendRoutes];
+    const authorRoutes: MetadataRoute.Sitemap = authorIds
+      .filter((id) => id != null)
+      .map((id) => ({
+        url: `${base}/authors/${String(id)}`,
+        lastModified: now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.55,
+      }));
+
+    return [...staticRoutes, ...locationRoutes, ...listingRoutes, ...trendRoutes, ...authorRoutes];
   } catch (e) {
     console.error('[sitemap]', e);
     return staticRoutes;

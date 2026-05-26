@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   title: { default: 'Digit Properties | Buy, Sell, Rent Properties in Nigeria', template: '%s | Digit Properties' },
   description:
     'Find your dream property in Nigeria. Browse apartments, houses, land, and commercial properties for sale and rent. Lagos, Abuja, Port Harcourt and more.',
-  alternates: { canonical: siteUrl },
   icons: {
     icon: '/logo.svg',
     apple: '/logo.svg',

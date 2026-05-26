@@ -67,6 +67,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     }
     const baseUrl = siteOrigin();
     const canonical = `${baseUrl}/listings/${publicSegment}`;
+    const isLegacyObjectIdUrl = id.trim() !== publicSegment;
     const shareFields = listingDocToShareFields({
       ...listing,
       propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
@@ -86,6 +87,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title: listing.title,
       description,
       alternates: { canonical },
+      robots: isLegacyObjectIdUrl
+        ? { index: false, follow: true }
+        : { index: true, follow: true },
       openGraph: {
         type: 'article',
         title: listing.title,

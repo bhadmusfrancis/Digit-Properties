@@ -1,9 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { canonicalAlternates } from '@/lib/seo/canonical';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'About Us',
   description:
     'Digit Properties offers real estate advertisement, property development, land titling, development documentation, and document verification including Survey and Certificate of Occupancy (C of O) in Nigeria.',
+  ...canonicalAlternates('/about'),
 };
 
 export default function AboutPage() {
