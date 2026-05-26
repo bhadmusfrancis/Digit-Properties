@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { canonicalAlternates } from '@/lib/seo/canonical';
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Digit Properties';
 
 export const metadata: Metadata = {
   title: `Privacy Policy | ${APP_NAME}`,
   description: `Privacy Policy for ${APP_NAME} – how we collect, use, and protect your data.`,
+  ...canonicalAlternates('/privacy'),
 };
 
 export default function PrivacyPage() {

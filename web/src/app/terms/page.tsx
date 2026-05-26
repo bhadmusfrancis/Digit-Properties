@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { canonicalAlternates } from '@/lib/seo/canonical';
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Digit Properties';
 
 export const metadata: Metadata = {
   title: `Terms of Service | ${APP_NAME}`,
   description: `Terms of Service for ${APP_NAME} – Nigerian real estate platform.`,
+  ...canonicalAlternates('/terms'),
 };
 
 export default function TermsPage() {

@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   title: 'Property Listings',
   description:
     'Search apartments, houses, land, and commercial properties for sale and rent across Nigeria. Filter by location, price, and property type.',
-  alternates: { canonical: `${base}/listings` },
   openGraph: {
     title: 'Property Listings | Digit Properties',
     description:

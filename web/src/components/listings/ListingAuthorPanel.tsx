@@ -11,10 +11,12 @@ import { formatListingTypeLabel } from '@/lib/constants';
 import { toFirstName } from '@/lib/display-name';
 import { isBotListingAuthor } from '@/lib/claimable-listing';
 import { formatUserRoleLabel } from '@/lib/user-role-label';
+import { getListingPublicPath } from '@/lib/listing-path';
 import type { PublicCreatedBy } from '@/lib/verification';
 
 type AuthorListingPreview = {
   _id: string;
+  slug?: string;
   title: string;
   price: number;
   listingType: string;
@@ -202,7 +204,7 @@ export function ListingAuthorPanel({
             {otherListings.map((listing) => (
               <li key={listing._id} className="w-[8.75rem] shrink-0 snap-start sm:w-[9.5rem]">
                 <Link
-                  href={`/listings/${listing._id}`}
+                  href={getListingPublicPath(listing)}
                   className="group block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-primary-200 hover:shadow-md"
                 >
                   <div className="relative aspect-[4/3] bg-gray-100">

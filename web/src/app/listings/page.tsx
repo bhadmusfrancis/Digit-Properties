@@ -23,7 +23,10 @@ export async function generateMetadata({
   const params = await searchParams;
   const canonical = `${siteOrigin()}/listings`;
   if (!hasListingIndexFilters(params)) {
-    return { alternates: { canonical } };
+    return {
+      alternates: { canonical },
+      robots: { index: true, follow: true },
+    };
   }
   return {
     alternates: { canonical },

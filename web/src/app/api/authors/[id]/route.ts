@@ -30,7 +30,7 @@ export async function GET(
       Listing.find({ createdBy: authorOid, status: LISTING_STATUS.ACTIVE })
         .sort({ 'images.0.url': -1, createdAt: -1 })
         .limit(24)
-        .select('title price listingType rentPeriod propertyType location bedrooms bathrooms images videos')
+        .select('title price listingType rentPeriod propertyType location bedrooms bathrooms images videos slug')
         .lean(),
       Listing.countDocuments({ createdBy: authorOid, status: LISTING_STATUS.ACTIVE }),
       AuthorLike.countDocuments({ authorId: authorOid }),
@@ -54,6 +54,7 @@ export async function GET(
       },
       listings: listings.map((l) => ({
         _id: String((l as { _id: unknown })._id),
+        slug: (l as { slug?: string }).slug,
         title: (l as { title: string }).title,
         price: (l as { price: number }).price,
         listingType: (l as { listingType: string }).listingType,
