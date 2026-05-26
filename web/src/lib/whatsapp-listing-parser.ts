@@ -4,6 +4,7 @@
  */
 import { NIGERIAN_STATES, PROPERTY_TYPES, LISTING_TYPE } from './constants';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
+import { resolveNigeriaPlaceFromText, detectNigerianStateInText } from '@/lib/nigeria-place-resolve';
 
 export type ParsedListing = {
   title: string;
@@ -304,6 +305,26 @@ function extractPhone(text: string): { phone: string | undefined; rest: string }
   return { phone: undefined, rest: text };
 }
 
+function inferStateWhenUnknown(lower: string): string {
+  if (/\b(lagos|lekki|ikeja|ajah|yaba|surulere|ikorodu|alimosho|vi\b|victoria island|ikoyi|oshodi|agege)\b/i.test(lower)) {
+    return 'Lagos';
+  }
+  if (
+    /\b(abuja|fct|kubwa|maitama|gwarinpa|wuse|jahi|jabi|jayi|lugbe|nyanya|karu|asokoro|guzape|katampe|lokogoma|dutse|kaura|kuje|bwari|gwagwalada|utako|garki)\b/i.test(
+      lower
+    )
+  ) {
+    return 'FCT';
+  }
+  if (/\b(port\s*har(?:c)?ourt|pitakwa|trans\s*amadi|oyigbo|eleme|ph\b)\b/i.test(lower)) {
+    return 'Rivers';
+  }
+  if (/\b(ibadan|bodija|mokola|dugbe|oluyole|ogbomosho)\b/i.test(lower)) {
+    return 'Oyo';
+  }
+  return 'Lagos';
+}
+
 function extractLocation(text: string): { state: string; city: string; address: string; suburb?: string; rest: string } {
   let state = '';
   let city = '';
@@ -334,28 +355,37 @@ function extractLocation(text: string): { state: string; city: string; address: 
     }
   }
   if (!state) {
-    for (const s of NIGERIAN_STATES) {
-      if (new RegExp('\\b' + s.replace(/\s/g, '\\s*').toLowerCase() + '\\b').test(lower)) {
-        state = s;
+    const detected = detectNigerianStateInText(lower);
+    if (detected) state = detected;
+  }
+
+  const gazette = resolveNigeriaPlaceFromText(text, { preferredState: state || undefined });
+  if (gazette) {
+    state = gazette.state;
+    city = gazette.city;
+    if (gazette.suburb) suburb = gazette.suburb;
+  } else {
+    for (const [area, loc] of Object.entries(COMMON_AREAS)) {
+      if (includesPhrase(lower, escapeRegex(area.toLowerCase()))) {
+        city = loc.city;
+        if (!state) state = loc.state;
+        suburb = loc.city;
         break;
       }
     }
   }
-  for (const [area, loc] of Object.entries(COMMON_AREAS)) {
-    if (includesPhrase(lower, escapeRegex(area.toLowerCase()))) {
-      city = loc.city;
-      if (!state) state = loc.state;
-      suburb = loc.city;
-      break;
-    }
-  }
+
   if (!city && state) city = state;
-  if (!state) state = 'Lagos';
-  if (!city) city = state;
-  const validState = NIGERIAN_STATES.includes(state as (typeof NIGERIAN_STATES)[number]) ? state : 'Lagos';
+
+  const validState = NIGERIAN_STATES.includes(state as (typeof NIGERIAN_STATES)[number])
+    ? state
+    : inferStateWhenUnknown(lower);
+  if (!city) city = validState === 'FCT' ? 'Abuja' : validState;
   if (!address) {
-    const parts = [suburb || city, validState].filter(Boolean).map((p) => p.trim());
-    const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
+    const addrParts = [suburb, city, validState]
+      .map((p) => (typeof p === 'string' ? p.trim() : ''))
+      .filter((p) => p.length > 0);
+    const dedup = Array.from(new Map(addrParts.map((p) => [p.toLowerCase(), p])).values());
     address = dedup.join(', ');
   }
   if (address.length < 5) {
