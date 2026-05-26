@@ -17,8 +17,8 @@ export type PackageDisplay = {
   maxImages: number;
   maxVideos: number;
   maxCategories: number;
-  maxFeatured: number;
-  maxHighlighted: number;
+  canFeatured: boolean;
+  canHighlighted: boolean;
   isStarter: boolean;
 };
 
@@ -29,8 +29,8 @@ function buildPackagesFromConfigs(
     maxImages?: number;
     maxVideos?: number;
     maxCategories?: number;
-    maxFeatured?: number;
-    maxHighlighted?: number;
+    canFeatured?: boolean;
+    canHighlighted?: boolean;
     priceMonthly?: number;
   }[]
 ): PackageDisplay[] {
@@ -47,8 +47,8 @@ function buildPackagesFromConfigs(
       maxImages: found?.maxImages ?? def.maxImages,
       maxVideos: found?.maxVideos ?? def.maxVideos,
       maxCategories: found?.maxCategories ?? def.maxCategories,
-      maxFeatured: found?.maxFeatured ?? def.maxFeatured,
-      maxHighlighted: found?.maxHighlighted ?? def.maxHighlighted,
+      canFeatured: found?.canFeatured ?? def.canFeatured,
+      canHighlighted: found?.canHighlighted ?? def.canHighlighted,
       isStarter: tier === 'starter',
     };
   });

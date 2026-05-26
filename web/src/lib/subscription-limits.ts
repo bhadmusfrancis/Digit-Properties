@@ -22,13 +22,11 @@ export type SubscriptionLimits = {
 
 function defaultLimitsForTier(tier: string): SubscriptionLimits {
   const resolved = resolveListingPackageTier(tier);
-  if (resolved === 'free') {
-    return DEFAULT_SUBSCRIPTION_LIMITS.free ?? getFreeAccountListingLimits();
-  }
-  return (
-    DEFAULT_SUBSCRIPTION_LIMITS[resolved] ??
-    getListingPackageDefaultLimits(resolved as ListingPackageTier)
-  );
+  const base =
+    resolved === 'free'
+      ? DEFAULT_SUBSCRIPTION_LIMITS.free ?? getFreeAccountListingLimits()
+      : getListingPackageDefaultLimits(resolved as ListingPackageTier);
+  return { ...base, maxFeatured: 0, maxHighlighted: 0 };
 }
 
 export async function getSubscriptionLimits(tier: string): Promise<SubscriptionLimits> {
@@ -46,8 +44,8 @@ export async function getSubscriptionLimits(tier: string): Promise<SubscriptionL
         canFeatured: config.canFeatured,
         canHighlighted: config.canHighlighted,
         maxCategories: config.maxCategories ?? (defaults.maxCategories ?? 1),
-        maxFeatured: config.maxFeatured ?? (config.canFeatured ? 5 : 0),
-        maxHighlighted: config.maxHighlighted ?? (config.canHighlighted ? 5 : 0),
+        maxFeatured: 0,
+        maxHighlighted: 0,
         priceMonthly: config.priceMonthly ?? 0,
       };
     }

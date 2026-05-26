@@ -94,7 +94,7 @@ function buildListingPayload(
     rentPeriod: item.rentPeriod,
     status: item.status,
     amenities: item.amenities ? item.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [],
-    tags: ['whatsapp-import'],
+    tags: ['whatsapp-chat-import'],
     images: item.images ?? [],
     videos: item.videos ?? [],
   };
