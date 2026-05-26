@@ -6,6 +6,8 @@ import { AD_PLACEMENTS } from '@/lib/constants';
 
 type TierConfig = {
   tier: string;
+  label?: string;
+  boostDays?: number;
   maxListings: number;
   maxImages: number;
   maxVideos: number;
@@ -103,16 +105,16 @@ export default function AdminConfigPage() {
   if (loading) {
     return (
       <div>
-        <p className="text-gray-500">Loading subscription config...</p>
+        <p className="text-gray-500">Loading boost package config...</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900">Subscription & listing config</h2>
+      <h2 className="text-lg font-semibold text-gray-900">Listing boost packages</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Set per tier: price (NGN/month), max listings, images/videos per listing, max Featured & Highlighted slots. Shown on the new listing page.
+        Configure Starter, Pro, and Premium boost packages: price per boost, duration, media limits, and Featured / Highlighted access. Shown on listing plans and used when users boost a property.
       </p>
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
         <h3 className="font-medium text-gray-900">Listing moderation</h3>
@@ -189,10 +191,15 @@ export default function AdminConfigPage() {
       <div className="mt-6 space-y-6">
         {configs.map((c) => (
           <div key={c.tier} className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="font-medium text-gray-900 capitalize">{c.tier === 'guest' ? 'Guest / Free' : c.tier}</h3>
+            <h3 className="font-medium text-gray-900">
+              {c.label ?? c.tier.charAt(0).toUpperCase() + c.tier.slice(1)}
+              {c.boostDays != null ? (
+                <span className="ml-2 text-sm font-normal text-gray-500">({c.boostDays} days per boost)</span>
+              ) : null}
+            </h3>
             <div className="mt-4 grid gap-4 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
               <div>
-                <label className="block text-xs font-medium text-gray-500">Price (NGN/mo)</label>
+                <label className="block text-xs font-medium text-gray-500">Price (NGN per boost)</label>
                 <input
                   type="number"
                   min={0}

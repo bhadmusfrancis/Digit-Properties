@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { ListingPackages } from '@/components/listings/ListingPackages';
 
 export const metadata = {
-  title: 'Subscription Plans | Digit Properties',
-  description: 'Choose a listing plan: Free, Gold, or Premium. Upgrade for more listings, Featured and Highlighted spots.',
+  title: 'Listing Boost Packages | Digit Properties',
+  description: 'Starter, Pro, and Premium boost packages for more media, categories, and visibility on your listings.',
 };
 
 export default function SubscriptionPlansPage() {

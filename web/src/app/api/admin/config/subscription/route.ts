@@ -3,8 +3,13 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import SubscriptionConfig from '@/models/SubscriptionConfig';
 import { USER_ROLES } from '@/lib/constants';
-import { SUBSCRIPTION_TIERS } from '@/lib/constants';
-import { DEFAULT_SUBSCRIPTION_LIMITS } from '@/lib/constants';
+import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import {
+  LISTING_PACKAGE_TIERS,
+  getListingPackageDefaultLimits,
+  getListingPackageTierLabel,
+  type ListingPackageTier,
+} from '@/lib/listing-package-defaults';
 
 export async function GET(req: Request) {
   try {
@@ -14,21 +19,23 @@ export async function GET(req: Request) {
     }
     await dbConnect();
     const configs = await SubscriptionConfig.find({}).sort({ tier: 1 }).lean();
-    const tiers = Object.values(SUBSCRIPTION_TIERS);
-    const result = tiers.map((tier) => {
+    const result = LISTING_PACKAGE_TIERS.map((tier) => {
       const found = configs.find((c) => c.tier === tier);
-      const def = DEFAULT_SUBSCRIPTION_LIMITS[tier];
+      const def = getListingPackageDefaultLimits(tier);
+      const pkg = BOOST_PACKAGES[tier];
       return {
         tier,
-        maxListings: found?.maxListings ?? def?.maxListings ?? 5,
-        maxImages: found?.maxImages ?? def?.maxImages ?? 5,
-        maxVideos: found?.maxVideos ?? def?.maxVideos ?? 1,
-        canFeatured: found?.canFeatured ?? def?.canFeatured ?? false,
-        canHighlighted: found?.canHighlighted ?? def?.canHighlighted ?? false,
-        maxCategories: found?.maxCategories ?? def?.maxCategories ?? 1,
-        maxFeatured: found?.maxFeatured ?? def?.maxFeatured ?? 0,
-        maxHighlighted: found?.maxHighlighted ?? def?.maxHighlighted ?? 0,
-        priceMonthly: found?.priceMonthly ?? def?.priceMonthly ?? 0,
+        label: getListingPackageTierLabel(tier),
+        boostDays: pkg.days,
+        maxListings: found?.maxListings ?? def.maxListings,
+        maxImages: found?.maxImages ?? def.maxImages,
+        maxVideos: found?.maxVideos ?? def.maxVideos,
+        canFeatured: found?.canFeatured ?? def.canFeatured,
+        canHighlighted: found?.canHighlighted ?? def.canHighlighted,
+        maxCategories: found?.maxCategories ?? def.maxCategories,
+        maxFeatured: found?.maxFeatured ?? def.maxFeatured,
+        maxHighlighted: found?.maxHighlighted ?? def.maxHighlighted,
+        priceMonthly: found?.priceMonthly ?? def.priceMonthly,
       };
     });
     return NextResponse.json(result);
@@ -46,23 +53,24 @@ export async function PUT(req: Request) {
     }
     const body = await req.json();
     const { tier, maxListings, maxImages, maxVideos, canFeatured, canHighlighted, maxCategories, maxFeatured, maxHighlighted, priceMonthly } = body;
-    if (!tier || !Object.values(SUBSCRIPTION_TIERS).includes(tier)) {
-      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
+    if (!tier || !LISTING_PACKAGE_TIERS.includes(tier as ListingPackageTier)) {
+      return NextResponse.json({ error: 'Invalid tier. Use starter, pro, or premium.' }, { status: 400 });
     }
+    const packageTier = tier as ListingPackageTier;
     await dbConnect();
-    const def = DEFAULT_SUBSCRIPTION_LIMITS[tier];
+    const def = getListingPackageDefaultLimits(packageTier);
     await SubscriptionConfig.findOneAndUpdate(
-      { tier },
+      { tier: packageTier },
       {
-        maxListings: Number(maxListings) ?? def?.maxListings ?? 5,
-        maxImages: Number(maxImages) ?? def?.maxImages ?? 5,
-        maxVideos: Number(maxVideos) ?? def?.maxVideos ?? 1,
+        maxListings: Number(maxListings) ?? def.maxListings,
+        maxImages: Number(maxImages) ?? def.maxImages,
+        maxVideos: Number(maxVideos) ?? def.maxVideos,
         canFeatured: Boolean(canFeatured),
         canHighlighted: Boolean(canHighlighted),
-        maxCategories: Number(maxCategories) >= 1 ? Number(maxCategories) : (def?.maxCategories ?? 1),
-        maxFeatured: Number(maxFeatured) >= 0 ? Number(maxFeatured) : (def?.maxFeatured ?? 0),
-        maxHighlighted: Number(maxHighlighted) >= 0 ? Number(maxHighlighted) : (def?.maxHighlighted ?? 0),
-        priceMonthly: Number(priceMonthly) >= 0 ? Number(priceMonthly) : (def?.priceMonthly ?? 0),
+        maxCategories: Number(maxCategories) >= 1 ? Number(maxCategories) : def.maxCategories,
+        maxFeatured: Number(maxFeatured) >= 0 ? Number(maxFeatured) : def.maxFeatured,
+        maxHighlighted: Number(maxHighlighted) >= 0 ? Number(maxHighlighted) : def.maxHighlighted,
+        priceMonthly: Number(priceMonthly) >= 0 ? Number(priceMonthly) : def.priceMonthly,
       },
       { upsert: true, new: true }
     );

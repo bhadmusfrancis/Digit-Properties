@@ -6,7 +6,7 @@ import User from '@/models/User';
 import { USER_ROLES, SUBSCRIPTION_TIERS, PAYMENT_PURPOSE, DEFAULT_SUBSCRIPTION_LIMITS } from '@/lib/constants';
 import crypto from 'crypto';
 
-const ALLOWED_TIERS = [SUBSCRIPTION_TIERS.GOLD, SUBSCRIPTION_TIERS.PREMIUM] as const;
+const ALLOWED_TIERS = [SUBSCRIPTION_TIERS.STARTER, SUBSCRIPTION_TIERS.PRO, SUBSCRIPTION_TIERS.PREMIUM] as const;
 
 function generateRef() {
   return `sub_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -21,11 +21,11 @@ export async function POST(req: Request) {
     const { tier, gateway } = body as { tier?: string; gateway?: 'paystack' | 'flutterwave' | 'test' };
 
     if (!tier || !ALLOWED_TIERS.includes(tier as (typeof ALLOWED_TIERS)[number])) {
-      return NextResponse.json({ error: 'Invalid tier. Use gold or premium.' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid tier. Use starter, pro, or premium.' }, { status: 400 });
     }
 
     const def = DEFAULT_SUBSCRIPTION_LIMITS[tier];
-    const amount = def?.priceMonthly ?? (tier === SUBSCRIPTION_TIERS.GOLD ? 10000 : 30000);
+    const amount = def?.priceMonthly ?? 0;
 
     const isAdmin = session.user.role === USER_ROLES.ADMIN;
     if (!isAdmin) {
