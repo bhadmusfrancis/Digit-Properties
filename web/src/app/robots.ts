@@ -20,7 +20,7 @@ export default function robots(): MetadataRoute.Robots {
         '/listings/new',
       ],
     },
-    sitemap: `${base}/sitemap.xml`,
+    sitemap: [`${base}/sitemap.xml`, `${base}/image-sitemap.xml`, `${base}/video-sitemap.xml`],
     host: base,
   };
 }

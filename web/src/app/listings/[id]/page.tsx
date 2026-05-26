@@ -34,7 +34,9 @@ import { getBotUserObjectIds } from '@/lib/claimable-listing-server';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { buildBreadcrumbJsonLd, buildListingJsonLd } from '@/lib/seo/structured-data';
+import { buildBreadcrumbJsonLd, buildListingJsonLd, buildListingVideoJsonLdList } from '@/lib/seo/structured-data';
+import { buildListingVideoSeoItems, collectListingGalleryVideos } from '@/lib/seo/listing-videos';
+import { ListingVideoSeo } from '@/components/seo/ListingVideoSeo';
 import { plainTextExcerpt, isNextNavigationError } from '@/lib/utils';
 import { getListingPublicPath } from '@/lib/listing-path';
 import {
@@ -83,6 +85,19 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       listing.title ?? 'Property listing'
     );
     const primaryOg = ogImages[0];
+    const listingImages = (listing as { images?: { url?: string; public_id?: string }[] }).images;
+    const listingVideos = (listing as { videos?: { url?: string; public_id?: string }[] }).videos;
+    const metaGalleryVideos = collectListingGalleryVideos(listingImages, listingVideos);
+    const metaVideoSeo =
+      metaGalleryVideos.length > 0
+        ? buildListingVideoSeoItems({
+            title: String(listing.title ?? ''),
+            description,
+            pagePath: `/listings/${publicSegment}`,
+            uploadDate: createdAt?.toISOString(),
+            videos: metaGalleryVideos,
+          })
+        : [];
     return {
       title: listing.title,
       description,
@@ -100,6 +115,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         publishedTime: createdAt?.toISOString(),
         modifiedTime: updatedAt?.toISOString(),
         ...(ogImages.length > 0 ? { images: ogImages } : {}),
+        ...(metaVideoSeo.length > 0
+          ? {
+              videos: metaVideoSeo.map((v) => ({
+                url: v.contentUrl,
+                width: 1280,
+                height: 720,
+                type: 'video/mp4',
+              })),
+            }
+          : {}),
       },
       twitter: {
         card: 'summary_large_image',
@@ -376,7 +401,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const structuredImages = listingImages
       .map((img) => img.url)
       .filter(Boolean)
-      .slice(0, 5);
+      .slice(0, 20);
     if (structuredImages.length === 0) {
       structuredImages.push(
         getListingDisplayImage(
@@ -390,12 +415,36 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const listingState = listing.location?.state ?? '';
     const listingCity = listing.location?.city ?? '';
     const listingPublicPath = getListingPublicPath({ _id: listingId, slug: publicSegment });
+    const listingLocationDisplay = formatListingLocationDisplay(listing.location);
     const locationLinks = listingState
       ? relatedLocationLinks(listingState, listingCity ? { city: listingCity } : undefined)
       : [];
 
+    const galleryVideosForSeo = collectListingGalleryVideos(
+      rawImageItems as { url?: string; public_id?: string }[],
+      rawVideoItems as { url?: string; public_id?: string }[]
+    );
+    const listingVideoSeoItems = buildListingVideoSeoItems({
+      title: String(listing.title ?? ''),
+      description: plainTextExcerpt(String(listing.description ?? ''), 2048, String(listing.title ?? '')),
+      pagePath: listingPublicPath,
+      uploadDate: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
+      videos: galleryVideosForSeo,
+    });
+    const listingVideoJsonLd = buildListingVideoJsonLdList(
+      listingVideoSeoItems.map((v) => ({
+        name: v.name,
+        description: v.description,
+        thumbnailUrl: v.thumbnailUrl,
+        contentUrl: v.contentUrl,
+        embedUrl: v.embedUrl,
+        uploadDate: v.uploadDate,
+      }))
+    );
+
     return (
     <>
+      <ListingVideoSeo videos={listingVideoSeoItems} />
       <JsonLd
         data={[
           buildBreadcrumbJsonLd([
@@ -429,6 +478,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             datePosted: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
             dateModified: listing.updatedAt ? new Date(listing.updatedAt as Date).toISOString() : undefined,
           }),
+          ...listingVideoJsonLd,
         ]}
       />
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -450,6 +500,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <ListingImageGallery
               images={galleryMedia}
               title={listing.title}
+              locationLabel={listingLocationDisplay.trim() ? listingLocationDisplay : undefined}
               isBoosted={isBoosted}
               soldAt={listing.soldAt}
               rentedAt={listing.rentedAt}
@@ -557,11 +608,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           <div className="card min-w-0 overflow-hidden p-6">
             <h3 className="font-semibold text-gray-900">Location</h3>
             <p className="mt-2 text-gray-600">
-              {formatListingLocationDisplay(listing.location)}
+              {listingLocationDisplay}
             </p>
             <ListingLocationMap
               mapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-              addressLine={formatListingLocationDisplay(listing.location)}
+              addressLine={listingLocationDisplay}
               coordinates={listing.location?.coordinates}
             />
             <ListingSidebarTabs
@@ -570,7 +621,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               listingTitle={listing.title}
               propertyType={String(listing.propertyType ?? '')}
               listingDescription={listing.description ?? ''}
-              locationDisplay={formatListingLocationDisplay(listing.location)}
+              locationDisplay={listingLocationDisplay}
               title={listing.title}
               createdBy={publicCreatedBy}
               createdByType={listing.createdByType ?? 'user'}
