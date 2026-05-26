@@ -72,7 +72,6 @@ export async function GET() {
       <video:title>${escapeXml(v.name)}</video:title>
       <video:description>${escapeXml(v.description)}</video:description>
       <video:content_loc>${escapeXml(v.contentUrl)}</video:content_loc>
-      <video:player_loc allow_embed="yes">${escapeXml(v.embedUrl)}</video:player_loc>
       <video:publication_date>${escapeXml(v.uploadDate)}</video:publication_date>
       <video:family_friendly>yes</video:family_friendly>
       <video:requires_subscription>no</video:requires_subscription>
