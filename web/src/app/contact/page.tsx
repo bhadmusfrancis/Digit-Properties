@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { MAX_CONTACT_MESSAGE } from '@/lib/validations';
+import { SOCIAL_LINKS } from '@/lib/constants';
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
 const CAPTCHA_CONTAINER_ID = 'contact-recaptcha-container';
@@ -283,6 +284,36 @@ export default function ContactPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Social media — follow us */}
+      <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Connect with us</h2>
+        <p className="mt-1 text-sm text-gray-600">Follow Digit Properties for the latest listings and market updates.</p>
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <a
+            href={SOCIAL_LINKS.FACEBOOK}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Follow Digit Properties on Facebook"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-primary-600 hover:text-white"
+          >
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987H7.898v-2.89h2.54V9.797c0-2.507 1.492-3.892 3.777-3.892 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
+            </svg>
+          </a>
+          <a
+            href={SOCIAL_LINKS.TWITTER}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Follow Digit Properties on X"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-primary-600 hover:text-white"
+          >
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z" />
+            </svg>
+          </a>
         </div>
       </section>
 

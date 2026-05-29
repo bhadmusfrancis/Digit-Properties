@@ -25,6 +25,7 @@ type ListingRow = {
   propertyType?: string;
   propertyTypes?: string[];
   bedrooms?: number;
+  area?: number;
   location?: {
     address?: string;
     city?: string;
@@ -45,6 +46,7 @@ function titleInputFromRow(row: ListingRow) {
     state: typeof loc.state === 'string' ? loc.state : undefined,
     suburb: typeof loc.suburb === 'string' ? loc.suburb : undefined,
     bedrooms: typeof row.bedrooms === 'number' ? row.bedrooms : 0,
+    area: typeof row.area === 'number' ? row.area : undefined,
   };
 }
 
@@ -61,7 +63,7 @@ async function main() {
   await mongoose.connect(process.env.MONGODB_URI);
 
   const rows = (await Listing.find({})
-    .select('_id title listingType propertyType propertyTypes bedrooms location slug')
+    .select('_id title listingType propertyType propertyTypes bedrooms area location slug')
     .lean()
     .exec()) as ListingRow[];
 
@@ -83,13 +85,17 @@ async function main() {
 
     if (!apply) continue;
 
-    const slug = await ensureUniqueListingSlug({
-      title: after,
-      location: row.location,
-      excludeId: String(row._id),
-    });
-    const slugChanged = String(row.slug ?? '') !== slug;
-    if (slugChanged) slugUpdated++;
+    // Preserve existing slugs so already-indexed URLs stay valid; only mint a slug
+    // when one is missing. Slugs are opaque, so a richer title needn't change the URL.
+    const existingSlug = String(row.slug ?? '').trim();
+    const slug =
+      existingSlug ||
+      (await ensureUniqueListingSlug({
+        title: after,
+        location: row.location,
+        excludeId: String(row._id),
+      }));
+    if (!existingSlug) slugUpdated++;
 
     await Listing.updateOne(
       { _id: row._id },

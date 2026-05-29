@@ -48,6 +48,7 @@ import {
 } from '@/lib/location-seo';
 import { resolveListingPublicSegment } from '@/lib/resolve-listing';
 import { canNonAdminEditListing } from '@/lib/listing-edit-window';
+import { isListingIndexable } from '@/lib/seo/listing-indexability';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
@@ -73,6 +74,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const baseUrl = siteOrigin();
     const canonical = `${baseUrl}/listings/${publicSegment}`;
     const isLegacyObjectIdUrl = id.trim() !== publicSegment;
+    // Thin, media-less listings fall back to a shared stock image + short text, which Google
+    // clusters as duplicates and assigns a different canonical. Keep them crawlable (follow)
+    // but out of the index until they have their own media or a substantial description.
+    const isIndexable =
+      !isLegacyObjectIdUrl &&
+      isListingIndexable({
+        images: (listing as { images?: { url?: string }[] }).images,
+        videos: (listing as { videos?: { url?: string; public_id?: string }[] }).videos,
+        description: listing.description,
+      });
     const shareFields = listingDocToShareFields({
       ...listing,
       propertyTypes: (listing as { propertyTypes?: string[] }).propertyTypes,
@@ -105,9 +116,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title: listing.title,
       description,
       alternates: { canonical },
-      robots: isLegacyObjectIdUrl
-        ? { index: false, follow: true }
-        : { index: true, follow: true },
+      robots: isIndexable
+        ? { index: true, follow: true }
+        : { index: false, follow: true },
       openGraph: {
         type: 'article',
         title: listing.title,

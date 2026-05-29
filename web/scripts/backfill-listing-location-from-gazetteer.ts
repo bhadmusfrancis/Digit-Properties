@@ -35,6 +35,7 @@ type ListingRow = {
   propertyType?: string;
   propertyTypes?: string[];
   bedrooms?: number;
+  area?: number;
   location?: {
     address?: string;
     city?: string;
@@ -56,6 +57,7 @@ function titleInputFromRow(row: ListingRow) {
     state: typeof loc.state === 'string' ? loc.state : undefined,
     suburb: typeof loc.suburb === 'string' ? loc.suburb : undefined,
     bedrooms: typeof row.bedrooms === 'number' ? row.bedrooms : 0,
+    area: typeof row.area === 'number' ? row.area : undefined,
   };
 }
 
@@ -93,7 +95,7 @@ async function main() {
 
   const rows = (await Listing.find(query)
     .select(
-      '_id title description listingType propertyType propertyTypes bedrooms location slug tags'
+      '_id title description listingType propertyType propertyTypes bedrooms area location slug tags'
     )
     .lean()
     .exec()) as ListingRow[];

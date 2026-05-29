@@ -1,3 +1,12 @@
+/** Official Digit Properties social media profiles (footer links + Organization sameAs). */
+export const SOCIAL_LINKS = {
+  FACEBOOK: 'https://www.facebook.com/digitproperties',
+  TWITTER: 'https://x.com/DigitProperties',
+} as const;
+
+/** X/Twitter handle (used for twitter:site card metadata). */
+export const TWITTER_HANDLE = '@DigitProperties';
+
 /** Document type selected by user when uploading ID for verification. */
 export const ID_TYPES = {
   DRIVERS_LICENSE: 'drivers_license',

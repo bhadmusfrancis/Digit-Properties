@@ -69,17 +69,24 @@ function propertyTypesDisplay(input: TitleInput): string {
  */
 export function buildCanonicalListingTitle(input: TitleInput): string {
   const beds = input.bedrooms ?? 0;
+  const area = input.area ?? 0;
   const prop = propertyTypesDisplay(input);
   const loc = locationStr(input);
   const place = loc || 'Nigeria';
-  const title =
-    beds > 0 ? `${beds} Bed ${prop} at ${place}` : `${prop} at ${place}`;
+  // Lead with area/beds so otherwise-identical listings (e.g. several "Land at Ikoyi")
+  // get distinct titles and don't get clustered as duplicates by search engines.
+  const parts: string[] = [];
+  if (area > 0) parts.push(`${Math.round(area)} sqm`);
+  if (beds > 0) parts.push(`${beds} Bed`);
+  parts.push(prop);
+  const title = `${parts.join(' ')} at ${place}`;
   if (title.length > 200) return title.slice(0, 197) + '...';
   return title.trim() || 'Property';
 }
 
 export function generateListingTitle(input: TitleInput): string {
   const beds = input.bedrooms ?? 0;
+  const area = input.area ?? 0;
   const prop = propertyTypesDisplay(input);
   const typeStr =
     input.listingType === 'rent'
@@ -88,31 +95,34 @@ export function generateListingTitle(input: TitleInput): string {
         ? 'Joint Venture'
         : 'for Sale';
   const loc = locationStr(input);
+  // Lead with area so otherwise-identical listings get distinct titles (avoids duplicate clustering).
+  const areaStr = area > 0 ? `${Math.round(area)} sqm ` : '';
 
   const formats: Array<() => string> = [
     () =>
       beds > 0
-        ? `${beds} Bed ${prop} at ${loc || 'Nigeria'}`
-        : `${prop} at ${loc || 'Nigeria'}`,
+        ? `${areaStr}${beds} Bed ${prop} at ${loc || 'Nigeria'}`
+        : `${areaStr}${prop} at ${loc || 'Nigeria'}`,
     () =>
       loc
-        ? `${prop} ${typeStr} – ${loc}`
-        : `${prop} ${typeStr}`,
+        ? `${areaStr}${prop} ${typeStr} – ${loc}`
+        : `${areaStr}${prop} ${typeStr}`,
     () =>
       beds > 0 && loc
-        ? `${beds}-Bedroom ${prop} ${typeStr} at ${loc}`
+        ? `${areaStr}${beds}-Bedroom ${prop} ${typeStr} at ${loc}`
         : beds > 0
-          ? `${beds}-Bedroom ${prop} ${typeStr}`
-          : `${prop} ${typeStr}`,
+          ? `${areaStr}${beds}-Bedroom ${prop} ${typeStr}`
+          : `${areaStr}${prop} ${typeStr}`,
     () => {
-      const parts: string[] = beds > 0 ? [`${beds}-Bedroom ${prop}`, typeStr] : [`${prop}`, typeStr];
+      const lead = `${areaStr}${beds > 0 ? `${beds}-Bedroom ${prop}` : prop}`;
+      const parts: string[] = [lead, typeStr];
       if (loc) parts.push('at', loc);
       return parts.join(' ');
     },
     () =>
       loc
-        ? `${prop} at ${loc} – ${typeStr}`
-        : `${prop} ${typeStr}`,
+        ? `${areaStr}${prop} at ${loc} – ${typeStr}`
+        : `${areaStr}${prop} ${typeStr}`,
   ];
 
   const fn = formats[Math.floor(Math.random() * formats.length)];

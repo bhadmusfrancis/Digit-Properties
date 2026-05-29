@@ -40,6 +40,35 @@ async function resolvePlaceFromDb(state: string, placeSlug: string): Promise<Res
   return null;
 }
 
+/**
+ * Count active listings that a location landing page would surface. Mirrors the
+ * filter logic in the public listings API (`/api/listings`) so the count matches
+ * what the client grid renders. Used to noindex empty landing pages (soft-404 guard).
+ */
+export async function countActiveListingsForLanding(filters: {
+  state: string;
+  city?: string;
+  suburb?: string;
+  listingType?: string;
+}): Promise<number> {
+  await dbConnect();
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const query: Record<string, unknown> = {
+    status: LISTING_STATUS.ACTIVE,
+    'location.state': filters.state,
+  };
+  if (filters.city?.trim()) {
+    query['location.city'] = new RegExp(escapeRegex(filters.city.trim()), 'i');
+  }
+  if (filters.suburb?.trim()) {
+    query['location.suburb'] = new RegExp(escapeRegex(filters.suburb.trim()), 'i');
+  }
+  if (filters.listingType?.trim()) {
+    query.listingType = filters.listingType.trim();
+  }
+  return Listing.countDocuments(query);
+}
+
 /** Resolve a location landing place segment (static data, then DB). */
 export async function resolvePlaceForLanding(
   state: string,

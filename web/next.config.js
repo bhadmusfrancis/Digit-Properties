@@ -29,6 +29,18 @@ const nextConfig = {
       },
     ],
   },
+  // Consolidate the apex domain onto the canonical www host so Google does not
+  // index both and report "Duplicate, Google chose a different canonical".
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'digitproperties.com' }],
+        destination: 'https://www.digitproperties.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -1,4 +1,5 @@
 import { siteOrigin } from '@/lib/site-metadata';
+import { SOCIAL_LINKS } from '@/lib/constants';
 
 const SCHEMA = 'https://schema.org';
 
@@ -18,6 +19,7 @@ export function buildOrganizationJsonLd() {
     logo: `${origin}/logo.svg`,
     description:
       'Nigerian real estate platform to buy, sell, and rent apartments, houses, land, and commercial property.',
+    sameAs: [SOCIAL_LINKS.FACEBOOK, SOCIAL_LINKS.TWITTER],
     parentOrganization: {
       '@type': 'Organization',
       name: 'FABHA International',

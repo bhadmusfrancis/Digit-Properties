@@ -127,6 +127,7 @@ export default function NewListingScreen() {
       state,
       suburb,
       bedrooms: parseInt(bedrooms, 10) || 0,
+      area: area === '' ? undefined : parseFloat(area) || undefined,
     });
     setTitle(t);
   };

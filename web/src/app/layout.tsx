@@ -8,6 +8,7 @@ import { siteMetadataBase, siteOrigin } from '@/lib/site-metadata';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/GoogleTagManager';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/seo/structured-data';
+import { TWITTER_HANDLE } from '@/lib/constants';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-geist-sans' });
 
@@ -33,6 +34,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: TWITTER_HANDLE,
+    creator: TWITTER_HANDLE,
     title: 'Digit Properties | Nigeria Real Estate',
     description: 'Browse properties for sale and rent across Nigeria.',
   },

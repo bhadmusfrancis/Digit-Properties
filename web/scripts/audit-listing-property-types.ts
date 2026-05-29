@@ -67,6 +67,7 @@ type ListingRow = {
   propertyType?: string;
   propertyTypes?: string[];
   bedrooms?: number;
+  area?: number;
   location?: { address?: string; city?: string; state?: string; suburb?: string };
   slug?: string;
 };
@@ -82,6 +83,7 @@ function titleInputFromRow(row: ListingRow, propertyType: string) {
     state: typeof loc.state === 'string' ? loc.state : undefined,
     suburb: typeof loc.suburb === 'string' ? loc.suburb : undefined,
     bedrooms: typeof row.bedrooms === 'number' ? row.bedrooms : 0,
+    area: typeof row.area === 'number' ? row.area : undefined,
   };
 }
 
@@ -117,7 +119,7 @@ async function main() {
   await mongoose.connect(process.env.MONGODB_URI);
 
   const rows = (await Listing.find({})
-    .select('_id title description listingType propertyType propertyTypes bedrooms location slug')
+    .select('_id title description listingType propertyType propertyTypes bedrooms area location slug')
     .lean()
     .exec()) as ListingRow[];
 
