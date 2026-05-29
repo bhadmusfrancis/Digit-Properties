@@ -268,6 +268,18 @@ function extractListingType(text: string): {
 }
 
 /**
+ * Common asset words that map to a PROPERTY_TYPES slug but are not the slug
+ * itself. Matched by earliest position alongside the enum keywords so they
+ * only win when named before any other asset (not as an amenity).
+ */
+const TYPE_SYNONYM_PATTERNS: Array<{ type: string; re: RegExp }> = [
+  {
+    type: 'restaurant',
+    re: /\b(?:eateries|eatery|restaurants?|bakery|bakeries|cafeteria|cafe|caf\u00e9|canteen|fast\s*food|food\s*court|pizzeria|bukka?)\b/i,
+  },
+];
+
+/**
  * True when the post is selling/leasing a fuel (filling/petrol/gas) station
  * itself, as opposed to merely referencing one as a nearby landmark
  * (e.g. "land behind NNPC filling station", "duplex, landmark Shafa station").
@@ -337,21 +349,33 @@ export function extractPropertyType(text: string): string {
   }
 
   // 2) Earliest-mentioned property type wins; longer keyword breaks ties.
+  //    Some types have common synonyms that are not the enum slug itself
+  //    (e.g. an "eatery"/"bakery" is a restaurant). These compete by position
+  //    too, so a hotel that merely mentions a restaurant amenity stays a hotel
+  //    (hotel is named first), while an eatery post becomes a restaurant.
   let best: { type: string; index: number; len: number } | null = null;
-  for (const p of PROPERTY_TYPES) {
-    const pattern = p.replace(/_/g, '[\\s_-]*');
-    const m = new RegExp(`\\b${pattern}s?\\b`, 'i').exec(lower);
-    if (!m) continue;
-    const index = m.index;
+  const consider = (type: string, index: number, len: number) => {
     if (
       best === null ||
       index < best.index ||
-      (index === best.index && p.length > best.len)
+      (index === best.index && len > best.len)
     ) {
-      best = { type: p, index, len: p.length };
+      best = { type, index, len };
     }
+  };
+  for (const p of PROPERTY_TYPES) {
+    // filling_station is decided only by its guarded pre-check above; matching
+    // it here as a bare keyword would bypass the landmark/barge/attribute rules.
+    if (p === 'filling_station') continue;
+    const pattern = p.replace(/_/g, '[\\s_-]*');
+    const m = new RegExp(`\\b${pattern}s?\\b`, 'i').exec(lower);
+    if (m) consider(p, m.index, p.length);
   }
-  if (best) return best.type;
+  for (const { type, re } of TYPE_SYNONYM_PATTERNS) {
+    const m = re.exec(lower);
+    if (m) consider(type, m.index, m[0].length);
+  }
+  if (best) return best!.type;
 
   // 3) Land fallbacks.
   if (/\b(plot|front plot|partitioned|bare\s*land|water\s*front)\b/.test(lower)) return 'land';
