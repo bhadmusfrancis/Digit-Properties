@@ -8,6 +8,7 @@ import {
   buildLocationLandingPath,
 } from '@/lib/location-seo';
 import { getListingPathSegment } from '@/lib/listing-path';
+import { isListingIndexable } from '@/lib/seo/listing-indexability';
 
 export const revalidate = 3600;
 
@@ -36,11 +37,9 @@ async function buildLocationSitemapEntries(base: string, now: Date): Promise<Met
     });
   };
 
-  const states = new Set<string>();
   for (const row of rows) {
     const state = row._id.state;
     if (!state) continue;
-    states.add(state);
     push(buildLocationLandingPath(state), 0.85);
     push(buildLocationLandingPath(state, { listingType: 'sale' }), 0.82);
     push(buildLocationLandingPath(state, { listingType: 'rent' }), 0.82);
@@ -67,16 +66,13 @@ async function buildLocationSitemapEntries(base: string, now: Date): Promise<Met
     const state = row._id.state;
     const suburb = row._id.suburb?.trim();
     if (!state || !suburb) continue;
-    states.add(state);
     push(buildLocationLandingPath(state, { suburb }), 0.78);
     push(buildLocationLandingPath(state, { suburb, listingType: 'sale' }), 0.76);
     push(buildLocationLandingPath(state, { suburb, listingType: 'rent' }), 0.76);
   }
 
-  // Ensure featured markets appear even with zero listings yet
-  for (const state of ['Lagos', 'FCT', 'Rivers', 'Ogun']) {
-    if (!states.has(state)) push(buildLocationLandingPath(state), 0.85);
-  }
+  // Only advertise location pages that actually have active listings. Seeding
+  // empty markets here produces thin pages that Google flags as soft 404s.
 
   return entries;
 }
@@ -103,7 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     await dbConnect();
     const [listings, trends, locationRoutes, authorIds] = await Promise.all([
       Listing.find({ status: LISTING_STATUS.ACTIVE })
-        .select('_id slug updatedAt')
+        .select('_id slug updatedAt images videos description')
         .lean(),
       Trend.find({ status: TREND_STATUS.PUBLISHED })
         .select('slug updatedAt publishedAt')
@@ -112,19 +108,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       Listing.distinct('createdBy', { status: LISTING_STATUS.ACTIVE }),
     ]);
 
-    const listingRoutes: MetadataRoute.Sitemap = listings.map((row) => {
-      const updated = row.updatedAt ? new Date(row.updatedAt as Date) : now;
-      const segment = getListingPathSegment({
-        _id: String(row._id),
-        slug: (row as { slug?: string }).slug,
+    const listingRoutes: MetadataRoute.Sitemap = listings
+      // Only list listings we actually allow into the index; thin/placeholder ones are noindex.
+      .filter((row) =>
+        isListingIndexable({
+          images: (row as { images?: { url?: string }[] }).images,
+          videos: (row as { videos?: { url?: string; public_id?: string }[] }).videos,
+          description: (row as { description?: string }).description,
+        })
+      )
+      .map((row) => {
+        const updated = row.updatedAt ? new Date(row.updatedAt as Date) : now;
+        const segment = getListingPathSegment({
+          _id: String(row._id),
+          slug: (row as { slug?: string }).slug,
+        });
+        return {
+          url: `${base}/listings/${segment}`,
+          lastModified: updated,
+          changeFrequency: 'weekly' as const,
+          priority: 0.7,
+        };
       });
-      return {
-        url: `${base}/listings/${segment}`,
-        lastModified: updated,
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      };
-    });
 
     const trendRoutes: MetadataRoute.Sitemap = trends.map((row) => {
       const updated = row.updatedAt

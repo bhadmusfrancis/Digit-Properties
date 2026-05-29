@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { buildLocationLandingPath } from '@/lib/location-seo';
-import { LISTING_TYPE } from '@/lib/constants';
+import { LISTING_TYPE, SOCIAL_LINKS } from '@/lib/constants';
 
 export function Footer() {
   return (
@@ -14,6 +14,33 @@ export function Footer() {
             <p className="mt-4 text-sm">
               Nigeria premier real estate platform. Buy, sell, and rent properties with confidence.
             </p>
+            <div className="mt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Follow us</h3>
+              <div className="mt-3 flex items-center gap-3">
+                <a
+                  href={SOCIAL_LINKS.FACEBOOK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Follow Digit Properties on Facebook"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 text-gray-300 transition hover:bg-primary-600 hover:text-white"
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987H7.898v-2.89h2.54V9.797c0-2.507 1.492-3.892 3.777-3.892 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
+                  </svg>
+                </a>
+                <a
+                  href={SOCIAL_LINKS.TWITTER}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Follow Digit Properties on X"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 text-gray-300 transition hover:bg-primary-600 hover:text-white"
+                >
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z" />
+                  </svg>
+                </a>
+              </div>
+            </div>
           </div>
           <div>
             <h3 className="font-semibold text-white">Popular Locations</h3>

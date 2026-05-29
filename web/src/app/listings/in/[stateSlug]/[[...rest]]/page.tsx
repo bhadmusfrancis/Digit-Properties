@@ -13,7 +13,7 @@ import {
   resolveStateFromSlug,
   type LocationLandingParams,
 } from '@/lib/location-seo';
-import { resolvePlaceForLanding } from '@/lib/location-seo-server';
+import { countActiveListingsForLanding, resolvePlaceForLanding } from '@/lib/location-seo-server';
 
 type PageProps = {
   params: Promise<{ stateSlug: string; rest?: string[] }>;
@@ -58,14 +58,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const resolved = await resolveLanding(stateSlug, rest);
   if (!resolved) return {};
 
-  const { path, meta } = resolved;
+  const { landing, path, meta } = resolved;
   const canonical = `${siteOrigin()}${path}`;
+
+  // A landing page with no matching active listings is thin content; noindex it
+  // so Google does not flag it as a soft 404. It stays crawlable (follow) and the
+  // page still renders related links for users.
+  const listingCount = await countActiveListingsForLanding({
+    state: landing.state,
+    city: landing.city,
+    suburb: landing.suburb,
+    listingType: landing.listingType,
+  });
 
   return {
     title: meta.title,
     description: meta.description,
     alternates: { canonical },
-    robots: { index: true, follow: true },
+    robots: listingCount > 0 ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: {
       title: `${meta.title} | Digit Properties`,
       description: meta.description,

@@ -3,12 +3,26 @@
  *
  * - Splits chat.txt into messages (lines starting with [m/d/yy, time]).
  * - Extracts <attached: filename> for images (jpg/png/webp) and videos (mp4/webm/mov) from the media folder.
- * - One chat message = one listing (full message parsed with parseWhatsAppListingText only).
+ * - Property TYPE comes from the shared classifier (extractPropertyType in
+ *   whatsapp-listing-parser), so every classification rule applies automatically:
+ *     • Fuel/filling/petrol/gas stations are their own type — a mere landmark
+ *       mention ("behind NNPC station") does not count.
+ *     • Eatery / bakery / cafe / fast-food / food court → restaurant.
+ *     • Tank farm / fuel depot → industrial (not agricultural "farm").
+ *     • The earliest-named asset wins, so a primary asset followed by ancillary
+ *       space (e.g. "... with 5 office spaces") keeps the primary type.
+ *     • A "terrace duplex" stays a terrace; a "rooftop terrace" amenity does not
+ *       make a fully detached duplex read as a terrace.
+ * - One ordinary message = one listing. A multi-parcel brief (several distinct
+ *   properties numbered "(1)/(2)" or repeated "parcel of land") is split into one
+ *   listing per parcel via parseMultipleWhatsAppListings; since per-parcel media
+ *   can't be matched, the message media is attached to the first parcel only.
  * - Uploads media to Cloudinary (listings folder), assigns createdBy to the author user by email.
  *
- * Run from web/ (requires MONGODB_URI + Cloudinary env in .env.local):
- *   npx tsx scripts/import-chat-listings.ts
+ * Run from web/ (requires MONGODB_URI + Cloudinary env in .env.local). Always
+ * --dry-run first to preview how briefs split:
  *   npx tsx scripts/import-chat-listings.ts --dry-run
+ *   npx tsx scripts/import-chat-listings.ts
  *   npx tsx scripts/import-chat-listings.ts --chat "../WhatsApp Chat - WORLD MARKET/chat.txt"
  *   npx tsx scripts/import-chat-listings.ts --email "fabhainternation@gmail.com"
  */
@@ -168,6 +182,21 @@ function looksLikeListingFromClean(clean: string, parsed: { parsed: { price: num
   );
 }
 
+/**
+ * A single message that bundles several distinct parcels/properties — numbered
+ * "(1)/(2)" / "1)/2." items, or repeated "parcel of land". Such a brief must be
+ * split so each parcel becomes its own correctly-typed listing instead of one
+ * record typed from whichever asset is named first. The detector is deliberately
+ * strict (explicit enumeration markers only) to avoid fragmenting an ordinary
+ * listing whose feature/fee lines are merely separated by blank lines.
+ */
+function isMultiParcelBrief(clean: string): boolean {
+  const numbered = (clean.match(/(?:^|\n)\s*\*?\(?\s*\d{1,2}\s*[).]\s/g) || []).length;
+  if (numbered >= 2) return true;
+  const parcels = (clean.match(/\bparcel\s+of\s+land\b/gi) || []).length;
+  return parcels >= 2;
+}
+
 function tsTagFromDate(d: Date | null): string | null {
   if (!d) return null;
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -197,7 +226,10 @@ async function main() {
   const Listing = (await import('../src/models/Listing')).default;
   const User = (await import('../src/models/User')).default;
   const { listingSchema } = await import('../src/lib/validations');
-  const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
+  const { parseWhatsAppListingText, parseMultipleWhatsAppListings } = await import(
+    '../src/lib/whatsapp-listing-parser'
+  );
+  type ParsedListing = import('../src/lib/whatsapp-listing-parser').ParsedListing;
   const { ensureUniqueListingSlug } = await import('../src/lib/listing-slug');
   const { prepareListingFieldsForSeo } = await import('../src/lib/listing-seo-prep');
   const cloudinary = (await import('cloudinary')).v2;
@@ -312,6 +344,154 @@ async function main() {
     }
   }
 
+  // Create (or media-backfill) a single parsed listing. Returns the outcome so
+  // the caller can tally it. Shared by ordinary messages and each parcel of a
+  // multi-parcel brief; media is passed in (first parcel only for briefs).
+  async function upsertOne(
+    parsed: ParsedListing,
+    confidence: string,
+    missing: string[],
+    fpTag: string,
+    tsTag: string | null,
+    itemImages: { url: string; public_id: string }[],
+    itemVideos: { url: string; public_id: string }[]
+  ): Promise<'created' | 'updated' | 'duplicate' | 'skipped'> {
+    if (!parsed.agentName && msg.senderName) parsed.agentName = msg.senderName;
+    if (!parsed.agentPhone && msg.senderPhone) parsed.agentPhone = msg.senderPhone;
+    let description = parsed.description;
+    if (description.length < 20) description = `${description}\n\n(Imported from WhatsApp chat.)`.slice(0, 5000);
+    if (description.length > 5000) description = description.slice(0, 5000);
+
+    const tags = [
+      ...new Set([...(parsed.tags || []), 'whatsapp-chat-import', fpTag, ...(tsTag ? [tsTag] : [])]),
+    ];
+    const payload = {
+      title: parsed.title.slice(0, 200),
+      description,
+      listingType: parsed.listingType,
+      propertyType: parsed.propertyType,
+      propertyTypes: [parsed.propertyType],
+      price: parsed.price,
+      location: parsed.location,
+      bedrooms: parsed.bedrooms,
+      bathrooms: parsed.bathrooms,
+      toilets: parsed.toilets ?? 0,
+      area: parsed.area,
+      amenities: parsed.amenities?.length ? parsed.amenities : [],
+      tags,
+      agentName: parsed.agentName,
+      agentPhone: parsed.agentPhone,
+      agentEmail: parsed.agentEmail,
+      rentPeriod: parsed.rentPeriod,
+      status: 'active' as const,
+      images: itemImages,
+      videos: itemVideos,
+    };
+
+    if (payload.price <= 0) return 'skipped';
+    if (requireMedia && itemImages.length === 0 && itemVideos.length === 0) return 'skipped';
+
+    const validated = listingSchema.safeParse(payload);
+    if (!validated.success) return 'skipped';
+
+    if (dryRun) {
+      console.log(
+        `[dry-run] would create/update: "${validated.data.title.slice(0, 60)}..." | ${validated.data.propertyType} | ${confidence} | missing: ${missing.join(', ') || '—'} | media: ${itemImages.length} img, ${itemVideos.length} vid`
+      );
+      return 'created';
+    }
+
+    const existing = await Listing.findOne({ createdBy: author!._id, tags: fpTag })
+      .select('_id images videos')
+      .lean();
+
+    if (existing) {
+      const oldImages = Array.isArray((existing as { images?: unknown[] }).images) ? (existing as { images: { url?: string; public_id?: string }[] }).images : [];
+      const oldVideos = Array.isArray((existing as { videos?: unknown[] }).videos) ? (existing as { videos: { url?: string; public_id?: string }[] }).videos : [];
+      const oldHasMedia = oldImages.length > 0 || oldVideos.length > 0;
+      const newHasMedia = validated.data.images.length > 0 || (validated.data.videos?.length ?? 0) > 0;
+      if (newHasMedia && !oldHasMedia) {
+        const slug = await ensureUniqueListingSlug({
+          title: validated.data.title,
+          location: validated.data.location,
+          excludeId: String((existing as { _id: unknown })._id),
+        });
+        const seoUpdate = prepareListingFieldsForSeo({
+          title: validated.data.title,
+          description: validated.data.description,
+          price: validated.data.price,
+          listingType: validated.data.listingType,
+          rentPeriod: validated.data.rentPeriod,
+          propertyType: validated.data.propertyType,
+          propertyTypes: validated.data.propertyTypes,
+          location: validated.data.location,
+          images: validated.data.images,
+          videos: validated.data.videos,
+          tags: validated.data.tags,
+        });
+        await Listing.findByIdAndUpdate((existing as { _id: unknown })._id, {
+          $set: {
+            images: seoUpdate.images,
+            videos: seoUpdate.videos.length ? seoUpdate.videos : [],
+            amenities: validated.data.amenities ?? [],
+            tags: seoUpdate.tags,
+            title: validated.data.title,
+            description: seoUpdate.description,
+            price: validated.data.price,
+            listingType: validated.data.listingType,
+            propertyType: validated.data.propertyType,
+            propertyTypes: validated.data.propertyTypes,
+            location: validated.data.location,
+            bedrooms: validated.data.bedrooms,
+            bathrooms: validated.data.bathrooms,
+            toilets: validated.data.toilets ?? 0,
+            area: validated.data.area,
+            agentName: validated.data.agentName,
+            agentPhone: validated.data.agentPhone,
+            agentEmail: validated.data.agentEmail,
+            rentPeriod: validated.data.rentPeriod,
+            slug,
+          },
+        });
+        console.log(`  updated duplicate with media: "${validated.data.title.slice(0, 55)}..."`);
+        return 'updated';
+      }
+      return 'duplicate';
+    }
+
+    const seoCreate = prepareListingFieldsForSeo({
+      title: validated.data.title,
+      description: validated.data.description,
+      price: validated.data.price,
+      listingType: validated.data.listingType,
+      rentPeriod: validated.data.rentPeriod,
+      propertyType: validated.data.propertyType,
+      propertyTypes: validated.data.propertyTypes,
+      location: validated.data.location,
+      images: validated.data.images,
+      videos: validated.data.videos,
+      tags: validated.data.tags,
+    });
+    await Listing.create({
+      ...validated.data,
+      description: seoCreate.description,
+      images: seoCreate.images,
+      videos: seoCreate.videos.length ? seoCreate.videos : [],
+      tags: seoCreate.tags,
+      slug: await ensureUniqueListingSlug({
+        title: validated.data.title,
+        location: validated.data.location,
+      }),
+      createdBy: author!._id,
+      createdByType: 'user',
+      viewCount: 0,
+    });
+    console.log(
+      `  ok: "${validated.data.title.slice(0, 55)}..." (${validated.data.propertyType}, ${confidence}, ${missing.length ? `missing ${missing.length}` : 'complete'})`
+    );
+    return 'created';
+  }
+
   for (let mi = 0; mi < parsedMessages.length; mi++) {
     const msg = parsedMessages[mi];
     const clean = msg.clean;
@@ -375,156 +555,34 @@ async function main() {
       }
     }
 
-    const { parsed, confidence, missing } = one;
-    if (!parsed.agentName && msg.senderName) parsed.agentName = msg.senderName;
-    if (!parsed.agentPhone && msg.senderPhone) parsed.agentPhone = msg.senderPhone;
-    let description = parsed.description;
-    if (description.length < 20) description = `${description}\n\n(Imported from WhatsApp chat.)`.slice(0, 5000);
-    if (description.length > 5000) description = description.slice(0, 5000);
-
-    const fp = listingFingerprint(clean, msg.senderPhone);
-    const fpTag = `wa-fp:${fp}`;
+    // Ordinary message → one listing. Multi-parcel brief → one listing per
+    // parcel (media on the first parcel only, since it can't be matched per
+    // parcel). Each parcel gets a distinct fingerprint so re-runs dedupe.
+    const baseFp = listingFingerprint(clean, msg.senderPhone);
     const tsTag = tsTagFromDate(msg.sentAt);
-    const tags = [...new Set([...(parsed.tags || []), 'whatsapp-chat-import', fpTag, ...(tsTag ? [tsTag] : [])])];
-    const payload = {
-      title: parsed.title.slice(0, 200),
-      description,
-      listingType: parsed.listingType,
-      propertyType: parsed.propertyType,
-      price: parsed.price,
-      location: parsed.location,
-      bedrooms: parsed.bedrooms,
-      bathrooms: parsed.bathrooms,
-      toilets: parsed.toilets ?? 0,
-      area: parsed.area,
-      amenities: parsed.amenities?.length ? parsed.amenities : [],
-      tags,
-      agentName: parsed.agentName,
-      agentPhone: parsed.agentPhone,
-      agentEmail: parsed.agentEmail,
-      rentPeriod: parsed.rentPeriod,
-      status: 'active' as const,
-      images,
-      videos,
-    };
-
-    if (payload.price <= 0) {
-      skipped++;
-      continue;
+    let items = [one];
+    if (isMultiParcelBrief(clean)) {
+      const multi = parseMultipleWhatsAppListings(clean);
+      if (multi.length >= 2) items = multi;
     }
 
-    if (requireMedia && images.length === 0 && videos.length === 0) {
-      skipped++;
-      continue;
-    }
-
-    const validated = listingSchema.safeParse(payload);
-    if (!validated.success) {
-      skipped++;
-      continue;
-    }
-
-    if (dryRun) {
-      console.log(
-        `[dry-run] would create/update: "${validated.data.title.slice(0, 60)}..." | ${confidence} | missing: ${missing.join(', ') || '—'} | media: ${images.length} img, ${videos.length} vid`
+    for (let k = 0; k < items.length; k++) {
+      const it = items[k];
+      const fpTag = `wa-fp:${k === 0 ? baseFp : `${baseFp}-${k}`}`;
+      const status = await upsertOne(
+        it.parsed,
+        it.confidence,
+        it.missing,
+        fpTag,
+        tsTag,
+        k === 0 ? images : [],
+        k === 0 ? videos : []
       );
-      created++;
-      continue;
+      if (status === 'created') created++;
+      else if (status === 'updated') updated++;
+      else if (status === 'duplicate') duplicates++;
+      else skipped++;
     }
-
-    const existing = await Listing.findOne({
-      createdBy: author!._id,
-      tags: fpTag,
-    })
-      .select('_id images videos')
-      .lean();
-
-    if (existing) {
-      const oldImages = Array.isArray((existing as { images?: unknown[] }).images) ? (existing as { images: { url?: string; public_id?: string }[] }).images : [];
-      const oldVideos = Array.isArray((existing as { videos?: unknown[] }).videos) ? (existing as { videos: { url?: string; public_id?: string }[] }).videos : [];
-      const oldHasMedia = oldImages.length > 0 || oldVideos.length > 0;
-      const newHasMedia = validated.data.images.length > 0 || (validated.data.videos?.length ?? 0) > 0;
-      if (newHasMedia && !oldHasMedia) {
-        const slug = await ensureUniqueListingSlug({
-          title: validated.data.title,
-          location: validated.data.location,
-          excludeId: String((existing as { _id: unknown })._id),
-        });
-        const seoUpdate = prepareListingFieldsForSeo({
-          title: validated.data.title,
-          description: validated.data.description,
-          price: validated.data.price,
-          listingType: validated.data.listingType,
-          rentPeriod: validated.data.rentPeriod,
-          propertyType: validated.data.propertyType,
-          propertyTypes: validated.data.propertyTypes,
-          location: validated.data.location,
-          images: validated.data.images,
-          videos: validated.data.videos,
-          tags: validated.data.tags,
-        });
-        await Listing.findByIdAndUpdate((existing as { _id: unknown })._id, {
-          $set: {
-            images: seoUpdate.images,
-            videos: seoUpdate.videos.length ? seoUpdate.videos : [],
-            amenities: validated.data.amenities ?? [],
-            tags: seoUpdate.tags,
-            title: validated.data.title,
-            description: seoUpdate.description,
-            price: validated.data.price,
-            listingType: validated.data.listingType,
-            propertyType: validated.data.propertyType,
-            location: validated.data.location,
-            bedrooms: validated.data.bedrooms,
-            bathrooms: validated.data.bathrooms,
-            toilets: validated.data.toilets ?? 0,
-            area: validated.data.area,
-            agentName: validated.data.agentName,
-            agentPhone: validated.data.agentPhone,
-            agentEmail: validated.data.agentEmail,
-            rentPeriod: validated.data.rentPeriod,
-            slug,
-          },
-        });
-        updated++;
-        console.log(`  updated duplicate with media: "${validated.data.title.slice(0, 55)}..."`);
-      } else {
-        duplicates++;
-      }
-      continue;
-    }
-
-    const seoCreate = prepareListingFieldsForSeo({
-      title: validated.data.title,
-      description: validated.data.description,
-      price: validated.data.price,
-      listingType: validated.data.listingType,
-      rentPeriod: validated.data.rentPeriod,
-      propertyType: validated.data.propertyType,
-      propertyTypes: validated.data.propertyTypes,
-      location: validated.data.location,
-      images: validated.data.images,
-      videos: validated.data.videos,
-      tags: validated.data.tags,
-    });
-    await Listing.create({
-      ...validated.data,
-      description: seoCreate.description,
-      images: seoCreate.images,
-      videos: seoCreate.videos.length ? seoCreate.videos : [],
-      tags: seoCreate.tags,
-      slug: await ensureUniqueListingSlug({
-        title: validated.data.title,
-        location: validated.data.location,
-      }),
-      createdBy: author!._id,
-      createdByType: 'user',
-      viewCount: 0,
-    });
-    created++;
-    console.log(
-      `  ok: "${validated.data.title.slice(0, 55)}..." (${confidence}, ${missing.length ? `missing ${missing.length}` : 'complete'})`
-    );
   }
 
   if (!dryRun) {

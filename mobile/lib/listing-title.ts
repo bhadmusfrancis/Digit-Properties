@@ -27,8 +27,10 @@ export function generateListingTitle(params: {
   state?: string;
   suburb?: string;
   bedrooms?: number;
+  area?: number;
 }): string {
   const beds = params.bedrooms ?? 0;
+  const area = params.area ?? 0;
   const prop = (params.propertyType || 'property').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   const typeStr =
     params.listingType === 'rent'
@@ -37,8 +39,10 @@ export function generateListingTitle(params: {
         ? 'Joint Venture'
         : 'for Sale';
   const loc = formatTitleLocation(params) || 'Nigeria';
+  // Lead with area so otherwise-identical listings get distinct titles (avoids duplicate clustering).
+  const areaStr = area > 0 ? `${Math.round(area)} sqm ` : '';
   if (beds > 0) {
-    return `${beds} Bed ${prop} at ${loc}`;
+    return `${areaStr}${beds} Bed ${prop} at ${loc}`;
   }
-  return `${prop} ${typeStr} at ${loc}`;
+  return `${areaStr}${prop} ${typeStr} at ${loc}`;
 }
