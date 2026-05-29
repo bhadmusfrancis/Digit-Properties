@@ -35,8 +35,11 @@ import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verificati
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildBreadcrumbJsonLd, buildListingJsonLd, buildListingVideoJsonLdList } from '@/lib/seo/structured-data';
-import { buildListingVideoSeoItems, collectListingGalleryVideos } from '@/lib/seo/listing-videos';
-import { ListingVideoSeo } from '@/components/seo/ListingVideoSeo';
+import {
+  buildListingVideoSeoItems,
+  collectListingGalleryVideos,
+  normalizeVideoContentUrl,
+} from '@/lib/seo/listing-videos';
 import { plainTextExcerpt, isNextNavigationError } from '@/lib/utils';
 import { getListingPublicPath } from '@/lib/listing-path';
 import {
@@ -358,7 +361,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       .filter((img) => img.url && !isVideoUrl(img.url));
     const videos = rawVideoItems
       .map((v) => ({
-        url: typeof v?.url === 'string' ? v.url : '',
+        url: typeof v?.url === 'string' ? normalizeVideoContentUrl(v.url) : '',
         public_id: v?.public_id != null ? String(v.public_id) : undefined,
         type: 'video' as const,
       }))
@@ -366,11 +369,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     // Backward compatibility: older imports may have video URLs saved inside images.
     const videosFromImages = rawImageItems
       .map((img) => ({
-        url: typeof img?.url === 'string' ? img.url : '',
+        rawUrl: typeof img?.url === 'string' ? img.url : '',
         public_id: img?.public_id != null ? String(img.public_id) : undefined,
         type: 'video' as const,
       }))
-      .filter((v) => v.url && isVideoUrl(v.url));
+      .filter((v) => v.rawUrl && isVideoUrl(v.rawUrl))
+      .map((v) => ({
+        url: normalizeVideoContentUrl(v.rawUrl),
+        public_id: v.public_id,
+        type: v.type,
+      }));
 
     const hasGalleryStills = images.length > 0;
     const hasGalleryVideos = videos.length + videosFromImages.length > 0;
@@ -390,7 +398,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       // store frame thumbnails in images[] are handled above as stills via isCloudinaryVideoFrameThumbnailUrl.
       galleryMedia = [...videos, ...videosFromImages];
     } else {
-      galleryMedia = [...images, ...videos, ...videosFromImages];
+      // Video first so the player is the prominent, above-the-fold content rendered in the
+      // initial HTML (Google video indexing: the video must be the main content of a "watch
+      // page" and visible without user interaction).
+      galleryMedia = [...videos, ...videosFromImages, ...images];
     }
 
     const listingImages = getListingImagesForDisplay(
@@ -444,7 +455,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
     return (
     <>
-      <ListingVideoSeo videos={listingVideoSeoItems} />
       <JsonLd
         data={[
           buildBreadcrumbJsonLd([
