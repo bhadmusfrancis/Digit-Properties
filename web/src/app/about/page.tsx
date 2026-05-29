@@ -5,7 +5,7 @@ import { canonicalAlternates } from '@/lib/seo/canonical';
 export const metadata: Metadata = {
   title: 'About Us',
   description:
-    'Digit Properties offers real estate advertisement, property development, land titling, development documentation, and document verification including Survey and Certificate of Occupancy (C of O) in Nigeria.',
+    'Digit Properties offers real estate advertisement, property development, land titling, development documentation, property valuation, and document verification including Survey and Certificate of Occupancy (C of O) in Nigeria.',
   ...canonicalAlternates('/about'),
 };
 
@@ -16,14 +16,14 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">About Digit Properties</h1>
           <p className="mt-4 max-w-2xl text-xl text-primary-100">
-            Your trusted partner for real estate advertisement, property development, land titling, development documentation, and document verification across Nigeria.
+            Your trusted partner for real estate advertisement, property development, land titling, development documentation, property valuation, and document verification across Nigeria.
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <p className="text-lg text-gray-600">
-          Digit Properties is a Nigerian real estate platform that connects buyers, sellers, renters, and developers with the right properties and the right paperwork. We develop property ourselves and support others with land titling, development documentation, and verification of key documents such as Survey plans and Certificates of Occupancy (C of O).
+          Digit Properties is a Nigerian real estate platform that connects buyers, sellers, renters, and developers with the right properties and the right paperwork. We develop property ourselves and support others with land titling, development documentation, property valuation for different purposes, and verification of key documents such as Survey plans and Certificates of Occupancy (C of O).
         </p>
       </section>
 
@@ -70,6 +70,16 @@ export default function AboutPage() {
                 We offer document verification services so you can transact with more confidence. This includes verification of Survey plans and Certificate of Occupancy (C of O) and related title documents. Confirming that these documents are genuine and properly registered helps reduce risk in property transactions.
               </p>
             </div>
+
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 text-primary-600 font-bold">
+                5
+              </div>
+              <h3 className="mt-4 font-semibold text-gray-900">Property Valuation</h3>
+              <p className="mt-2 text-gray-600">
+                We provide property valuation for a range of purposes, including sales and purchases, mortgage and loan security, rental and lease assessments, insurance, taxation, probate, and investment decisions. Our valuations give you a clear, well-documented estimate of market value so you can negotiate, finance, and plan with confidence.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -80,6 +90,7 @@ export default function AboutPage() {
           <li>One platform for finding properties and managing the documentation side of real estate.</li>
           <li>Transparent listings with filters by location, price, and type so you find what you need quickly.</li>
           <li>We develop property and support land titling and development documentation tailored to Nigerian practice.</li>
+          <li>Property valuation for sales, mortgage, rental, insurance, taxation, probate, and investment purposes.</li>
           <li>Document verification services (Survey and C of O) to help you verify before you buy or invest.</li>
         </ul>
         <p className="mt-8 text-gray-600">
