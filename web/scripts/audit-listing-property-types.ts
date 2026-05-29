@@ -119,8 +119,10 @@ async function main() {
   for (const row of rows) {
     scanned++;
     const current = String(row.propertyType ?? '').toLowerCase();
-    // Description is the original post for imports; richest classification signal.
-    const source = `${row.title ?? ''}\n${row.description ?? ''}`;
+    // Classify from the description (original post for imports). The title is
+    // auto-derived from propertyType, so feeding it back in would re-confirm a
+    // wrong type (e.g. a title of "Office at ..." would re-pick office).
+    const source = String(row.description ?? '').trim() || String(row.title ?? '');
     const suggested = extractPropertyType(source);
 
     if (!suggested || suggested === current) continue;

@@ -65,6 +65,7 @@ export const PROPERTY_TYPES = [
   'mixed_use',
   'office',
   'penthouse',
+  'restaurant',
   'semi_detached',
   'shop',
   'studio',
