@@ -353,14 +353,17 @@ export function extractPropertyType(text: string): string {
   //    (e.g. an "eatery"/"bakery" is a restaurant). These compete by position
   //    too, so a hotel that merely mentions a restaurant amenity stays a hotel
   //    (hotel is named first), while an eatery post becomes a restaurant.
-  let best: { type: string; index: number; len: number } | null = null;
+  const match: { best: { type: string; index: number; len: number } | null } = {
+    best: null,
+  };
   const consider = (type: string, index: number, len: number) => {
+    const { best } = match;
     if (
       best === null ||
       index < best.index ||
       (index === best.index && len > best.len)
     ) {
-      best = { type, index, len };
+      match.best = { type, index, len };
     }
   };
   for (const p of PROPERTY_TYPES) {
@@ -385,7 +388,7 @@ export function extractPropertyType(text: string): string {
     const m = re.exec(lower);
     if (m) consider(type, m.index, m[0].length);
   }
-  if (best) return best!.type;
+  if (match.best) return match.best.type;
 
   // 3) Land fallbacks.
   if (/\b(plot|front plot|partitioned|bare\s*land|water\s*front)\b/.test(lower)) return 'land';
