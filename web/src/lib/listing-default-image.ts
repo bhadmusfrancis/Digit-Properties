@@ -25,6 +25,7 @@ const PROPERTY_TYPE_TO_FILENAME: Record<string, string> = {
   maisonette: 'duplex',
   hotel: 'commercial',
   industrial: 'factory',
+  filling_station: 'commercial',
   office: 'commercial',
   mixed_use: 'commercial',
   event_center: 'commercial',

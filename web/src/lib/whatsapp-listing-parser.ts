@@ -267,13 +267,93 @@ function extractListingType(text: string): {
   return { listingType, rest };
 }
 
-function extractPropertyType(text: string): string {
+/**
+ * True when the post is selling/leasing a fuel (filling/petrol/gas) station
+ * itself, as opposed to merely referencing one as a nearby landmark
+ * (e.g. "land behind NNPC filling station", "duplex, landmark Shafa station").
+ *
+ * A station mention only counts when it is backed by station attributes
+ * (pumps / nozzles / underground tanks / PMS-AGO-DPK / litres capacity /
+ * right-to-lift / DPR) or by an explicit "station for sale/lease" headline,
+ * and is not phrased as a directional landmark.
+ */
+function looksLikeFillingStation(lower: string): boolean {
+  const stationPhrase = /\b(?:filling|petrol|fuel|fueling|petroleum|gas)\s*[-]?\s*station\b/;
+  if (!stationPhrase.test(lower)) return false;
+
+  // Marine vessels (dump/cargo/oil-tank barges) are bundled into some
+  // multi-item briefs alongside stations — they are not filling stations.
+  if (/\bbarge\b/.test(lower)) return false;
+
+  // Physical fuel-station attributes — a landmark reference never has these.
+  const hasAttributes =
+    /\b\d+\s*(?:nos\.?|nozzles?|pumps?)\b/.test(lower) ||
+    /\b(?:under\s*ground|underground)\s*tanks?\b/.test(lower) ||
+    /\bdispensing\s*pumps?\b/.test(lower) ||
+    /\b(?:right\s*to\s*lift|lifting\s*right)\b/.test(lower) ||
+    /\bdpr\b/.test(lower) ||
+    /\b(?:pms|ago|dpk)\b/.test(lower) ||
+    /\d[\d,]*\s*(?:litres?|liters?)\b/.test(lower);
+  if (hasAttributes) return true;
+
+  // Explicit intent: the station itself is the asset for sale/lease.
+  const intent =
+    /(?:filling|petrol|fuel|gas)\s*[-]?\s*station\s+(?:is\s+)?(?:now\s+)?for\s+(?:sale|sales|lease|rent)\b/.test(
+      lower
+    ) ||
+    /\bfor\s+(?:sale|sales|lease|rent)\b[\s:!.\-]*(?:a\s+|an\s+|new\s+|brand\s+new\s+)?(?:filling|petrol|fuel|gas)\s*[-]?\s*station\b/.test(
+      lower
+    );
+  return intent;
+}
+
+/**
+ * Classify a property post into a PROPERTY_TYPES slug.
+ *
+ * Strategy (in priority order):
+ *  1. Fuel (filling / petrol / gas) stations — checked first because such a
+ *     post almost always also mentions ancillary space like "shops" or
+ *     "office spaces" that would otherwise win. Landmark-only mentions are
+ *     excluded (see looksLikeFillingStation).
+ *  2. The property-type keyword that appears EARLIEST in the post. The primary
+ *     asset being sold is normally named first, so this avoids classifying a
+ *     "Filling Station ... with ... 5 office Spaces" post as an office.
+ *     Ties are broken by the longer keyword (e.g. "warehouse" over "house").
+ *  3. Land fallbacks (plot / bare land / sqm-only).
+ *  4. Default to apartment.
+ */
+export function extractPropertyType(text: string): string {
   const lower = text.toLowerCase();
-  const ordered = [...PROPERTY_TYPES].sort((a, b) => b.length - a.length);
-  for (const p of ordered) {
-    const pattern = p.replace(/_/g, '[\\s_-]*');
-    if (new RegExp(`\\b${pattern}s?\\b`, 'i').test(lower)) return p;
+
+  // 1) Filling / petrol / gas / fuel station (only when it is the asset).
+  if (looksLikeFillingStation(lower)) {
+    return 'filling_station';
   }
+
+  // 1b) Petroleum tank farm / fuel depot — industrial storage infrastructure,
+  //     not an agricultural "farm" (which the keyword loop would pick up).
+  if (/\btank\s*farm\b/.test(lower) || /\b(?:fuel|petroleum|oil)\s*depot\b/.test(lower)) {
+    return 'industrial';
+  }
+
+  // 2) Earliest-mentioned property type wins; longer keyword breaks ties.
+  let best: { type: string; index: number; len: number } | null = null;
+  for (const p of PROPERTY_TYPES) {
+    const pattern = p.replace(/_/g, '[\\s_-]*');
+    const m = new RegExp(`\\b${pattern}s?\\b`, 'i').exec(lower);
+    if (!m) continue;
+    const index = m.index;
+    if (
+      best === null ||
+      index < best.index ||
+      (index === best.index && p.length > best.len)
+    ) {
+      best = { type: p, index, len: p.length };
+    }
+  }
+  if (best) return best.type;
+
+  // 3) Land fallbacks.
   if (/\b(plot|front plot|partitioned|bare\s*land|water\s*front)\b/.test(lower)) return 'land';
   if (
     /\b\d[\d,]*\s*sqm\b/.test(lower) &&
