@@ -23,7 +23,7 @@
  *   --all             Required to --apply when no --type filter is given
  *   --limit=<n>       Max sample rows to print per group (default 20)
  */
-import { existsSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import path from 'path';
 import dns from 'dns';
 import { config } from 'dotenv';
@@ -36,12 +36,16 @@ import { ensureUniqueListingSlug } from '../src/lib/listing-slug';
 function parseArgs() {
   const argv = process.argv.slice(2);
   const typeArg = argv.find((a) => a.startsWith('--type='));
+  const fromArg = argv.find((a) => a.startsWith('--from='));
   const limitArg = argv.find((a) => a.startsWith('--limit='));
+  const outArg = argv.find((a) => a.startsWith('--out='));
   return {
     apply: argv.includes('--apply'),
     all: argv.includes('--all'),
     type: typeArg ? typeArg.split('=')[1]?.trim() : undefined,
+    from: fromArg ? fromArg.split('=')[1]?.trim() : undefined,
     limit: limitArg ? Math.max(1, parseInt(limitArg.split('=')[1], 10) || 20) : 20,
+    out: outArg ? outArg.split('=')[1]?.trim() : undefined,
   };
 }
 
@@ -77,7 +81,7 @@ function snippet(text: string, n = 140): string {
 }
 
 async function main() {
-  const { apply, all, type, limit } = parseArgs();
+  const { apply, all, type, from, limit, out } = parseArgs();
 
   if (apply && !type && !all) {
     console.error(
@@ -115,6 +119,16 @@ async function main() {
     string,
     Array<{ id: string; slug?: string; title?: string; newTitle: string; snippet: string }>
   > = {};
+  const allRows: Array<{
+    id: string;
+    slug?: string;
+    current: string;
+    suggested: string;
+    title?: string;
+    newTitle: string;
+    listingType?: string;
+    snippet: string;
+  }> = [];
 
   for (const row of rows) {
     scanned++;
@@ -127,6 +141,7 @@ async function main() {
 
     if (!suggested || suggested === current) continue;
     if (type && suggested !== type) continue;
+    if (from && current !== from) continue;
 
     mismatches++;
     const groupKey = `${current || '(none)'} -> ${suggested}`;
@@ -142,6 +157,19 @@ async function main() {
         title: row.title,
         newTitle,
         snippet: snippet(row.description ?? row.title ?? ''),
+      });
+    }
+
+    if (out) {
+      allRows.push({
+        id: String(row._id),
+        slug: row.slug,
+        current: current || '(none)',
+        suggested,
+        title: row.title,
+        newTitle,
+        listingType: row.listingType,
+        snippet: snippet(row.description ?? row.title ?? '', 320),
       });
     }
 
@@ -174,6 +202,13 @@ async function main() {
     applied++;
   }
 
+  if (out) {
+    writeFileSync(
+      path.resolve(out),
+      JSON.stringify({ generatedAt: new Date().toISOString(), scanned, mismatches, groupCounts, rows: allRows }, null, 2)
+    );
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -182,6 +217,7 @@ async function main() {
         scanned,
         mismatches,
         applied: apply ? applied : undefined,
+        out: out ?? undefined,
         groupCounts,
         samplesByGroup,
       },
