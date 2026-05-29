@@ -55,6 +55,7 @@ export const PROPERTY_TYPES = [
   'event_center',
   'factory',
   'farm',
+  'filling_station',
   'hotel',
   'house',
   'industrial',
