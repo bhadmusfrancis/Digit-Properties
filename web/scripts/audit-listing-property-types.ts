@@ -18,10 +18,13 @@
  *   npx tsx scripts/audit-listing-property-types.ts --apply --all
  *
  * Flags:
- *   --apply           Persist changes (default is dry-run)
- *   --type=<slug>     Only consider listings the classifier now maps to <slug>
- *   --all             Required to --apply when no --type filter is given
- *   --limit=<n>       Max sample rows to print per group (default 20)
+ *   --apply             Persist changes (default is dry-run)
+ *   --type=<slug>       Only consider listings the classifier now maps to <slug>
+ *   --from=<slug>       Only consider listings whose CURRENT type is <slug>
+ *   --exclude=<ids>     Comma-separated listing _ids to skip (e.g. multi-parcel briefs)
+ *   --all               Required to --apply when no --type filter is given
+ *   --limit=<n>         Max sample rows to print per group (default 20)
+ *   --out=<file>        Write the full report (all rows) to a JSON file
  */
 import { existsSync, writeFileSync } from 'fs';
 import path from 'path';
@@ -39,6 +42,7 @@ function parseArgs() {
   const fromArg = argv.find((a) => a.startsWith('--from='));
   const limitArg = argv.find((a) => a.startsWith('--limit='));
   const outArg = argv.find((a) => a.startsWith('--out='));
+  const excludeArg = argv.find((a) => a.startsWith('--exclude='));
   return {
     apply: argv.includes('--apply'),
     all: argv.includes('--all'),
@@ -46,6 +50,12 @@ function parseArgs() {
     from: fromArg ? fromArg.split('=')[1]?.trim() : undefined,
     limit: limitArg ? Math.max(1, parseInt(limitArg.split('=')[1], 10) || 20) : 20,
     out: outArg ? outArg.split('=')[1]?.trim() : undefined,
+    exclude: new Set(
+      (excludeArg ? excludeArg.split('=')[1] ?? '' : '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    ),
   };
 }
 
@@ -81,7 +91,7 @@ function snippet(text: string, n = 140): string {
 }
 
 async function main() {
-  const { apply, all, type, from, limit, out } = parseArgs();
+  const { apply, all, type, from, limit, out, exclude } = parseArgs();
 
   if (apply && !type && !all) {
     console.error(
@@ -142,6 +152,7 @@ async function main() {
     if (!suggested || suggested === current) continue;
     if (type && suggested !== type) continue;
     if (from && current !== from) continue;
+    if (exclude.has(String(row._id))) continue;
 
     mismatches++;
     const groupKey = `${current || '(none)'} -> ${suggested}`;

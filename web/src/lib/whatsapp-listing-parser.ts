@@ -367,8 +367,18 @@ export function extractPropertyType(text: string): string {
     // filling_station is decided only by its guarded pre-check above; matching
     // it here as a bare keyword would bypass the landmark/barge/attribute rules.
     if (p === 'filling_station') continue;
-    const pattern = p.replace(/_/g, '[\\s_-]*');
-    const m = new RegExp(`\\b${pattern}s?\\b`, 'i').exec(lower);
+    let re: RegExp;
+    if (p === 'terrace') {
+      // A "terrace duplex" (duplexes built side by side) is genuinely a terrace,
+      // and earliest-mention already keeps it as one. But a "roof top terrace"
+      // is an amenity, not the asset type — so don't let it register as terrace
+      // (otherwise a fully detached duplex "with rooftop terrace" reads as terrace).
+      re = /\b(?<!roof\s{0,2}top\s)terraces?\b/i;
+    } else {
+      const pattern = p.replace(/_/g, '[\\s_-]*');
+      re = new RegExp(`\\b${pattern}s?\\b`, 'i');
+    }
+    const m = re.exec(lower);
     if (m) consider(p, m.index, p.length);
   }
   for (const { type, re } of TYPE_SYNONYM_PATTERNS) {
