@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import UserAd from '@/models/UserAd';
-import { AD_PLACEMENTS, USER_AD_STATUS } from '@/lib/constants';
+import { USER_AD_STATUS } from '@/lib/constants';
+import { isValidAdPlacement, normalizeAdPlacement, userAdPlacementsForSlot } from '@/lib/ad-placements';
 
 export async function GET(req: Request) {
   try {
@@ -12,14 +13,13 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const placement = searchParams.get('placement');
-    const from = searchParams.get('from'); // ISO date or datetime
-    const to = searchParams.get('to');
-
-    if (!placement || !AD_PLACEMENTS.includes(placement as (typeof AD_PLACEMENTS)[number])) {
+    const rawPlacement = searchParams.get('placement');
+    if (!rawPlacement || !isValidAdPlacement(rawPlacement)) {
       return NextResponse.json({ error: 'Invalid or missing placement' }, { status: 400 });
     }
-
+    const placement = normalizeAdPlacement(rawPlacement);
+    const from = searchParams.get('from'); // ISO date or datetime
+    const to = searchParams.get('to');
     const fromDate = from ? new Date(from) : new Date();
     const toDate = to ? new Date(to) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
     if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()) || fromDate >= toDate) {
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
     await dbConnect();
     const booked = await UserAd.find({
-      placement,
+      placement: userAdPlacementsForSlot(placement),
       status: USER_AD_STATUS.APPROVED,
       $or: [
         { startDate: { $lt: toDate }, endDate: { $gt: fromDate } },

@@ -46,7 +46,7 @@ type SlotResponse = {
   adsterraCode: string | null;
 };
 
-const PLACEMENTS = ['home_featured', 'search', 'listings', 'listing_detail'] as const;
+const PLACEMENTS = ['home_featured', 'search', 'listing_detail'] as const;
 type Placement = (typeof PLACEMENTS)[number];
 
 async function fetchSlot(placement: Placement): Promise<SlotResponse> {

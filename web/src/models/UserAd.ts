@@ -1,7 +1,8 @@
 import mongoose, { Schema, Model } from 'mongoose';
-import { AD_PLACEMENTS, USER_AD_STATUS } from '@/lib/constants';
+import { USER_AD_STATUS } from '@/lib/constants';
+import { USER_AD_PLACEMENTS, type AdPlacement } from '@/lib/ad-placements';
 
-export type AdPlacement = (typeof AD_PLACEMENTS)[number];
+export type { AdPlacement };
 export type UserAdStatus = (typeof USER_AD_STATUS)[keyof typeof USER_AD_STATUS];
 
 export interface IUserAd {
@@ -25,7 +26,7 @@ export interface IUserAd {
 const UserAdSchema = new Schema<IUserAd>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    placement: { type: String, enum: AD_PLACEMENTS, required: true },
+    placement: { type: String, enum: USER_AD_PLACEMENTS, required: true },
     media: {
       public_id: { type: String, required: true },
       url: { type: String, required: true },

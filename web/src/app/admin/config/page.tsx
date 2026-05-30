@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AD_PLACEMENTS } from '@/lib/constants';
+import { AD_PLACEMENT_LABELS } from '@/lib/ad-placements';
 
 type TierConfig = {
   tier: string;
@@ -29,12 +30,7 @@ type ListingModerationState = {
   editedListingsRequireApproval: boolean;
 };
 
-const PLACEMENT_LABELS: Record<string, string> = {
-  home_featured: 'Homepage featured',
-  search: 'Search page',
-  listings: 'Listings page',
-  listing_detail: 'Listing detail page',
-};
+const PLACEMENT_LABELS = AD_PLACEMENT_LABELS;
 
 export default function AdminConfigPage() {
   const [configs, setConfigs] = useState<TierConfig[]>([]);

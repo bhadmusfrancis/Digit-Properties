@@ -3,7 +3,13 @@ import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import UserAd from '@/models/UserAd';
 import AdConfig from '@/models/AdConfig';
-import { LISTING_STATUS, AD_PLACEMENTS, USER_AD_STATUS } from '@/lib/constants';
+import { LISTING_STATUS, USER_AD_STATUS } from '@/lib/constants';
+import {
+  isValidAdPlacement,
+  normalizeAdPlacement,
+  placementConfigValue,
+  userAdPlacementsForSlot,
+} from '@/lib/ad-placements';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
 
@@ -12,8 +18,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const placement = searchParams.get('placement') || 'home_featured';
-    if (!(AD_PLACEMENTS as readonly string[]).includes(placement)) {
+    const placement = normalizeAdPlacement(searchParams.get('placement') || 'home_featured');
+    if (!isValidAdPlacement(placement)) {
       return NextResponse.json({ error: 'Invalid placement' }, { status: 400 });
     }
 
@@ -47,7 +53,7 @@ export async function GET(req: Request) {
     }
 
     const activeAds = await UserAd.find({
-      placement,
+      placement: userAdPlacementsForSlot(placement),
       status: USER_AD_STATUS.APPROVED,
       startDate: { $lte: now },
       endDate: { $gte: now },
@@ -64,14 +70,14 @@ export async function GET(req: Request) {
 
     const config = await AdConfig.findOne().lean();
     const adsense = config?.adsense as Record<string, string> | undefined;
-    const adsenseCode = adsense?.[placement];
-    if (adsenseCode && typeof adsenseCode === 'string' && adsenseCode.trim()) {
+    const adsenseCode = placementConfigValue(adsense, placement);
+    if (adsenseCode) {
       pool.push({ type: 'adsense', code: adsenseCode });
     }
 
     const adsterra = config?.adsterra as Record<string, string> | undefined;
-    const adsterraCode = adsterra?.[placement];
-    if (adsterraCode && typeof adsterraCode === 'string' && adsterraCode.trim()) {
+    const adsterraCode = placementConfigValue(adsterra, placement);
+    if (adsterraCode) {
       pool.push({ type: 'adsterra', code: adsterraCode });
     }
 

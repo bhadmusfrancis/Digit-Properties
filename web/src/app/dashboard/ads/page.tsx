@@ -4,14 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AD_PLACEMENTS, AD_MEDIA_RECOMMENDED } from '@/lib/constants';
+import { AD_PLACEMENT_LABELS } from '@/lib/ad-placements';
 import { formatPrice } from '@/lib/utils';
 
-const PLACEMENT_LABELS: Record<string, string> = {
-  home_featured: 'Homepage (Featured slot)',
-  search: 'Search results page',
-  listings: 'Property listings page',
-  listing_detail: 'Individual listing page',
-};
+const PLACEMENT_LABELS = AD_PLACEMENT_LABELS;
 
 type AdItem = {
   _id: string;
@@ -163,7 +159,7 @@ export default function DashboardAdsPage() {
     <div className="min-w-0">
       <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Advertise</h1>
       <p className="mt-1 text-gray-600">
-        Run your ad on the homepage, search, or listings. Upload creative, choose placement and schedule, then pay. Ads require admin approval after payment.
+        Run your ad on the homepage, listing search, or listing detail pages. Upload creative, choose placement and schedule, then pay. Ads require admin approval after payment.
       </p>
 
       {success && (
