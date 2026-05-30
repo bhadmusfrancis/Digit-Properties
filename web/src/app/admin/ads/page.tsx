@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AD_PLACEMENTS } from '@/lib/constants';
-import { AD_PLACEMENT_LABELS } from '@/lib/ad-placements';
-
-const PLACEMENT_LABELS = AD_PLACEMENT_LABELS;
+import { getAdPlacementLabel } from '@/lib/ad-placements';
 
 type AdRow = {
   _id: string;
@@ -123,7 +121,7 @@ export default function AdminAdsPage() {
                       : ad.userId}
                   </td>
                   <td className="hidden px-4 py-3 text-sm sm:table-cell">
-                    {PLACEMENT_LABELS[ad.placement] ?? ad.placement}
+                    {getAdPlacementLabel(ad.placement)}
                   </td>
                   <td className="hidden sm:table-cell px-3 py-3 sm:px-4">
                     {ad.media?.type === 'image' ? (
