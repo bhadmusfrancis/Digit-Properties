@@ -10,6 +10,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
   home_featured: 'Homepage (Featured slot)',
   search: 'Search results page',
   listings: 'Property listings page',
+  listing_detail: 'Individual listing page',
 };
 
 type AdItem = {

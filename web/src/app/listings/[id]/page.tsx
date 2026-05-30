@@ -8,6 +8,7 @@ import { ListingSidebarTabs } from '@/components/listings/ListingSidebarTabs';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
+import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { ListingTrustCaveat } from '@/components/listings/ListingTrustCaveat';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
@@ -669,6 +670,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       </div>
+
+      <FeaturedSlot placement="listing_detail" hideWhenEmpty />
 
       {similarListings.length > 0 && (
         <SimilarListingsInfinite listingId={listingId} initialListings={similarListings} />

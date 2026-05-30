@@ -46,7 +46,7 @@ type SlotResponse = {
   adsterraCode: string | null;
 };
 
-const PLACEMENTS = ['home_featured', 'search', 'listings'] as const;
+const PLACEMENTS = ['home_featured', 'search', 'listings', 'listing_detail'] as const;
 type Placement = (typeof PLACEMENTS)[number];
 
 async function fetchSlot(placement: Placement): Promise<SlotResponse> {
@@ -56,9 +56,9 @@ async function fetchSlot(placement: Placement): Promise<SlotResponse> {
   return data as SlotResponse;
 }
 
-type FeaturedSlotProps = { placement?: Placement };
+type FeaturedSlotProps = { placement?: Placement; hideWhenEmpty?: boolean };
 
-export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps) {
+export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = false }: FeaturedSlotProps) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['ads', 'slot', placement],
     queryFn: () => fetchSlot(placement),
@@ -67,6 +67,7 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
   });
 
   if (isLoading) {
+    if (hideWhenEmpty) return null;
     return (
       <div className="mt-6">
         <div className="card w-full animate-pulse overflow-hidden md:flex">
@@ -87,6 +88,7 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
   }
 
   if (isError) {
+    if (hideWhenEmpty) return null;
     return (
       <div className="mt-6 rounded-xl border-2 border-dashed border-red-200 bg-red-50 py-12 text-center">
         <p className="text-red-600">Failed to load featured: {(error as Error)?.message}</p>
@@ -95,6 +97,7 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
   }
 
   if (!data?.type) {
+    if (hideWhenEmpty) return null;
     return (
       <div className="mt-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 py-16 text-center">
         <p className="text-gray-500">No featured content right now.</p>

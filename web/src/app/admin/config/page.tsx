@@ -33,6 +33,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
   home_featured: 'Homepage featured',
   search: 'Search page',
   listings: 'Listings page',
+  listing_detail: 'Listing detail page',
 };
 
 export default function AdminConfigPage() {
