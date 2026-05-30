@@ -27,7 +27,7 @@ export function shouldShowListingTrustCaveat(input: ListingTrustCaveatInput): bo
 }
 
 export const LISTING_TRUST_CAVEAT_TEXT =
-  'Please verify the accuracy and authenticity of this property before making payment or any commitment.';
+  'Please verify the accuracy, availability and authenticity of this property before making payment or any commitment.';
 
 /** Build caveat props from a listing card or detail document. */
 export function listingTrustCaveatFromListing(listing: {
