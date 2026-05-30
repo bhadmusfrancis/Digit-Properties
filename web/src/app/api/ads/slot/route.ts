@@ -23,6 +23,7 @@ export async function GET(req: Request) {
       | { type: 'listing'; listing: unknown }
       | { type: 'ad'; ad: unknown }
       | { type: 'adsense'; code: string }
+      | { type: 'adsterra'; code: string }
     > = [];
 
     if (placement === 'home_featured') {
@@ -68,18 +69,27 @@ export async function GET(req: Request) {
       pool.push({ type: 'adsense', code: adsenseCode });
     }
 
+    const adsterra = config?.adsterra as Record<string, string> | undefined;
+    const adsterraCode = adsterra?.[placement];
+    if (adsterraCode && typeof adsterraCode === 'string' && adsterraCode.trim()) {
+      pool.push({ type: 'adsterra', code: adsterraCode });
+    }
+
     if (pool.length === 0) {
-      return NextResponse.json({ type: null, listing: null, ad: null, adsenseCode: null });
+      return NextResponse.json({ type: null, listing: null, ad: null, adsenseCode: null, adsterraCode: null });
     }
 
     const chosen = pool[Math.floor(Math.random() * pool.length)];
     if (chosen.type === 'listing') {
-      return NextResponse.json({ type: 'listing', listing: chosen.listing, ad: null, adsenseCode: null });
+      return NextResponse.json({ type: 'listing', listing: chosen.listing, ad: null, adsenseCode: null, adsterraCode: null });
     }
     if (chosen.type === 'ad') {
-      return NextResponse.json({ type: 'ad', listing: null, ad: chosen.ad, adsenseCode: null });
+      return NextResponse.json({ type: 'ad', listing: null, ad: chosen.ad, adsenseCode: null, adsterraCode: null });
     }
-    return NextResponse.json({ type: 'adsense', listing: null, ad: null, adsenseCode: chosen.code });
+    if (chosen.type === 'adsterra') {
+      return NextResponse.json({ type: 'adsterra', listing: null, ad: null, adsenseCode: null, adsterraCode: chosen.code });
+    }
+    return NextResponse.json({ type: 'adsense', listing: null, ad: null, adsenseCode: chosen.code, adsterraCode: null });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to load slot' }, { status: 500 });

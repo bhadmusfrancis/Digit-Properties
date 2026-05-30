@@ -21,6 +21,7 @@ type PlacementPricing = { pricePerDay: number; pricePerHour: number; currency: s
 type AdConfigState = {
   placementPricing: Record<string, PlacementPricing>;
   adsense: Record<string, string>;
+  adsterra: Record<string, string>;
 };
 
 type ListingModerationState = {
@@ -78,9 +79,9 @@ export default function AdminConfigPage() {
         AD_PLACEMENTS.forEach((p) => {
           pricing[p] = d.placementPricing?.[p] ?? { pricePerDay: 5000, pricePerHour: 500, currency: 'NGN' };
         });
-        setAdConfig({ placementPricing: pricing, adsense: d.adsense || {} });
+        setAdConfig({ placementPricing: pricing, adsense: d.adsense || {}, adsterra: d.adsterra || {} });
       })
-      .catch(() => setAdConfig({ placementPricing: Object.fromEntries(AD_PLACEMENTS.map((p) => [p, { pricePerDay: 5000, pricePerHour: 500, currency: 'NGN' }])), adsense: {} }))
+      .catch(() => setAdConfig({ placementPricing: Object.fromEntries(AD_PLACEMENTS.map((p) => [p, { pricePerDay: 5000, pricePerHour: 500, currency: 'NGN' }])), adsense: {}, adsterra: {} }))
       .finally(() => setAdConfigLoading(false));
   }, []);
 
@@ -283,9 +284,9 @@ export default function AdminConfigPage() {
         ))}
       </div>
       <div className="mt-10 border-t border-gray-200 pt-10">
-        <h2 className="text-lg font-semibold text-gray-900">Ad placement pricing &amp; AdSense</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Ad placement pricing, AdSense &amp; Adsterra</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Price per day/hour for each placement. Paste AdSense code (HTML snippet) per slot to show ads when no user ad is selected.
+          Price per day/hour for each placement. Paste AdSense and/or Adsterra Native Banner code (HTML snippet) per slot to show ads when no user ad is selected. Use Adsterra as an optional alternative to AdSense.
         </p>
         {adConfigLoading ? (
           <p className="mt-4 text-gray-500">Loading ad config…</p>
@@ -341,6 +342,24 @@ export default function AdminConfigPage() {
                     placeholder="Paste AdSense ins + script block..."
                   />
                 </div>
+                <div className="mt-4">
+                  <label className="block text-xs font-medium text-gray-500">
+                    Adsterra Native Banner (HTML snippet, optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={adConfig.adsterra?.[p] ?? ''}
+                    onChange={(e) => setAdConfig((c) => ({
+                      ...c!,
+                      adsterra: { ...c!.adsterra, [p]: e.target.value },
+                    }))}
+                    className="input mt-1 w-full font-mono text-sm"
+                    placeholder="Paste Adsterra invoke.js script + container div..."
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    Paste both the <code>&lt;script&gt;</code> and the <code>&lt;div id=&quot;container-…&quot;&gt;</code>. Scripts are executed on render. If both AdSense and Adsterra are set for a slot, one is shown at random alongside any listings/user ads.
+                  </p>
+                </div>
               </div>
             ))}
             <button
@@ -353,7 +372,7 @@ export default function AdminConfigPage() {
                   body: JSON.stringify(adConfig),
                 })
                   .then((r) => r.ok && r.json())
-                  .then((d) => d && setAdConfig({ placementPricing: d.placementPricing || {}, adsense: d.adsense || {} }))
+                  .then((d) => d && setAdConfig({ placementPricing: d.placementPricing || {}, adsense: d.adsense || {}, adsterra: d.adsterra || {} }))
                   .finally(() => setAdConfigSaving(false));
               }}
               disabled={adConfigSaving}
