@@ -9,6 +9,7 @@ import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-defa
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
+import { HtmlAdEmbed } from '@/components/listings/HtmlAdEmbed';
 
 type ListingPayload = {
   _id: string;
@@ -38,10 +39,11 @@ type AdPayload = {
 };
 
 type SlotResponse = {
-  type: 'listing' | 'ad' | 'adsense' | null;
+  type: 'listing' | 'ad' | 'adsense' | 'adsterra' | null;
   listing: ListingPayload | null;
   ad: AdPayload | null;
   adsenseCode: string | null;
+  adsterraCode: string | null;
 };
 
 const PLACEMENTS = ['home_featured', 'search', 'listings'] as const;
@@ -246,6 +248,17 @@ export function FeaturedSlot({ placement = 'home_featured' }: FeaturedSlotProps)
         <div
           className="min-h-[120px] w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
           dangerouslySetInnerHTML={{ __html: data.adsenseCode }}
+        />
+      </div>
+    );
+  }
+
+  if (data.type === 'adsterra' && data.adsterraCode) {
+    return (
+      <div className="mt-6 flex justify-center">
+        <HtmlAdEmbed
+          html={data.adsterraCode}
+          className="min-h-[120px] w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
         />
       </div>
     );

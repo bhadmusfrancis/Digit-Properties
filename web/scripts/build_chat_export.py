@@ -8,8 +8,15 @@ Requires in the same folder:
 Cutoff for new messages: last timestamp in repo-root All_chats.txt (if present),
 else processes all messages from DEFAULT_CUTOFF onward.
 
+For a brand-NEW group whose history predates everything already in All_chats.txt,
+pass --all (process the whole export from DEFAULT_CUTOFF) or --since YYYY-MM-DD to
+override the All_chats.txt cutoff. Duplicates are still removed downstream (the
+importer dedupes each message against All_chats.txt and the DB fingerprints).
+
 Usage (from web/):
   python scripts/build_chat_export.py --dir "../WhatsApp Chat - NIGERIA MARKET"
+  python scripts/build_chat_export.py --dir "../WhatsApp Chat - MISGRAM NIG LTD" --all
+  python scripts/build_chat_export.py --dir "../WhatsApp Chat - X" --since 2026-05-01
 """
 from __future__ import annotations
 
@@ -58,6 +65,17 @@ def main() -> None:
         required=True,
         help="Export folder containing _chat.txt and contacts.txt",
     )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process the whole export from DEFAULT_CUTOFF (for a brand-new group), "
+        "ignoring the All_chats.txt cutoff.",
+    )
+    parser.add_argument(
+        "--since",
+        metavar="YYYY-MM-DD",
+        help="Override cutoff with this date instead of the All_chats.txt cutoff.",
+    )
     args = parser.parse_args()
 
     base = Path(args.dir).resolve()
@@ -72,7 +90,16 @@ def main() -> None:
         print(f"Missing {cpath} (contacts must be in the same folder as _chat.txt)", file=sys.stderr)
         sys.exit(1)
 
-    cutoff = cutoff_from_all_chats()
+    if args.since:
+        try:
+            cutoff = datetime.strptime(args.since, "%Y-%m-%d")
+        except ValueError:
+            print(f"Invalid --since date {args.since!r}; expected YYYY-MM-DD", file=sys.stderr)
+            sys.exit(1)
+    elif args.all:
+        cutoff = DEFAULT_CUTOFF
+    else:
+        cutoff = cutoff_from_all_chats()
     contacts = load_contacts(cpath)
     unmatched: dict[str, int] = {}
     buf: list[str] = []

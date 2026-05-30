@@ -15,6 +15,8 @@ export interface IAdConfig {
   placementPricing: Record<AdPlacementKey, PlacementPricing>;
   /** AdSense HTML/snippet per placement (optional). Key = placement id. */
   adsense: Record<AdPlacementKey, string>;
+  /** Adsterra Native Banner HTML/snippet per placement (optional). Key = placement id. */
+  adsterra: Record<AdPlacementKey, string>;
   updatedAt: Date;
 }
 
@@ -35,6 +37,7 @@ const AdConfigSchema = new Schema<IAdConfig>(
   {
     placementPricing: { type: Schema.Types.Mixed, default: defaultPlacementPricing },
     adsense: { type: Schema.Types.Mixed, default: () => ({}) },
+    adsterra: { type: Schema.Types.Mixed, default: () => ({}) },
   },
   { timestamps: true }
 );

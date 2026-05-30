@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       await AdConfig.create({});
       config = await AdConfig.findOne().lean();
     }
-    return NextResponse.json(config || { placementPricing: {}, adsense: {} });
+    return NextResponse.json(config || { placementPricing: {}, adsense: {}, adsterra: {} });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to load ad config' }, { status: 500 });
@@ -30,9 +30,10 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json();
-    const { placementPricing, adsense } = body as {
+    const { placementPricing, adsense, adsterra } = body as {
       placementPricing?: Record<string, { pricePerDay: number; pricePerHour: number; currency?: string }>;
       adsense?: Record<string, string>;
+      adsterra?: Record<string, string>;
     };
     await dbConnect();
     let config = await AdConfig.findOne();
@@ -52,6 +53,9 @@ export async function PUT(req: Request) {
     }
     if (adsense && typeof adsense === 'object') {
       config.adsense = adsense;
+    }
+    if (adsterra && typeof adsterra === 'object') {
+      config.adsterra = adsterra;
     }
     await config.save();
     return NextResponse.json(await AdConfig.findOne().lean());
