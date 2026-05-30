@@ -4,13 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AD_PLACEMENTS } from '@/lib/constants';
+import { AD_PLACEMENT_LABELS } from '@/lib/ad-placements';
 
-const PLACEMENT_LABELS: Record<string, string> = {
-  home_featured: 'Homepage',
-  search: 'Search page',
-  listings: 'Listings page',
-  listing_detail: 'Listing detail page',
-};
+const PLACEMENT_LABELS = AD_PLACEMENT_LABELS;
 
 type AdRow = {
   _id: string;

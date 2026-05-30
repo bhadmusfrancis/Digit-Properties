@@ -122,7 +122,7 @@ function ListingsContent({
         </p>
       )}
       <div className="mt-6">
-        <FeaturedSlot placement="listings" />
+        <FeaturedSlot placement="search" />
       </div>
       {isLoading ? (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

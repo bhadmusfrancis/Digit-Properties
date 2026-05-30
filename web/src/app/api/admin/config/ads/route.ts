@@ -3,6 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import AdConfig from '@/models/AdConfig';
 import { USER_ROLES, AD_PLACEMENTS } from '@/lib/constants';
+import { normalizeAdConfigForClient } from '@/lib/ad-placements';
 
 export async function GET(req: Request) {
   try {
@@ -16,7 +17,9 @@ export async function GET(req: Request) {
       await AdConfig.create({});
       config = await AdConfig.findOne().lean();
     }
-    return NextResponse.json(config || { placementPricing: {}, adsense: {}, adsterra: {} });
+    return NextResponse.json(
+      normalizeAdConfigForClient(config || { placementPricing: {}, adsense: {}, adsterra: {} })
+    );
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to load ad config' }, { status: 500 });
@@ -58,7 +61,8 @@ export async function PUT(req: Request) {
       config.adsterra = adsterra;
     }
     await config.save();
-    return NextResponse.json(await AdConfig.findOne().lean());
+    const saved = await AdConfig.findOne().lean();
+    return NextResponse.json(normalizeAdConfigForClient(saved || { placementPricing: {}, adsense: {}, adsterra: {} }));
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to save ad config' }, { status: 500 });

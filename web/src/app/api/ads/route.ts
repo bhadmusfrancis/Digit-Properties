@@ -3,7 +3,8 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import UserAd from '@/models/UserAd';
 import AdConfig from '@/models/AdConfig';
-import { AD_PLACEMENTS, USER_AD_STATUS } from '@/lib/constants';
+import { USER_AD_STATUS } from '@/lib/constants';
+import { isValidAdPlacement, normalizeAdPlacement, placementPricingValue } from '@/lib/ad-placements';
 import mongoose from 'mongoose';
 
 export async function GET(req: Request) {
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const placement = body.placement as string | undefined;
+    const rawPlacement = body.placement as string | undefined;
     const media = body.media as { public_id?: string; url?: string; type?: string } | undefined;
     const startDateStr = body.startDate as string | undefined;
     const endDateStr = body.endDate as string | undefined;
@@ -45,9 +46,10 @@ export async function POST(req: Request) {
     const targetUrl = body.targetUrl as string | undefined;
     const useHourlyPricing = body.useHourlyPricing as boolean | undefined;
 
-    if (!placement || !(AD_PLACEMENTS as readonly string[]).includes(placement)) {
+    if (!rawPlacement || !isValidAdPlacement(rawPlacement)) {
       return NextResponse.json({ error: 'Invalid placement' }, { status: 400 });
     }
+    const placement = normalizeAdPlacement(rawPlacement);
     if (!media?.url || !media?.public_id || !['image', 'video'].includes(media.type || '')) {
       return NextResponse.json({ error: 'Valid media (url, public_id, type) required' }, { status: 400 });
     }
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
 
     const config = await AdConfig.findOne().lean();
     const pricingMap = config?.placementPricing as Record<string, { pricePerDay: number; pricePerHour: number; currency?: string }> | undefined;
-    const pricing = pricingMap?.[placement];
+    const pricing = placementPricingValue(pricingMap, placement);
     if (!pricing) {
       return NextResponse.json({ error: 'Pricing not configured for this placement' }, { status: 400 });
     }
