@@ -9,6 +9,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
   home_featured: 'Homepage',
   search: 'Search page',
   listings: 'Listings page',
+  listing_detail: 'Listing detail page',
 };
 
 type AdRow = {
