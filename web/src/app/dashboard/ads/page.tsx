@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AD_PLACEMENTS, AD_MEDIA_RECOMMENDED } from '@/lib/constants';
-import { AD_PLACEMENT_LABELS } from '@/lib/ad-placements';
+import { AD_PLACEMENT_LABELS, getAdPlacementLabel } from '@/lib/ad-placements';
 import { formatPrice } from '@/lib/utils';
 
 const PLACEMENT_LABELS = AD_PLACEMENT_LABELS;
@@ -324,7 +324,7 @@ export default function DashboardAdsPage() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {ads.map((ad) => (
                   <tr key={ad._id}>
-                    <td className="px-3 py-3 text-sm text-gray-900 sm:px-4 break-words">{PLACEMENT_LABELS[ad.placement] ?? ad.placement}</td>
+                    <td className="px-3 py-3 text-sm text-gray-900 sm:px-4 break-words">{getAdPlacementLabel(ad.placement)}</td>
                     <td className="hidden px-4 py-3 text-sm text-gray-600 md:table-cell">
                       {new Date(ad.startDate).toLocaleString()} – {new Date(ad.endDate).toLocaleString()}
                     </td>

@@ -58,24 +58,34 @@ export function placementPricingValue<T>(
   return undefined;
 }
 
-export function normalizeAdConfigForClient<T extends {
+export function normalizeAdConfigForClient(config: {
   placementPricing?: Record<string, Pricing>;
   adsense?: Record<string, string>;
   adsterra?: Record<string, string>;
-}>(config: T): T {
-  const out = { ...config };
-  for (const key of ['placementPricing', 'adsense', 'adsterra'] as const) {
-    const record = { ...(out[key] ?? {}) } as Record<string, unknown>;
-    const search = record.search;
-    const legacy = record[AD_PLACEMENT_LEGACY_LISTINGS];
-    if (!search && legacy) record.search = legacy;
-    delete record[AD_PLACEMENT_LEGACY_LISTINGS];
-    out[key] = record as T[typeof key];
-  }
-  return out;
+  [key: string]: unknown;
+}) {
+  const mergeRecord = <R extends Record<string, unknown>>(record: R | undefined): R => {
+    const out: Record<string, unknown> = { ...(record ?? {}) };
+    if (!out.search && out[AD_PLACEMENT_LEGACY_LISTINGS]) {
+      out.search = out[AD_PLACEMENT_LEGACY_LISTINGS];
+    }
+    delete out[AD_PLACEMENT_LEGACY_LISTINGS];
+    return out as R;
+  };
+
+  return {
+    ...config,
+    placementPricing: mergeRecord(config.placementPricing),
+    adsense: mergeRecord(config.adsense),
+    adsterra: mergeRecord(config.adsterra),
+  };
 }
 
 /** UserAd schema enum: current placements plus legacy listings. */
 export const USER_AD_PLACEMENTS = [...AD_PLACEMENTS, AD_PLACEMENT_LEGACY_LISTINGS] as const;
 
 export type AdPlacement = (typeof USER_AD_PLACEMENTS)[number];
+
+export function getAdPlacementLabel(placement: string): string {
+  return AD_PLACEMENT_LABELS[placement as AdPlacement] ?? placement;
+}
