@@ -276,6 +276,12 @@ export const listingQuerySchema = z.object({
   bedrooms: z.string().max(10).optional(),
   tags: z.string().max(500).optional(),
   q: z.string().max(200).optional(),
+  sort: z
+    .enum(['relevance', 'closest', 'price_asc', 'price_desc', 'newest', 'popular', 'default'])
+    .optional(),
+  nearSuburb: z.string().max(100).optional(),
+  nearCity: z.string().max(100).optional(),
+  nearState: z.string().max(100).optional(),
   featured: z.enum(['0', '1']).optional(),
   highlighted: z.enum(['0', '1']).optional(),
   random: z.enum(['0', '1']).optional(),

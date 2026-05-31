@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { GlobalPropertySearch, GlobalPropertySearchFallback } from '@/components/layout/GlobalPropertySearch';
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -11,7 +12,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
-      <nav className="mx-auto flex min-h-[56px] max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-0 sm:h-16 lg:px-8">
+      <nav className="mx-auto flex min-h-[56px] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-0 sm:h-16 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white text-sm font-bold shadow-md">
             DP
@@ -19,7 +20,13 @@ export function Header() {
           <span className="text-lg font-bold text-gray-900 sm:text-xl">Digit Properties</span>
         </Link>
 
-        <div className="hidden md:flex md:items-center md:gap-2">
+        <div className="order-3 w-full min-w-0 sm:order-2 sm:max-w-md sm:flex-1 lg:max-w-xl">
+          <Suspense fallback={<GlobalPropertySearchFallback />}>
+            <GlobalPropertySearch />
+          </Suspense>
+        </div>
+
+        <div className="order-2 hidden md:flex md:items-center md:gap-2 sm:order-3">
           <Link href="/listings?listingType=sale" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Buy
           </Link>
@@ -114,7 +121,7 @@ export function Header() {
         </div>
 
         <button
-          className="md:hidden flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-700 hover:bg-primary-50 hover:border-primary-200 hover:text-primary-700 transition-colors touch-manipulation"
+          className="order-2 md:hidden flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-700 hover:bg-primary-50 hover:border-primary-200 hover:text-primary-700 transition-colors touch-manipulation sm:order-3"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
