@@ -17,7 +17,10 @@ export async function findListingByPublicParam(param: string): Promise<ListingLe
   }
 
   const bySlug = await Listing.findOne({ slug: trimmed }).lean();
-  return bySlug ? (bySlug as ListingLean) : null;
+  if (bySlug) return bySlug as ListingLean;
+
+  const byPreviousSlug = await Listing.findOne({ previousSlugs: trimmed }).lean();
+  return byPreviousSlug ? (byPreviousSlug as ListingLean) : null;
 }
 
 /** Ensure slug exists on the document (lazy backfill for legacy listings). */

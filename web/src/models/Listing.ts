@@ -46,6 +46,8 @@ export interface IListing {
   highlighted?: boolean;
   /** SEO-friendly URL slug (unique when set). */
   slug?: string;
+  /** Prior slugs that should 301 to the current slug (SEO / bookmark continuity). */
+  previousSlugs?: string[];
   /** Why automated moderation sent this listing to pending approval. */
   pendingApprovalReasons?: string[];
   viewCount: number;
@@ -112,6 +114,7 @@ const ListingSchema = new Schema<IListing>(
     featured: { type: Boolean, default: false },
     highlighted: { type: Boolean, default: false },
     slug: { type: String, trim: true, sparse: true, unique: true },
+    previousSlugs: [{ type: String, trim: true }],
     pendingApprovalReasons: [{ type: String }],
     viewCount: { type: Number, default: 0 },
     soldAt: Date,
@@ -128,6 +131,7 @@ ListingSchema.index({ boostExpiresAt: 1 });
 ListingSchema.index({ listingType: 1, status: 1 });
 ListingSchema.index({ featured: 1, status: 1 });
 ListingSchema.index({ highlighted: 1, status: 1 });
+ListingSchema.index({ previousSlugs: 1 });
 ListingSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 const Listing: Model<IListing> = mongoose.models.Listing ?? mongoose.model<IListing>('Listing', ListingSchema);

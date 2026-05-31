@@ -8,6 +8,7 @@ import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-defa
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
+import { SponsoredLabel } from '@/components/ui/SponsoredLabel';
 
 const CARD_WIDTH = 280;
 const GAP = 16;
@@ -87,11 +88,7 @@ export function ListingCarousel({ listings, autoScrollIntervalMs = 0 }: ListingC
                 Video
               </span>
             )}
-            {listing.isBoosted && (
-              <span className="absolute left-2 top-2 rounded bg-amber-500 px-2 py-0.5 text-xs font-medium text-white">
-                Sponsored
-              </span>
-            )}
+            {listing.isBoosted && <SponsoredLabel overlay className="absolute left-2 top-2" />}
             <span className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-xs font-medium text-gray-800">
               {formatListingTypeLabel(listing.listingType)}
               {listing.listingType === 'rent' && listing.rentPeriod && (

@@ -14,7 +14,7 @@ import { config } from 'dotenv';
 import mongoose from 'mongoose';
 import Listing from '../src/models/Listing';
 import { buildCanonicalListingTitle } from '../src/lib/listing-title';
-import { ensureUniqueListingSlug } from '../src/lib/listing-slug';
+import { ensureUniqueListingSlug, withSlugHistoryUpdate } from '../src/lib/listing-slug';
 import { resolveNigeriaPlaceFromText, type ResolvedNigeriaPlace } from '../src/lib/nigeria-place-resolve';
 import { stripHtml } from '../src/lib/utils';
 import { mongoUriForConnect } from './lib/mongo-uri';
@@ -169,22 +169,23 @@ async function main() {
 
       if (!apply) continue;
 
+      const prevSlug = String(row.slug ?? '').trim();
       const slug = await ensureUniqueListingSlug({
         title: newTitle,
         location: rowForTitle.location,
         excludeId: String(row._id),
       });
-      if (slug !== String(row.slug ?? '')) slugUpdates++;
+      if (slug !== prevSlug) slugUpdates++;
 
       const $set: Record<string, unknown> = {
         title: newTitle,
-        slug,
         'location.address': nextAddress,
         'location.city': hit.city,
         'location.state': hit.state,
       };
 
       const updateOp: Record<string, unknown> = { $set };
+      withSlugHistoryUpdate(updateOp, prevSlug, slug);
       if (hit.suburb) $set['location.suburb'] = hit.suburb;
       else if (suburbWas) updateOp.$unset = { 'location.suburb': '' };
 
@@ -207,14 +208,17 @@ async function main() {
 
     if (!apply) continue;
 
+    const prevSlug = String(row.slug ?? '').trim();
     const slug = await ensureUniqueListingSlug({
       title: afterTitle,
       location: row.location,
       excludeId: String(row._id),
     });
-    if (slug !== String(row.slug ?? '')) slugUpdates++;
+    if (slug !== prevSlug) slugUpdates++;
 
-    await Listing.updateOne({ _id: row._id }, { $set: { title: afterTitle, slug } });
+    const updateOp: Record<string, unknown> = { $set: { title: afterTitle } };
+    withSlugHistoryUpdate(updateOp, prevSlug, slug);
+    await Listing.updateOne({ _id: row._id }, updateOp);
   }
 
   console.log(
