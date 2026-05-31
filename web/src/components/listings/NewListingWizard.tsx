@@ -817,6 +817,7 @@ export function NewListingWizard() {
       body: JSON.stringify({
         title: data.title,
         description: data.description,
+        location: { city: data.city, state: data.state, suburb: data.suburb },
         imagePublicIds: images.map((i) => i.public_id),
         videoPublicIds: videos.map((v) => v.public_id),
         ...(draftId ? { excludeListingId: draftId } : {}),

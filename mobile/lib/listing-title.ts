@@ -3,6 +3,22 @@
  * e.g. "3 Bed Apartment at Ikotun, Lagos"
  */
 
+const NON_BEDROOM_PROPERTY_TYPES = new Set([
+  'land',
+  'commercial',
+  'industrial',
+  'factory',
+  'farm',
+  'filling_station',
+  'hotel',
+  'office',
+  'restaurant',
+  'shop',
+  'warehouse',
+  'event_center',
+  'mixed_use',
+]);
+
 function formatTitleLocation(loc: {
   address?: string;
   suburb?: string;
@@ -19,6 +35,14 @@ function formatTitleLocation(loc: {
   return addr;
 }
 
+function titlePropertyType(propertyType: string, bedrooms: number): string {
+  const slug = (propertyType || 'property').toLowerCase();
+  if (bedrooms > 0 && NON_BEDROOM_PROPERTY_TYPES.has(slug)) {
+    return 'House';
+  }
+  return (propertyType || 'property').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function generateListingTitle(params: {
   listingType: string;
   propertyType: string;
@@ -31,7 +55,8 @@ export function generateListingTitle(params: {
 }): string {
   const beds = params.bedrooms ?? 0;
   const area = params.area ?? 0;
-  const prop = (params.propertyType || 'property').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const prop = titlePropertyType(params.propertyType, beds);
+  const includeBeds = beds > 0;
   const typeStr =
     params.listingType === 'rent'
       ? 'for Rent'
@@ -41,7 +66,7 @@ export function generateListingTitle(params: {
   const loc = formatTitleLocation(params) || 'Nigeria';
   // Lead with area so otherwise-identical listings get distinct titles (avoids duplicate clustering).
   const areaStr = area > 0 ? `${Math.round(area)} sqm ` : '';
-  if (beds > 0) {
+  if (includeBeds) {
     return `${areaStr}${beds} Bed ${prop} at ${loc}`;
   }
   return `${areaStr}${prop} ${typeStr} at ${loc}`;

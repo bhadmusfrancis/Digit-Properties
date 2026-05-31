@@ -4,7 +4,7 @@ import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
-import { listingUpdateSchema } from '@/lib/validations';
+import { listingUpdateSchema, resolveListingPropertyTypes } from '@/lib/validations';
 import { LISTING_STATUS, USER_ROLES, SUBSCRIPTION_TIERS, POPULAR_AMENITIES } from '@/lib/constants';
 import {
   notifyAdminListingPublish,
@@ -243,6 +243,15 @@ export async function PATCH(
       listing.propertyType = patchPropertyType as typeof listing.propertyType;
       listing.propertyTypes = [patchPropertyType] as typeof listing.propertyTypes;
     }
+    const resolvedPt = resolveListingPropertyTypes({
+      propertyTypes: listing.propertyTypes,
+      propertyType: listing.propertyType,
+      bedrooms: listing.bedrooms,
+    });
+    if (resolvedPt) {
+      listing.propertyType = resolvedPt.propertyType as typeof listing.propertyType;
+      listing.propertyTypes = resolvedPt.propertyTypes as typeof listing.propertyTypes;
+    }
     const textForAmenityDetect = `${listing.title ?? ''}\n${listing.description ?? ''}\n${(incomingTags ?? listing.tags ?? []).join(', ')}`;
     const detectedAmenities = extractAmenitiesFromText(textForAmenityDetect, POPULAR_AMENITIES);
     if (incomingAmenities !== undefined || detectedAmenities.length > 0) {
@@ -378,6 +387,7 @@ export async function PATCH(
       {
         title: listing.title,
         description: listing.description,
+        location: listing.location,
         mediaPublicIds: mediaIds,
       },
       String(listing._id)

@@ -4,6 +4,7 @@
  * - Same wa-att:… attachment filename (whatsapp imports).
  * - Same Cloudinary public_ids on images+videos (only listings tagged whatsapp-chat-import),
  *   so accidental collisions on manually created listings are unlikely.
+ * - Same canonical title + city/state (+ suburb) with similar description (reposted property).
  *
  * Winner per cluster: highest media score (videos×100 + images), then earliest createdAt.
  *
@@ -14,6 +15,11 @@ import dns from 'node:dns';
 import { existsSync } from 'fs';
 import path from 'path';
 import { mongoUriForConnect } from './lib/mongo-uri';
+import {
+  listingTitleLocationDedupeKey,
+  normalizeDescriptionForDedupe,
+} from '../src/lib/listing-dedupe';
+import { listingSlugDedupeBase } from '../src/lib/listing-slug';
 
 /** Avoid querySrv ECONNREFUSED on some Windows DNS setups. */
 if (process.platform === 'win32') {
@@ -23,11 +29,52 @@ if (process.platform === 'win32') {
 type Row = {
   _id: { toString(): string };
   title?: string;
+  slug?: string;
+  description?: string;
+  location?: { city?: string; state?: string; suburb?: string };
   tags?: string[];
   images?: { url?: string; public_id?: string }[];
   videos?: { url?: string; public_id?: string }[];
   createdAt?: Date;
 };
+
+function tokenSet(s: string): Set<string> {
+  return new Set(
+    s
+      .split(/[^a-z0-9]+/i)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 3)
+  );
+}
+
+function tokenSimilarity(a: string, b: string): number {
+  const as = tokenSet(a);
+  const bs = tokenSet(b);
+  if (as.size === 0 || bs.size === 0) return 0;
+  let overlap = 0;
+  for (const t of as) if (bs.has(t)) overlap += 1;
+  const union = as.size + bs.size - overlap;
+  return union > 0 ? overlap / union : 0;
+}
+
+/** Same property repost: matching title/location and overlapping listing text. */
+function isTitleLocationDuplicate(a: Row, b: Row): boolean {
+  const keyA = listingTitleLocationDedupeKey(a.title ?? '', a.location);
+  const keyB = listingTitleLocationDedupeKey(b.title ?? '', b.location);
+  if (!keyA || !keyB || keyA !== keyB) return false;
+  if (slugIndicatesRepost(a, b)) return true;
+  const descA = normalizeDescriptionForDedupe(a.description ?? '');
+  const descB = normalizeDescriptionForDedupe(b.description ?? '');
+  if (descA.length < 20 || descB.length < 20) return true;
+  return tokenSimilarity(descA, descB) >= 0.5;
+}
+
+function slugIndicatesRepost(a: Row, b: Row): boolean {
+  const sa = (a.slug ?? '').trim().toLowerCase();
+  const sb = (b.slug ?? '').trim().toLowerCase();
+  if (!sa || !sb || sa === sb) return false;
+  return listingSlugDedupeBase(sa) === listingSlugDedupeBase(sb);
+}
 
 function mediaScore(row: Row): number {
   const imgs = Array.isArray(row.images) ? row.images.filter((i) => i?.url || i?.public_id) : [];
@@ -103,7 +150,7 @@ async function main() {
   await mongoose.connect(mongoUriForConnect(process.env.MONGODB_URI));
 
   const rows = (await Listing.find({})
-    .select('_id title tags images videos createdAt')
+    .select('_id title slug description location tags images videos createdAt')
     .lean()
     .exec()) as Row[];
 
@@ -115,6 +162,7 @@ async function main() {
   const fpBuckets = new Map<string, string[]>();
   const attBuckets = new Map<string, string[]>();
   const mediaBuckets = new Map<string, string[]>();
+  const titleLocBuckets = new Map<string, string[]>();
 
   for (const row of rows) {
     const id = String(row._id);
@@ -137,6 +185,12 @@ async function main() {
       list.push(id);
       mediaBuckets.set(mk, list);
     }
+    const tl = listingTitleLocationDedupeKey(row.title ?? '', row.location);
+    if (tl) {
+      const list = titleLocBuckets.get(tl) ?? [];
+      list.push(id);
+      titleLocBuckets.set(tl, list);
+    }
   }
 
   const uf = new UnionFind();
@@ -146,19 +200,41 @@ async function main() {
     for (const x of rest) uf.union(first, x);
   };
 
+  const touchTitleLocationBucket = (ids: string[]) => {
+    if (ids.length < 2) return;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = rowById.get(ids[i]);
+        const b = rowById.get(ids[j]);
+        if (a && b && isTitleLocationDuplicate(a, b)) uf.union(ids[i], ids[j]);
+      }
+    }
+  };
+
   for (const ids of fpBuckets.values()) touchBucket(ids);
   for (const ids of attBuckets.values()) touchBucket(ids);
   for (const ids of mediaBuckets.values()) touchBucket(ids);
+  for (const ids of titleLocBuckets.values()) touchTitleLocationBucket(ids);
 
   const idsInPlay = new Set<string>();
-  for (const ids of fpBuckets.values()) {
+  const markMulti = (ids: string[]) => {
     if (ids.length > 1) for (const id of ids) idsInPlay.add(id);
-  }
-  for (const ids of attBuckets.values()) {
-    if (ids.length > 1) for (const id of ids) idsInPlay.add(id);
-  }
-  for (const ids of mediaBuckets.values()) {
-    if (ids.length > 1) for (const id of ids) idsInPlay.add(id);
+  };
+  for (const ids of fpBuckets.values()) markMulti(ids);
+  for (const ids of attBuckets.values()) markMulti(ids);
+  for (const ids of mediaBuckets.values()) markMulti(ids);
+  for (const ids of titleLocBuckets.values()) {
+    if (ids.length < 2) continue;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = rowById.get(ids[i]);
+        const b = rowById.get(ids[j]);
+        if (a && b && isTitleLocationDuplicate(a, b)) {
+          idsInPlay.add(ids[i]);
+          idsInPlay.add(ids[j]);
+        }
+      }
+    }
   }
 
   const byRoot = new Map<string, string[]>();
