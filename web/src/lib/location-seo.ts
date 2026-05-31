@@ -151,7 +151,9 @@ export function buildLocationLandingMetadata(input: LocationLandingParams & { st
   else if (listingType === LISTING_TYPE.RENT) intent = 'for rent';
   else if (listingType === LISTING_TYPE.JOINT_VENTURE) intent = 'for joint venture';
 
-  const title = `Properties ${intent} in ${place}, ${stateLabel}`;
+  const placeLabel =
+    place.trim().toLowerCase() === stateLabel.trim().toLowerCase() ? stateLabel : `${place}, ${stateLabel}`;
+  const title = `Properties ${intent} in ${placeLabel}`;
 
   const description = `Browse apartments, houses, land, and commercial properties ${intent} in ${place}, ${state}. Verified listings on Digit Properties — Nigeria's real estate platform.`;
 

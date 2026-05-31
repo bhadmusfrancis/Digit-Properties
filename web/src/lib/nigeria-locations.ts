@@ -25,7 +25,7 @@ export const NIGERIA_STATE_CITY_SUBURBS: StateCitiesSuburbs = {
     Song: ['Song', 'Dirma'],
   },
   'Akwa Ibom': {
-    Uyo: ['Ewet', 'Housing Estate', 'Osongama', 'Nwaniba', 'Oron Road', 'Itam', 'Ntak Inyang', 'Four Towns'],
+    Uyo: ['Ewet', 'Osongama', 'Nwaniba', 'Oron Road', 'Itam', 'Ntak Inyang', 'Four Towns'],
     'Ikot Ekpene': ['Ikot Ekpene Town', 'Urua Inyang', 'Four Towns', 'Abak'],
     Eket: ['Eket Town', 'Ibeno', 'Esit Eket', 'Ntak Inyang'],
     Oron: ['Oron Town', 'Urue Offong', 'Oruko', 'Uya Oron'],
