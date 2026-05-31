@@ -329,10 +329,13 @@ function mentionsBedrooms(lower: string): boolean {
 }
 
 function earliestResidentialTypeInText(lower: string): string | null {
-  let best: { type: string; index: number; len: number } | null = null;
+  const match: { best: { type: string; index: number; len: number } | null } = {
+    best: null,
+  };
   const consider = (type: string, index: number, len: number) => {
+    const { best } = match;
     if (best === null || index < best.index || (index === best.index && len > best.len)) {
-      best = { type, index, len };
+      match.best = { type, index, len };
     }
   };
   for (const p of RESIDENTIAL_PROPERTY_TYPES) {
@@ -351,7 +354,7 @@ function earliestResidentialTypeInText(lower: string): string | null {
     const m = re.exec(lower);
     if (m) consider(type, m.index, m[0].length);
   }
-  return best?.type ?? null;
+  return match.best?.type ?? null;
 }
 
 function refinePropertyTypeForBedrooms(type: string, lower: string): string {
