@@ -255,7 +255,7 @@ async function main() {
         sourceMessages: allSource.length,
         candidatesWithMedia: candidates.length,
         toImport: newMessages.length,
-        toAppendToAllChats: toAppend.length,
+        eligibleForAllChatsIfAllSucceed: toAppend.length,
         skippedNoMedia,
         skippedNotListing,
         skippedAlreadyInDb,
@@ -314,6 +314,8 @@ async function main() {
   let skipped = 0;
   let duplicates = 0;
   let uploadErrors = 0;
+  /** Only messages that resulted in a new listing (or dry-run create) are archived. */
+  const messagesCreated: ParsedChatMessage[] = [];
 
   const logSkip = (reason: string, titleHint: string) => {
     skipped++;
@@ -448,6 +450,7 @@ async function main() {
         `[dry-run] create: "${validated.data.title.slice(0, 55)}..." | ${confidence} | ${images.length}i ${videos.length}v`
       );
       created++;
+      messagesCreated.push(msg);
       continue;
     }
 
@@ -485,6 +488,7 @@ async function main() {
       viewCount: 0,
     });
     created++;
+    messagesCreated.push(msg);
     console.log(`  ok: "${validated.data.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'})`);
   }
 
@@ -492,16 +496,18 @@ async function main() {
 
   console.log('\nImport summary:', { created, duplicates, skipped, uploadErrors });
 
-  console.log('\nStep 4: Append new messages to All_chats.txt…');
-  if (!dryRun && toAppend.length > 0) {
-    const appendBlock = toAppend.map((m) => m.full).join('\n');
+  console.log('\nStep 4: Append successfully imported messages to All_chats.txt…');
+  if (!dryRun && messagesCreated.length > 0) {
+    const appendBlock = messagesCreated.map((m) => m.full).join('\n');
     const current = existsSync(ALL_CHATS_PATH) ? readFileSync(ALL_CHATS_PATH, 'utf8') : '';
     appendFileSync(ALL_CHATS_PATH, (current.endsWith('\n') || !current ? '' : '\n') + appendBlock + '\n', 'utf8');
-    console.log(`Appended ${toAppend.length} messages to ${ALL_CHATS_PATH}`);
+    console.log(`Appended ${messagesCreated.length} messages to ${ALL_CHATS_PATH}`);
   } else if (dryRun) {
-    console.log(`[dry-run] Would append ${toAppend.length} messages to All_chats.txt`);
+    console.log(
+      `[dry-run] Would append ${messagesCreated.length} messages to All_chats.txt (${toAppend.length} eligible if all imports succeed)`
+    );
   } else {
-    console.log('All_chats.txt already contains these messages; nothing to append.');
+    console.log('No listings created; nothing appended to All_chats.txt.');
   }
 
   console.log('\nStep 5: Remove duplicate listings in database…');

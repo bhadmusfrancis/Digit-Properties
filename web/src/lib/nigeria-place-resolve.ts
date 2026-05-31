@@ -9,6 +9,19 @@ import { NIGERIA_STATE_CITY_SUBURBS } from '@/lib/nigeria-locations';
 
 const MIN_SINGLE_WORD_PHRASE = 4;
 
+/**
+ * Multi-word gazetteer labels that appear in generic listing copy nationwide
+ * (e.g. "federal housing estate", "owode housing estate") and must not drive place resolution.
+ */
+const GENERIC_MULTIWORD_PHRASES = new Set([
+  'housing estate',
+  'state housing',
+  'federal housing',
+  'new town',
+  'old town',
+  'town hall',
+]);
+
 /** Tokens that appear in many states and cause false positives as single-word matches. */
 const AMBIGUOUS_SINGLE_WORDS = new Set([
   'gra',
@@ -82,6 +95,7 @@ type IndexedPlace = {
 function shouldIndexPhrase(phraseLower: string): boolean {
   const words = phraseLower.split(/\s+/).filter(Boolean);
   if (words.length === 0) return false;
+  if (GENERIC_MULTIWORD_PHRASES.has(phraseLower)) return false;
   if (words.length === 1) {
     const w = words[0];
     if (w.length < MIN_SINGLE_WORD_PHRASE) return false;
@@ -120,11 +134,15 @@ function buildSortedIndex(): IndexedPlace[] {
 
   for (const [state, cities] of Object.entries(NIGERIA_STATE_CITY_SUBURBS)) {
     for (const [city, suburbs] of Object.entries(cities)) {
-      const add = (phrase: string) => {
+      const add = (phrase: string, opts?: { isCity?: boolean }) => {
         const trimmed = phrase.trim();
         if (!trimmed) return;
         const phraseLower = trimmed.toLowerCase();
-        if (!shouldIndexPhrase(phraseLower)) return;
+        if (!opts?.isCity && !shouldIndexPhrase(phraseLower)) return;
+        if (opts?.isCity) {
+          const w = phraseLower.split(/\s+/).filter(Boolean);
+          if (w.length === 1 && AMBIGUOUS_SINGLE_WORDS.has(w[0]!)) return;
+        }
         const key = `${phraseLower}\0${city}\0${state}`;
         if (seen.has(key)) return;
         seen.add(key);
@@ -137,7 +155,7 @@ function buildSortedIndex(): IndexedPlace[] {
         });
       };
 
-      add(city);
+      add(city, { isCity: true });
       for (const suburb of suburbs) add(suburb);
     }
   }
@@ -169,20 +187,38 @@ export function getNigeriaGazetteerPlaceCount(): number {
 }
 
 /**
- * Detect a Nigerian state / FCT from explicit mentions (longest state name first).
+ * Detect all Nigerian states / FCT explicitly mentioned in text (longest names first).
  */
-export function detectNigerianStateInText(textLower: string): string | undefined {
+export function detectAllNigerianStatesInText(textLower: string): string[] {
+  const found: string[] = [];
+  const seen = new Set<string>();
   const sortedStates = [...NIGERIAN_STATES].sort((a, b) => b.length - a.length);
   for (const s of sortedStates) {
     const esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s/g, '\\s*');
-    if (new RegExp(`\\b${esc}\\b`, 'i').test(textLower)) return s;
+    if (new RegExp(`\\b${esc}\\b`, 'i').test(textLower) && !seen.has(s)) {
+      seen.add(s);
+      found.push(s);
+    }
   }
 
-  if (/\b(fct|f\.c\.t\.?|federal\s+capital\s+territory)\b/i.test(textLower)) return 'FCT';
-  if (/\babuja\b/i.test(textLower)) return 'FCT';
-  if (/\b(port\s*har(?:c)?ourt|pitakwa)\b/i.test(textLower)) return 'Rivers';
+  if (/\b(fct|f\.c\.t\.?|federal\s+capital\s+territory)\b/i.test(textLower) && !seen.has('FCT')) {
+    found.push('FCT');
+  }
+  if (/\babuja\b/i.test(textLower) && !seen.has('FCT')) {
+    found.push('FCT');
+  }
+  if (/\b(port\s*har(?:c)?ourt|pitakwa)\b/i.test(textLower) && !seen.has('Rivers')) {
+    found.push('Rivers');
+  }
 
-  return undefined;
+  return found;
+}
+
+/**
+ * Detect a Nigerian state / FCT from explicit mentions (longest state name first).
+ */
+export function detectNigerianStateInText(textLower: string): string | undefined {
+  return detectAllNigerianStatesInText(textLower)[0];
 }
 
 function pickDisambiguated(
@@ -231,10 +267,13 @@ export function resolveNigeriaPlaceFromText(
   if (!textLower) return null;
   const withTyposFixed = applyTypoCorrections(textLower);
 
+  const mentionedStates = [
+    ...detectAllNigerianStatesInText(textLower),
+    ...detectAllNigerianStatesInText(withTyposFixed),
+  ].filter((s, i, arr) => arr.indexOf(s) === i);
+
   const hinted =
-    opts?.preferredState ||
-    detectNigerianStateInText(textLower) ||
-    detectNigerianStateInText(withTyposFixed);
+    opts?.preferredState ?? (mentionedStates.length === 1 ? mentionedStates[0] : undefined);
 
   const { rows, byPhrase } = getIndex();
 
@@ -242,7 +281,19 @@ export function resolveNigeriaPlaceFromText(
     if (!phraseInTextBoundary(withTyposFixed, row.phraseLower)) continue;
 
     const cands = byPhrase.get(row.phraseLower) ?? [row];
-    const chosen = pickDisambiguated(cands, withTyposFixed, hinted);
+    let pool = cands;
+
+    if (mentionedStates.length > 0) {
+      const inMentioned = cands.filter((c) => mentionedStates.includes(c.state));
+      if (inMentioned.length > 0) pool = inMentioned;
+      else continue;
+    } else if (hinted) {
+      const inHinted = cands.filter((c) => c.state === hinted);
+      if (inHinted.length === 0) continue;
+      pool = inHinted;
+    }
+
+    const chosen = pickDisambiguated(pool, withTyposFixed, hinted);
 
     const suburb =
       chosen.phraseLower === chosen.city.toLowerCase()

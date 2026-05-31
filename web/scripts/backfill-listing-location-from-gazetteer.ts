@@ -64,7 +64,6 @@ function titleInputFromRow(row: ListingRow) {
 function locationBlob(row: ListingRow): string {
   const loc = row.location ?? {};
   const parts = [
-    row.title,
     typeof row.description === 'string' ? stripHtml(row.description) : '',
     typeof loc.address === 'string' ? loc.address : '',
   ];
