@@ -7,7 +7,10 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import type { Listing as ListingGridItem } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
+import { ListingResultsSortBar } from '@/components/listings/ListingResultsSortBar';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
+import { isListingSearchSortKey } from '@/lib/listing-search-sort';
+import { useUserNearLocation } from '@/lib/use-user-near-location';
 
 type ListingsApiPage = {
   listings?: ListingGridItem[];
@@ -48,19 +51,31 @@ function ListingsContent({
   const query = usePresetOnly
     ? buildBaseQuery(new URLSearchParams(), presetFilters)
     : buildBaseQuery(searchParams);
+  const sortParam = searchParams.get('sort');
+  const sortClosest = isListingSearchSortKey(sortParam) && sortParam === 'closest';
+  const { location: nearLocation, requestLocation } = useUserNearLocation({ enabled: sortClosest });
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (sortClosest) requestLocation();
+  }, [sortClosest, requestLocation]);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<
     ListingsApiPage,
     Error,
     InfiniteData<ListingsApiPage, number>,
-    [string, string],
+    [string, string, string],
     number
   >({
-    queryKey: ['listings', query],
+    queryKey: ['listings', query, sortClosest ? JSON.stringify(nearLocation ?? {}) : ''],
     queryFn: async ({ pageParam }) => {
       const q = new URLSearchParams(query);
       if (pageParam > 1) q.set('page', String(pageParam));
+      if (sortClosest && nearLocation) {
+        if (nearLocation.suburb) q.set('nearSuburb', nearLocation.suburb);
+        if (nearLocation.city) q.set('nearCity', nearLocation.city);
+        if (nearLocation.state) q.set('nearState', nearLocation.state);
+      }
       const res = await fetch(`/api/listings?${q.toString()}`);
       return (await res.json()) as ListingsApiPage;
     },
@@ -112,6 +127,11 @@ function ListingsContent({
         </div>
       )}
       {!usePresetOnly && <ListingFilters />}
+      {!usePresetOnly && (
+        <Suspense fallback={null}>
+          <ListingResultsSortBar className="mt-4" />
+        </Suspense>
+      )}
       {usePresetOnly && (
         <p className="mt-4 text-sm text-gray-500">
           <Link href="/listings" className="text-primary-600 hover:underline">

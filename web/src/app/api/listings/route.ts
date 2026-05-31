@@ -17,6 +17,12 @@ import { findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { prepareListingFieldsForSeo } from '@/lib/listing-seo-prep';
+import {
+  buildListingSortStage,
+  buildLocationScoreFields,
+  hasNearLocation,
+  LISTING_HAS_MEDIA_FIELD,
+} from '@/lib/listing-proximity-sort';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
@@ -42,6 +48,11 @@ export async function GET(req: Request) {
     const tagsRaw = parsed.success ? parsed.data.tags : searchParams.get('tags');
     const tags = normalizeList(tagsRaw?.split(',')).slice(0, 20);
     const q = (parsed.success ? parsed.data.q : searchParams.get('q'))?.trim()?.slice(0, 200);
+    const sort = parsed.success ? parsed.data.sort : searchParams.get('sort')?.slice(0, 20);
+    const nearSuburb = (parsed.success ? parsed.data.nearSuburb : searchParams.get('nearSuburb'))?.trim()?.slice(0, 100);
+    const nearCity = (parsed.success ? parsed.data.nearCity : searchParams.get('nearCity'))?.trim()?.slice(0, 100);
+    const nearState = (parsed.success ? parsed.data.nearState : searchParams.get('nearState'))?.trim()?.slice(0, 100);
+    const nearLocation = { suburb: nearSuburb, city: nearCity, state: nearState };
     const featured = parsed.success ? parsed.data.featured === '1' : searchParams.get('featured') === '1';
     const highlighted = parsed.success ? parsed.data.highlighted === '1' : searchParams.get('highlighted') === '1';
     const random = parsed.success ? parsed.data.random === '1' : searchParams.get('random') === '1';
@@ -74,7 +85,10 @@ export async function GET(req: Request) {
     if (bedrooms) filter.bedrooms = { $gte: parseInt(bedrooms, 10) };
     if (tags?.length) filter.tags = { $in: tags };
 
-    if (q && q.trim()) {
+    const useTextRelevance = Boolean(q && sort === 'relevance');
+    if (useTextRelevance) {
+      filter.$text = { $search: q };
+    } else if (q && q.trim()) {
       filter.$or = [
         { title: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
@@ -115,63 +129,52 @@ export async function GET(req: Request) {
       listings = prioritizeMedia(shuffled).slice(0, limit);
       total = all.length;
     } else {
-      const [listingsRes, totalRes] = await Promise.all([
-        Listing.aggregate([
-          { $match: filter } as PipelineStage,
-          {
-            $addFields: {
-              _hasMedia: {
-                $cond: {
-                  if: {
-                    $or: [
-                      {
-                        $and: [
-                          { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
-                          { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
-                        ],
-                      },
-                      {
-                        $and: [
-                          { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
-                          { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
-                        ],
-                      },
-                    ],
-                  },
-                  then: 1,
-                  else: 0,
+      const addFields: Record<string, unknown> = { ...LISTING_HAS_MEDIA_FIELD };
+      if (useTextRelevance) {
+        addFields.score = { $meta: 'textScore' };
+      }
+      if (sort === 'closest' && hasNearLocation(nearLocation)) {
+        Object.assign(addFields, buildLocationScoreFields(nearLocation));
+      }
+
+      const pipeline: PipelineStage[] = [
+        { $match: filter } as PipelineStage,
+        { $addFields: addFields } as PipelineStage,
+        buildListingSortStage(sort, {
+          hasQuery: Boolean(q),
+          hasNear: hasNearLocation(nearLocation),
+          useTextScore: useTextRelevance,
+        }),
+        { $skip: skip } as PipelineStage,
+        { $limit: limit } as PipelineStage,
+        {
+          $lookup: {
+            from: User.collection.name,
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: '_createdByArr',
+            pipeline: [
+              {
+                $project: {
+                  firstName: 1,
+                  name: 1,
+                  image: 1,
+                  role: 1,
+                  verifiedAt: 1,
+                  phoneVerifiedAt: 1,
+                  identityVerifiedAt: 1,
+                  livenessVerifiedAt: 1,
                 },
               },
-            },
-          } as PipelineStage,
-          { $sort: { _hasMedia: -1, boostExpiresAt: -1, createdAt: -1 } } as PipelineStage,
-          { $skip: skip } as PipelineStage,
-          { $limit: limit } as PipelineStage,
-          {
-            $lookup: {
-              from: User.collection.name,
-              localField: 'createdBy',
-              foreignField: '_id',
-              as: '_createdByArr',
-              pipeline: [
-                {
-                  $project: {
-                    firstName: 1,
-                    name: 1,
-                    image: 1,
-                    role: 1,
-                    verifiedAt: 1,
-                    phoneVerifiedAt: 1,
-                    identityVerifiedAt: 1,
-                    livenessVerifiedAt: 1,
-                  },
-                },
-              ],
-            },
-          } as PipelineStage,
-          { $addFields: { createdBy: { $arrayElemAt: ['$_createdByArr', 0] } } } as PipelineStage,
-          { $project: { _createdByArr: 0, _hasMedia: 0 } } as PipelineStage,
-        ]).allowDiskUse(true),
+            ],
+          },
+        } as PipelineStage,
+        { $addFields: { createdBy: { $arrayElemAt: ['$_createdByArr', 0] } } } as PipelineStage,
+        { $project: { _createdByArr: 0, _hasMedia: 0, _locScore: 0, score: 0 } } as PipelineStage,
+      ];
+
+      const [listingsRes, totalRes] = await Promise.all([
+        Listing.aggregate(pipeline).allowDiskUse(true),
         Listing.countDocuments(filter),
       ]);
       listings = listingsRes as ListingRow[];

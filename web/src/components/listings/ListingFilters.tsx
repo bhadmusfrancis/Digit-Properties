@@ -28,6 +28,8 @@ export function ListingFilters() {
     if (maxPrice) params.set('maxPrice', maxPrice);
     if (rentPeriod) params.set('rentPeriod', rentPeriod);
     if (q) params.set('q', q);
+    const existingSort = searchParams.get('sort');
+    if (existingSort) params.set('sort', existingSort);
     router.push(`/listings?${params.toString()}`);
   }
 
