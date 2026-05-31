@@ -9,6 +9,7 @@ import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { toFirstName } from '@/lib/display-name';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
+import { SponsoredLabel } from '@/components/ui/SponsoredLabel';
 
 export interface Listing {
   _id: string;
@@ -56,11 +57,7 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
                   Video
                 </span>
               )}
-              {listing.isBoosted && (
-                <span className="absolute left-2 top-2 rounded bg-amber-500 px-2 py-0.5 text-xs font-medium text-white">
-                  Sponsored
-                </span>
-              )}
+              {listing.isBoosted && <SponsoredLabel overlay className="absolute left-2 top-2" />}
               <ListingMarketStatusSticker
                 soldAt={listing.soldAt}
                 rentedAt={listing.rentedAt}

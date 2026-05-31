@@ -10,6 +10,7 @@ import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { HtmlAdEmbed } from '@/components/listings/HtmlAdEmbed';
+import { SponsoredLabel } from '@/components/ui/SponsoredLabel';
 
 type ListingPayload = {
   _id: string;
@@ -236,9 +237,7 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
                 sizes="(max-width: 768px) 100vw, 512px"
               />
             )}
-            <span className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
-              Sponsored
-            </span>
+            <SponsoredLabel overlay className="absolute left-2 top-2" />
           </div>
         </Link>
       </div>
@@ -248,10 +247,13 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
   if (data.type === 'adsense' && data.adsenseCode) {
     return (
       <div className="mt-6 flex justify-center">
-        <div
-          className="min-h-[120px] w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
-          dangerouslySetInnerHTML={{ __html: data.adsenseCode }}
-        />
+        <div className="relative w-full max-w-lg">
+          <SponsoredLabel className="absolute right-3 top-2 z-10" />
+          <div
+            className="min-h-[120px] w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
+            dangerouslySetInnerHTML={{ __html: data.adsenseCode }}
+          />
+        </div>
       </div>
     );
   }
@@ -259,10 +261,13 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
   if (data.type === 'adsterra' && data.adsterraCode) {
     return (
       <div className="mt-6 flex justify-center">
-        <HtmlAdEmbed
-          html={data.adsterraCode}
-          className="min-h-[120px] w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
-        />
+        <div className="relative w-full max-w-lg">
+          <SponsoredLabel className="absolute right-3 top-2 z-10" />
+          <HtmlAdEmbed
+            html={data.adsterraCode}
+            className="min-h-[120px] w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
+          />
+        </div>
       </div>
     );
   }

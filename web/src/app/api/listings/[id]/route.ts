@@ -393,13 +393,17 @@ export async function PATCH(
       parsed.data.title !== undefined ||
       parsed.data.location !== undefined;
     if (titleOrLocationChanged) {
-      listing.slug = await ensureUniqueListingSlug(
-        {
-          title: listing.title,
-          location: listing.location,
-          excludeId: String(listing._id),
-        }
-      );
+      const previousSlug = typeof listing.slug === 'string' ? listing.slug.trim() : '';
+      const newSlug = await ensureUniqueListingSlug({
+        title: listing.title,
+        location: listing.location,
+        excludeId: String(listing._id),
+      });
+      if (previousSlug && previousSlug !== newSlug) {
+        const history = Array.isArray(listing.previousSlugs) ? listing.previousSlugs : [];
+        listing.previousSlugs = [...new Set([...history, previousSlug])];
+      }
+      listing.slug = newSlug;
     }
 
     await listing.save();
