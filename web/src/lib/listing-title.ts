@@ -3,6 +3,11 @@
  * Uses "at" for location, e.g. "3 Bed Apartment at Ikotun, Lagos".
  */
 import { formatListingLocationDisplay } from '@/lib/listing-location';
+import {
+  isNonBedroomPropertyType,
+  reorderPropertyTypesForBedrooms,
+} from '@/lib/constants';
+
 export interface TitleInput {
   listingType: string;
   propertyType: string;
@@ -20,12 +25,6 @@ export interface TitleInput {
   description?: string;
 }
 
-const EXCITING_WORDS = [
-  'luxury', 'modern', 'spacious', 'beautiful', 'stunning', 'prime', 'exclusive',
-  'serene', 'elegant', 'contemporary', 'fully', 'fitted', 'secure', 'affordable',
-  'ideal', 'perfect', 'excellent', 'premium', 'cozy', 'family', 'executive',
-];
-
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
@@ -40,25 +39,41 @@ function locationStr(input: TitleInput): string {
   });
 }
 
-function pickFromDescription(description: string, maxWords = 2): string[] {
-  if (!description || !description.trim()) return [];
-  const lower = description.toLowerCase();
-  const found: string[] = [];
-  for (const w of EXCITING_WORDS) {
-    if (lower.includes(w)) found.push(capitalize(w));
-    if (found.length >= maxWords) break;
-  }
-  return found;
-}
-
-/** Build title using one of several formats at random. */
-function propertyTypesDisplay(input: TitleInput): string {
+function normalizedPropertyTypes(input: TitleInput): string[] {
   const types =
     input.propertyTypes?.length && input.propertyTypes.length > 0
       ? input.propertyTypes
       : input.propertyType
         ? [input.propertyType]
         : [];
+  const beds = input.bedrooms ?? 0;
+  const ordered = reorderPropertyTypesForBedrooms(types, beds);
+  if (ordered.length) return ordered;
+  return ['apartment'];
+}
+
+/** Property slugs to show in a title; never pair bedroom counts with land or similar. */
+function titlePropertyTypes(input: TitleInput): string[] {
+  const beds = input.bedrooms ?? 0;
+  const types = normalizedPropertyTypes(input);
+
+  if (beds <= 0) return types;
+
+  let residential = types.filter((t) => !isNonBedroomPropertyType(t));
+  if (!residential.length) residential = ['house'];
+  return residential;
+}
+
+/** Whether the title should include a bedroom count for this listing. */
+function shouldIncludeBedrooms(input: TitleInput): boolean {
+  const beds = input.bedrooms ?? 0;
+  if (beds <= 0) return false;
+  return titlePropertyTypes(input).some((t) => !isNonBedroomPropertyType(t));
+}
+
+/** Build title using one of several formats at random. */
+function propertyTypesDisplay(input: TitleInput): string {
+  const types = titlePropertyTypes(input);
   if (!types.length) return 'Property';
   return types.map((t) => capitalize((t || '').replace(/_/g, ' '))).join(' & ');
 }
@@ -77,7 +92,7 @@ export function buildCanonicalListingTitle(input: TitleInput): string {
   // get distinct titles and don't get clustered as duplicates by search engines.
   const parts: string[] = [];
   if (area > 0) parts.push(`${Math.round(area)} sqm`);
-  if (beds > 0) parts.push(`${beds} Bed`);
+  if (shouldIncludeBedrooms(input)) parts.push(`${beds} Bed`);
   parts.push(prop);
   const title = `${parts.join(' ')} at ${place}`;
   if (title.length > 200) return title.slice(0, 197) + '...';
@@ -88,6 +103,7 @@ export function generateListingTitle(input: TitleInput): string {
   const beds = input.bedrooms ?? 0;
   const area = input.area ?? 0;
   const prop = propertyTypesDisplay(input);
+  const includeBeds = shouldIncludeBedrooms(input);
   const typeStr =
     input.listingType === 'rent'
       ? 'for Rent'
@@ -100,7 +116,7 @@ export function generateListingTitle(input: TitleInput): string {
 
   const formats: Array<() => string> = [
     () =>
-      beds > 0
+      includeBeds
         ? `${areaStr}${beds} Bed ${prop} at ${loc || 'Nigeria'}`
         : `${areaStr}${prop} at ${loc || 'Nigeria'}`,
     () =>
@@ -108,13 +124,13 @@ export function generateListingTitle(input: TitleInput): string {
         ? `${areaStr}${prop} ${typeStr} – ${loc}`
         : `${areaStr}${prop} ${typeStr}`,
     () =>
-      beds > 0 && loc
+      includeBeds && loc
         ? `${areaStr}${beds}-Bedroom ${prop} ${typeStr} at ${loc}`
-        : beds > 0
+        : includeBeds
           ? `${areaStr}${beds}-Bedroom ${prop} ${typeStr}`
           : `${areaStr}${prop} ${typeStr}`,
     () => {
-      const lead = `${areaStr}${beds > 0 ? `${beds}-Bedroom ${prop}` : prop}`;
+      const lead = `${areaStr}${includeBeds ? `${beds}-Bedroom ${prop}` : prop}`;
       const parts: string[] = [lead, typeStr];
       if (loc) parts.push('at', loc);
       return parts.join(' ');

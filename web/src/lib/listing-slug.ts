@@ -4,6 +4,14 @@ import { slugify, uniqueSlug } from '@/lib/slugify';
 
 const MAX_SLUG_LEN = 120;
 
+/** Strip `uniqueSlug` numeric suffix (`-1`, `-2`, …) for duplicate grouping. */
+export function listingSlugDedupeBase(slug: string): string {
+  const s = (slug || '').trim().toLowerCase();
+  if (!s) return '';
+  const m = s.match(/^(.+)-(\d+)$/);
+  return m?.[1] ? m[1] : s;
+}
+
 export function buildListingSlugBase(
   title: string,
   location?: { city?: string; state?: string }

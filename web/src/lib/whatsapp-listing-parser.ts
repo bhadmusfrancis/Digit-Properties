@@ -2,8 +2,9 @@
  * Parse unstructured property text (e.g. from WhatsApp group/status) into
  * Digit Properties listing payload. Used by "Import from WhatsApp" flow.
  */
-import { NIGERIAN_STATES, PROPERTY_TYPES, LISTING_TYPE } from './constants';
+import { NIGERIAN_STATES, PROPERTY_TYPES, LISTING_TYPE, RESIDENTIAL_PROPERTY_TYPES } from './constants';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
+import { buildCanonicalListingTitle } from '@/lib/listing-title';
 import { resolveNigeriaPlaceFromText, detectNigerianStateInText } from '@/lib/nigeria-place-resolve';
 
 export type ParsedListing = {
@@ -277,6 +278,10 @@ const TYPE_SYNONYM_PATTERNS: Array<{ type: string; re: RegExp }> = [
     type: 'restaurant',
     re: /\b(?:eateries|eatery|restaurants?|bakery|bakeries|cafeteria|cafe|caf\u00e9|canteen|fast\s*food|food\s*court|pizzeria|bukka?)\b/i,
   },
+  {
+    type: 'apartment',
+    re: /\b(?:flats?|apartments?)\b/i,
+  },
 ];
 
 /**
@@ -317,6 +322,44 @@ function looksLikeFillingStation(lower: string): boolean {
       lower
     );
   return intent;
+}
+
+function mentionsBedrooms(lower: string): boolean {
+  return /\b\d+\s*[-\s]?(?:bed(?:room)?s?|br)\b/.test(lower);
+}
+
+function earliestResidentialTypeInText(lower: string): string | null {
+  let best: { type: string; index: number; len: number } | null = null;
+  const consider = (type: string, index: number, len: number) => {
+    if (best === null || index < best.index || (index === best.index && len > best.len)) {
+      best = { type, index, len };
+    }
+  };
+  for (const p of RESIDENTIAL_PROPERTY_TYPES) {
+    let re: RegExp;
+    if (p === 'terrace') {
+      re = /\b(?<!roof\s{0,2}top\s)terraces?\b/i;
+    } else {
+      const pattern = p.replace(/_/g, '[\\s_-]*');
+      re = new RegExp(`\\b${pattern}s?\\b`, 'i');
+    }
+    const m = re.exec(lower);
+    if (m) consider(p, m.index, p.length);
+  }
+  for (const { type, re } of TYPE_SYNONYM_PATTERNS) {
+    if (type !== 'apartment') continue;
+    const m = re.exec(lower);
+    if (m) consider(type, m.index, m[0].length);
+  }
+  return best?.type ?? null;
+}
+
+function refinePropertyTypeForBedrooms(type: string, lower: string): string {
+  if (type !== 'land') return type;
+  const residential = earliestResidentialTypeInText(lower);
+  if (residential) return residential;
+  if (mentionsBedrooms(lower)) return 'house';
+  return type;
 }
 
 /**
@@ -388,17 +431,21 @@ export function extractPropertyType(text: string): string {
     const m = re.exec(lower);
     if (m) consider(type, m.index, m[0].length);
   }
-  if (match.best) return match.best.type;
+  if (match.best) return refinePropertyTypeForBedrooms(match.best.type, lower);
 
   // 3) Land fallbacks.
-  if (/\b(plot|front plot|partitioned|bare\s*land|water\s*front)\b/.test(lower)) return 'land';
-  if (
-    /\b\d[\d,]*\s*sqm\b/.test(lower) &&
-    !/\b(apartment|bungalow|house|duplex|villa|studio|penthouse|terrace|commercial|warehouse|hotel|maisonette|bungalow)\b/.test(
-      lower
-    )
-  )
-    return 'land';
+  if (!mentionsBedrooms(lower)) {
+    if (/\b(plot|front plot|partitioned|bare\s*land|water\s*front)\b/.test(lower)) return 'land';
+    if (
+      /\b\d[\d,]*\s*sqm\b/.test(lower) &&
+      !/\b(apartment|bungalow|house|duplex|villa|studio|penthouse|terrace|commercial|warehouse|hotel|maisonette|bungalow)\b/.test(
+        lower
+      )
+    ) {
+      return 'land';
+    }
+  }
+  if (mentionsBedrooms(lower)) return refinePropertyTypeForBedrooms('land', lower);
   return 'apartment';
 }
 
@@ -537,13 +584,18 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
         : pricePerSqm ?? 0;
 
   const desc = text.length > 100 ? text : text;
-  const titleParts: string[] = [];
-  if (area) titleParts.push(`${area} sqm`);
-  if (bedrooms) titleParts.push(`${bedrooms} Bed`);
-  titleParts.push(propertyType.charAt(0).toUpperCase() + propertyType.slice(1));
-  const titleLocation = formatListingLocationDisplay({ suburb, city, state, address });
-  if (titleLocation) titleParts.push('at ' + titleLocation);
-  const title = titleParts.length >= 2 ? titleParts.join(' ') : (text.slice(0, 80) || 'Imported listing');
+  const title = buildCanonicalListingTitle({
+    listingType,
+    propertyType,
+    propertyTypes: [propertyType],
+    address,
+    city,
+    state,
+    suburb,
+    bedrooms: bedrooms || 0,
+    area,
+    description: desc,
+  }).slice(0, 200);
 
   if (!price) missing.push('price');
   if (!state) missing.push('state');
@@ -554,7 +606,7 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
     missing.length === 0 ? 'high' : missing.length <= 2 ? 'medium' : 'low';
 
   const parsed: ParsedListing = {
-    title: title.slice(0, 200),
+    title,
     description: desc.slice(0, 5000) || 'Imported from WhatsApp. Please add description.',
     listingType,
     propertyType,

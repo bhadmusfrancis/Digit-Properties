@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PROPERTY_TYPES, NIGERIAN_STATES, LISTING_TYPE, RENT_PERIOD } from './constants';
+import { PROPERTY_TYPES, NIGERIAN_STATES, LISTING_TYPE, RENT_PERIOD, reorderPropertyTypesForBedrooms } from './constants';
 import { stripHtml } from './utils';
 
 const propertyTypeSchema = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
@@ -7,13 +7,16 @@ const propertyTypeSchema = z.enum(PROPERTY_TYPES as unknown as [string, ...strin
 export function resolveListingPropertyTypes(data: {
   propertyTypes?: string[];
   propertyType?: string;
+  bedrooms?: number;
 }): { propertyType: string; propertyTypes: string[] } | null {
   const fromArr = data.propertyTypes?.filter(Boolean) ?? [];
   const fromSingle = data.propertyType ? [data.propertyType] : [];
   const raw = fromArr.length ? fromArr : fromSingle;
   const uniq = [...new Set(raw)].slice(0, 3);
   if (!uniq.length) return null;
-  return { propertyType: uniq[0], propertyTypes: uniq };
+  const bedrooms = typeof data.bedrooms === 'number' ? data.bedrooms : 0;
+  const propertyTypes = reorderPropertyTypesForBedrooms(uniq, bedrooms);
+  return { propertyType: propertyTypes[0], propertyTypes };
 }
 
 /** MongoDB ObjectId: 24 hex characters */

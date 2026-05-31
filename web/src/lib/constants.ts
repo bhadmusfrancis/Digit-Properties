@@ -84,6 +84,52 @@ export const PROPERTY_TYPES = [
   'warehouse',
 ] as const;
 
+/** Residential slugs that can sensibly appear with a bedroom count in titles. */
+export const RESIDENTIAL_PROPERTY_TYPES = [
+  'apartment',
+  'bungalow',
+  'duplex',
+  'house',
+  'maisonette',
+  'mini_flat',
+  'penthouse',
+  'semi_detached',
+  'studio',
+  'terrace',
+  'townhouse',
+  'villa',
+] as const;
+
+/** Property slugs that should not be paired with bedroom counts (e.g. "3 Bed Land"). */
+export const NON_BEDROOM_PROPERTY_TYPES = [
+  'land',
+  'commercial',
+  'industrial',
+  'factory',
+  'farm',
+  'filling_station',
+  'hotel',
+  'office',
+  'restaurant',
+  'shop',
+  'warehouse',
+  'event_center',
+  'mixed_use',
+] as const;
+
+export function isNonBedroomPropertyType(type: string): boolean {
+  return (NON_BEDROOM_PROPERTY_TYPES as readonly string[]).includes(type.toLowerCase());
+}
+
+/** When bedrooms are set, put residential categories first so titles read "3 Bed House", not "3 Bed Land". */
+export function reorderPropertyTypesForBedrooms(types: string[], bedrooms: number): string[] {
+  if (bedrooms <= 0 || types.length <= 1) return types;
+  const residential = types.filter((t) => !isNonBedroomPropertyType(t));
+  const other = types.filter((t) => isNonBedroomPropertyType(t));
+  if (!residential.length) return types;
+  return [...residential, ...other].slice(0, 3);
+}
+
 /** Readable label for URL/slug property types (e.g. event_center → Event center). */
 export function formatPropertyTypeLabel(slug: string): string {
   if (!slug) return '';

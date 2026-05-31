@@ -18,6 +18,28 @@ export function normalizeTitleForDedupe(title: string): string {
   return (title || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+function normalizeLocationPart(value: string | undefined): string {
+  return (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+type LocationLite = { city?: string; state?: string; suburb?: string };
+
+/** Stable key for same canonical title + city/state (+ suburb when present). */
+export function listingTitleLocationDedupeKey(
+  title: string,
+  location?: LocationLite | null
+): string | null {
+  const titleNorm = normalizeTitleForDedupe(title);
+  if (titleNorm.length < 10) return null;
+  const city = normalizeLocationPart(location?.city);
+  const state = normalizeLocationPart(location?.state);
+  if (!city && !state) return null;
+  const suburb = normalizeLocationPart(location?.suburb);
+  return suburb
+    ? `tl:${titleNorm}|${city}|${state}|${suburb}`
+    : `tl:${titleNorm}|${city}|${state}`;
+}
+
 function tokenSet(s: string): Set<string> {
   return new Set(
     s
@@ -42,8 +64,16 @@ type ListingLite = {
   _id: unknown;
   title?: string;
   description?: string;
+  location?: LocationLite;
   images?: { public_id?: string }[];
   videos?: { public_id?: string }[];
+};
+
+export type ListingDedupeInput = {
+  title: string;
+  description: string;
+  mediaPublicIds: string[];
+  location?: LocationLite;
 };
 
 function listingUsesAnyMediaId(
@@ -65,16 +95,33 @@ function listingUsesAnyMediaId(
 export function findDuplicateAmongCandidates(
   candidates: ListingLite[],
   excludeListingId: string | undefined,
-  input: { title: string; description: string; mediaPublicIds: string[] }
+  input: ListingDedupeInput
 ): { code: string; message: string } | null {
   const exclude = excludeListingId ? String(excludeListingId) : '';
   const descNorm = normalizeDescriptionForDedupe(input.description);
   const titleNorm = normalizeTitleForDedupe(input.title);
   const incomingIds = new Set(input.mediaPublicIds.filter(Boolean));
+  const inputLocKey = listingTitleLocationDedupeKey(input.title, input.location);
 
   for (const c of candidates) {
     const id = String(c._id);
     if (exclude && id === exclude) continue;
+
+    const candidateLocKey = listingTitleLocationDedupeKey(c.title || '', c.location);
+    if (inputLocKey && candidateLocKey && inputLocKey === candidateLocKey) {
+      const candidateDescNorm = normalizeDescriptionForDedupe(c.description || '');
+      const similarDescription =
+        descNorm.length >= 20 &&
+        candidateDescNorm.length >= 20 &&
+        tokenSimilarity(descNorm, candidateDescNorm) >= 0.5;
+      if (similarDescription || listingUsesAnyMediaId(c, incomingIds)) {
+        return {
+          code: 'DUPLICATE_PROPERTY',
+          message:
+            'You already have a listing for this property at this location. Edit the existing listing or change the title and details.',
+        };
+      }
+    }
 
     if (listingUsesAnyMediaId(c, incomingIds)) {
       return {
@@ -120,7 +167,7 @@ const DUPLICATE_SCAN_STATUSES = [
 
 export async function findUserListingDuplicate(
   userId: string,
-  input: { title: string; description: string; mediaPublicIds: string[] },
+  input: ListingDedupeInput,
   excludeListingId?: string
 ): Promise<{ code: string; message: string } | null> {
   const filter: Record<string, unknown> = {
@@ -131,7 +178,10 @@ export async function findUserListingDuplicate(
     filter._id = { $ne: new mongoose.Types.ObjectId(excludeListingId) };
   }
 
-  const candidates = await Listing.find(filter).select('title description images videos').limit(250).lean();
+  const candidates = await Listing.find(filter)
+    .select('title description location images videos')
+    .limit(250)
+    .lean();
 
   return findDuplicateAmongCandidates(candidates, excludeListingId, input);
 }

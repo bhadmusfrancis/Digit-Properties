@@ -27,6 +27,12 @@ export async function POST(req: Request) {
       typeof body.excludeListingId === 'string' && body.excludeListingId.trim()
         ? body.excludeListingId.trim()
         : undefined;
+    const loc = body.location && typeof body.location === 'object' ? body.location : {};
+    const location = {
+      city: typeof loc.city === 'string' ? loc.city : undefined,
+      state: typeof loc.state === 'string' ? loc.state : undefined,
+      suburb: typeof loc.suburb === 'string' ? loc.suburb : undefined,
+    };
 
     await dbConnect();
     const dup = await findUserListingDuplicate(
@@ -34,6 +40,7 @@ export async function POST(req: Request) {
       {
         title,
         description,
+        location,
         mediaPublicIds: [...imageIds, ...videoIds],
       },
       excludeListingId

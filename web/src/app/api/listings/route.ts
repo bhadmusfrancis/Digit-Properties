@@ -276,6 +276,7 @@ export async function POST(req: Request) {
     const duplicateCheck = await findUserListingDuplicate(session.user.id, {
       title: parsed.data.title,
       description: seoDescription,
+      location: parsed.data.location,
       mediaPublicIds: [
         ...images.map((i) => i.public_id),
         ...videos.map((v) => v.public_id),
