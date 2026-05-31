@@ -49,6 +49,13 @@ export function GlobalPropertySearch() {
     navigate(query, sort);
   }
 
+  function handleSortChange(nextSort: ListingSearchSortKey) {
+    setSort(nextSort);
+    if (onListingsPage) {
+      navigate(urlQ, nextSort);
+    }
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -80,7 +87,7 @@ export function GlobalPropertySearch() {
         enterKeyHint="search"
       />
       <div className="shrink-0 border-l border-gray-200 pl-1 sm:pl-2">
-        <ListingSearchSortSelect value={sort} onChange={setSort} compact />
+        <ListingSearchSortSelect value={sort} onChange={handleSortChange} compact />
       </div>
       <button
         type="submit"

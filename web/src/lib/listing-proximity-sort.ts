@@ -82,26 +82,34 @@ export function buildListingSortStage(
 ): PipelineStage {
   const key = sort || 'default';
 
+  const stableId = { _id: 1 as const };
+
   if (key === 'relevance' && options.useTextScore) {
-    return { $sort: { score: -1, _hasMedia: -1, boostExpiresAt: -1, createdAt: -1 } } as PipelineStage;
+    return {
+      $sort: { score: -1, _hasMedia: -1, boostExpiresAt: -1, createdAt: -1, ...stableId },
+    } as PipelineStage;
   }
 
   if (key === 'closest' && options.hasNear) {
-    return { $sort: { _locScore: -1, _hasMedia: -1, boostExpiresAt: -1, createdAt: -1 } } as PipelineStage;
+    return {
+      $sort: { _locScore: -1, _hasMedia: -1, boostExpiresAt: -1, createdAt: -1, ...stableId },
+    } as PipelineStage;
   }
 
   switch (key) {
     case 'price_asc':
-      return { $sort: { _hasMedia: -1, price: 1, createdAt: -1 } } as PipelineStage;
+      return { $sort: { _hasMedia: -1, price: 1, createdAt: -1, ...stableId } } as PipelineStage;
     case 'price_desc':
-      return { $sort: { _hasMedia: -1, price: -1, createdAt: -1 } } as PipelineStage;
+      return { $sort: { _hasMedia: -1, price: -1, createdAt: -1, ...stableId } } as PipelineStage;
     case 'newest':
-      return { $sort: { _hasMedia: -1, createdAt: -1 } } as PipelineStage;
+      return { $sort: { _hasMedia: -1, createdAt: -1, ...stableId } } as PipelineStage;
     case 'popular':
-      return { $sort: { _hasMedia: -1, viewCount: -1, createdAt: -1 } } as PipelineStage;
+      return { $sort: { _hasMedia: -1, viewCount: -1, createdAt: -1, ...stableId } } as PipelineStage;
     case 'relevance':
-      return { $sort: { _hasMedia: -1, boostExpiresAt: -1, highlighted: -1, createdAt: -1 } } as PipelineStage;
+      return {
+        $sort: { _hasMedia: -1, boostExpiresAt: -1, highlighted: -1, createdAt: -1, ...stableId },
+      } as PipelineStage;
     default:
-      return { $sort: { _hasMedia: -1, boostExpiresAt: -1, createdAt: -1 } } as PipelineStage;
+      return { $sort: { _hasMedia: -1, boostExpiresAt: -1, createdAt: -1, ...stableId } } as PipelineStage;
   }
 }

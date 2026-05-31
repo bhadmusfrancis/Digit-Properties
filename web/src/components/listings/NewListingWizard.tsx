@@ -418,28 +418,18 @@ export function NewListingWizard() {
     amenities: v.amenities ? v.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [],
   });
 
-  const fillStep3Defaults = (overwriteDescription: boolean, overwriteTitle: boolean) => {
+  const generateDescription = () => {
     const v = getValues();
-    const loc = locationLine(v);
-    const list = v.amenities ? v.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [];
-
-    if (overwriteDescription || stripHtml(v.description || '').length < 20) {
-      setValue(
-        'description',
-        generateListingDescriptionHtml({
-          ...buildTitleInput(v),
-          price: v.price,
-          locationLine: loc,
-          rentPeriod: v.rentPeriod,
-        }),
-        { shouldValidate: true }
-      );
-    }
-    if (overwriteTitle || !String(v.title || '').trim()) {
-      setValue('title', generateListingTitle({ ...buildTitleInput(v), description: v.description }), {
-        shouldValidate: true,
-      });
-    }
+    setValue(
+      'description',
+      generateListingDescriptionHtml({
+        ...buildTitleInput(v),
+        price: v.price,
+        locationLine: locationLine(v),
+        rentPeriod: v.rentPeriod,
+      }),
+      { shouldValidate: true }
+    );
   };
 
   const goNext = () => {
@@ -494,8 +484,6 @@ export function NewListingWizard() {
       // same click/tap; otherwise the gesture can “fall through” and trigger publish.
       window.setTimeout(() => {
         setStep(3);
-        // Always rebuild description from current form data (price, location, etc.).
-        fillStep3Defaults(true, false);
       }, 0);
     }
   };
@@ -1133,16 +1121,17 @@ export function NewListingWizard() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Title, description &amp; photos</h2>
                   <p className="mt-1 text-sm text-gray-600">
-                    Review and edit the title and description, then add photos before you publish.
+                    Write a title and description, or use Generate description to draft one from your property details.
+                    Then add photos before you publish.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => fillStep3Defaults(true, false)}
+                    onClick={generateDescription}
                     className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
                   >
-                    Refresh description
+                    Generate description
                   </button>
                   <button
                     type="button"
