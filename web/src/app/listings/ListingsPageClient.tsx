@@ -40,6 +40,19 @@ function buildBaseQuery(params: URLSearchParams, preset?: Record<string, string>
   return q.toString();
 }
 
+/** Drop duplicate rows when paginated pages overlap (e.g. after sort/filter changes). */
+function dedupeListingsById(listings: ListingGridItem[]): ListingGridItem[] {
+  const seen = new Set<string>();
+  const unique: ListingGridItem[] = [];
+  for (const listing of listings) {
+    const id = listing._id;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    unique.push(listing);
+  }
+  return unique;
+}
+
 function ListingsContent({
   presetFilters,
   pageTitle,
@@ -90,7 +103,7 @@ function ListingsContent({
   });
 
   const pages = data?.pages ?? [];
-  const listings = pages.flatMap((p) => p?.listings ?? []);
+  const listings = dedupeListingsById(pages.flatMap((p) => p?.listings ?? []));
   const total = pages[0]?.pagination?.total as number | undefined;
   const shouldAutoLoad = listings.length < AUTO_LOAD_LIMIT;
 
