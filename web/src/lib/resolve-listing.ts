@@ -1,26 +1,36 @@
 import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/db';
+import { findDeletedListingPathRedirect } from '@/lib/listing-path-redirect';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { getListingPathSegment } from '@/lib/listing-path';
 import Listing, { type IListing } from '@/models/Listing';
 
 type ListingLean = IListing & { _id: mongoose.Types.ObjectId; slug?: string };
 
-export async function findListingByPublicParam(param: string): Promise<ListingLean | null> {
+export type FindListingByPublicParamResult =
+  | { type: 'listing'; listing: ListingLean }
+  | { type: 'redirect'; destinationPath: string };
+
+export async function findListingByPublicParam(param: string): Promise<FindListingByPublicParamResult | null> {
   await dbConnect();
   const trimmed = param.trim();
   if (!trimmed) return null;
 
   if (mongoose.Types.ObjectId.isValid(trimmed)) {
     const byId = await Listing.findById(trimmed).lean();
-    if (byId) return byId as ListingLean;
+    if (byId) return { type: 'listing', listing: byId as ListingLean };
   }
 
   const bySlug = await Listing.findOne({ slug: trimmed }).lean();
-  if (bySlug) return bySlug as ListingLean;
+  if (bySlug) return { type: 'listing', listing: bySlug as ListingLean };
 
   const byPreviousSlug = await Listing.findOne({ previousSlugs: trimmed }).lean();
-  return byPreviousSlug ? (byPreviousSlug as ListingLean) : null;
+  if (byPreviousSlug) return { type: 'listing', listing: byPreviousSlug as ListingLean };
+
+  const destinationPath = await findDeletedListingPathRedirect(trimmed);
+  if (destinationPath) return { type: 'redirect', destinationPath };
+
+  return null;
 }
 
 /** Ensure slug exists on the document (lazy backfill for legacy listings). */
@@ -41,19 +51,26 @@ export async function ensureListingSlugOnRecord(
 }
 
 export async function resolveListingPublicSegment(param: string): Promise<{
-  listing: ListingLean;
-  publicSegment: string;
+  listing?: ListingLean;
+  publicSegment?: string;
   shouldRedirect: boolean;
+  redirectTo?: string;
 }> {
-  const listing = await findListingByPublicParam(param);
-  if (!listing) {
+  const found = await findListingByPublicParam(param);
+  if (!found) {
     throw new Error('NOT_FOUND');
   }
+  if (found.type === 'redirect') {
+    return { shouldRedirect: true, redirectTo: found.destinationPath };
+  }
+
+  const listing = found.listing;
   const publicSegment = await ensureListingSlugOnRecord(listing);
   return {
     listing,
     publicSegment,
     shouldRedirect: param.trim() !== publicSegment,
+    redirectTo: param.trim() !== publicSegment ? `/listings/${publicSegment}` : undefined,
   };
 }
 

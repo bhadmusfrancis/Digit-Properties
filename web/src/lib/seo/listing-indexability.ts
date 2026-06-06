@@ -14,11 +14,33 @@ import {
  */
 export const MIN_INDEXABLE_DESCRIPTION_CHARS = 250;
 
-type IndexableListingInput = {
+export type IndexableListingInput = {
   images?: { url?: string }[] | undefined;
   videos?: ListingVideoRef[] | undefined;
   description?: string | null | undefined;
 };
+
+export type ListingIndexabilityGap = {
+  indexable: boolean;
+  missing: 'media' | 'description' | null;
+  descriptionCharCount: number;
+  descriptionCharsNeeded: number;
+};
+
+/** What the owner still needs before the listing can be indexed in search. */
+export function getListingIndexabilityGap(input: IndexableListingInput): ListingIndexabilityGap {
+  if (listingHasOwnMedia(input)) {
+    return { indexable: true, missing: null, descriptionCharCount: 0, descriptionCharsNeeded: 0 };
+  }
+  const descriptionCharCount = stripHtml(input.description ?? '').length;
+  const indexable = descriptionCharCount >= MIN_INDEXABLE_DESCRIPTION_CHARS;
+  return {
+    indexable,
+    missing: indexable ? null : 'description',
+    descriptionCharCount,
+    descriptionCharsNeeded: Math.max(0, MIN_INDEXABLE_DESCRIPTION_CHARS - descriptionCharCount),
+  };
+}
 
 /** True when the listing has its own uploaded photo or video (not a shared placeholder). */
 export function listingHasOwnMedia(input: IndexableListingInput): boolean {
@@ -41,6 +63,5 @@ export function listingHasOwnMedia(input: IndexableListingInput): boolean {
  */
 export function isListingIndexable(input: IndexableListingInput): boolean {
   if (listingHasOwnMedia(input)) return true;
-  const text = stripHtml(input.description ?? '');
-  return text.length >= MIN_INDEXABLE_DESCRIPTION_CHARS;
+  return getListingIndexabilityGap(input).indexable;
 }

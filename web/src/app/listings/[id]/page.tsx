@@ -2,7 +2,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
-import { canViewListingOnSite } from '@/lib/listing-access';
+import { canViewListingOnSite, isListingPendingApprovalHidden } from '@/lib/listing-access';
 import { ListingLocationMap } from '@/components/listings/ListingLocationMap';
 import { ListingSidebarTabs } from '@/components/listings/ListingSidebarTabs';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
@@ -12,6 +12,8 @@ import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { ListingTrustCaveat } from '@/components/listings/ListingTrustCaveat';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
+import { ListingTemporarilyUnavailable } from '@/components/listings/ListingTemporarilyUnavailable';
+import { ListingIndexabilityBanner } from '@/components/listings/ListingIndexabilityBanner';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, USER_ROLES, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
@@ -63,6 +65,21 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       return {};
     }
     const { listing, publicSegment } = resolved;
+    if (!listing || !publicSegment) return {};
+
+    if (
+      isListingPendingApprovalHidden({
+        status: listing.status,
+        createdBy: listing.createdBy,
+        session,
+      })
+    ) {
+      return {
+        title: 'Temporarily unavailable',
+        description: 'This property listing is being reviewed and is temporarily unavailable.',
+        robots: { index: false, follow: true },
+      };
+    }
     if (
       !canViewListingOnSite({
         status: listing.status,
@@ -167,9 +184,26 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   } catch {
     notFound();
   }
-  const { listing: listingPre, publicSegment, shouldRedirect } = resolved;
-  if (shouldRedirect) {
-    permanentRedirect(`/listings/${publicSegment}`);
+  const { listing: listingPre, publicSegment, shouldRedirect, redirectTo } = resolved;
+  if (shouldRedirect && redirectTo) {
+    permanentRedirect(redirectTo);
+  }
+  if (!listingPre || !publicSegment) notFound();
+
+  if (
+    isListingPendingApprovalHidden({
+      status: listingPre.status,
+      createdBy: listingPre.createdBy,
+      session,
+    })
+  ) {
+    return (
+      <ListingTemporarilyUnavailable
+        title={listingPre.title}
+        state={listingPre.location?.state}
+        city={listingPre.location?.city}
+      />
+    );
   }
 
   try {
@@ -516,6 +550,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           />
         </div>
       ) : null}
+      {isOwner && listing.status === LISTING_STATUS.ACTIVE ?
+        <div className="mb-6">
+          <ListingIndexabilityBanner
+            editHref={`/listings/${publicSegment}/edit`}
+            images={(listing as { images?: { url?: string }[] }).images}
+            videos={(listing as { videos?: { url?: string; public_id?: string }[] }).videos}
+            description={listing.description}
+          />
+        </div>
+      : null}
       <div className="grid min-w-0 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="card overflow-hidden">

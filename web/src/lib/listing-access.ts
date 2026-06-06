@@ -27,3 +27,12 @@ export function canViewListingOnSite(args: {
   const ownerId = getListingCreatedById(args.createdBy);
   return !!uid && !!ownerId && uid === ownerId;
 }
+
+/** Pending-approval listings hidden from the public (but not owners/admins). */
+export function isListingPendingApprovalHidden(args: {
+  status: string | undefined;
+  createdBy: unknown;
+  session: SessionLike;
+}): boolean {
+  return args.status === LISTING_STATUS.PENDING_APPROVAL && !canViewListingOnSite(args);
+}
