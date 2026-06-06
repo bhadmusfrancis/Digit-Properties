@@ -10,6 +10,8 @@ import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES, LISTING_TYPE } from
 import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { generateListingTitle } from '@/lib/listing-title';
+import { generateListingDescriptionHtml } from '@/lib/listing-description';
+import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
 import {
@@ -316,24 +318,45 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     setValue('amenities', Array.from(set).join(', '), { shouldValidate: true });
   };
 
+  const buildTitleInput = (v: FormData) => ({
+    listingType: v.listingType,
+    propertyType: propertyTypesSel[0] || 'apartment',
+    propertyTypes: propertyTypesSel,
+    address: v.address,
+    state: v.state,
+    city: v.city,
+    suburb: v.suburb,
+    bedrooms: v.bedrooms,
+    bathrooms: v.bathrooms,
+    toilets: v.toilets,
+    area: v.area,
+    amenities: v.amenities ? v.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [],
+  });
+
   const generateTitle = () => {
-    const list = watched.amenities ? watched.amenities.split(',').map((s) => s.trim()).filter(Boolean) : [];
-    const title = generateListingTitle({
-      listingType: watched.listingType,
-      propertyType: propertyTypesSel[0] || 'apartment',
-      propertyTypes: propertyTypesSel,
-      address: watched.address,
-      state: watched.state,
-      city: watched.city,
-      suburb: watched.suburb,
-      bedrooms: watched.bedrooms,
-      bathrooms: watched.bathrooms,
-      toilets: watched.toilets,
-      area: watched.area,
-      amenities: list,
-      description: watched.description,
+    const v = getValues();
+    setValue('title', generateListingTitle({ ...buildTitleInput(v), description: v.description }), {
+      shouldValidate: true,
     });
-    setValue('title', title, { shouldValidate: true });
+  };
+
+  const generateDescription = () => {
+    const v = getValues();
+    setValue(
+      'description',
+      generateListingDescriptionHtml({
+        ...buildTitleInput(v),
+        price: v.price,
+        locationLine: formatListingLocationDisplay({
+          address: v.address,
+          suburb: v.suburb,
+          city: v.city,
+          state: v.state,
+        }),
+        rentPeriod: v.rentPeriod,
+      }),
+      { shouldValidate: true }
+    );
   };
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -600,9 +623,32 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Basics</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Description <span className="text-red-500">*</span>
-          </label>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <p className="mt-1 text-xs text-gray-500">
+                Write your own copy, or use Generate description to draft one from your property details.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={generateDescription}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+              >
+                Generate description
+              </button>
+              <button
+                type="button"
+                onClick={generateTitle}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+              >
+                Refresh title
+              </button>
+            </div>
+          </div>
           <Controller
             name="description"
             control={control}
@@ -963,12 +1009,14 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
           <label className="block text-sm font-medium text-gray-700">
             Title (SEO) <span className="text-red-500">*</span>
           </label>
-          <p className="mt-1 text-xs text-gray-500">Click the field to auto-generate a title from your listing details, then edit if needed.</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Use Refresh title above to regenerate from your listing details, or edit manually.
+          </p>
           <input
             {...register('title')}
             onFocus={() => { if (!watched.title?.trim()) generateTitle(); }}
             className="input mt-2"
-            placeholder="Click here to generate from details, or type your own (e.g. 3-Bedroom Apartment for Sale in Lekki, Lagos)"
+            placeholder="Headline for search & sharing"
           />
           {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
         </div>
