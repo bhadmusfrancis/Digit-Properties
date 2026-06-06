@@ -20,7 +20,7 @@ import {
 } from '@/lib/listing-media-accept';
 import { formatBytes } from '@/lib/format-bytes';
 import { uploadListingMediaFile } from '@/lib/upload-listing-media';
-import { optionalListingAgentEmailSchema } from '@/lib/validations';
+import { coerceListingCount, optionalListingAgentEmailSchema } from '@/lib/validations';
 import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 
@@ -534,6 +534,9 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
       videos,
     };
     if (payload.area === undefined || (typeof payload.area === 'number' && Number.isNaN(payload.area))) delete payload.area;
+    payload.bedrooms = coerceListingCount(payload.bedrooms);
+    payload.bathrooms = coerceListingCount(payload.bathrooms);
+    payload.toilets = coerceListingCount(payload.toilets);
     delete payload.address;
     delete payload.city;
     delete payload.state;
