@@ -486,6 +486,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const { recordListingPathRedirects } = await import('@/lib/listing-path-redirect');
+    await recordListingPathRedirects({
+      _id: listing._id,
+      slug: listing.slug,
+      previousSlugs: listing.previousSlugs,
+      location: listing.location,
+    });
     await Listing.findByIdAndDelete(id);
     return NextResponse.json({ success: true });
   } catch (e) {
