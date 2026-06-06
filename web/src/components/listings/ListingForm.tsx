@@ -631,7 +631,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Property types (up to {maxCategories})</label>
             <p className="mt-0.5 text-xs text-gray-500">Selected: {propertyTypesSel.length} / {maxCategories}</p>
-            {maxCategories < 3 && (
+            {!boostActive && maxCategories < 3 && (
               <p className="mt-0.5 text-xs text-amber-700">
                 Free plan: {baseMaxCategories} category. {' '}
                 <button
