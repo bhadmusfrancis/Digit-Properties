@@ -965,7 +965,7 @@ export function NewListingWizard() {
                 <h2 className="text-xl font-bold text-gray-900">Property types</h2>
                 <p className="mt-1 text-sm text-gray-600">Select up to {maxCategories} if the property fits multiple categories.</p>
                 <p className="mt-2 text-xs font-medium text-sky-700">Selected: {propertyTypes.length} / {maxCategories}</p>
-                {maxCategories < 3 && (
+                {!boostActive && maxCategories < 3 && (
                   <p className="mt-1 text-xs text-amber-700">
                     Free plan allows {baseMaxCategories} category. {' '}
                     <button
