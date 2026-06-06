@@ -49,7 +49,6 @@ export async function GET() {
 
         const segment = getListingPathSegment({ _id: String(doc._id), slug: doc.slug });
         const pagePath = `/listings/${segment}`;
-        const pageUrl = `${base}${pagePath}`;
         const uploadDate = (doc.updatedAt ?? doc.createdAt ?? new Date()).toISOString();
         const description = plainTextExcerpt(
           String(doc.description ?? ''),
@@ -65,25 +64,23 @@ export async function GET() {
           videos: galleryVideos,
         });
 
-        const videoTags = seoVideos
-          .map(
-            (v) => `    <video:video>
+        for (const v of seoVideos) {
+          const watchUrl = `${base}${v.watchPagePath}`;
+          urlEntries.push(`  <url>
+    <loc>${escapeXml(watchUrl)}</loc>
+    <video:video>
       <video:thumbnail_loc>${escapeXml(v.thumbnailUrl)}</video:thumbnail_loc>
       <video:title>${escapeXml(v.name)}</video:title>
       <video:description>${escapeXml(v.description)}</video:description>
       <video:content_loc>${escapeXml(v.contentUrl)}</video:content_loc>
+      <video:player_loc>${escapeXml(watchUrl)}</video:player_loc>
       <video:publication_date>${escapeXml(v.uploadDate)}</video:publication_date>
       <video:family_friendly>yes</video:family_friendly>
       <video:requires_subscription>no</video:requires_subscription>
       <video:live>no</video:live>
-    </video:video>`
-          )
-          .join('\n');
-
-        urlEntries.push(`  <url>
-    <loc>${escapeXml(pageUrl)}</loc>
-${videoTags}
+    </video:video>
   </url>`);
+        }
       }
     } catch (e) {
       console.error('[video-sitemap]', e);

@@ -185,7 +185,7 @@ export type VideoObjectStructuredDataInput = {
 
 /** Google Video indexing: https://developers.google.com/search/docs/appearance/structured-data/video */
 export function buildVideoObjectJsonLd(input: VideoObjectStructuredDataInput) {
-  const embedUrl = absoluteUrl(input.embedUrl);
+  const watchUrl = absoluteUrl(input.embedUrl);
   return {
     '@context': SCHEMA,
     '@type': 'VideoObject',
@@ -194,8 +194,9 @@ export function buildVideoObjectJsonLd(input: VideoObjectStructuredDataInput) {
     thumbnailUrl: absoluteUrl(input.thumbnailUrl),
     uploadDate: input.uploadDate,
     contentUrl: absoluteUrl(input.contentUrl),
-    embedUrl,
-    url: embedUrl,
+    embedUrl: watchUrl,
+    url: watchUrl,
+    mainEntityOfPage: watchUrl,
     ...(input.durationSeconds != null && input.durationSeconds > 0
       ? { duration: `PT${Math.round(input.durationSeconds)}S` }
       : {}),

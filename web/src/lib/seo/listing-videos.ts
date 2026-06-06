@@ -60,8 +60,20 @@ export type ListingVideoSeoItem = {
   name: string;
   description: string;
   uploadDate: string;
+  /** Public watch page where the video is the primary content (Google video indexing). */
   embedUrl: string;
+  watchPagePath: string;
 };
+
+function normalizeListingPagePath(pagePath: string): string {
+  return pagePath.startsWith('/') ? pagePath : `/${pagePath}`;
+}
+
+/** Dedicated watch page path for a listing gallery video (1-based index in the URL). */
+export function getListingVideoWatchPath(pagePath: string, videoIndex: number): string {
+  const base = normalizeListingPagePath(pagePath);
+  return `${base}/video/${videoIndex + 1}`;
+}
 
 function ensureHttpsUrl(url: string): string {
   const u = url.trim();
@@ -87,7 +99,7 @@ export function normalizeVideoContentUrl(url: string): string {
 
 export function buildListingVideoSeoItems(input: ListingVideoSeoInput): ListingVideoSeoItem[] {
   const origin = siteOrigin();
-  const embedUrl = `${origin}${input.pagePath.startsWith('/') ? input.pagePath : `/${input.pagePath}`}`;
+  const pagePath = normalizeListingPagePath(input.pagePath);
   const baseTitle = input.title.trim() || 'Property listing video';
   const baseDescription = input.description.trim().slice(0, 2048) || baseTitle;
   const uploadDate = input.uploadDate ?? new Date().toISOString();
@@ -98,6 +110,8 @@ export function buildListingVideoSeoItems(input: ListingVideoSeoInput): ListingV
       getCloudinaryVideoThumbnailUrl(video) ??
       `${origin}/images/default-listing/apartment.svg`;
     const suffix = input.videos.length > 1 ? ` (${index + 1})` : '';
+    const watchPagePath = getListingVideoWatchPath(pagePath, index);
+    const embedUrl = `${origin}${watchPagePath}`;
     return {
       contentUrl,
       thumbnailUrl: ensureHttpsUrl(thumb),
@@ -105,6 +119,7 @@ export function buildListingVideoSeoItems(input: ListingVideoSeoInput): ListingV
       description: baseDescription,
       uploadDate,
       embedUrl,
+      watchPagePath,
     };
   });
 }

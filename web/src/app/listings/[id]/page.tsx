@@ -37,7 +37,7 @@ import { getBotUserObjectIds } from '@/lib/claimable-listing-server';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { buildBreadcrumbJsonLd, buildListingJsonLd, buildListingVideoJsonLdList } from '@/lib/seo/structured-data';
+import { buildBreadcrumbJsonLd, buildListingJsonLd } from '@/lib/seo/structured-data';
 import {
   buildListingVideoSeoItems,
   collectListingGalleryVideos,
@@ -488,16 +488,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       uploadDate: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
       videos: galleryVideosForSeo,
     });
-    const listingVideoJsonLd = buildListingVideoJsonLdList(
-      listingVideoSeoItems.map((v) => ({
-        name: v.name,
-        description: v.description,
-        thumbnailUrl: v.thumbnailUrl,
-        contentUrl: v.contentUrl,
-        embedUrl: v.embedUrl,
-        uploadDate: v.uploadDate,
-      }))
-    );
 
     return (
     <>
@@ -534,7 +524,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             datePosted: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
             dateModified: listing.updatedAt ? new Date(listing.updatedAt as Date).toISOString() : undefined,
           }),
-          ...listingVideoJsonLd,
         ]}
       />
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -571,6 +560,20 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               soldAt={listing.soldAt}
               rentedAt={listing.rentedAt}
             />
+            {listingVideoSeoItems.length > 0 ? (
+              <div className="border-t border-gray-100 px-6 py-3">
+                <h2 className="text-sm font-semibold text-gray-900">Property videos</h2>
+                <ul className="mt-2 space-y-1">
+                  {listingVideoSeoItems.map((item) => (
+                    <li key={item.watchPagePath}>
+                      <Link href={item.watchPagePath} className="text-sm font-medium text-primary-700 hover:underline">
+                        Watch {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <div className="p-6">
               <div className="flex flex-wrap items-start gap-3">
                 <ListingTitleWithVerifiedBadge
