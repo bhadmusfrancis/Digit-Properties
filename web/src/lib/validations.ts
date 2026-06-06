@@ -28,6 +28,16 @@ export const optionalListingAgentEmailSchema = z.preprocess(
   z.string().email('Invalid email').optional()
 );
 
+/** Empty optional count inputs (null, NaN, "") → 0, matching listing form UX. */
+export function coerceListingCount(v: unknown): number {
+  if (v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))) {
+    return 0;
+  }
+  return Number(v);
+}
+
+const listingCountSchema = z.preprocess(coerceListingCount, z.number().int().min(0));
+
 /** Reusable string bounds to prevent oversized payloads */
 const MAX_STRING = 10_000;
 const MAX_EMAIL = 254;
@@ -71,9 +81,9 @@ const listingBaseSchema = z.object({
     suburb: z.string().optional(),
     coordinates: z.object({ lat: z.number(), lng: z.number() }).optional(),
   }),
-  bedrooms: z.number().int().min(0),
-  bathrooms: z.number().int().min(0),
-  toilets: z.number().int().min(0).optional(),
+  bedrooms: listingCountSchema,
+  bathrooms: listingCountSchema,
+  toilets: listingCountSchema,
   area: z.number().positive().optional(),
   amenities: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
