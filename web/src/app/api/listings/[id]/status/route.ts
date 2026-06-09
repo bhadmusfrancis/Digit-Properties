@@ -92,6 +92,7 @@ export async function PATCH(
       const creator = await User.findById(listing.createdBy).lean();
       await notifyAdminListingPublish({
         listingId: String(listing._id),
+        listingSlug: listing.slug,
         title: listing.title,
         listingType: listing.listingType,
         price: listing.price,

@@ -6,6 +6,7 @@ import { dbConnect } from '@/lib/db';
 import Alert from '@/models/Alert';
 import { sendAlertMatchEmail } from '@/lib/email';
 import { sendPushNotification } from '@/lib/send-push';
+import { buildListingEmailUrl } from '@/lib/listing-email-link';
 import { siteOrigin } from '@/lib/site-metadata';
 import type { IListing } from '@/models/Listing';
 
@@ -14,6 +15,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Digit Properties';
 
 interface ListingMatch {
   _id: string;
+  slug?: string | null;
   title: string;
   price: number;
   listingType: string;
@@ -53,13 +55,17 @@ export async function notifyMatchingAlerts(listing: IListing): Promise<void> {
 
     const listingData: ListingMatch = {
       _id: String(listing._id),
+      slug: (listing as { slug?: string }).slug,
       title: listing.title,
       price: listing.price,
       listingType: listing.listingType,
       rentPeriod: listing.rentPeriod,
     };
 
-    const listingUrl = `${BASE_URL}/listings/${listing._id}`;
+    const listingUrl = buildListingEmailUrl({
+      id: String(listing._id),
+      slug: listingData.slug,
+    });
     const priceStr = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(listing.price);
     const pushTitle = `${APP_NAME}: New listing`;
     const pushBody = `${listing.title} – ${priceStr}`;

@@ -75,6 +75,7 @@ export async function resolveActiveListingEditStatus(
 
 export type ListingEmailNotifyInput = {
   listingId: string;
+  listingSlug?: string | null;
   title: string;
   listingType: string;
   price: number;
@@ -90,6 +91,7 @@ export async function notifyAdminListingPublish(input: ListingEmailNotifyInput &
     await sendAdminListingPendingApproval({
       listingTitle: rest.title,
       listingId: rest.listingId,
+      listingSlug: rest.listingSlug,
       createdByName: rest.createdByName,
       listingType: rest.listingType,
       price: rest.price,
@@ -104,7 +106,8 @@ export async function notifyAdminListingPublish(input: ListingEmailNotifyInput &
       rest.listingId,
       rest.createdByName,
       rest.listingType,
-      rest.price
+      rest.price,
+      rest.listingSlug
     ).catch((e) => console.error('[listings] admin email:', e));
   }
 }

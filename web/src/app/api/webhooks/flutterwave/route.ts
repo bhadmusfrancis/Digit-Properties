@@ -112,6 +112,7 @@ export async function POST(req: Request) {
       gateway: payment.gateway,
       gatewayRef: payment.gatewayRef,
       metadata: payment.metadata as Record<string, unknown> | undefined,
+      listingId: payment.listingId,
     }).catch((e) => console.error('[flutterwave webhook] payment email:', e));
 
     return NextResponse.json({ status: 'success' });

@@ -63,7 +63,7 @@ export async function PATCH(
     const action = parsed.data;
 
     await dbConnect();
-    const listing = await Listing.findById(listingId).select('status createdBy title').lean();
+    const listing = await Listing.findById(listingId).select('status createdBy title slug').lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (
       !canViewListingOnSite({
@@ -103,6 +103,7 @@ export async function PATCH(
     const buyerName = (typeof buyerUser?.name === 'string' && buyerUser.name) || 'Buyer';
     const sellerName = (typeof sellerUser?.name === 'string' && sellerUser.name) || 'Seller';
     const listingTitle = (listing as { title?: string }).title || 'Listing';
+    const listingSlug = (listing as { slug?: string }).slug;
     const latestAmount = offer.amount;
     const offerKind = (offer as { offerKind?: ListingOfferKind }).offerKind;
 
@@ -127,6 +128,7 @@ export async function PATCH(
           buyerName,
           listingTitle,
           listingId,
+          listingSlug,
           offerAmount: latestAmount,
         }).catch((e) => console.error('[offers] withdrawn email:', e));
       }
@@ -156,6 +158,7 @@ export async function PATCH(
             recipientName: buyerName,
             listingTitle,
             listingId,
+            listingSlug,
             offerAmount: offer.amount,
           }).catch((e) => console.error('[offers] accepted email:', e));
         }
@@ -177,6 +180,7 @@ export async function PATCH(
             recipientName: buyerName,
             listingTitle,
             listingId,
+            listingSlug,
             offerAmount: offer.amount,
           }).catch((e) => console.error('[offers] declined email:', e));
         }
@@ -200,6 +204,7 @@ export async function PATCH(
           actorName: sellerName,
           listingTitle,
           listingId,
+          listingSlug,
           offerAmount: action.amount,
         }).catch((e) => console.error('[offers] seller counter email:', e));
       }
@@ -246,6 +251,7 @@ export async function PATCH(
           actorName: buyerName,
           listingTitle,
           listingId,
+          listingSlug,
           offerAmount: offer.amount,
         }).catch((e) => console.error('[offers] buyer counter email:', e));
       }

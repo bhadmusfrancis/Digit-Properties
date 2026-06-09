@@ -1,62 +1,20 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/db';
-import { LISTING_STATUS } from '@/lib/constants';
-import Listing from '@/models/Listing';
-import { getListingPathSegment } from '@/lib/listing-path';
 import { siteOrigin } from '@/lib/site-metadata';
-import { collectListingPhotoUrls, toAbsoluteImageUrlForSeo } from '@/lib/seo/listing-images';
+import {
+  buildImageSitemapUrlEntries,
+  fetchActiveListingsForSitemap,
+} from '@/lib/seo/listing-sitemap-data';
 
 export const revalidate = 3600;
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
 export async function GET() {
   const base = siteOrigin();
-  const urlEntries: string[] = [];
+  let urlEntries: string[] = [];
 
   if (process.env.MONGODB_URI?.trim()) {
     try {
-      await dbConnect();
-      const listings = await Listing.find({
-        status: LISTING_STATUS.ACTIVE,
-        'images.0.url': { $exists: true, $ne: '' },
-      })
-        .select('_id slug title images')
-        .lean();
-
-      for (const row of listings) {
-        const doc = row as {
-          _id: unknown;
-          slug?: string;
-          title?: string;
-          images?: { url?: string }[];
-        };
-
-        const photos = collectListingPhotoUrls(doc.images, { max: 24 });
-        if (!photos.length) continue;
-
-        const segment = getListingPathSegment({ _id: String(doc._id), slug: doc.slug });
-        const pageUrl = `${base}/listings/${segment}`;
-        const title = escapeXml(String(doc.title ?? 'Property listing').slice(0, 200));
-
-        const imageBlocks = photos
-          .map((href) => toAbsoluteImageUrlForSeo(href))
-          .filter(Boolean)
-          .map(
-            (loc) =>
-              `    <image:image>\n      <image:loc>${escapeXml(loc)}</image:loc>\n      <image:title>${title}</image:title>\n      <image:caption>${title}</image:caption>\n    </image:image>`
-          )
-          .join('\n');
-
-        urlEntries.push(`  <url>\n    <loc>${escapeXml(pageUrl)}</loc>\n${imageBlocks}\n  </url>`);
-      }
+      const listings = await fetchActiveListingsForSitemap();
+      urlEntries = buildImageSitemapUrlEntries(listings, base);
     } catch (e) {
       console.error('[image-sitemap]', e);
     }

@@ -7,8 +7,7 @@ import Trend from '@/models/Trend';
 import {
   buildLocationLandingPath,
 } from '@/lib/location-seo';
-import { getListingPathSegment } from '@/lib/listing-path';
-import { isListingIndexable } from '@/lib/seo/listing-indexability';
+import { buildListingDetailSitemapRoutes } from '@/lib/seo/listing-sitemap-data';
 
 export const revalidate = 3600;
 
@@ -108,28 +107,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       Listing.distinct('createdBy', { status: LISTING_STATUS.ACTIVE }),
     ]);
 
-    const listingRoutes: MetadataRoute.Sitemap = listings
-      // Only list listings we actually allow into the index; thin/placeholder ones are noindex.
-      .filter((row) =>
-        isListingIndexable({
-          images: (row as { images?: { url?: string }[] }).images,
-          videos: (row as { videos?: { url?: string; public_id?: string }[] }).videos,
-          description: (row as { description?: string }).description,
-        })
-      )
-      .map((row) => {
-        const updated = row.updatedAt ? new Date(row.updatedAt as Date) : now;
-        const segment = getListingPathSegment({
-          _id: String(row._id),
-          slug: (row as { slug?: string }).slug,
-        });
-        return {
-          url: `${base}/listings/${segment}`,
-          lastModified: updated,
-          changeFrequency: 'weekly' as const,
-          priority: 0.7,
-        };
-      });
+    const listingRoutes = buildListingDetailSitemapRoutes(
+      listings as Parameters<typeof buildListingDetailSitemapRoutes>[0],
+      base,
+      now
+    );
 
     const trendRoutes: MetadataRoute.Sitemap = trends.map((row) => {
       const updated = row.updatedAt

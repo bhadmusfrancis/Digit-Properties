@@ -22,7 +22,8 @@ function toMediaRecord(item: { url?: string; public_id?: string }): ListingMedia
 }
 
 /**
- * Split mis-filed videos out of `images`, dedupe, and keep arrays ready for image/video sitemaps + JSON-LD.
+ * Split mis-filed videos out of `images`, dedupe, and keep arrays ready for image/video sitemaps,
+ * watch pages, and JSON-LD. Applied on every create/update via the listings API.
  */
 export function normalizeListingMediaForSeo(
   rawImages: { url?: string; public_id?: string }[] | undefined,
