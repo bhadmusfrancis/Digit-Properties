@@ -17,6 +17,7 @@ import { findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { prepareListingFieldsForSeo } from '@/lib/listing-seo-prep';
+import { revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 import {
   buildListingSortStage,
   buildLocationScoreFields,
@@ -362,6 +363,7 @@ export async function POST(req: Request) {
       const creator = await User.findById(session.user.id).lean();
       await notifyAdminListingPublish({
         listingId: String(listing._id),
+        listingSlug: listing.slug,
         title: listing.title,
         listingType: listing.listingType,
         price: listing.price,
@@ -371,6 +373,11 @@ export async function POST(req: Request) {
       });
     }
     await notifyAlertsIfActive(finalStatus, listing.toObject());
+
+    const publicPath = getListingPublicPath({ _id: listing._id, slug: listing.slug });
+    if (finalStatus === LISTING_STATUS.ACTIVE) {
+      revalidateListingSeoSurfaces({ publicPath, videoCount: videos.length });
+    }
 
     const doc = listing.toObject ? listing.toObject() : listing;
     const slug = listing.slug;

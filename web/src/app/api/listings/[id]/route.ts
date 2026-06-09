@@ -29,6 +29,7 @@ import {
 } from '@/lib/listing-seo-prep';
 import { listingDocToShareFields } from '@/lib/listing-share-text';
 import { canNonAdminEditListing } from '@/lib/listing-edit-window';
+import { revalidateAllSitemaps, revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 export async function GET(
   _req: Request,
@@ -429,6 +430,7 @@ export async function PATCH(
     if ((wasDraft && nowActive) || wentToPendingFromDraft) {
       await notifyAdminListingPublish({
         listingId: String(listing._id),
+        listingSlug: listing.slug,
         title: listing.title,
         listingType: listing.listingType,
         price: listing.price,
@@ -440,6 +442,7 @@ export async function PATCH(
     } else if (wentToPendingFromActive) {
       await notifyAdminListingPublish({
         listingId: String(listing._id),
+        listingSlug: listing.slug,
         title: listing.title,
         listingType: listing.listingType,
         price: listing.price,
@@ -451,6 +454,12 @@ export async function PATCH(
     } else if (wasPendingApproval && nowActive) {
       await notifyAlertsIfActive(listing.status, listing.toObject());
     }
+
+    const publicPath = getListingPublicPath({ _id: listing._id, slug: listing.slug });
+    revalidateListingSeoSurfaces({
+      publicPath,
+      videoCount: Array.isArray(listing.videos) ? listing.videos.length : 0,
+    });
 
     return NextResponse.json({
       ...(listing.toObject ? listing.toObject() : listing),
@@ -494,6 +503,7 @@ export async function DELETE(
       location: listing.location,
     });
     await Listing.findByIdAndDelete(id);
+    revalidateAllSitemaps();
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

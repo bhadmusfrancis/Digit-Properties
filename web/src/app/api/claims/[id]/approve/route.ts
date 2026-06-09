@@ -51,13 +51,20 @@ export async function POST(
 
     if (claimantEmail && listing) {
       if (approve) {
-        sendClaimApproved(claimantEmail, listing.title, String(claim.listingId)).catch((e) =>
-          console.error('[claims] approved email:', e)
-        );
+        sendClaimApproved(
+          claimantEmail,
+          listing.title,
+          String(claim.listingId),
+          listing.slug
+        ).catch((e) => console.error('[claims] approved email:', e));
       } else {
-        sendClaimRejected(claimantEmail, listing.title, claim.rejectionReason).catch((e) =>
-          console.error('[claims] rejected email:', e)
-        );
+        sendClaimRejected(
+          claimantEmail,
+          listing.title,
+          String(claim.listingId),
+          claim.rejectionReason,
+          listing.slug
+        ).catch((e) => console.error('[claims] rejected email:', e));
       }
     }
 

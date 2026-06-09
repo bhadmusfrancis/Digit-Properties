@@ -72,7 +72,7 @@ async function loadListingForOffers(listingId: string) {
     !soldAt &&
     listing.listingType === LISTING_TYPE.SALE &&
     !!seller?.isVerifiedAccount;
-  return { listing, sellerId, offersEnabled, listingPrice: listing.price, listingTitle: listing.title };
+  return { listing, sellerId, offersEnabled, listingPrice: listing.price, listingTitle: listing.title, listingSlug: listing.slug };
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -225,6 +225,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         buyerName: (typeof buyerFull?.name === 'string' && buyerFull.name) || session.user.name || 'Buyer',
         listingTitle: listingTitle || listing.title,
         listingId,
+        listingSlug: meta.listingSlug,
         offerAmount: amount,
       }).catch((e) => console.error('[offers] new offer email:', e));
     }

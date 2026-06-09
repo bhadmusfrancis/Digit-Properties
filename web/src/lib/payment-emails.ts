@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/db';
 import User from '@/models/User';
+import Listing from '@/models/Listing';
 import { PAYMENT_PURPOSE } from '@/lib/constants';
+import { buildListingEmailUrl } from '@/lib/listing-email-link';
 import { sendPaymentActivityEmail } from '@/lib/email';
 
 export type PaymentNotifyInput = {
@@ -11,6 +13,7 @@ export type PaymentNotifyInput = {
   gateway: string;
   gatewayRef?: string;
   metadata?: Record<string, unknown>;
+  listingId?: string | mongoose.Types.ObjectId;
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -42,6 +45,15 @@ function gatewayLabel(gateway: string): string {
   return GATEWAY_LABELS[gateway] ?? gateway;
 }
 
+async function resolveListingEmailUrl(
+  listingId: string | mongoose.Types.ObjectId | undefined
+): Promise<string | undefined> {
+  if (!listingId) return undefined;
+  const id = String(listingId);
+  const listing = await Listing.findById(id).select('slug').lean<{ slug?: string } | null>();
+  return buildListingEmailUrl({ id, slug: listing?.slug });
+}
+
 /**
  * Email for successful card/gateway payments (Paystack, Flutterwave).
  * Skips wallet-settled payments and wallet top-ups (those use wallet ledger emails).
@@ -61,6 +73,14 @@ export async function notifyPaymentSuccess(payment: PaymentNotifyInput): Promise
     const user = await User.findById(uid).select('email name').lean<{ email?: string; name?: string } | null>();
     if (!user?.email) return;
 
+    const listingId =
+      payment.listingId ??
+      (typeof payment.metadata?.listingId === 'string' ? payment.metadata.listingId : undefined);
+    const listingUrl =
+      payment.purpose === PAYMENT_PURPOSE.BOOST_LISTING
+        ? await resolveListingEmailUrl(listingId)
+        : undefined;
+
     await sendPaymentActivityEmail({
       to: user.email,
       name: user.name || 'there',
@@ -68,6 +88,7 @@ export async function notifyPaymentSuccess(payment: PaymentNotifyInput): Promise
       purposeLabel: purposeLabel(payment.purpose, payment.metadata),
       gatewayLabel: gatewayLabel(payment.gateway),
       reference: payment.gatewayRef,
+      listingUrl,
     });
   } catch (e) {
     console.error('[payment-emails] notifyPaymentSuccess failed:', e);

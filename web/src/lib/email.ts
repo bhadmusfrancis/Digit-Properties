@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { getEmailTemplate } from '@/lib/email-templates';
+import { listingEmailVars, listingLinkParagraph } from '@/lib/listing-email-link';
 import { siteOrigin } from '@/lib/site-metadata';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -157,16 +158,22 @@ export async function sendAdminNewUser(name: string, email: string): Promise<{ o
 
 export async function sendAdminNewClaim(
   listingTitle: string,
+  listingId: string,
   claimantName: string,
   claimantEmail: string,
-  _claimId: string
+  claimId: string,
+  listingSlug?: string | null
 ): Promise<{ ok: boolean }> {
-  const vars = { listingTitle, claimantName, claimantEmail, appName: APP_NAME, appUrl: APP_URL };
+  const link = listingEmailVars({ id: listingId, slug: listingSlug, title: listingTitle });
+  const vars = { ...link, claimantName, claimantEmail, claimId, appName: APP_NAME, appUrl: APP_URL };
   const t = await getEmailTemplate('new_claim_admin');
-  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New claim: ${listingTitle}`;
-  const body = t?.body ? applyTemplate(t.body, vars) : `
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New claim: ${link.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
     <p>A new listing claim has been submitted:</p>
-    <ul><li><strong>Listing:</strong> ${listingTitle}</li><li><strong>Claimant:</strong> ${claimantName} (${claimantEmail})</li></ul>
+    <ul><li><strong>Listing:</strong> ${link.listingTitle}</li><li><strong>Claimant:</strong> ${claimantName} (${claimantEmail})</li></ul>
+    ${listingLinkParagraph(link.listingUrl)}
     <p><a href="${APP_URL}/dashboard/claims" style="color: #0d9488;">Review claim</a></p>`;
   const result = await sendEmail({ to: ADMIN_EMAIL, subject, html: wrapBody('New Listing Claim', body) });
   return { ok: result.ok };
@@ -175,16 +182,20 @@ export async function sendAdminNewClaim(
 export async function sendClaimApproved(
   to: string,
   listingTitle: string,
-  listingId: string
+  listingId: string,
+  listingSlug?: string | null
 ): Promise<{ ok: boolean }> {
-  const vars = { listingTitle, listingId, appName: APP_NAME, appUrl: APP_URL };
+  const link = listingEmailVars({ id: listingId, slug: listingSlug, title: listingTitle });
+  const vars = { ...link, appName: APP_NAME, appUrl: APP_URL };
   const t = await getEmailTemplate('claim_approved');
-  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] Claim approved: ${listingTitle}`;
-  const body = t?.body ? applyTemplate(t.body, vars) : `
-    <p>Good news! Your claim for <strong>${listingTitle}</strong> has been approved.</p>
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] Claim approved: ${link.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Good news! Your claim for <strong>${link.listingTitle}</strong> has been approved.</p>
     <p>You now own this listing and can manage it from your dashboard.</p>
     <p><strong>24-hour edit window:</strong> You can update this listing&apos;s details for 24 hours after your claim is approved. After that, only admins can edit it.</p>
-    <p><a href="${APP_URL}/listings/${listingId}/edit" style="color: #0d9488;">Edit listing</a> · <a href="${APP_URL}/listings/${listingId}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(link.listingUrl, { editUrl: link.listingEditUrl })}`;
   const result = await sendEmail({ to, subject, html: wrapBody('Claim Approved', body) });
   return { ok: result.ok };
 }
@@ -192,16 +203,21 @@ export async function sendClaimApproved(
 export async function sendClaimRejected(
   to: string,
   listingTitle: string,
-  reason?: string
+  listingId: string,
+  reason?: string,
+  listingSlug?: string | null
 ): Promise<{ ok: boolean }> {
-  const vars = { listingTitle, reason: reason ? `Reason: ${reason}` : '', appName: APP_NAME, appUrl: APP_URL };
+  const link = listingEmailVars({ id: listingId, slug: listingSlug, title: listingTitle });
+  const vars = { ...link, reason: reason ? `Reason: ${reason}` : '', appName: APP_NAME, appUrl: APP_URL };
   const t = await getEmailTemplate('claim_rejected');
-  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] Claim update: ${listingTitle}`;
-  const body = t?.body ? applyTemplate(t.body, vars) : `
-    <p>Your claim for <strong>${listingTitle}</strong> was not approved.</p>
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] Claim update: ${link.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
+    <p>Your claim for <strong>${link.listingTitle}</strong> was not approved.</p>
     ${vars.reason ? `<p>${vars.reason}</p>` : ''}
     <p>If you have questions, please use the contact form on our website.</p>
-    <p><a href="${APP_URL}" style="color: #0d9488;">Browse listings</a></p>`;
+    ${listingLinkParagraph(link.listingUrl)}`;
   const result = await sendEmail({ to, subject, html: wrapBody('Claim Not Approved', body) });
   return { ok: result.ok };
 }
@@ -211,16 +227,20 @@ export async function sendAdminNewListing(
   listingId: string,
   createdByName: string,
   listingType: string,
-  price: number
+  price: number,
+  listingSlug?: string | null
 ): Promise<{ ok: boolean }> {
   const priceStr = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(price);
-  const vars = { listingTitle, listingId, createdByName, listingType, price: priceStr, appName: APP_NAME, appUrl: APP_URL };
+  const link = listingEmailVars({ id: listingId, slug: listingSlug, title: listingTitle });
+  const vars = { ...link, createdByName, listingType, price: priceStr, appName: APP_NAME, appUrl: APP_URL };
   const t = await getEmailTemplate('new_listing_admin');
-  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New listing: ${listingTitle}`;
-  const body = t?.body ? applyTemplate(t.body, vars) : `
+  const subject = t?.subject ? applyTemplate(t.subject, vars) : `[${APP_NAME}] New listing: ${link.listingTitle}`;
+  const body = t?.body
+    ? applyTemplate(t.body, vars)
+    : `
     <p>A new listing has been published:</p>
-    <ul><li><strong>Title:</strong> ${listingTitle}</li><li><strong>Type:</strong> ${listingType}</li><li><strong>Price:</strong> ${priceStr}</li><li><strong>By:</strong> ${createdByName}</li></ul>
-    <p><a href="${APP_URL}/listings/${listingId}" style="color: #0d9488;">View listing</a></p>`;
+    <ul><li><strong>Title:</strong> ${link.listingTitle}</li><li><strong>Type:</strong> ${listingType}</li><li><strong>Price:</strong> ${priceStr}</li><li><strong>By:</strong> ${createdByName}</li></ul>
+    ${listingLinkParagraph(link.listingUrl)}`;
   const result = await sendEmail({ to: ADMIN_EMAIL, subject, html: wrapBody('New Listing Published', body) });
   return { ok: result.ok };
 }
@@ -228,6 +248,7 @@ export async function sendAdminNewListing(
 export async function sendAdminListingPendingApproval(input: {
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   createdByName: string;
   listingType: string;
   price: number;
@@ -244,9 +265,13 @@ export async function sendAdminListingPendingApproval(input: {
       ? `<ul>${input.reasons.map((r) => `<li>${r}</li>`).join('')}</ul>`
       : '<p><em>General moderation policy — review before publishing.</em></p>';
   const actionLabel = input.isEdit ? 'updated and needs re-approval' : 'submitted and needs approval';
+  const link = listingEmailVars({
+    id: input.listingId,
+    slug: input.listingSlug,
+    title: input.listingTitle,
+  });
   const vars = {
-    listingTitle: input.listingTitle,
-    listingId: input.listingId,
+    ...link,
     createdByName: input.createdByName,
     listingType: input.listingType,
     price: priceStr,
@@ -257,20 +282,20 @@ export async function sendAdminListingPendingApproval(input: {
   const t = await getEmailTemplate('listing_pending_approval_admin');
   const subject = t?.subject
     ? applyTemplate(t.subject, vars)
-    : `[${APP_NAME}] Listing pending approval: ${input.listingTitle}`;
+    : `[${APP_NAME}] Listing pending approval: ${link.listingTitle}`;
   const body = t?.body
     ? applyTemplate(t.body, vars)
     : `<p>A listing has been ${actionLabel}:</p>
     <ul>
-      <li><strong>Title:</strong> ${input.listingTitle}</li>
+      <li><strong>Title:</strong> ${link.listingTitle}</li>
       <li><strong>Type:</strong> ${input.listingType}</li>
       <li><strong>Price:</strong> ${priceStr}</li>
       <li><strong>By:</strong> ${input.createdByName}</li>
     </ul>
     <p><strong>Flagged checks:</strong></p>
     ${reasonsHtml}
-    <p><a href="${APP_URL}/admin/listings" style="color: #0d9488;">Review in admin</a> ·
-    <a href="${APP_URL}/listings/${input.listingId}" style="color: #0d9488;">Preview listing</a></p>`;
+    <p><a href="${APP_URL}/admin/listings" style="color: #0d9488;">Review in admin</a></p>
+    ${listingLinkParagraph(link.listingUrl, { viewLabel: 'Preview listing' })}`;
   const result = await sendEmail({
     to: ADMIN_EMAIL,
     subject,
@@ -283,15 +308,15 @@ export async function sendAdminListingPendingApproval(input: {
 export async function sendAlertMatchEmail(
   to: string,
   alertName: string,
-  listings: Array<{ _id: string; title: string; price: number; listingType: string; rentPeriod?: string }>,
+  listings: Array<{ _id: string; slug?: string | null; title: string; price: number; listingType: string; rentPeriod?: string }>,
   baseUrl: string
 ): Promise<{ ok: boolean }> {
   const items = listings
     .slice(0, 5)
-    .map(
-      (l) =>
-        `<li><a href="${baseUrl}/listings/${l._id}" style="color: #0d9488;">${l.title}</a> &ndash; ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(l.price)}${l.listingType === 'rent' && l.rentPeriod ? ` / ${l.rentPeriod}` : ''}</li>`
-    )
+    .map((l) => {
+      const href = `${baseUrl}${listingEmailVars({ id: l._id, slug: l.slug, title: l.title }).listingPath}`;
+      return `<li><a href="${href}" style="color: #0d9488;">${l.title}</a> &ndash; ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(l.price)}${l.listingType === 'rent' && l.rentPeriod ? ` / ${l.rentPeriod}` : ''}</li>`;
+    })
     .join('');
   const more = listings.length > 5 ? `<p>...and ${listings.length - 5} more.</p>` : '';
   const body = `
@@ -396,6 +421,7 @@ export async function sendProfessionalOfferNewEmail(params: {
   buyerName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
@@ -403,15 +429,17 @@ export async function sendProfessionalOfferNewEmail(params: {
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = listingEmailVars({
+    id: params.listingId,
+    slug: params.listingSlug,
+    title: params.listingTitle,
+  });
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
     buyerName: params.buyerName || 'Buyer',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('professional_offer_new');
@@ -427,7 +455,7 @@ export async function sendProfessionalOfferNewEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Offer Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Review offer</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl, { viewLabel: 'Review offer on listing' })}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('New Professional Offer', body) });
   return { ok: result.ok };
 }
@@ -438,6 +466,7 @@ export async function sendProfessionalOfferCounterEmail(params: {
   actorName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
@@ -445,15 +474,13 @@ export async function sendProfessionalOfferCounterEmail(params: {
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
     actorName: params.actorName || 'Counterparty',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('professional_offer_counter');
@@ -469,7 +496,7 @@ export async function sendProfessionalOfferCounterEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Latest Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Respond to offer</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl, { viewLabel: 'Respond to offer on listing' })}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Counter-offer Update', body) });
   return { ok: result.ok };
 }
@@ -479,6 +506,7 @@ export async function sendProfessionalOfferAcceptedEmail(params: {
   recipientName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
@@ -486,14 +514,12 @@ export async function sendProfessionalOfferAcceptedEmail(params: {
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('professional_offer_accepted');
@@ -509,7 +535,7 @@ export async function sendProfessionalOfferAcceptedEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Accepted Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl)}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Accepted', body) });
   return { ok: result.ok };
 }
@@ -519,6 +545,7 @@ export async function sendProfessionalOfferDeclinedEmail(params: {
   recipientName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
@@ -526,14 +553,12 @@ export async function sendProfessionalOfferDeclinedEmail(params: {
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('professional_offer_declined');
@@ -549,7 +574,7 @@ export async function sendProfessionalOfferDeclinedEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Last Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl)}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Declined', body) });
   return { ok: result.ok };
 }
@@ -560,6 +585,7 @@ export async function sendProfessionalOfferWithdrawnEmail(params: {
   buyerName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = new Intl.NumberFormat('en-NG', {
@@ -567,15 +593,13 @@ export async function sendProfessionalOfferWithdrawnEmail(params: {
     currency: 'NGN',
     maximumFractionDigits: 0,
   }).format(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
     buyerName: params.buyerName || 'Buyer',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('professional_offer_withdrawn');
@@ -591,7 +615,7 @@ export async function sendProfessionalOfferWithdrawnEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Withdrawn Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl)}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Withdrawn', body) });
   return { ok: result.ok };
 }
@@ -604,24 +628,35 @@ function formatOfferAmountNgn(amount: number) {
   }).format(amount);
 }
 
+function offerListingEmailVars(params: {
+  listingTitle: string;
+  listingId: string;
+  listingSlug?: string | null;
+}) {
+  return listingEmailVars({
+    id: params.listingId,
+    slug: params.listingSlug,
+    title: params.listingTitle,
+  });
+}
+
 export async function sendSimpleOfferNewEmail(params: {
   to: string;
   recipientName: string;
   buyerName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
     buyerName: params.buyerName || 'Buyer',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('send_offer_new');
@@ -637,7 +672,7 @@ export async function sendSimpleOfferNewEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Offer Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Review offer</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl, { viewLabel: 'Review offer on listing' })}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('New Offer', body) });
   return { ok: result.ok };
 }
@@ -648,18 +683,17 @@ export async function sendSimpleOfferCounterEmail(params: {
   actorName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
     actorName: params.actorName || 'Counterparty',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('send_offer_counter');
@@ -675,7 +709,7 @@ export async function sendSimpleOfferCounterEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Latest Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">Respond to offer</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl, { viewLabel: 'Respond to offer on listing' })}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Counter-offer', body) });
   return { ok: result.ok };
 }
@@ -685,17 +719,16 @@ export async function sendSimpleOfferAcceptedEmail(params: {
   recipientName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('send_offer_accepted');
@@ -711,7 +744,7 @@ export async function sendSimpleOfferAcceptedEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Accepted Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl)}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Accepted', body) });
   return { ok: result.ok };
 }
@@ -721,17 +754,16 @@ export async function sendSimpleOfferDeclinedEmail(params: {
   recipientName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('send_offer_declined');
@@ -747,7 +779,7 @@ export async function sendSimpleOfferDeclinedEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Last Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl)}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Declined', body) });
   return { ok: result.ok };
 }
@@ -758,18 +790,17 @@ export async function sendSimpleOfferWithdrawnEmail(params: {
   buyerName: string;
   listingTitle: string;
   listingId: string;
+  listingSlug?: string | null;
   offerAmount: number;
 }): Promise<{ ok: boolean }> {
   const offerAmountFormatted = formatOfferAmountNgn(params.offerAmount);
-  const listingUrl = `${APP_URL}/listings/${params.listingId}`;
+  const link = offerListingEmailVars(params);
   const vars = {
     appName: APP_NAME,
     appUrl: APP_URL,
     recipientName: params.recipientName || 'there',
     buyerName: params.buyerName || 'Buyer',
-    listingTitle: params.listingTitle,
-    listingId: params.listingId,
-    listingUrl,
+    ...link,
     offerAmount: offerAmountFormatted,
   };
   const t = await getEmailTemplate('send_offer_withdrawn');
@@ -785,7 +816,7 @@ export async function sendSimpleOfferWithdrawnEmail(params: {
       <li><strong>Listing:</strong> ${vars.listingTitle}</li>
       <li><strong>Withdrawn Amount:</strong> ${vars.offerAmount}</li>
     </ul>
-    <p><a href="${vars.listingUrl}" style="color: #0d9488;">View listing</a></p>`;
+    ${listingLinkParagraph(vars.listingUrl)}`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Offer Withdrawn', body) });
   return { ok: result.ok };
 }
@@ -807,6 +838,7 @@ export async function sendWalletActivityEmail(params: {
   balanceAfter: number;
   reasonLabel: string;
   description?: string;
+  listingUrl?: string;
 }): Promise<{ ok: boolean }> {
   const isCredit = params.direction === 'credit';
   const amountStr = formatNgn(params.amount);
@@ -815,12 +847,14 @@ export async function sendWalletActivityEmail(params: {
   const noteBlock = params.description
     ? `<p><strong>Note:</strong> ${params.description}</p>`
     : '';
+  const listingBlock = params.listingUrl ? listingLinkParagraph(params.listingUrl) : '';
   const vars = {
     name: params.name || 'there',
     amount: amountStr,
     balance: balanceStr,
     reasonLabel: params.reasonLabel,
     description: params.description || '',
+    listingUrl: params.listingUrl || '',
     direction: isCredit ? 'credited' : 'debited',
     directionTitle: isCredit ? 'Ad credit added' : 'Ad credit spent',
     appName: APP_NAME,
@@ -843,6 +877,7 @@ export async function sendWalletActivityEmail(params: {
       <li><strong>New balance:</strong> ${vars.balance}</li>
     </ul>
     ${noteBlock}
+    ${listingBlock}
     <p><a href="${walletUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`
     : `
     <p>Hi ${vars.name},</p>
@@ -853,6 +888,7 @@ export async function sendWalletActivityEmail(params: {
       <li><strong>Remaining balance:</strong> ${vars.balance}</li>
     </ul>
     ${noteBlock}
+    ${listingBlock}
     <p><a href="${walletUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View your wallet</a></p>`;
   const body = t?.body ? applyTemplate(t.body, vars) : defaultBody;
   const result = await sendEmail({
@@ -872,17 +908,20 @@ export async function sendPaymentActivityEmail(params: {
   purposeLabel: string;
   gatewayLabel: string;
   reference?: string;
+  listingUrl?: string;
 }): Promise<{ ok: boolean }> {
   const amountStr = formatNgn(params.amount);
   const refLine = params.reference
     ? `<li><strong>Reference:</strong> ${params.reference}</li>`
     : '';
+  const listingBlock = params.listingUrl ? listingLinkParagraph(params.listingUrl) : '';
   const vars = {
     name: params.name || 'there',
     amount: amountStr,
     purposeLabel: params.purposeLabel,
     gatewayLabel: params.gatewayLabel,
     reference: params.reference || '',
+    listingUrl: params.listingUrl || '',
     appName: APP_NAME,
     appUrl: APP_URL,
     paymentsUrl: `${APP_URL}/dashboard/payments`,
@@ -902,6 +941,7 @@ export async function sendPaymentActivityEmail(params: {
       <li><strong>Method:</strong> ${vars.gatewayLabel}</li>
       ${refLine}
     </ul>
+    ${listingBlock}
     <p><a href="${vars.paymentsUrl}" style="color: #0d9488; font-weight: 600; text-decoration: underline;">View payment history</a></p>`;
   const result = await sendEmail({ to: params.to, subject, html: wrapBody('Payment confirmed', body) });
   if (!result.ok) console.error('[email] sendPaymentActivityEmail failed for', params.to, result.error);

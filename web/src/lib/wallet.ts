@@ -78,7 +78,7 @@ export async function creditWallet(
     metadata: opts.metadata,
   });
 
-  notifyWalletActivity(uid, WALLET_TX_TYPES.CREDIT, amount, opts.reason, wallet.balance, opts.description).catch(
+  notifyWalletActivity(uid, WALLET_TX_TYPES.CREDIT, amount, opts.reason, wallet.balance, opts.description, opts.listingId).catch(
     (e) => console.error('[wallet] credit email notification:', e)
   );
 
@@ -121,7 +121,7 @@ export async function debitWallet(
     metadata: opts.metadata,
   });
 
-  notifyWalletActivity(uid, WALLET_TX_TYPES.DEBIT, amount, opts.reason, wallet.balance, opts.description).catch(
+  notifyWalletActivity(uid, WALLET_TX_TYPES.DEBIT, amount, opts.reason, wallet.balance, opts.description, opts.listingId).catch(
     (e) => console.error('[wallet] debit email notification:', e)
   );
 

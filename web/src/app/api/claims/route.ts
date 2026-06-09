@@ -109,7 +109,12 @@ export async function POST(req: Request) {
       for (const c of claimsCreated) {
         const list = listings.find((l) => String((l as { _id: mongoose.Types.ObjectId })._id) === c.listingId) as { title?: string } | undefined;
         if (claimantEmail && list?.title) {
-          sendClaimApproved(claimantEmail, list.title, c.listingId).catch((e) => console.error('[claims] approved email:', e));
+          sendClaimApproved(
+            claimantEmail,
+            list.title,
+            c.listingId,
+            (list as { slug?: string }).slug
+          ).catch((e) => console.error('[claims] approved email:', e));
         }
       }
       return NextResponse.json({ claims: claimsCreated, count: claimsCreated.length });
@@ -169,17 +174,25 @@ export async function POST(req: Request) {
       const claimant = await User.findById(session.user.id).lean();
       const claimantEmail = (claimant?.email as string) || session.user.email || '';
       if (claimantEmail) {
-        sendClaimApproved(claimantEmail, listing.title, String(listingId)).catch((e) =>
-          console.error('[claims] approved email:', e)
-        );
+        sendClaimApproved(
+          claimantEmail,
+          listing.title,
+          String(listingId),
+          (listing as { slug?: string }).slug
+        ).catch((e) => console.error('[claims] approved email:', e));
       }
     } else {
       const claimant = await User.findById(session.user.id).lean();
       const claimantName = claimant?.name || session.user.name || 'Unknown';
       const claimantEmail = (claimant?.email as string) || session.user.email || '';
-      sendAdminNewClaim(listing.title, claimantName, claimantEmail, String(claim._id)).catch((e) =>
-        console.error('[claims] admin email:', e)
-      );
+      sendAdminNewClaim(
+        listing.title,
+        String(listingId),
+        claimantName,
+        claimantEmail,
+        String(claim._id),
+        (listing as { slug?: string }).slug
+      ).catch((e) => console.error('[claims] admin email:', e));
     }
 
     return NextResponse.json(claim);
