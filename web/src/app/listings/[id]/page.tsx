@@ -469,6 +469,12 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       );
     }
 
+    const isIndexable = isListingIndexable({
+      images: (listing as { images?: { url?: string }[] }).images,
+      videos: (listing as { videos?: { url?: string; public_id?: string }[] }).videos,
+      description: listing.description,
+    });
+
     const listingState = listing.location?.state ?? '';
     const listingCity = listing.location?.city ?? '';
     const listingPublicPath = getListingPublicPath({ _id: listingId, slug: publicSegment });
@@ -504,26 +510,30 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               : []),
             { name: String(listing.title ?? 'Property'), path: listingPublicPath },
           ]),
-          buildListingJsonLd({
-            id: listingId,
-            slug: publicSegment,
-            title: String(listing.title ?? ''),
-            description: plainTextExcerpt(String(listing.description ?? ''), 500, String(listing.title ?? '')),
-            price: Number(listing.price) || 0,
-            listingType: String(listing.listingType ?? ''),
-            propertyType: String(listing.propertyType ?? ''),
-            imageUrls: structuredImages,
-            bedrooms: Number(listing.bedrooms) || undefined,
-            bathrooms: Number(listing.bathrooms) || undefined,
-            location: {
-              address: listing.location?.address,
-              city: listing.location?.city,
-              state: listing.location?.state,
-              suburb: listing.location?.suburb,
-            },
-            datePosted: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
-            dateModified: listing.updatedAt ? new Date(listing.updatedAt as Date).toISOString() : undefined,
-          }),
+          ...(isIndexable
+            ? [
+                buildListingJsonLd({
+                  id: listingId,
+                  slug: publicSegment,
+                  title: String(listing.title ?? ''),
+                  description: plainTextExcerpt(String(listing.description ?? ''), 500, String(listing.title ?? '')),
+                  price: Number(listing.price) || 0,
+                  listingType: String(listing.listingType ?? ''),
+                  propertyType: String(listing.propertyType ?? ''),
+                  imageUrls: structuredImages,
+                  bedrooms: Number(listing.bedrooms) || undefined,
+                  bathrooms: Number(listing.bathrooms) || undefined,
+                  location: {
+                    address: listing.location?.address,
+                    city: listing.location?.city,
+                    state: listing.location?.state,
+                    suburb: listing.location?.suburb,
+                  },
+                  datePosted: listing.createdAt ? new Date(listing.createdAt as Date).toISOString() : undefined,
+                  dateModified: listing.updatedAt ? new Date(listing.updatedAt as Date).toISOString() : undefined,
+                }),
+              ]
+            : []),
         ]}
       />
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

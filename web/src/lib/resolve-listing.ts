@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/db';
 import { findDeletedListingPathRedirect } from '@/lib/listing-path-redirect';
+import { inferRedirectDestinationFromListingSegment } from '@/lib/infer-listing-redirect';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { getListingPathSegment } from '@/lib/listing-path';
 import Listing, { type IListing } from '@/models/Listing';
@@ -30,7 +31,9 @@ export async function findListingByPublicParam(param: string): Promise<FindListi
   const destinationPath = await findDeletedListingPathRedirect(trimmed);
   if (destinationPath) return { type: 'redirect', destinationPath };
 
-  return null;
+  // Deleted listings (or legacy slug URLs) without a DB tombstone: send crawlers to the
+  // nearest location browse page instead of a hard 404.
+  return { type: 'redirect', destinationPath: inferRedirectDestinationFromListingSegment(trimmed) };
 }
 
 /** Ensure slug exists on the document (lazy backfill for legacy listings). */
