@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Image, ActivityIndicator, Alert, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
@@ -78,6 +78,8 @@ export default function AdminListingsScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>('default');
   const [sortAsc, setSortAsc] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
 
   const sortedListings = useMemo(
@@ -101,11 +103,12 @@ export default function AdminListingsScreen() {
 
   const PER_PAGE = 50;
 
-  const load = (opts?: { reset?: boolean; nextPage?: number }) => {
+  const load = (opts?: { reset?: boolean; nextPage?: number; q?: string }) => {
     if (!token || user?.role !== 'admin') return;
     const reset = opts?.reset !== false;
     const targetPage = reset ? 1 : opts?.nextPage ?? page + 1;
     if (!reset && targetPage > totalPages) return;
+    const activeQuery = opts?.q !== undefined ? opts.q : searchQuery;
 
     if (reset) {
       setLoading(true);
@@ -114,6 +117,7 @@ export default function AdminListingsScreen() {
     }
 
     const qs = new URLSearchParams({ page: String(targetPage), limit: String(PER_PAGE) });
+    if (activeQuery.trim()) qs.set('q', activeQuery.trim());
     fetch(getApiUrl('admin/listings?' + qs.toString()), {
       headers: { Authorization: 'Bearer ' + token },
     })
@@ -146,6 +150,18 @@ export default function AdminListingsScreen() {
   useEffect(() => {
     load();
   }, [token, user?.role]);
+
+  const submitSearch = () => {
+    const next = searchInput.trim();
+    setSearchQuery(next);
+    load({ reset: true, q: next });
+  };
+
+  const clearSearch = () => {
+    setSearchInput('');
+    setSearchQuery('');
+    load({ reset: true, q: '' });
+  };
 
   const deleteListing = (listingId: string, title: string) => {
     Alert.alert('Delete listing', `Delete "${title}"?`, [
@@ -212,7 +228,30 @@ export default function AdminListingsScreen() {
             ) : null
           }
           ListHeaderComponent={
-            <View style={styles.sortSection}>
+            <View>
+              <View style={styles.searchSection}>
+                <TextInput
+                  value={searchInput}
+                  onChangeText={setSearchInput}
+                  placeholder="Search title, address, owner, status…"
+                  placeholderTextColor="#94a3b8"
+                  style={styles.searchInput}
+                  returnKeyType="search"
+                  onSubmitEditing={submitSearch}
+                  clearButtonMode="while-editing"
+                />
+                <View style={styles.searchActions}>
+                  <Pressable style={styles.searchBtn} onPress={submitSearch}>
+                    <Text style={styles.searchBtnText}>Search</Text>
+                  </Pressable>
+                  {searchQuery ? (
+                    <Pressable style={styles.clearBtn} onPress={clearSearch}>
+                      <Text style={styles.clearBtnText}>Clear</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+              <View style={styles.sortSection}>
               <Text style={styles.sortLabel}>Sort by</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortChips}>
                 {SORT_OPTIONS.map(({ key, label }) => {
@@ -238,6 +277,7 @@ export default function AdminListingsScreen() {
                   );
                 })}
               </ScrollView>
+              </View>
             </View>
           }
           renderItem={({ item }) => (
@@ -280,6 +320,38 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, color: '#0d9488', fontWeight: '500', marginRight: 12 },
   title: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
   loader: { marginTop: 24 },
+  searchSection: { marginBottom: 12 },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#0f172a',
+  },
+  searchActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  searchBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0d9488',
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  searchBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  clearBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
+  clearBtnText: { color: '#475569', fontWeight: '600', fontSize: 14 },
   sortSection: { marginBottom: 12 },
   sortLabel: { fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 8 },
   sortChips: { flexDirection: 'row', gap: 8, paddingRight: 16 },

@@ -26,11 +26,12 @@ export function parseListingSortFromSearchParams(sp: {
   return { sortKey, sortAsc };
 }
 
-/** Query string for list pages (pagination + optional sort). */
+/** Query string for list pages (pagination + optional sort + optional search). */
 export function buildListingListQuery(
   page: number,
   sortKey: ListingSortKey,
-  sortAsc: boolean
+  sortAsc: boolean,
+  searchQuery?: string
 ): string {
   const p = new URLSearchParams();
   if (page > 1) p.set('page', String(page));
@@ -38,6 +39,8 @@ export function buildListingListQuery(
     p.set('sort', sortKey);
     p.set('order', sortAsc ? 'asc' : 'desc');
   }
+  const q = searchQuery?.trim();
+  if (q) p.set('q', q.slice(0, 200));
   const s = p.toString();
   return s ? `?${s}` : '';
 }

@@ -2,6 +2,7 @@ import mongoose, { type PipelineStage } from 'mongoose';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
 import type { ListingSortKey } from '@/lib/sort-listing-rows';
+import { buildAdminListingSearchMatch } from '@/lib/admin-listing-search';
 
 const listingFieldsMy =
   'title price status listingType rentPeriod propertyType images videos featured highlighted boostPackage boostExpiresAt soldAt rentedAt createdAt claimedAt';
@@ -158,14 +159,20 @@ export async function fetchMyListingsPage(
 const listingFieldsAdmin =
   'title price status listingType rentPeriod propertyType location images videos featured highlighted createdBy createdAt';
 
+export async function countAdminListings(searchQuery?: string) {
+  const match = await buildAdminListingSearchMatch(searchQuery);
+  return Listing.countDocuments(match);
+}
+
 /** Admin listings: sort entire set in DB, then paginate; populate createdBy via $lookup. */
 export async function fetchAdminListingsPage(
   sortKey: ListingSortKey,
   sortAsc: boolean,
   skip: number,
-  limit: number
+  limit: number,
+  searchQuery?: string
 ) {
-  const match = {};
+  const match = await buildAdminListingSearchMatch(searchQuery);
   const sortDir = sortAsc ? 1 : -1;
   const userColl = User.collection.name;
 

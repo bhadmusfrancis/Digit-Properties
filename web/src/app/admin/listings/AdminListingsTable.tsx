@@ -38,12 +38,14 @@ export function AdminListingsTable({
   users,
   sortKey,
   sortAsc,
+  searchQuery = '',
   basePath,
 }: {
   listings: Listing[];
   users: User[];
   sortKey: ListingSortKey;
   sortAsc: boolean;
+  searchQuery?: string;
   basePath: string;
 }) {
   const router = useRouter();
@@ -60,14 +62,14 @@ export function AdminListingsTable({
   const applySort = useCallback(
     (key: Exclude<ListingSortKey, 'default'>) => {
       const next = cycleListingSort(sortKey, sortAsc, key);
-      router.push(`${basePath}${buildListingListQuery(1, next.sortKey, next.sortAsc)}`);
+      router.push(`${basePath}${buildListingListQuery(1, next.sortKey, next.sortAsc, searchQuery)}`);
     },
-    [basePath, router, sortAsc, sortKey]
+    [basePath, router, searchQuery, sortAsc, sortKey]
   );
 
   const resetSort = useCallback(() => {
-    router.push(`${basePath}${buildListingListQuery(1, 'default', true)}`);
-  }, [basePath, router]);
+    router.push(`${basePath}${buildListingListQuery(1, 'default', true, searchQuery)}`);
+  }, [basePath, router, searchQuery]);
 
   const thumb = (l: Listing) => {
     const url = getListingDisplayImage(l.images, l.propertyType, l.videos);
@@ -273,7 +275,11 @@ export function AdminListingsTable({
           </tbody>
         </table>
       </div>
-      {listings.length === 0 && <div className="py-12 text-center text-gray-500">No listings yet.</div>}
+      {listings.length === 0 && (
+        <div className="py-12 text-center text-gray-500">
+          {searchQuery ? 'No listings match your search.' : 'No listings yet.'}
+        </div>
+      )}
     </div>
   );
 }
