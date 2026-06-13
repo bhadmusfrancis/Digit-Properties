@@ -73,15 +73,31 @@ export const LISTING_HAS_MEDIA_FIELD = {
       if: {
         $or: [
           {
-            $and: [
-              { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
-              { $ne: [{ $ifNull: ['$images.0.url', ''] }, ''] },
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: { $ifNull: ['$images', []] },
+                    as: 'img',
+                    cond: { $gt: [{ $strLenCP: { $ifNull: ['$$img.url', ''] } }, 0] },
+                  },
+                },
+              },
+              0,
             ],
           },
           {
-            $and: [
-              { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
-              { $ne: [{ $ifNull: ['$videos.0.url', ''] }, ''] },
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: { $ifNull: ['$videos', []] },
+                    as: 'vid',
+                    cond: { $gt: [{ $strLenCP: { $ifNull: ['$$vid.url', ''] } }, 0] },
+                  },
+                },
+              },
+              0,
             ],
           },
         ],
@@ -92,10 +108,13 @@ export const LISTING_HAS_MEDIA_FIELD = {
   },
 } as const;
 
-const LISTING_SORT_MARKET_FIRST = { _isMarketAvailable: -1 as const };
+const LISTING_SORT_PRIORITIES = {
+  _isMarketAvailable: -1 as const,
+  _hasMedia: -1 as const,
+};
 
 function listingSortStage(sort: Record<string, 1 | -1>): PipelineStage {
-  return { $sort: { ...LISTING_SORT_MARKET_FIRST, ...sort } } as PipelineStage;
+  return { $sort: { ...LISTING_SORT_PRIORITIES, ...sort } } as PipelineStage;
 }
 
 export function isListingMarketAvailable(listing: {
@@ -115,6 +134,29 @@ export function compareListingMarketAvailable(
   return ab - aa;
 }
 
+export function listingHasRealMedia(listing: {
+  images?: Array<{ url?: string }>;
+  videos?: Array<{ url?: string }>;
+}): boolean {
+  const imgOk =
+    Array.isArray(listing.images) &&
+    listing.images.some((img) => typeof img?.url === 'string' && img.url.trim().length > 0);
+  const vidOk =
+    Array.isArray(listing.videos) &&
+    listing.videos.some((v) => typeof v?.url === 'string' && v.url.trim().length > 0);
+  return imgOk || vidOk;
+}
+
+/** In-memory tie-break: listings with photos/videos before those without (stable sort). */
+export function compareListingHasMedia(
+  a: Parameters<typeof listingHasRealMedia>[0],
+  b: Parameters<typeof listingHasRealMedia>[0]
+): number {
+  const ha = listingHasRealMedia(a) ? 1 : 0;
+  const hb = listingHasRealMedia(b) ? 1 : 0;
+  return hb - ha;
+}
+
 export function buildListingSortStage(
   sort: string | undefined,
   options: { hasQuery: boolean; hasNear: boolean; useTextScore: boolean }
@@ -124,31 +166,30 @@ export function buildListingSortStage(
   const stableId = { _id: 1 as const };
 
   if (key === 'relevance' && options.useTextScore) {
-    return listingSortStage({ score: -1, _hasMedia: -1, boostExpiresAt: -1, createdAt: -1, ...stableId });
+    return listingSortStage({ score: -1, boostExpiresAt: -1, createdAt: -1, ...stableId });
   }
 
   if (key === 'closest' && options.hasNear) {
-    return listingSortStage({ _locScore: -1, _hasMedia: -1, boostExpiresAt: -1, createdAt: -1, ...stableId });
+    return listingSortStage({ _locScore: -1, boostExpiresAt: -1, createdAt: -1, ...stableId });
   }
 
   switch (key) {
     case 'price_asc':
-      return listingSortStage({ _hasMedia: -1, price: 1, createdAt: -1, ...stableId });
+      return listingSortStage({ price: 1, createdAt: -1, ...stableId });
     case 'price_desc':
-      return listingSortStage({ _hasMedia: -1, price: -1, createdAt: -1, ...stableId });
+      return listingSortStage({ price: -1, createdAt: -1, ...stableId });
     case 'newest':
-      return listingSortStage({ _hasMedia: -1, createdAt: -1, ...stableId });
+      return listingSortStage({ createdAt: -1, ...stableId });
     case 'popular':
-      return listingSortStage({ _hasMedia: -1, viewCount: -1, createdAt: -1, ...stableId });
+      return listingSortStage({ viewCount: -1, createdAt: -1, ...stableId });
     case 'relevance':
       return listingSortStage({
-        _hasMedia: -1,
         boostExpiresAt: -1,
         highlighted: -1,
         createdAt: -1,
         ...stableId,
       });
     default:
-      return listingSortStage({ _hasMedia: -1, boostExpiresAt: -1, createdAt: -1, ...stableId });
+      return listingSortStage({ boostExpiresAt: -1, createdAt: -1, ...stableId });
   }
 }
