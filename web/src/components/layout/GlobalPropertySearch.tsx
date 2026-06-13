@@ -8,21 +8,21 @@ import {
   isListingSearchSortKey,
   type ListingSearchSortKey,
 } from '@/lib/listing-search-sort';
+import { useUserNearLocation } from '@/lib/use-user-near-location';
 
 export function GlobalPropertySearch() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const onListingsPage = pathname === '/listings' || pathname.startsWith('/listings/');
-  const onListingsSearchPage = pathname === '/listings';
 
   const urlQ = onListingsPage ? searchParams.get('q') ?? '' : '';
-  const showSort = onListingsSearchPage && Boolean(urlQ.trim());
   const urlSort = onListingsPage ? searchParams.get('sort') : null;
   const [query, setQuery] = useState(urlQ);
   const [sort, setSort] = useState<ListingSearchSortKey>(
     isListingSearchSortKey(urlSort) ? urlSort : defaultListingSearchSort(Boolean(urlQ))
   );
+  const { requestLocation } = useUserNearLocation({ enabled: sort === 'closest' });
 
   useEffect(() => {
     setQuery(urlQ);
@@ -53,9 +53,8 @@ export function GlobalPropertySearch() {
 
   function handleSortChange(nextSort: ListingSearchSortKey) {
     setSort(nextSort);
-    if (onListingsPage) {
-      navigate(urlQ, nextSort);
-    }
+    navigate(query, nextSort);
+    if (nextSort === 'closest') requestLocation();
   }
 
   return (
@@ -88,11 +87,9 @@ export function GlobalPropertySearch() {
         autoComplete="off"
         enterKeyHint="search"
       />
-      {showSort && (
-        <div className="shrink-0 border-l border-gray-200 pl-1 sm:pl-2">
-          <ListingSearchSortSelect value={sort} onChange={handleSortChange} compact />
-        </div>
-      )}
+      <div className="shrink-0 border-l border-gray-200 pl-1 sm:pl-2">
+        <ListingSearchSortSelect value={sort} onChange={handleSortChange} compact />
+      </div>
       <button
         type="submit"
         className="shrink-0 rounded-full bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 sm:text-sm"

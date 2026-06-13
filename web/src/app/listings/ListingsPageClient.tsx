@@ -7,7 +7,6 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import type { Listing as ListingGridItem } from '@/components/listings/ListingGrid';
 import { ListingFilters } from '@/components/listings/ListingFilters';
-import { ListingResultsSortBar } from '@/components/listings/ListingResultsSortBar';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { isListingSearchSortKey } from '@/lib/listing-search-sort';
 import { useUserNearLocation } from '@/lib/use-user-near-location';
@@ -64,7 +63,6 @@ function ListingsContent({
   const query = usePresetOnly
     ? buildBaseQuery(new URLSearchParams(), presetFilters)
     : buildBaseQuery(searchParams);
-  const hasSearchQuery = Boolean(searchParams.get('q')?.trim());
   const sortParam = searchParams.get('sort');
   const sortClosest = isListingSearchSortKey(sortParam) && sortParam === 'closest';
   const { location: nearLocation, requestLocation } = useUserNearLocation({ enabled: sortClosest });
@@ -141,11 +139,6 @@ function ListingsContent({
         </div>
       )}
       {!usePresetOnly && <ListingFilters />}
-      {!usePresetOnly && !hasSearchQuery && (
-        <Suspense fallback={null}>
-          <ListingResultsSortBar className="mt-4" />
-        </Suspense>
-      )}
       {usePresetOnly && (
         <p className="mt-4 text-sm text-gray-500">
           <Link href="/listings" className="text-primary-600 hover:underline">
