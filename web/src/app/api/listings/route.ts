@@ -21,6 +21,7 @@ import { revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 import {
   buildListingSortStage,
   buildLocationScoreFields,
+  compareListingHasMedia,
   compareListingMarketAvailable,
   hasNearLocation,
   LISTING_HAS_MEDIA_FIELD,
@@ -103,25 +104,11 @@ export async function GET(req: Request) {
     type ListingRow = Omit<IListing, 'createdBy'> & { createdBy?: IListing['createdBy'] | { firstName?: string; name?: string; image?: string; role?: string } };
     let listings: ListingRow[];
     let total: number;
-    const hasRealMedia = (l: ListingRow) => {
-      const imgOk =
-        Array.isArray(l.images) &&
-        l.images.some((img) => typeof img?.url === 'string' && img.url.trim().length > 0);
-      const vidOk =
-        Array.isArray((l as unknown as { videos?: IListing['videos'] }).videos) &&
-        ((l as unknown as { videos?: Array<{ url?: string; public_id?: string }> }).videos ?? []).some(
-          (v) => typeof v?.url === 'string' && v.url.trim().length > 0
-        );
-      return imgOk || vidOk;
-    };
     const prioritizeSearchResults = (arr: ListingRow[]) =>
       [...arr].sort((a, b) => {
         const marketCmp = compareListingMarketAvailable(a, b);
         if (marketCmp !== 0) return marketCmp;
-        const am = hasRealMedia(a);
-        const bm = hasRealMedia(b);
-        if (am === bm) return 0;
-        return bm ? 1 : -1;
+        return compareListingHasMedia(a, b);
       });
 
     if (featured && random) {
