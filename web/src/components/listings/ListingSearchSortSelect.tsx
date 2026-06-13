@@ -31,7 +31,7 @@ export function ListingSearchSortSelect({
         const next = e.target.value;
         if (isListingSearchSortKey(next)) onChange(next);
       }}
-      aria-label="Sort search results"
+      aria-label="Sort listings"
       className={
         compact
           ? `rounded-full border-0 bg-transparent py-1 pl-2 pr-7 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-400 sm:text-sm ${className}`
