@@ -513,6 +513,41 @@ async function main() {
     }
 
     const mergedFiles = [...new Set([...(msg.files ?? []), ...(mediaMergeMap.get(mi) ?? [])])];
+
+    const baseFp = listingFingerprint(clean, msg.senderPhone);
+    const tsTag = tsTagFromDate(msg.sentAt);
+    let items = [one];
+    if (isMultiParcelBrief(clean)) {
+      const multi = parseMultipleWhatsAppListings(clean);
+      if (multi.length >= 2) items = multi;
+    }
+
+    if (!dryRun) {
+      let allExistWithMedia = items.length > 0;
+      let anyNeedsBackfill = false;
+      for (let k = 0; k < items.length; k++) {
+        const fpTag = `wa-fp:${k === 0 ? baseFp : `${baseFp}-${k}`}`;
+        const existing = await Listing.findOne({ createdBy: author!._id, tags: fpTag })
+          .select('images videos')
+          .lean();
+        if (!existing) {
+          allExistWithMedia = false;
+          break;
+        }
+        const oldImages = Array.isArray((existing as { images?: unknown[] }).images)
+          ? (existing as { images: unknown[] }).images
+          : [];
+        const oldVideos = Array.isArray((existing as { videos?: unknown[] }).videos)
+          ? (existing as { videos: unknown[] }).videos
+          : [];
+        if (oldImages.length === 0 && oldVideos.length === 0) anyNeedsBackfill = true;
+      }
+      if (allExistWithMedia && !anyNeedsBackfill) {
+        duplicates++;
+        continue;
+      }
+    }
+
     const images: { url: string; public_id: string }[] = [];
     const videos: { url: string; public_id: string }[] = [];
 
@@ -553,17 +588,6 @@ async function main() {
         uploadErrors++;
         console.error(`  upload failed ${fname}:`, e);
       }
-    }
-
-    // Ordinary message → one listing. Multi-parcel brief → one listing per
-    // parcel (media on the first parcel only, since it can't be matched per
-    // parcel). Each parcel gets a distinct fingerprint so re-runs dedupe.
-    const baseFp = listingFingerprint(clean, msg.senderPhone);
-    const tsTag = tsTagFromDate(msg.sentAt);
-    let items = [one];
-    if (isMultiParcelBrief(clean)) {
-      const multi = parseMultipleWhatsAppListings(clean);
-      if (multi.length >= 2) items = multi;
     }
 
     for (let k = 0; k < items.length; k++) {

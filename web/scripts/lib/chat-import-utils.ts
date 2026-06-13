@@ -2,6 +2,8 @@ import { createHash } from 'crypto';
 import { existsSync, readFileSync, statSync } from 'fs';
 import path from 'path';
 
+import { findDuplicateAmongCandidates } from '../../src/lib/listing-dedupe';
+
 export const ATTACHED_RE = /<attached:\s*([^>]+)>/gi;
 export const MSG_HEADER_RE = /^\[\d{1,2}\/\d{1,2}\/\d{2,4},/;
 
@@ -148,6 +150,147 @@ export function isDuplicateOfCanonical(
     if (bodySimilarity(clean, prev) >= DEDUP_SIMILARITY) return true;
   }
   return false;
+}
+
+type ListingLite = {
+  _id: unknown;
+  title?: string;
+  description?: string;
+  location?: { city?: string; state?: string; suburb?: string };
+  images?: { public_id?: string }[];
+  videos?: { public_id?: string }[];
+};
+
+export type AuthorImportDedupeIndex = {
+  dbFps: Set<string>;
+  usedAttachments: Set<string>;
+  listingCandidates: ListingLite[];
+  listingBodies: string[];
+};
+
+/** Load fingerprint tags, attachment tags, and listing rows for pre-upload dedupe. */
+export async function buildAuthorImportDedupeIndex(
+  authorId: unknown,
+  Listing: {
+    find: (filter: Record<string, unknown>) => {
+      select: (fields: string) => { lean: () => Promise<unknown[]> };
+    };
+  }
+): Promise<AuthorImportDedupeIndex> {
+  const dbFps = new Set<string>();
+  const usedAttachments = new Set<string>();
+  const listingBodies: string[] = [];
+
+  const tagged = await Listing.find({
+    createdBy: authorId,
+    tags: 'whatsapp-chat-import',
+  })
+    .select('tags description')
+    .lean();
+
+  for (const row of tagged) {
+    const r = row as { tags?: string[]; description?: string };
+    const tags = Array.isArray(r.tags) ? r.tags : [];
+    for (const t of tags) {
+      if (t.startsWith('wa-fp:')) dbFps.add(t.slice('wa-fp:'.length));
+      if (t.startsWith('wa-att:')) usedAttachments.add(t.slice('wa-att:'.length));
+    }
+    const desc = r.description?.trim();
+    if (desc && desc.length >= DEDUP_MIN_CHARS) listingBodies.push(cleanBodyForParser(desc));
+  }
+
+  const candidates = await Listing.find({
+    createdBy: authorId,
+    status: { $in: ['draft', 'active', 'paused', 'pending_approval'] },
+  })
+    .select('title description location images videos')
+    .limit(250)
+    .lean();
+
+  return {
+    dbFps,
+    usedAttachments,
+    listingCandidates: candidates as ListingLite[],
+    listingBodies,
+  };
+}
+
+export type ChatImportDedupeState = {
+  canonicalFps: Set<string>;
+  canonicalBodies: string[];
+  dbFps: Set<string>;
+  batchSeenFp: Set<string>;
+  seenBodies: string[];
+  usedAttachments: Set<string>;
+  listingCandidates: ListingLite[];
+};
+
+export function createChatImportDedupeState(
+  canonicalFps: Set<string>,
+  canonicalBodies: string[],
+  authorIndex: AuthorImportDedupeIndex
+): ChatImportDedupeState {
+  return {
+    canonicalFps,
+    canonicalBodies,
+    dbFps: new Set(authorIndex.dbFps),
+    batchSeenFp: new Set<string>(),
+    seenBodies: [...canonicalBodies, ...authorIndex.listingBodies],
+    usedAttachments: new Set(authorIndex.usedAttachments),
+    listingCandidates: authorIndex.listingCandidates,
+  };
+}
+
+/** All duplicate checks that must run before uploading media to Cloudinary. */
+export function shouldSkipChatImportBeforeUpload(
+  params: {
+    clean: string;
+    senderPhone?: string;
+    title: string;
+    description: string;
+    location?: { city?: string; state?: string; suburb?: string };
+    attachmentFilenames: string[];
+  },
+  state: ChatImportDedupeState
+): { skip: true; reason: string } | { skip: false; fp: string } {
+  const fp = listingFingerprint(params.clean, params.senderPhone);
+
+  if (state.batchSeenFp.has(fp) || state.dbFps.has(fp)) {
+    return { skip: true, reason: 'duplicate fingerprint (already imported)' };
+  }
+  if (isDuplicateOfCanonical(params.clean, params.senderPhone, fp, state.canonicalFps, state.canonicalBodies)) {
+    return { skip: true, reason: 'duplicate in All_chats.txt' };
+  }
+  if (isDuplicateOfCanonical(params.clean, params.senderPhone, fp, new Set(), state.seenBodies)) {
+    return { skip: true, reason: 'similar to existing listing or message in batch' };
+  }
+  for (const f of params.attachmentFilenames) {
+    if (state.usedAttachments.has(f)) {
+      return { skip: true, reason: `attachment already used (${f})` };
+    }
+  }
+  const listingDup = findDuplicateAmongCandidates(state.listingCandidates, undefined, {
+    title: params.title,
+    description: params.description,
+    location: params.location,
+    mediaPublicIds: [],
+  });
+  if (listingDup) {
+    return { skip: true, reason: listingDup.message };
+  }
+  return { skip: false, fp };
+}
+
+export function markChatImportAccepted(
+  state: ChatImportDedupeState,
+  fp: string,
+  clean: string,
+  attachmentFilenames: string[]
+): void {
+  state.batchSeenFp.add(fp);
+  state.dbFps.add(fp);
+  if (clean.length >= DEDUP_MIN_CHARS) state.seenBodies.push(clean);
+  for (const f of attachmentFilenames) state.usedAttachments.add(f);
 }
 
 export function hasResolvableMedia(files: string[], mediaDir: string): boolean {

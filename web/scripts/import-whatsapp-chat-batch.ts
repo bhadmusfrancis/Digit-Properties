@@ -4,7 +4,7 @@
  * Protocol:
  * 1. Build chat.txt from _chat.txt (contacts.txt in the SAME folder only)
  * 2. Dedupe against repo-root All_chats.txt (all groups)
- * 3. Import listings with media + real-estate filter
+ * 3. Import listings with media + real-estate filter (dedupe before any upload)
  * 4. Append new messages to All_chats.txt after successful imports
  * 5. Dedupe listings in MongoDB
  *
@@ -29,6 +29,11 @@ import {
   parseMessageMeta,
   splitChatMessages,
   tsTagFromDate,
+  buildAuthorImportDedupeIndex,
+  createChatImportDedupeState,
+  shouldSkipChatImportBeforeUpload,
+  markChatImportAccepted,
+  type ChatImportDedupeState,
 } from './lib/chat-import-utils';
 import { ALL_CHATS_PATH, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
 import { mongoUriForConnect } from './lib/mongo-uri';
@@ -201,38 +206,56 @@ async function main() {
 
   const mongoUri = mongoUriForConnect(process.env.MONGODB_URI || '');
 
-  let dbFps = new Set<string>();
-  if (!dryRun && mongoUri) {
+  let dedupeState: ChatImportDedupeState | null = null;
+  if (mongoUri) {
     const mongoose = (await import('mongoose')).default;
     const Listing = (await import('../src/models/Listing')).default;
     const User = (await import('../src/models/User')).default;
     await mongoose.connect(mongoUri);
     const author = await User.findOne({ email: authorEmail.toLowerCase().trim() }).select('_id').lean();
     if (author) {
-      const rows = await Listing.find({
-        createdBy: author._id,
-        tags: 'whatsapp-chat-import',
-      })
-        .select('tags')
-        .lean();
-      for (const row of rows) {
-        const tags = Array.isArray((row as { tags?: string[] }).tags) ? (row as { tags: string[] }).tags : [];
-        for (const t of tags) {
-          if (t.startsWith('wa-fp:')) dbFps.add(t.slice('wa-fp:'.length));
-        }
-      }
+      const authorIndex = await buildAuthorImportDedupeIndex(author._id, Listing);
+      dedupeState = createChatImportDedupeState(canonicalFps, canonicalBodies, authorIndex);
+      console.log(`Existing DB fingerprints (wa-fp): ${authorIndex.dbFps.size}`);
     }
     await mongoose.disconnect();
-    console.log(`Existing DB fingerprints (wa-fp): ${dbFps.size}`);
   }
 
   const newMessages: ParsedChatMessage[] = [];
   let skippedAlreadyInDb = 0;
+  let skippedSimilarDup = 0;
   for (const msg of candidates) {
-    const fp = listingFingerprint(msg.clean, msg.senderPhone);
-    if (dbFps.has(fp)) {
-      skippedAlreadyInDb++;
-      continue;
+    const one = parseWhatsAppListingText(msg.clean);
+    if (!one.parsed.agentPhone && msg.senderPhone) one.parsed.agentPhone = msg.senderPhone;
+    const mergedFiles = [
+      ...new Set([...(msg.files ?? []), ...(mediaMergePreview.get(msg.index) ?? [])]),
+    ];
+    if (dedupeState) {
+      const dup = shouldSkipChatImportBeforeUpload(
+        {
+          clean: msg.clean,
+          senderPhone: msg.senderPhone,
+          title: one.parsed.title,
+          description: one.parsed.description,
+          location: one.parsed.location,
+          attachmentFilenames: mergedFiles,
+        },
+        dedupeState
+      );
+      if (dup.skip) {
+        if (dup.reason.includes('fingerprint') || dup.reason.includes('All_chats')) {
+          skippedAlreadyInDb++;
+        } else {
+          skippedSimilarDup++;
+        }
+        continue;
+      }
+    } else {
+      const fp = listingFingerprint(msg.clean, msg.senderPhone);
+      if (canonicalFps.has(fp)) {
+        skippedAlreadyInDb++;
+        continue;
+      }
     }
     newMessages.push(msg);
   }
@@ -248,7 +271,7 @@ async function main() {
       )
   );
 
-  console.log('\nStep 2: Filter (media + real-estate + not in DB + not in All_chats.txt)');
+  console.log('\nStep 2: Filter (media + real-estate + dedupe before upload)');
   console.log(
     JSON.stringify(
       {
@@ -259,6 +282,7 @@ async function main() {
         skippedNoMedia,
         skippedNotListing,
         skippedAlreadyInDb,
+        skippedSimilarDup,
       },
       null,
       2
@@ -307,6 +331,11 @@ async function main() {
     process.exit(1);
   }
 
+  if (!dedupeState && author) {
+    const authorIndex = await buildAuthorImportDedupeIndex(author._id, Listing);
+    dedupeState = createChatImportDedupeState(canonicalFps, canonicalBodies, authorIndex);
+  }
+
   const mediaMergeMap = buildMediaMergeMap(newMessages, parseWhatsAppListingText);
   const uploadCache = new Map<string, { url: string; public_id: string; kind: 'image' | 'video' }>();
 
@@ -346,55 +375,35 @@ async function main() {
       continue;
     }
 
-    const images: { url: string; public_id: string }[] = [];
-    const videos: { url: string; public_id: string }[] = [];
-
-    for (const fname of mergedFiles) {
-      const ext = path.extname(fname).toLowerCase();
-      const kind = MEDIA_EXT[ext];
-      if (!kind) continue;
-      const localPath = path.join(sourceDir, fname);
-      if (!existsSync(localPath)) continue;
-      const { statSync } = await import('fs');
-      if (kind === 'video' && statSync(localPath).size / (1024 * 1024) > 40) continue;
-
-      const cacheKey = path.resolve(localPath);
-      if (uploadCache.has(cacheKey)) {
-        const c = uploadCache.get(cacheKey)!;
-        if (c.kind === 'image') images.push({ url: c.url, public_id: c.public_id });
-        else videos.push({ url: c.url, public_id: c.public_id });
-        continue;
-      }
-      if (dryRun) {
-        const fake = { url: `dry-run://${fname}`, public_id: `dry/${fname}`, kind };
-        uploadCache.set(cacheKey, fake);
-        if (kind === 'image') images.push({ url: fake.url, public_id: fake.public_id });
-        else videos.push({ url: fake.url, public_id: fake.public_id });
-        continue;
-      }
-      try {
-        const up = await uploadListingMediaToCloudinary(cloudinary, localPath, kind);
-        uploadCache.set(cacheKey, { ...up, kind });
-        if (kind === 'image') images.push(up);
-        else videos.push(up);
-      } catch (e) {
-        uploadErrors++;
-        console.error(`  upload failed ${fname}:`, e);
-      }
-    }
-
-    if (images.length === 0 && videos.length === 0) {
-      logSkip(`no media uploaded (${mergedFiles.join(', ') || 'none'})`, one.parsed.title || titleHint);
-      continue;
-    }
-
     const { parsed, confidence, missing } = one;
     if (!parsed.agentName && msg.senderName) parsed.agentName = msg.senderName;
     let description = parsed.description;
     if (description.length < 20) description = `${description}\n\n(Imported from WhatsApp chat.)`.slice(0, 5000);
     if (description.length > 5000) description = description.slice(0, 5000);
 
-    const fp = listingFingerprint(clean, msg.senderPhone);
+    let fp: string;
+    if (dedupeState) {
+      const dup = shouldSkipChatImportBeforeUpload(
+        {
+          clean,
+          senderPhone: msg.senderPhone,
+          title: parsed.title,
+          description,
+          location: parsed.location,
+          attachmentFilenames: mergedFiles,
+        },
+        dedupeState
+      );
+      if (dup.skip) {
+        duplicates++;
+        console.warn(`  duplicate: ${(parsed.title || titleHint).slice(0, 55)} — ${dup.reason}`);
+        continue;
+      }
+      fp = dup.fp;
+    } else {
+      fp = listingFingerprint(clean, msg.senderPhone);
+    }
+
     const fpTag = `wa-fp:${fp}`;
     const tsTag = tsTagFromDate(msg.sentAt);
     const tags = [
@@ -426,8 +435,8 @@ async function main() {
       agentEmail: parsed.agentEmail,
       rentPeriod: parsed.rentPeriod,
       status: 'active' as const,
-      images,
-      videos,
+      images: [] as { url: string; public_id: string }[],
+      videos: [] as { url: string; public_id: string }[],
     };
 
     if (payload.price <= 0) {
@@ -447,41 +456,77 @@ async function main() {
 
     if (dryRun) {
       console.log(
-        `[dry-run] create: "${validated.data.title.slice(0, 55)}..." | ${confidence} | ${images.length}i ${videos.length}v`
+        `[dry-run] create: "${validated.data.title.slice(0, 55)}..." | ${confidence} | ${mergedFiles.length} file(s)`
       );
       created++;
       messagesCreated.push(msg);
+      if (dedupeState) markChatImportAccepted(dedupeState, fp, clean, mergedFiles);
       continue;
     }
 
-    const existing = await Listing.findOne({ createdBy: author!._id, tags: fpTag }).select('_id').lean();
-    if (existing) {
-      duplicates++;
+    const images: { url: string; public_id: string }[] = [];
+    const videos: { url: string; public_id: string }[] = [];
+
+    for (const fname of mergedFiles) {
+      const ext = path.extname(fname).toLowerCase();
+      const kind = MEDIA_EXT[ext];
+      if (!kind) continue;
+      const localPath = path.join(sourceDir, fname);
+      if (!existsSync(localPath)) continue;
+      const { statSync } = await import('fs');
+      if (kind === 'video' && statSync(localPath).size / (1024 * 1024) > 40) continue;
+
+      const cacheKey = path.resolve(localPath);
+      if (uploadCache.has(cacheKey)) {
+        const c = uploadCache.get(cacheKey)!;
+        if (c.kind === 'image') images.push({ url: c.url, public_id: c.public_id });
+        else videos.push({ url: c.url, public_id: c.public_id });
+        continue;
+      }
+      try {
+        const up = await uploadListingMediaToCloudinary(cloudinary, localPath, kind);
+        uploadCache.set(cacheKey, { ...up, kind });
+        if (kind === 'image') images.push(up);
+        else videos.push(up);
+      } catch (e) {
+        uploadErrors++;
+        console.error(`  upload failed ${fname}:`, e);
+      }
+    }
+
+    if (images.length === 0 && videos.length === 0) {
+      logSkip(`no media uploaded (${mergedFiles.join(', ') || 'none'})`, one.parsed.title || titleHint);
       continue;
     }
+
+    const payloadWithMedia = {
+      ...validated.data,
+      images,
+      videos,
+    };
 
     const seoCreate = prepareListingFieldsForSeo({
-      title: validated.data.title,
-      description: validated.data.description,
-      price: validated.data.price,
-      listingType: validated.data.listingType,
-      rentPeriod: validated.data.rentPeriod,
-      propertyType: validated.data.propertyType,
-      propertyTypes: validated.data.propertyTypes,
-      location: validated.data.location,
-      images: validated.data.images,
-      videos: validated.data.videos,
-      tags: validated.data.tags,
+      title: payloadWithMedia.title,
+      description: payloadWithMedia.description,
+      price: payloadWithMedia.price,
+      listingType: payloadWithMedia.listingType,
+      rentPeriod: payloadWithMedia.rentPeriod,
+      propertyType: payloadWithMedia.propertyType,
+      propertyTypes: payloadWithMedia.propertyTypes,
+      location: payloadWithMedia.location,
+      images: payloadWithMedia.images,
+      videos: payloadWithMedia.videos,
+      tags: payloadWithMedia.tags,
     });
     await Listing.create({
-      ...validated.data,
+      ...payloadWithMedia,
       description: seoCreate.description,
       images: seoCreate.images,
       videos: seoCreate.videos.length ? seoCreate.videos : [],
       tags: seoCreate.tags,
       slug: await ensureUniqueListingSlug({
-        title: validated.data.title,
-        location: validated.data.location,
+        title: payloadWithMedia.title,
+        location: payloadWithMedia.location,
       }),
       createdBy: author!._id,
       createdByType: 'user',
@@ -489,7 +534,8 @@ async function main() {
     });
     created++;
     messagesCreated.push(msg);
-    console.log(`  ok: "${validated.data.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'})`);
+    if (dedupeState) markChatImportAccepted(dedupeState, fp, clean, mergedFiles);
+    console.log(`  ok: "${payloadWithMedia.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'})`);
   }
 
   if (!dryRun) await mongoose.disconnect();
