@@ -3,7 +3,8 @@ import type { PipelineStage } from 'mongoose';
 import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import { LISTING_STATUS } from '@/lib/constants';
-import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
+import { LISTING_HAS_MEDIA_FIELD, LISTING_MARKET_AVAILABLE_FIELD } from '@/lib/listing-proximity-sort';
+import { shapePublicCreatedBy } from '@/lib/verification';
 
 export async function GET(req: Request) {
   try {
@@ -19,14 +20,45 @@ export async function GET(req: Request) {
     const hasLocation = suburb || city || state;
 
     if (!hasLocation) {
-      const listings = await Listing.find(match)
-        .sort({ 'images.0.url': -1, viewCount: -1, createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
-        .lean();
+      const aggPipeline: PipelineStage[] = [
+        { $match: match },
+        {
+          $addFields: {
+            ...LISTING_MARKET_AVAILABLE_FIELD,
+            ...LISTING_HAS_MEDIA_FIELD,
+          },
+        },
+        { $sort: { _isMarketAvailable: -1, _hasMedia: -1, viewCount: -1, createdAt: -1 } },
+        { $skip: offset },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'createdByDoc',
+            pipeline: [
+              {
+                $project: {
+                  firstName: 1,
+                  name: 1,
+                  image: 1,
+                  role: 1,
+                  verifiedAt: 1,
+                  phoneVerifiedAt: 1,
+                  identityVerifiedAt: 1,
+                  livenessVerifiedAt: 1,
+                },
+              },
+            ],
+          },
+        },
+        { $set: { createdBy: { $arrayElemAt: ['$createdByDoc', 0] } } },
+        { $unset: ['createdByDoc', '_isMarketAvailable', '_hasMedia'] },
+      ];
+      const listings = await Listing.aggregate(aggPipeline);
       return NextResponse.json({
-        listings: listings.map((l) => ({
+        listings: listings.map((l: { createdBy?: unknown; boostExpiresAt?: Date }) => ({
           ...l,
           createdBy: shapePublicCreatedBy(l.createdBy) ?? l.createdBy,
           isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
@@ -38,28 +70,8 @@ export async function GET(req: Request) {
       { $match: match },
       {
         $addFields: {
-          _hasMedia: {
-            $cond: {
-              if: {
-                $or: [
-                  {
-                    $and: [
-                      { $gt: [{ $size: { $ifNull: ['$images', []] } }, 0] },
-                      { $ne: [{ $ifNull: ['$images.0.url', ''] }, '' ] },
-                    ],
-                  },
-                  {
-                    $and: [
-                      { $gt: [{ $size: { $ifNull: ['$videos', []] } }, 0] },
-                      { $ne: [{ $ifNull: ['$videos.0.url', ''] }, '' ] },
-                    ],
-                  },
-                ],
-              },
-              then: 1,
-              else: 0,
-            },
-          },
+          ...LISTING_MARKET_AVAILABLE_FIELD,
+          ...LISTING_HAS_MEDIA_FIELD,
           _locScore: {
             $add: [
               suburb
@@ -87,7 +99,7 @@ export async function GET(req: Request) {
           },
         },
       },
-      { $sort: { _hasMedia: -1, _locScore: -1, viewCount: -1, createdAt: -1 } },
+      { $sort: { _isMarketAvailable: -1, _hasMedia: -1, _locScore: -1, viewCount: -1, createdAt: -1 } },
       { $skip: offset },
       { $limit: limit },
       {
@@ -113,7 +125,7 @@ export async function GET(req: Request) {
         },
       },
       { $set: { createdBy: { $arrayElemAt: ['$createdByDoc', 0] } } },
-      { $unset: ['createdByDoc', '_locScore', '_hasMedia'] },
+      { $unset: ['createdByDoc', '_locScore', '_isMarketAvailable', '_hasMedia'] },
     ];
 
     const listings = await Listing.aggregate(aggPipeline);

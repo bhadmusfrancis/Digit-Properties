@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import { listingImageProps } from '@/lib/next-image';
 
 type FavoriteListing = {
   _id: string;
@@ -47,12 +48,11 @@ export default function SavedListingsPage() {
               <div className="h-20 w-28 shrink-0 overflow-hidden rounded-md bg-gray-100">
                 {thumbUrl ? (
                   <Image
-                    src={thumbUrl}
+                    {...listingImageProps(thumbUrl, 112)}
                     alt=""
                     width={112}
                     height={80}
                     className="h-full w-full object-cover"
-                    unoptimized={thumbUrl.includes('cloudinary') ? false : true}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-gray-400">

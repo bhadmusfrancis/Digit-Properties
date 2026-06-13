@@ -71,3 +71,17 @@ ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=YourPassword123 npm run seed
 
 - **Web:** See [HOSTING_AND_DOMAIN_SETUP.md](./HOSTING_AND_DOMAIN_SETUP.md) for deploying to Vercel and connecting digitproperties.com (Namecheap). Production env vars: `web/.env.production.example`
 - **Mobile:** Build with EAS: `eas build --platform all`
+
+### Vercel image optimization (usage monitoring)
+
+Listing photos are served from **Cloudinary** and bypass Vercel’s image optimizer (`unoptimized` + sized Cloudinary URLs via `web/src/lib/next-image.ts`). Vercel optimization is only used for a small set of remote images (e.g. OAuth avatars).
+
+**Monitor usage:** Vercel dashboard → **Usage** → **Image Optimization** (also **Observability** for detail). Free tier includes **5,000 transformations/month**; alerts at 75% and 100%.
+
+**If usage spikes again:**
+
+1. Confirm listing `<Image>` components use `listingImageProps()` from `@/lib/next-image`.
+2. Check `web/next.config.js` — `minimumCacheTTL`, single `formats: ['image/webp']`, and trimmed `deviceSizes` / `imageSizes`.
+3. Avoid routing Cloudinary URLs through `next/image` without `unoptimized` (double optimization).
+
+Reference: [Managing image optimization costs](https://vercel.com/docs/image-optimization/managing-image-optimization-costs).

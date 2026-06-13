@@ -21,8 +21,10 @@ import { revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 import {
   buildListingSortStage,
   buildLocationScoreFields,
+  compareListingMarketAvailable,
   hasNearLocation,
   LISTING_HAS_MEDIA_FIELD,
+  LISTING_MARKET_AVAILABLE_FIELD,
 } from '@/lib/listing-proximity-sort';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 
@@ -112,8 +114,10 @@ export async function GET(req: Request) {
         );
       return imgOk || vidOk;
     };
-    const prioritizeMedia = (arr: ListingRow[]) =>
+    const prioritizeSearchResults = (arr: ListingRow[]) =>
       [...arr].sort((a, b) => {
+        const marketCmp = compareListingMarketAvailable(a, b);
+        if (marketCmp !== 0) return marketCmp;
         const am = hasRealMedia(a);
         const bm = hasRealMedia(b);
         if (am === bm) return 0;
@@ -127,10 +131,13 @@ export async function GET(req: Request) {
         .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
         .lean();
       const shuffled = [...all].sort(() => Math.random() - 0.5);
-      listings = prioritizeMedia(shuffled).slice(0, limit);
+      listings = prioritizeSearchResults(shuffled).slice(0, limit);
       total = all.length;
     } else {
-      const addFields: Record<string, unknown> = { ...LISTING_HAS_MEDIA_FIELD };
+      const addFields: Record<string, unknown> = {
+        ...LISTING_MARKET_AVAILABLE_FIELD,
+        ...LISTING_HAS_MEDIA_FIELD,
+      };
       if (useTextRelevance) {
         addFields.score = { $meta: 'textScore' };
       }
@@ -171,7 +178,9 @@ export async function GET(req: Request) {
           },
         } as PipelineStage,
         { $addFields: { createdBy: { $arrayElemAt: ['$_createdByArr', 0] } } } as PipelineStage,
-        { $project: { _createdByArr: 0, _hasMedia: 0, _locScore: 0, score: 0 } } as PipelineStage,
+        {
+          $project: { _createdByArr: 0, _hasMedia: 0, _isMarketAvailable: 0, _locScore: 0, score: 0 },
+        } as PipelineStage,
       ];
 
       const [listingsRes, totalRes] = await Promise.all([

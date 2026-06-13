@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
+import { listingImageProps } from '@/lib/next-image';
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
@@ -126,7 +127,10 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
           <div className="relative w-full shrink-0 overflow-hidden bg-gray-200 md:min-h-[280px] md:w-[42%] lg:min-h-[320px] lg:max-w-[540px]">
             <div className="aspect-[4/3] w-full md:absolute md:inset-0 md:aspect-auto md:h-full">
               <Image
-                src={getListingDisplayImage(listing.images, listing.propertyType, listing.videos)}
+                {...listingImageProps(
+                  getListingDisplayImage(listing.images, listing.propertyType, listing.videos),
+                  520
+                )}
                 alt={listing.title}
                 fill
                 className="object-cover transition duration-300 group-hover:scale-105"
@@ -230,7 +234,7 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
               />
             ) : (
               <Image
-                src={ad.media.url}
+                {...listingImageProps(ad.media.url, 512)}
                 alt="Ad"
                 fill
                 className="object-cover transition group-hover:scale-105"

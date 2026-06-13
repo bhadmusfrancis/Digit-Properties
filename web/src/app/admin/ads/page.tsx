@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { AD_PLACEMENTS } from '@/lib/constants';
 import { getAdPlacementLabel } from '@/lib/ad-placements';
+import { listingImageProps } from '@/lib/next-image';
 
 type AdRow = {
   _id: string;
@@ -126,7 +127,7 @@ export default function AdminAdsPage() {
                   <td className="hidden sm:table-cell px-3 py-3 sm:px-4">
                     {ad.media?.type === 'image' ? (
                       <a href={ad.media.url} target="_blank" rel="noopener noreferrer" className="block relative w-20 h-14 rounded overflow-hidden bg-gray-100">
-                        <Image src={ad.media.url} alt="Ad" fill className="object-cover" sizes="80px" />
+                        <Image {...listingImageProps(ad.media.url, 80)} alt="Ad" fill className="object-cover" sizes="80px" />
                       </a>
                     ) : (
                       <a href={ad.media?.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600">Video</a>
