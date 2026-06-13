@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
-import Listing from '@/models/Listing';
 import User from '@/models/User';
 import { USER_ROLES } from '@/lib/constants';
 import { formatPrice } from '@/lib/utils';
+import { normalizeAdminListingSearchQuery } from '@/lib/admin-listing-search';
+import { countAdminListings, fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
 
 const DEFAULT_PER_PAGE = 50;
 const MAX_PER_PAGE = 100;
@@ -25,18 +26,14 @@ export async function GET(req: Request) {
       MAX_PER_PAGE,
       Math.max(1, Number.isFinite(rawLimit) ? rawLimit : DEFAULT_PER_PAGE)
     );
+    const searchQuery = normalizeAdminListingSearchQuery(url.searchParams.get('q'));
 
-    const total = await Listing.countDocuments({});
+    const total = await countAdminListings(searchQuery);
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const safePage = Math.min(totalPages, page);
     const skip = (safePage - 1) * limit;
 
-    const listings = await Listing.find({})
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('createdBy', 'name email')
-      .lean();
+    const listings = await fetchAdminListingsPage('default', true, skip, limit, searchQuery);
     const users = await User.find({}).select('_id name email').sort({ name: 1 }).limit(500).lean();
     const userList = users.map((u) => ({ _id: String(u._id), name: u.name, email: u.email }));
     const data = listings.map((l) => ({

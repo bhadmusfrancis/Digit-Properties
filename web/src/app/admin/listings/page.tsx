@@ -1,36 +1,38 @@
 import { dbConnect } from '@/lib/db';
-import Listing from '@/models/Listing';
 import User from '@/models/User';
 import Link from 'next/link';
 import { parseListingSortFromSearchParams, buildListingListQuery } from '@/lib/listing-list-query';
+import { parseAdminListingSearchFromSearchParams } from '@/lib/admin-listing-search';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
-import { fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
+import { countAdminListings, fetchAdminListingsPage } from '@/lib/listing-list-server-sort';
 import { CompactPagination } from '@/components/ui/CompactPagination';
 import { AdminListingsTable } from './AdminListingsTable';
+import { AdminListingsSearch } from './AdminListingsSearch';
 
 const PER_PAGE = 50;
 
 export default async function AdminListingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ page?: string; sort?: string; order?: string }>;
+  searchParams?: Promise<{ page?: string; sort?: string; order?: string; q?: string }>;
 }) {
   const sp = searchParams ? await searchParams : {};
   const rawPage = Math.max(1, parseInt(typeof sp?.page === 'string' ? sp.page : '1', 10) || 1);
   const { sortKey, sortAsc } = parseListingSortFromSearchParams(sp);
+  const searchQuery = parseAdminListingSearchFromSearchParams(sp);
 
   await dbConnect();
-  const total = await Listing.countDocuments({});
+  const total = await countAdminListings(searchQuery);
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const page = Math.min(totalPages, rawPage);
   const skip = (page - 1) * PER_PAGE;
 
   const [listings, users] = await Promise.all([
-    fetchAdminListingsPage(sortKey, sortAsc, skip, PER_PAGE),
+    fetchAdminListingsPage(sortKey, sortAsc, skip, PER_PAGE, searchQuery),
     User.find({}).select('_id name email').sort({ name: 1 }).limit(500).lean(),
   ]);
 
-  const q = (p: number) => buildListingListQuery(p, sortKey, sortAsc);
+  const q = (p: number) => buildListingListQuery(p, sortKey, sortAsc, searchQuery);
 
   const userList = users.map((u) => ({
     _id: String(u._id),
@@ -124,7 +126,9 @@ export default async function AdminListingsPage({
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-gray-500">Total listings</p>
+          <p className="text-xs uppercase tracking-wide text-gray-500">
+            {searchQuery ? 'Matching listings' : 'Total listings'}
+          </p>
           <p className="mt-1 text-xl font-semibold text-gray-900">{total}</p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
@@ -141,12 +145,17 @@ export default async function AdminListingsPage({
         </div>
       </div>
 
+      <div className="mt-4">
+        <AdminListingsSearch initialQuery={searchQuery} />
+      </div>
+
       <div className="mt-6">
         <AdminListingsTable
           listings={listingRows}
           users={userList}
           sortKey={sortKey}
           sortAsc={sortAsc}
+          searchQuery={searchQuery}
           basePath="/admin/listings"
         />
       </div>
