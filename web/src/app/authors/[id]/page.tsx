@@ -11,6 +11,7 @@ import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { isPublicVerifiedAccount } from '@/lib/verification';
 import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import { listingImageProps } from '@/lib/next-image';
 import { formatPrice } from '@/lib/utils';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { toFirstName } from '@/lib/display-name';
@@ -177,7 +178,10 @@ export default async function AuthorPage({ params }: { params: Promise<{ id: str
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
                     <Image
-                      src={getListingDisplayImage(l.images, l.propertyType, l.videos)}
+                      {...listingImageProps(
+                        getListingDisplayImage(l.images, l.propertyType, l.videos),
+                        400
+                      )}
                       alt={l.title}
                       fill
                       className="object-cover transition group-hover:scale-105"

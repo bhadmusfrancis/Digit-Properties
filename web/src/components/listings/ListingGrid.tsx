@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
+import { listingImageProps } from '@/lib/next-image';
 import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
@@ -43,7 +44,10 @@ export function ListingGrid({ listings }: { listings: Listing[] }) {
           <Link href={getListingPublicPath(listing)} className="block">
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
               <Image
-                src={getListingDisplayImage(listing.images, listing.propertyType, listing.videos)}
+                {...listingImageProps(
+                  getListingDisplayImage(listing.images, listing.propertyType, listing.videos),
+                  400
+                )}
                 alt={listing.title}
                 fill
                 className="object-cover transition group-hover:scale-105"

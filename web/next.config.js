@@ -6,6 +6,13 @@ const nextConfig = {
   },
   serverExternalPackages: ['sharp', 'tesseract.js'],
   images: {
+    // Listing photos live on Cloudinary and bypass Vercel optimization; these settings cover
+    // the remaining remote images (OAuth avatars, seed assets) and reduce transformation count.
+    minimumCacheTTL: 2678400, // 31 days — listing media rarely changes
+    formats: ['image/webp'],
+    qualities: [75],
+    deviceSizes: [640, 828, 1080, 1920],
+    imageSizes: [80, 112, 152, 256, 280, 384, 520],
     remotePatterns: [
       {
         protocol: 'https',

@@ -64,6 +64,7 @@ function ListingsContent({
   const query = usePresetOnly
     ? buildBaseQuery(new URLSearchParams(), presetFilters)
     : buildBaseQuery(searchParams);
+  const hasSearchQuery = Boolean(searchParams.get('q')?.trim());
   const sortParam = searchParams.get('sort');
   const sortClosest = isListingSearchSortKey(sortParam) && sortParam === 'closest';
   const { location: nearLocation, requestLocation } = useUserNearLocation({ enabled: sortClosest });
@@ -140,7 +141,7 @@ function ListingsContent({
         </div>
       )}
       {!usePresetOnly && <ListingFilters />}
-      {!usePresetOnly && (
+      {!usePresetOnly && !hasSearchQuery && (
         <Suspense fallback={null}>
           <ListingResultsSortBar className="mt-4" />
         </Suspense>

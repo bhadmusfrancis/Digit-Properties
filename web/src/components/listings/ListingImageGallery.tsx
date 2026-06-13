@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
+import { listingImageProps } from '@/lib/next-image';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SponsoredLabel } from '@/components/ui/SponsoredLabel';
 
@@ -251,13 +252,12 @@ export function ListingImageGallery({
           </div>
         ) : (
           <Image
-            src={current.url}
+            {...listingImageProps(current.url, 1200)}
             alt={galleryMediaAltText(title, locationLabel, list, index)}
             fill
             className="object-cover"
             priority
             sizes="(max-width: 1024px) 100vw, 66vw"
-            unoptimized={!current.url.includes('res.cloudinary.com')}
           />
         )}
         {isBoosted && <SponsoredLabel overlay className="absolute left-4 top-4 z-30" />}
@@ -389,11 +389,10 @@ export function ListingImageGallery({
                   />
                 ) : (
                   <Image
-                    src={current.url}
+                    {...listingImageProps(current.url, 1920)}
                     alt={galleryMediaAltText(title, locationLabel, list, index)}
                     fill
                     className="object-contain"
-                    unoptimized={!current.url.includes('res.cloudinary.com')}
                     sizes="100vw"
                   />
                 )}

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AuthorLikeButton } from '@/components/authors/AuthorLikeButton';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
+import { listingImageProps } from '@/lib/next-image';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel } from '@/lib/constants';
 import { toFirstName } from '@/lib/display-name';
@@ -209,7 +210,10 @@ export function ListingAuthorPanel({
                 >
                   <div className="relative aspect-[4/3] bg-gray-100">
                     <Image
-                      src={getListingDisplayImage(listing.images, listing.propertyType, listing.videos)}
+                      {...listingImageProps(
+                        getListingDisplayImage(listing.images, listing.propertyType, listing.videos),
+                        152
+                      )}
                       alt={listing.title}
                       fill
                       className="object-cover transition group-hover:scale-105"

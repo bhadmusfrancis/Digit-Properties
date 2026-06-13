@@ -7,6 +7,7 @@ import User from '@/models/User';
 import { canViewListingOnSite } from '@/lib/listing-access';
 import mongoose from 'mongoose';
 import { shapePublicCreatedBy } from '@/lib/verification';
+import { LISTING_MARKET_AVAILABLE_FIELD } from '@/lib/listing-proximity-sort';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 24;
@@ -78,6 +79,7 @@ export async function GET(
       },
       {
         $addFields: {
+          ...LISTING_MARKET_AVAILABLE_FIELD,
           hasMediaScore: {
             $cond: {
               if: {
@@ -120,7 +122,7 @@ export async function GET(
           },
         },
       },
-      { $sort: { hasMediaScore: -1, proximityScore: -1, createdAt: -1 } },
+      { $sort: { _isMarketAvailable: -1, hasMediaScore: -1, proximityScore: -1, createdAt: -1 } },
       { $skip: skip },
       { $limit: limit + 1 },
       {
