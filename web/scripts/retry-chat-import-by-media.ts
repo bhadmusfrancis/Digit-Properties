@@ -13,12 +13,16 @@ import {
   extractAttachmentFilenames,
   uploadListingMediaToCloudinary,
   hasResolvableMedia,
-  listingFingerprint,
   looksLikeListingFromClean,
   parseMessageMeta,
   splitChatMessages,
   tsTagFromDate,
   MEDIA_EXT,
+  buildAuthorImportDedupeIndex,
+  createChatImportDedupeState,
+  shouldSkipChatImportBeforeUpload,
+  markChatImportAccepted,
+  listingFingerprint,
 } from './lib/chat-import-utils';
 import { ALL_CHATS_PATH, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
 import { mongoUriForConnect } from './lib/mongo-uri';
@@ -112,6 +116,20 @@ async function main() {
     process.exit(1);
   }
 
+  const authorIndex = await buildAuthorImportDedupeIndex(author._id, Listing);
+  const canonicalRaw = existsSync(ALL_CHATS_PATH) ? readFileSync(ALL_CHATS_PATH, 'utf8') : '';
+  const canonicalFps = new Set<string>();
+  const canonicalBodies: string[] = [];
+  for (const full of splitChatMessages(canonicalRaw)) {
+    const { body, senderPhone } = parseMessageMeta(full);
+    const clean = cleanBodyForParser(body);
+    if (clean.length >= 15) {
+      canonicalFps.add(listingFingerprint(clean, senderPhone));
+      canonicalBodies.push(clean);
+    }
+  }
+  const dedupeState = createChatImportDedupeState(canonicalFps, canonicalBodies, authorIndex);
+
   let created = 0;
   const appended: string[] = [];
 
@@ -130,33 +148,33 @@ async function main() {
       continue;
     }
 
-    const images: { url: string; public_id: string }[] = [];
-    const videos: { url: string; public_id: string }[] = [];
-    for (const fname of mergedFiles) {
-      const ext = path.extname(fname).toLowerCase();
-      const kind = MEDIA_EXT[ext];
-      if (!kind) continue;
-      const localPath = path.join(sourceDir, fname);
-      try {
-        const up = await uploadListingMediaToCloudinary(cloudinary, localPath, kind);
-        if (kind === 'image') images.push(up);
-        else videos.push(up);
-      } catch (e) {
-        console.error(`  upload failed ${fname}:`, e);
-      }
-    }
-
-    if (images.length === 0 && videos.length === 0) {
-      console.warn(`  skip: upload failed — ${one.parsed.title || titleHint}`);
-      continue;
-    }
-
     const { parsed, missing } = one;
     if (!parsed.agentName && msg.senderName) parsed.agentName = msg.senderName;
     let description = parsed.description;
     if (description.length < 20) description = `${description}\n\n(Imported from WhatsApp chat.)`.slice(0, 5000);
 
-    const fp = listingFingerprint(msg.clean, msg.senderPhone);
+    const dup = shouldSkipChatImportBeforeUpload(
+      {
+        clean: msg.clean,
+        senderPhone: msg.senderPhone,
+        title: parsed.title,
+        description,
+        location: parsed.location,
+        attachmentFilenames: mergedFiles,
+      },
+      dedupeState
+    );
+    if (dup.skip) {
+      console.log(`  already imported: "${parsed.title.slice(0, 55)}..." — ${dup.reason}`);
+      continue;
+    }
+    const fp = dup.fp;
+
+    if (parsed.price <= 0) {
+      console.warn(`  skip: price missing — ${parsed.title}`);
+      continue;
+    }
+
     const fpTag = `wa-fp:${fp}`;
     const tsTag = tsTagFromDate(msg.sentAt);
     const tags = [
@@ -188,14 +206,10 @@ async function main() {
       agentEmail: parsed.agentEmail,
       rentPeriod: parsed.rentPeriod,
       status: 'active' as const,
-      images,
-      videos,
+      images: [] as { url: string; public_id: string }[],
+      videos: [] as { url: string; public_id: string }[],
     };
 
-    if (payload.price <= 0) {
-      console.warn(`  skip: price missing — ${payload.title}`);
-      continue;
-    }
     if (payload.listingType === 'rent' && !payload.rentPeriod) payload.rentPeriod = 'year';
 
     const validated = listingSchema.safeParse(payload);
@@ -204,43 +218,61 @@ async function main() {
       continue;
     }
 
-    const existing = await Listing.findOne({ createdBy: author._id, tags: fpTag }).select('_id').lean();
-    if (existing) {
-      console.log(`  already imported: "${validated.data.title.slice(0, 55)}..."`);
+    const images: { url: string; public_id: string }[] = [];
+    const videos: { url: string; public_id: string }[] = [];
+    for (const fname of mergedFiles) {
+      const ext = path.extname(fname).toLowerCase();
+      const kind = MEDIA_EXT[ext];
+      if (!kind) continue;
+      const localPath = path.join(sourceDir, fname);
+      try {
+        const up = await uploadListingMediaToCloudinary(cloudinary, localPath, kind);
+        if (kind === 'image') images.push(up);
+        else videos.push(up);
+      } catch (e) {
+        console.error(`  upload failed ${fname}:`, e);
+      }
+    }
+
+    if (images.length === 0 && videos.length === 0) {
+      console.warn(`  skip: upload failed — ${parsed.title || titleHint}`);
       continue;
     }
 
+    const payloadWithMedia = { ...validated.data, images, videos };
+
     const seoCreate = prepareListingFieldsForSeo({
-      title: validated.data.title,
-      description: validated.data.description,
-      price: validated.data.price,
-      listingType: validated.data.listingType,
-      rentPeriod: validated.data.rentPeriod,
-      propertyType: validated.data.propertyType,
-      propertyTypes: validated.data.propertyTypes,
-      location: validated.data.location,
-      images: validated.data.images,
-      videos: validated.data.videos,
-      tags: validated.data.tags,
+      title: payloadWithMedia.title,
+      description: payloadWithMedia.description,
+      price: payloadWithMedia.price,
+      listingType: payloadWithMedia.listingType,
+      rentPeriod: payloadWithMedia.rentPeriod,
+      propertyType: payloadWithMedia.propertyType,
+      propertyTypes: payloadWithMedia.propertyTypes,
+      location: payloadWithMedia.location,
+      images: payloadWithMedia.images,
+      videos: payloadWithMedia.videos,
+      tags: payloadWithMedia.tags,
     });
 
     await Listing.create({
-      ...validated.data,
+      ...payloadWithMedia,
       description: seoCreate.description,
       images: seoCreate.images,
       videos: seoCreate.videos.length ? seoCreate.videos : [],
       tags: seoCreate.tags,
       slug: await ensureUniqueListingSlug({
-        title: validated.data.title,
-        location: validated.data.location,
+        title: payloadWithMedia.title,
+        location: payloadWithMedia.location,
       }),
       createdBy: author._id,
       createdByType: 'user',
       viewCount: 0,
     });
     created++;
+    markChatImportAccepted(dedupeState, fp, msg.clean, mergedFiles);
     appended.push(msg.full);
-    console.log(`  ok: "${validated.data.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'})`);
+    console.log(`  ok: "${payloadWithMedia.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'})`);
   }
 
   await mongoose.disconnect();

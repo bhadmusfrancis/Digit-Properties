@@ -22,10 +22,11 @@ export function shouldBypassVercelImageOptimization(src: string): boolean {
 export function withCloudinaryDeliveryWidth(src: string, width: number): string {
   const url = (src || '').trim();
   if (!url.includes(CLOUDINARY_HOST) || !url.includes('/image/upload/')) return url;
-  if (/\/image\/upload\/(?:v\d+\/)?[^/]+,/.test(url)) return url;
+  // Transforms must sit directly after /image/upload/ (before optional v123/), not after the version.
+  if (/\/image\/upload\/[^/]+,/.test(url)) return url;
   const w = Math.max(1, Math.round(width));
   const transforms = `c_limit,w_${w},q_auto,f_auto`;
-  return url.replace(/\/image\/upload\/(?:v\d+\/)?/, (prefix) => `${prefix}${transforms}/`);
+  return url.replace(/\/image\/upload\/(v\d+\/)?/, (_, version) => `/image/upload/${transforms}/${version ?? ''}`);
 }
 
 /** Props for next/image when showing listing or ad media. */
