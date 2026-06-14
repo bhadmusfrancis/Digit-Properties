@@ -50,7 +50,7 @@ import {
   relatedLocationLinks,
 } from '@/lib/location-seo';
 import { resolveListingPublicSegment } from '@/lib/resolve-listing';
-import { canNonAdminEditListing } from '@/lib/listing-edit-window';
+import { canNonAdminEditListing, roleBypassesEditWindow } from '@/lib/listing-edit-window';
 import { isListingIndexable } from '@/lib/seo/listing-indexability';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -376,7 +376,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
     const canEditListing =
       isOwner &&
-      (isAdmin ||
+      (roleBypassesEditWindow(session?.user?.role) ||
         canNonAdminEditListing({
           createdAt: listing.createdAt as Date,
           claimedAt: (listing as { claimedAt?: Date }).claimedAt,

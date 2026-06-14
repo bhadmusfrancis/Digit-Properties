@@ -9,7 +9,7 @@ import type { ListingFormProps } from '@/components/listings/ListingForm';
 import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
 import mongoose from 'mongoose';
-import { canNonAdminEditListing } from '@/lib/listing-edit-window';
+import { canNonAdminEditListing, roleBypassesEditWindow } from '@/lib/listing-edit-window';
 
 export default async function EditListingPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -24,9 +24,10 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
 
   const isAdmin = session.user.role === USER_ROLES.ADMIN;
   const isOwner = String(listing.createdBy) === session.user.id;
+  const canBypassEditWindow = roleBypassesEditWindow(session.user.role);
   if (!isAdmin && !isOwner) notFound();
   if (
-    !isAdmin &&
+    !canBypassEditWindow &&
     isOwner &&
     !canNonAdminEditListing({
       createdAt: listing.createdAt as Date,

@@ -103,6 +103,7 @@ export default async function MyListingsPage({
           sortAsc={sortAsc}
           basePath="/dashboard/listings"
           isAdmin={isAdmin}
+          isBot={isBot}
         />
         {totalPages > 1 && (
           <CompactPagination
