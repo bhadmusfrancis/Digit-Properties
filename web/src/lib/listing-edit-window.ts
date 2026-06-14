@@ -1,5 +1,17 @@
+import { USER_ROLES } from '@/lib/constants';
+
 /** Non-admin owners may edit listings within this window from creation or claim time. */
 export const NON_ADMIN_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Roles allowed to edit their own listings without the 24-hour window.
+ * Admins can edit any listing; bot accounts can edit the listings they own
+ * (i.e. unclaimed bot/imported listings) at any time.
+ */
+export function roleBypassesEditWindow(role?: string | null): boolean {
+  const r = (role || '').toLowerCase();
+  return r === USER_ROLES.ADMIN || r === USER_ROLES.BOT;
+}
 
 export const LISTING_EDIT_WINDOW_HOURS = 24;
 

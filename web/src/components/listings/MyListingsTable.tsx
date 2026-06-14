@@ -49,12 +49,14 @@ export function MyListingsTable({
   sortAsc,
   basePath,
   isAdmin = false,
+  isBot = false,
 }: {
   listings: ListingRow[];
   sortKey: ListingSortKey;
   sortAsc: boolean;
   basePath: string;
   isAdmin?: boolean;
+  isBot?: boolean;
 }) {
   const router = useRouter();
 
@@ -95,7 +97,7 @@ export function MyListingsTable({
   };
 
   const canEdit = (createdAt?: string, claimedAt?: string) => {
-    if (isAdmin) return true;
+    if (isAdmin || isBot) return true;
     return canNonAdminEditListing({ createdAt, claimedAt });
   };
 
