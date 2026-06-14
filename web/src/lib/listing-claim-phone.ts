@@ -1,5 +1,4 @@
 import { normalizePhone, isValidNigerianPhone } from '@/lib/phone-verify';
-import { resolvePublicListingContact } from '@/lib/listing-contact-display';
 
 /** Normalized Nigerian phone used to verify claims for this listing. */
 export function getListingClaimPhone(listing: {
@@ -9,19 +8,21 @@ export function getListingClaimPhone(listing: {
   createdByType?: string | null;
   createdBy?: unknown;
 }): string | null {
-  const contact = resolvePublicListingContact(listing);
-  const raw = contact.agentPhone?.trim();
-  if (!raw) {
-    const creator = listing.createdBy;
-    if (creator && typeof creator === 'object' && 'phone' in creator) {
-      const p = (creator as { phone?: string }).phone?.trim();
-      if (p) {
-        const n = normalizePhone(p);
-        return isValidNigerianPhone(n) ? n : null;
-      }
-    }
-    return null;
+  // Claims verify ownership of the original poster's number captured on the
+  // listing (agentPhone) — not the public author/bot contact shown on the page.
+  const raw = typeof listing.agentPhone === 'string' ? listing.agentPhone.trim() : '';
+  if (raw) {
+    const normalized = normalizePhone(raw);
+    return isValidNigerianPhone(normalized) ? normalized : null;
   }
-  const normalized = normalizePhone(raw);
-  return isValidNigerianPhone(normalized) ? normalized : null;
+
+  const creator = listing.createdBy;
+  if (creator && typeof creator === 'object' && 'phone' in creator) {
+    const p = (creator as { phone?: string }).phone?.trim();
+    if (p) {
+      const n = normalizePhone(p);
+      return isValidNigerianPhone(n) ? n : null;
+    }
+  }
+  return null;
 }

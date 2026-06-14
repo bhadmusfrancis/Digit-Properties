@@ -27,12 +27,6 @@ export function Header() {
         </div>
 
         <div className="order-2 hidden md:flex md:items-center md:gap-2 sm:order-3">
-          <Link href="/listings?listingType=sale" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
-            Buy
-          </Link>
-          <Link href="/listings?listingType=rent" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
-            Rent
-          </Link>
           <Link href="/listings/new" className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors">
             Sell/Rent
           </Link>
@@ -140,12 +134,6 @@ export function Header() {
         <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 md:hidden shadow-inner">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Menu</p>
           <div className="flex flex-col gap-0.5">
-            <Link href="/listings?listingType=sale" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
-              Buy
-            </Link>
-            <Link href="/listings?listingType=rent" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
-              Rent
-            </Link>
             <Link href="/listings/new" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
               Sell/Rent
             </Link>

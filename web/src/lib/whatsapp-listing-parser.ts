@@ -3,7 +3,6 @@
  * Digit Properties listing payload. Used by "Import from WhatsApp" flow.
  */
 import { NIGERIAN_STATES, PROPERTY_TYPES, LISTING_TYPE, RESIDENTIAL_PROPERTY_TYPES } from './constants';
-import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { buildCanonicalListingTitle } from '@/lib/listing-title';
 import { resolveNigeriaPlaceFromText, detectNigerianStateInText } from '@/lib/nigeria-place-resolve';
 
@@ -131,13 +130,105 @@ function applyPriceMultiplier(num: number, mult: string): number {
   return num;
 }
 
+const PRICE_MULT_SUFFIX = '(m|million|k|thousand|bn|billion|b)';
+
+function parseAmountToken(numStr: string, mult?: string): number {
+  const num = parseFloat(numStr.replace(/,/g, ''));
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return mult ? applyPriceMultiplier(num, mult) : num;
+}
+
+/** Remove agency/legal/caution % fees and service-charge lines so they are not mistaken for rent/price. */
+function stripSecondaryChargeClauses(text: string): string {
+  let t = text;
+  t = t.replace(
+    /\b(?:agency|legal|caution|commission|professional|facilitator(?:'s)?|agreement)\s*(?:fee|fees)?\s*[:\s]*\d+(?:\.\d+)?\s*(?:%|\*)/gi,
+    ' '
+  );
+  t = t.replace(/\b\d+(?:\.\d+)?\s*(?:%|\*)\s*(?:agency|legal|caution|commission|fee|fees)\b/gi, ' ');
+  t = t.replace(
+    new RegExp(
+      `\\b(?:sc|s\\/c|service\\s*charge)\\s*[;:#\\-–—]?\\s*(?:₦|NGN|N)?\\s*[\\d.,]+\\s*${PRICE_MULT_SUFFIX}?\\b`,
+      'gi'
+    ),
+    ' '
+  );
+  return t;
+}
+
+type PriceHit = { value: number; priority: number; pos: number };
+
+function isPercentLiteral(text: string, matchIndex: number, matchLen: number): boolean {
+  const tail = text.slice(matchIndex + matchLen).trimStart();
+  return tail.startsWith('%') || tail.startsWith('*');
+}
+
+function collectPriceHits(text: string): PriceHit[] {
+  const hits: PriceHit[] = [];
+  const multPart = '(?:m|million|k|thousand|bn|billion|b(?![a-z]))';
+  const multCapture = '(m|million|k|thousand|bn|billion|b(?![a-z]))';
+  const labeledAmount = `(?:(?:₦|NGN|N)\\s*)?([\\d.,]+)\\s*(${multCapture})?`;
+  const specs: Array<{ re: RegExp; priority: number; requireMult?: boolean }> = [
+    {
+      re: new RegExp(
+        `\\bfor\\s*(?:sale|rent)\\s*(?:[;:#\\-–—]\\s*)?${labeledAmount}`,
+        'gi'
+      ),
+      priority: 110,
+    },
+    {
+      re: new RegExp(`\\b(?:rent|asking|lease)\\s*[;:#\\-–—]\\s*${labeledAmount}`, 'gi'),
+      priority: 100,
+    },
+    {
+      re: new RegExp(
+        `\\b(?:price|sale\\s*price|asking\\s*price|amount)\\s*[;:#\\-–—]\\s*${labeledAmount}`,
+        'gi'
+      ),
+      priority: 90,
+    },
+    { re: new RegExp(`\\b([\\d.,]+)\\s*(${multCapture})\\s*net\\b`, 'gi'), priority: 88, requireMult: true },
+    { re: /(?:₦|NGN)\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b(?![a-z]))?/gi, priority: 80 },
+    { re: /(?:^|[\s,(])N\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b(?![a-z]))?/gi, priority: 75 },
+    { re: new RegExp(`\\b([\\d.,]+)\\s*(${multPart})\\b`, 'gi'), priority: 70, requireMult: true },
+  ];
+
+  for (const { re, priority, requireMult } of specs) {
+    const r = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`);
+    let m: RegExpExecArray | null;
+    while ((m = r.exec(text)) !== null) {
+      const multRaw = (m[2] || '').toLowerCase();
+      if (requireMult && !multRaw) continue;
+      if (isPercentLiteral(text, m.index, m[0].length)) continue;
+      const value = parseAmountToken(m[1], multRaw || undefined);
+      if (value > 0) hits.push({ value, priority, pos: m.index });
+    }
+  }
+
+  return hits;
+}
+
+function pickBestPriceHit(hits: PriceHit[]): number {
+  if (!hits.length) return 0;
+  hits.sort((a, b) => b.priority - a.priority || b.value - a.value || a.pos - b.pos);
+  const bestPriority = hits[0].priority;
+  const topGroup = hits.filter((h) => h.priority === bestPriority);
+  let value = Math.max(...topGroup.map((h) => h.value));
+
+  // Prefer a multiplied primary amount when a bare fee percent (e.g. 10) slipped through.
+  if (value <= 100) {
+    const scaled = hits.filter((h) => h.value >= 100_000);
+    if (scaled.length) value = Math.max(...scaled.map((h) => h.value));
+  }
+  return value;
+}
+
 function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'month' | 'year'; pricePerSqm?: number; rest: string } {
   let rest = text;
   let value = 0;
   let rentPeriod: 'day' | 'month' | 'year' | undefined;
   let pricePerSqm: number | undefined;
 
-  // per year / per month / per annum / p.a. / p.m. / yearly / monthly (use RegExp to avoid / in literal)
   const periodRe = new RegExp(
     '\\b(per\\s*(?:year|annum|month|day)|p\\.?\\s*a\\.?|p\\.?\\s*m\\.?|yearly|monthly|/year|/month|/day)\\b',
     'i'
@@ -152,53 +243,72 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
     else rentPeriod = 'year';
   }
 
-  // Land sizes (e.g. 3.9 Acres) — strip so "on 3.9" is not read as ₦N 3.9
   rest = rest.replace(/\b[\d.,]+\s*(?:acres?|hectares?|hectare|ha)\b/gi, ' ');
 
-  // Price per sqm (e.g. 4m/sqm, 3.5m/sqm) - capture for later * area
   const perSqmMatch = rest.match(/(?:price|price:)\s*([\d.,]+)\s*m\s*\/\s*sqm/i) ?? rest.match(/\b([\d.,]+)\s*m\s*\/\s*sqm/i);
   if (perSqmMatch) {
     pricePerSqm = parseFloat(perSqmMatch[1].replace(/,/g, '')) * 1_000_000;
     rest = rest.replace(perSqmMatch[0], ' ');
   }
 
-  const multSuffix = '(m|million|k|thousand|bn|billion|b)';
-    // 11b NET, 2.7bn net (billion shorthand common in WhatsApp posts)
-  const billionMatch =
-    rest.match(new RegExp(`\\b([\\d.,]+)\\s*${multSuffix}\\s*net\\b`, 'i')) ??
-    rest.match(new RegExp(`\\b([\\d.,]+)\\s*${multSuffix}\\b`, 'i'));
-  if (billionMatch) {
-    const num = parseFloat(billionMatch[1].replace(/,/g, ''));
-    const mult = (billionMatch[2] || 'b').toLowerCase();
-    if (['b', 'bn', 'billion'].includes(mult)) {
-      value = applyPriceMultiplier(num, mult);
-      rest = rest.replace(billionMatch[0], ' ');
-      return { value, rentPeriod, pricePerSqm, rest };
-    }
+  const cleaned = stripSecondaryChargeClauses(rest);
+  value = pickBestPriceHit(collectPriceHits(cleaned));
+
+  return { value, rentPeriod, pricePerSqm, rest };
+}
+
+/** Re-parse price (and rent period) from stored WhatsApp description text. */
+export function reparsedPriceFromDescription(description: string): {
+  price: number;
+  listingType: ParsedListing['listingType'];
+  rentPeriod?: ParsedListing['rentPeriod'];
+} {
+  const { parsed } = parseWhatsAppListingText(description);
+  return {
+    price: parsed.price,
+    listingType: parsed.listingType,
+    rentPeriod: parsed.rentPeriod,
+  };
+}
+
+/** Detect listings where a fee % or bare small number was stored instead of the real rent/price. */
+export function isLikelyMispricedWhatsAppListing(input: {
+  price: number;
+  listingType: string;
+  rentPeriod?: string;
+  description: string;
+}): { mispriced: boolean; reparsedPrice: number; reason?: string } {
+  const reparsed = reparsedPriceFromDescription(input.description);
+  if (reparsed.price <= 0) return { mispriced: false, reparsedPrice: 0 };
+
+  const current = input.price;
+  const next = reparsed.price;
+  if (next === current) return { mispriced: false, reparsedPrice: next };
+
+  const desc = input.description;
+  const hasFeePercents =
+    /\b(?:agency|legal|caution|commission)\b/i.test(desc) &&
+    /\b\d+(?:\.\d+)?\s*(?:%|\*)/i.test(desc);
+  const hasScaledAmount = /\b\d+(?:\.\d+)?\s*(?:m|million|k|thousand|bn|billion|b)\b/i.test(desc);
+
+  if (current <= 100 && next >= 25_000 && hasScaledAmount) {
+    return {
+      mispriced: true,
+      reparsedPrice: next,
+      reason: hasFeePercents ? 'fee percent stored as price' : 'scaled amount in description',
+    };
+  }
+  if (input.listingType === 'rent' && current < 25_000 && next >= 25_000) {
+    return { mispriced: true, reparsedPrice: next, reason: 'rent below realistic minimum' };
+  }
+  if (hasScaledAmount && current < 500_000 && next >= 500_000 && next > current * 10) {
+    return { mispriced: true, reparsedPrice: next, reason: 'description mentions m/k/bn amount' };
+  }
+  if (next > current * 50 && next >= 100_000) {
+    return { mispriced: true, reparsedPrice: next, reason: 'reparsed price much higher' };
   }
 
-  // ₦5m, NGN 5m, N5m (word-boundary N only — not the "n" in "on")
-  const patterns: RegExp[] = [
-    /(?:₦|NGN)\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b)?/i,
-    /(?:^|[\s,(])N\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b)?/i,
-    /(?:price|#|amount)\s*[:\s]*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b)?/i,
-    new RegExp(`\\b([\\d.,]+)\\s*${multSuffix}\\b`, 'i'),
-    /(?:₦|NGN)\s*([\d.,]+)/i,
-    /(?:^|[\s,(])N\s*([\d.,]+)/i,
-  ];
-  for (const re of patterns) {
-    const m = rest.match(re);
-    if (m) {
-      const num = parseFloat(m[1].replace(/,/g, ''));
-      const mult = (m[2] || '').toLowerCase();
-      value = mult ? applyPriceMultiplier(num, mult) : num;
-      if (value > 0) {
-        rest = rest.replace(m[0], ' ');
-        break;
-      }
-    }
-  }
-  return { value, rentPeriod, pricePerSqm, rest };
+  return { mispriced: false, reparsedPrice: next };
 }
 
 /** Extract area in square meters (e.g. 500sqm, 1,634sqm, 2,400sqm). */
@@ -571,11 +681,11 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
   const text = normalizeText(raw);
   const missing: string[] = [];
 
-  const { value: priceVal, rentPeriod, pricePerSqm, rest: r1 } = extractPrice(text);
-  const { listingType, rest: r2 } = extractListingType(text);
-  const { area, rest: rArea } = extractArea(text);
-  const { bedrooms, bathrooms, toilets, rest: r3 } = extractBedsBaths(text);
-  const { phone: agentPhone, rest: r4 } = extractPhone(text);
+  const { value: priceVal, rentPeriod, pricePerSqm } = extractPrice(text);
+  const { listingType } = extractListingType(text);
+  const { area } = extractArea(text);
+  const { bedrooms, bathrooms, toilets } = extractBedsBaths(text);
+  const { phone: agentPhone } = extractPhone(text);
   const { state, city, address, suburb } = extractLocation(text);
   const propertyType = extractPropertyType(text);
 
@@ -586,7 +696,7 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
         ? Math.round(pricePerSqm * area)
         : pricePerSqm ?? 0;
 
-  const desc = text.length > 100 ? text : text;
+  const desc = text;
   const title = buildCanonicalListingTitle({
     listingType,
     propertyType,
