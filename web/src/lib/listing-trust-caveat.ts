@@ -9,15 +9,19 @@ export type ListingTrustCaveatInput = {
 };
 
 /**
- * Show a subtle caution for listings from bot or unverified accounts.
- * Verified agents, developers, and admin-approved individuals are excluded.
+ * Show a subtle caution for listings from unverified accounts.
+ * Verified agents, developers, admin-approved individuals, and bot/imported
+ * listings (which surface the author's own contact) are excluded.
  */
 export function shouldShowListingTrustCaveat(input: ListingTrustCaveatInput): boolean {
   const createdByType = (input.createdByType || '').toLowerCase();
-  if (createdByType === 'bot' || createdByType === 'ai') return true;
-
   const role = (input.role || '').toLowerCase();
-  if (role === USER_ROLES.BOT) return true;
+
+  // Bot/imported listings now use the author's own contact, so they no longer
+  // carry the authenticity caveat.
+  if (createdByType === 'bot' || createdByType === 'ai' || role === USER_ROLES.BOT) {
+    return false;
+  }
 
   if (input.isVerifiedAccount === true) return false;
   if (isPublicVerifiedAccount({ role: input.role ?? undefined })) return false;

@@ -47,11 +47,13 @@ export function resolvePublicListingContact(listing: ListingContactRow): Resolve
   const creator = creatorFrom(listing);
 
   if (isBotListingAuthor(listing)) {
+    // Bot/imported listings show the bot account's own (author) contact until
+    // the listing is claimed, hiding the original poster's number.
     return {
-      agentName,
-      agentPhone,
-      agentEmail,
-      contactSource: 'listing',
+      agentName: toFirstName(creator?.firstName, creator?.name, agentName),
+      agentPhone: creator?.phone?.trim() || agentPhone,
+      agentEmail: creator?.email?.trim() || agentEmail,
+      contactSource: 'author',
       hasListingContact,
     };
   }
@@ -70,7 +72,7 @@ export function resolvePublicListingContact(listing: ListingContactRow): Resolve
   };
 }
 
-/** Name shown where "Listed by" appears; never the bot account display name. */
+/** Name shown where "Listed by" appears. */
 export function listingListedByContactName(listing: ListingContactRow): string {
   return resolvePublicListingContact(listing).agentName.trim();
 }
