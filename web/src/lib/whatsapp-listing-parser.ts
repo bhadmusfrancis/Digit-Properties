@@ -111,6 +111,44 @@ function normalizeText(s: string): string {
   return s.replace(/\s+/g, ' ').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').trim();
 }
 
+/**
+ * Leading WhatsApp chat-export message header, e.g.
+ *   `[5/19/26, 4:00:33 AM] ~ ~ Engr Otaoghene(COREN) ~ (+234 706 735 0185): `
+ *   `[3/19/26, 6:22:33 PM] ~ ESV Abiodun Mabel Kups ~ (+234 803 778 1974): `
+ *   `[6:02 AM, 3/3/2026] +234 806 121 7377: `
+ * The bracketed date/time may contain colons (e.g. 4:00:33), so they are kept
+ * inside the `[^\]]*` group; stripping then runs up to the first colon that
+ * terminates the sender metadata, preserving the actual message body.
+ */
+const CHAT_HEADER_PREFIX_RE = /^\s*\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*\][^:\n]*:[ \t]?/;
+/** Sender header that lost its date prefix, e.g. `~ ~ Name ~ (+234 …): ` or `~ Name ~ (unknown): `. */
+const TILDE_SENDER_PREFIX_RE = /^\s*(?:~[ \t]*)+[^:\n]*\([ \t]*(?:\+?\d[\d ]*|unknown)[ \t]*\)[ \t]*:[ \t]?/i;
+
+/**
+ * Remove WhatsApp chat-export artifacts (message headers with timestamps,
+ * sender names and phone numbers, attachment markers) that must never appear
+ * in a public listing description. Operates line-by-line so it works on both
+ * multi-line raw text and already-flattened single-line stored descriptions.
+ */
+export function stripChatArtifacts(raw: string): string {
+  if (!raw) return raw;
+  const withoutMarkers = raw
+    .replace(/<attached:[^>]*>/gi, ' ')
+    .replace(/<\s*media omitted\s*>/gi, ' ')
+    .replace(/\b(?:image|video|audio|gif|sticker|document|contact card|location)\s+omitted\b/gi, ' ')
+    .replace(/\u200e/g, '');
+
+  const cleanedLines = withoutMarkers.split(/\r?\n/).map((line) =>
+    line.replace(CHAT_HEADER_PREFIX_RE, '').replace(TILDE_SENDER_PREFIX_RE, '')
+  );
+
+  return cleanedLines
+    .join('\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -678,7 +716,7 @@ function extractLocation(text: string): { state: string; city: string; address: 
  * Fills defaults for missing fields; description is the original text.
  */
 export function parseWhatsAppListingText(raw: string): ParseResult {
-  const text = normalizeText(raw);
+  const text = normalizeText(stripChatArtifacts(raw));
   const missing: string[] = [];
 
   const { value: priceVal, rentPeriod, pricePerSqm } = extractPrice(text);

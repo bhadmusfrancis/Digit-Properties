@@ -42,8 +42,11 @@ export function parseMessageMeta(full: string): {
   senderPhone: string | undefined;
   sentAt: Date | null;
 } {
+  // Allow one or more leading tilde markers so the WhatsApp "double-tilde"
+  // header (e.g. `[date] ~ ~ Name ~ (+234 …):`) parses like the single-tilde
+  // form. Without this the whole header would fall through into `body`.
   const m = full.match(
-    /^\[([^\]]+)\]\s+~\s+([^~]+)\s+~\s+\(([^)]*)\):\s*([\s\S]*)$/
+    /^\[([^\]]+)\]\s+(?:~\s+)+([^~]+?)\s+~\s+\(([^)]*)\):\s*([\s\S]*)$/
   );
   if (!m) {
     return { body: full.trim(), senderName: '', senderPhone: undefined, sentAt: null };
