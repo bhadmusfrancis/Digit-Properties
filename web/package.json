@@ -14,7 +14,8 @@
     "seed:listings": "tsx scripts/seed-listings.ts",
     "backfill:slugs": "tsx scripts/backfill-listing-slugs.ts",
     "backfill:titles": "tsx scripts/backfill-listing-titles.ts",
-    "backfill:prices": "tsx scripts/backfill-listing-prices.ts"
+    "backfill:prices": "tsx scripts/backfill-listing-prices.ts",
+    "cleanup:chat-artifacts": "tsx scripts/cleanup-listing-chat-artifacts.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
