@@ -55,7 +55,7 @@ export function AdminListingsSearch({ initialQuery }: { initialQuery: string }) 
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by title, address, owner, status, or listing ID…"
+          placeholder="Search by listing title, contact name, phone, address, owner, status, or listing ID…"
           className="input w-full pl-9"
           maxLength={200}
         />
