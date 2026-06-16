@@ -9,6 +9,9 @@ type User = { _id: string; name?: string; email?: string };
 type Props = {
   listingId: string;
   status: string;
+  listingType?: string;
+  soldAt?: string;
+  rentedAt?: string;
   createdById: string;
   createdByLabel: string;
   users: User[];
@@ -17,13 +20,14 @@ type Props = {
   boostPackage?: string;
 };
 
-export function AdminListingActions({ listingId, status, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '' }: Props) {
+export function AdminListingActions({ listingId, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '' }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingFeatured, setTogglingFeatured] = useState(false);
   const [togglingHighlighted, setTogglingHighlighted] = useState(false);
+  const [marking, setMarking] = useState(false);
   const [search, setSearch] = useState('');
   const [showAssign, setShowAssign] = useState(false);
   const [packageUpdating, setPackageUpdating] = useState(false);
@@ -32,6 +36,36 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
   useEffect(() => {
     setSelectedPackage(boostPackage);
   }, [boostPackage]);
+
+  const isRentListing = listingType === 'rent';
+  const marketKind: 'sold' | 'rented' = isRentListing ? 'rented' : 'sold';
+  const isMarked = isRentListing ? Boolean(rentedAt) : Boolean(soldAt);
+
+  const toggleMarketStatus = () => {
+    if (marking) return;
+    setMarking(true);
+    const payload =
+      marketKind === 'sold'
+        ? { soldAt: !Boolean(soldAt), rentedAt: false }
+        : { rentedAt: !Boolean(rentedAt), soldAt: false };
+    fetch(`/api/listings/${listingId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((d) => Promise.reject(d));
+        window.location.reload();
+      })
+      .catch((d) => alert(typeof d?.error === 'string' ? d.error : 'Failed to update listing status'))
+      .finally(() => setMarking(false));
+  };
+
+  const marketButtonLabel = (() => {
+    if (marking) return '…';
+    if (isMarked) return 'Set Available';
+    return isRentListing ? 'Mark Rented' : 'Mark Sold';
+  })();
 
   const boostPackageOptions = useMemo(() => Object.values(BOOST_PACKAGES), []);
 
@@ -164,6 +198,27 @@ export function AdminListingActions({ listingId, status, createdById, createdByL
           {deactivating ? '…' : 'Deactivate'}
         </button>
       )}
+      <button
+        type="button"
+        onClick={toggleMarketStatus}
+        disabled={marking}
+        title={
+          isMarked
+            ? 'Remove sold/rented status and show as available again'
+            : isRentListing
+              ? 'Mark this rental as rented'
+              : 'Mark this property as sold'
+        }
+        className={`inline-flex min-h-[32px] items-center justify-center rounded border px-2 text-[11px] font-semibold disabled:opacity-50 touch-manipulation ${
+          isMarked
+            ? 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
+            : isRentListing
+              ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+              : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+        }`}
+      >
+        {marketButtonLabel}
+      </button>
       <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white p-1">
         <button
           type="button"

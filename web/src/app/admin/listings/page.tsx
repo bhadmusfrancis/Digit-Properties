@@ -91,6 +91,12 @@ export default async function AdminListingsPage({
       videos,
       featured: Boolean(l.featured),
       highlighted: Boolean(l.highlighted),
+      soldAt: (l as { soldAt?: unknown }).soldAt
+        ? new Date((l as { soldAt: unknown }).soldAt as Date).toISOString()
+        : undefined,
+      rentedAt: (l as { rentedAt?: unknown }).rentedAt
+        ? new Date((l as { rentedAt: unknown }).rentedAt as Date).toISOString()
+        : undefined,
       isBoosted: Boolean(
         (l as { boostExpiresAt?: Date }).boostExpiresAt &&
           new Date((l as { boostExpiresAt: Date }).boostExpiresAt) > new Date()
