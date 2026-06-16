@@ -27,6 +27,8 @@ type Listing = {
   videos?: { url?: string; public_id?: string }[];
   featured?: boolean;
   highlighted?: boolean;
+  soldAt?: string;
+  rentedAt?: string;
   isBoosted?: boolean;
   boostPackage?: string;
   pendingApprovalReasons?: string[];
@@ -99,6 +101,16 @@ export function AdminListingsTable({
     return name ? `Boosted · ${name}` : 'Boosted';
   };
 
+  const marketBadge = (l: Listing) => {
+    if (l.rentedAt) {
+      return <span className="inline-flex rounded-full bg-indigo-600 px-2 py-0.5 font-medium text-white">Rented</span>;
+    }
+    if (l.soldAt) {
+      return <span className="inline-flex rounded-full bg-red-600 px-2 py-0.5 font-medium text-white">Sold</span>;
+    }
+    return null;
+  };
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white shadow">
       <div className="hidden sm:flex flex-wrap items-center justify-end gap-2 border-b border-gray-100 bg-gray-50/80 px-2 py-2 sm:px-3">
@@ -141,6 +153,7 @@ export function AdminListingsTable({
                     {l.status}
                   </span>
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">{formatCreatedAt(l.createdAt)}</span>
+                  {marketBadge(l)}
                   {l.isBoosted && (
                     <span className="inline-flex rounded-full bg-amber-500 px-2 py-0.5 font-medium text-white">
                       {boostBadgeLabel(l)}
@@ -159,6 +172,9 @@ export function AdminListingsTable({
               <AdminListingActions
                 listingId={l._id}
                 status={l.status}
+                listingType={l.listingType}
+                soldAt={l.soldAt}
+                rentedAt={l.rentedAt}
                 createdById={createdById(l)}
                 createdByLabel={createdByLabel(l)}
                 users={users}
@@ -241,6 +257,7 @@ export function AdminListingsTable({
                     >
                       {l.status}
                     </span>
+                    {marketBadge(l) ? <span className="ml-1 inline-flex text-xs">{marketBadge(l)}</span> : null}
                     {l.status === 'pending_approval' && l.pendingApprovalReasons && l.pendingApprovalReasons.length > 0 ? (
                       <p className="mt-1 max-w-[220px] text-xs text-amber-800" title={l.pendingApprovalReasons.join('; ')}>
                         {l.pendingApprovalReasons[0]}
@@ -260,6 +277,9 @@ export function AdminListingsTable({
                       <AdminListingActions
                         listingId={l._id}
                         status={l.status}
+                        listingType={l.listingType}
+                        soldAt={l.soldAt}
+                        rentedAt={l.rentedAt}
                         createdById={createdById(l)}
                         createdByLabel={createdByLabel(l)}
                         users={users}
