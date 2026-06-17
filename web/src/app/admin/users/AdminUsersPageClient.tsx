@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { USER_ROLES } from '@/lib/constants';
+import { isPublicVerifiedAccount } from '@/lib/verification';
 import { formatPrice } from '@/lib/utils';
 
 type Role = (typeof USER_ROLES)[keyof typeof USER_ROLES];
@@ -15,6 +16,7 @@ type User = {
   phone?: string;
   subscriptionTier?: string;
   createdAt?: string;
+  identityVerifiedAt?: string;
 };
 
 const defaultForm = { name: '', email: '', password: '', role: USER_ROLES.GUEST as Role, phone: '' };
@@ -33,6 +35,7 @@ export default function AdminUsersPageClient() {
   const [creditSubmitting, setCreditSubmitting] = useState(false);
   const [creditError, setCreditError] = useState<string | null>(null);
   const [creditSuccess, setCreditSuccess] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState<string | null>(null);
 
   const load = () => {
     fetch('/api/admin/users')
@@ -95,6 +98,35 @@ export default function AdminUsersPageClient() {
         else r.json().then((d) => alert(d.error || 'Failed'));
       })
       .catch(() => alert('Failed'));
+  };
+
+  const canMarkVerified = (u: User) =>
+    u.role === USER_ROLES.GUEST || u.role === USER_ROLES.BOT;
+
+  const canRemoveVerification = (u: User) => u.role === USER_ROLES.VERIFIED_INDIVIDUAL;
+
+  const toggleVerified = async (u: User) => {
+    const markVerified = canMarkVerified(u);
+    if (!markVerified && !canRemoveVerification(u)) return;
+    const message = markVerified
+      ? `Mark ${u.name} as a verified user? They will get the verified individual role and public trust badge.`
+      : `Remove verification from ${u.name}? They will be set back to guest.`;
+    if (!confirm(message)) return;
+    setVerifying(u._id);
+    try {
+      const res = await fetch(`/api/admin/users/${u._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markVerified }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed');
+    } finally {
+      setVerifying(null);
+    }
   };
 
   const startEdit = (u: User) => {
@@ -371,6 +403,7 @@ export default function AdminUsersPageClient() {
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Name</th>
               <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Email</th>
               <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-4">Role</th>
+              <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Verified</th>
               <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Tier</th>
               <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Joined</th>
               <th className="px-3 py-3 text-right text-xs font-medium uppercase text-gray-500 sm:px-4">Actions</th>
@@ -384,11 +417,39 @@ export default function AdminUsersPageClient() {
                 <td className="px-3 py-3">
                   <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">{u.role}</span>
                 </td>
+                <td className="hidden md:table-cell px-4 py-3">
+                  {isPublicVerifiedAccount({ role: u.role, identityVerifiedAt: u.identityVerifiedAt }) ? (
+                    <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                      Not verified
+                    </span>
+                  )}
+                </td>
                 <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">{u.subscriptionTier || '—'}</td>
                 <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-600">
                   {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-NG') : '—'}
                 </td>
                 <td className="px-3 py-3 text-right">
+                  {(canMarkVerified(u) || canRemoveVerification(u)) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => toggleVerified(u)}
+                        disabled={verifying === u._id}
+                        className={`min-h-[44px] min-w-[44px] inline-flex items-center justify-center py-1 px-2 -m-1 rounded touch-manipulation disabled:opacity-50 ${
+                          canMarkVerified(u)
+                            ? 'text-green-700 hover:underline'
+                            : 'text-amber-700 hover:underline'
+                        }`}
+                      >
+                        {verifying === u._id ? '…' : canMarkVerified(u) ? 'Verify' : 'Unverify'}
+                      </button>
+                      <span className="text-gray-300 mx-1">|</span>
+                    </>
+                  )}
                   <button type="button" onClick={() => startEdit(u)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-primary-600 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Edit</button>
                   <span className="text-gray-300 mx-1">|</span>
                   <button type="button" onClick={() => startCredit(u)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-emerald-700 hover:underline py-1 px-2 -m-1 rounded touch-manipulation">Credit</button>
