@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   }
   await dbConnect();
   const users = await User.find({})
-    .select('name email role phone subscriptionTier createdAt')
+    .select('name email role phone subscriptionTier createdAt identityVerifiedAt')
     .sort({ createdAt: -1 })
     .limit(500)
     .lean();
