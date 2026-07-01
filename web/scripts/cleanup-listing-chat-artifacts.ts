@@ -1,10 +1,6 @@
 /**
- * Strip leftover WhatsApp chat-export artifacts (message headers with
- * timestamps, sender names and phone numbers, attachment markers) from listing
- * titles and descriptions. These leaked in via earlier imports where the
- * "double-tilde" header format was not parsed, e.g.
- *
- *   [5/19/26, 4:00:33 AM] ~ ~ Engr Otaoghene(COREN) ~ (+234 706 735 0185): Wuye listing!
+ * Strip leftover WhatsApp chat-export artifacts and embedded phone numbers from
+ * listing titles and descriptions. Phone contact belongs in agentPhone fields.
  *
  * Usage:
  *   cd web
@@ -16,7 +12,7 @@ import path from 'path';
 import { config } from 'dotenv';
 import mongoose from 'mongoose';
 import Listing from '../src/models/Listing';
-import { stripChatArtifacts } from '../src/lib/whatsapp-listing-parser';
+import { stripChatArtifacts, stripContactPhonesFromText } from '../src/lib/whatsapp-listing-parser';
 
 function parseArgs() {
   const argv = process.argv.slice(2);
@@ -29,10 +25,17 @@ type ListingRow = {
   description?: string;
 };
 
-/** Cheap pre-filter so we only inspect rows that plausibly contain chat junk. */
-const SUSPECT_RE = /\[\d{1,2}\/\d{1,2}\/\d{2,4}|~\s*\(|<attached:|\bimage omitted\b/i;
+/** Cheap pre-filter so we only inspect rows that plausibly contain chat junk or phones. */
+const SUSPECT_RE =
+  /\[\d{1,2}\/\d{1,2}\/\d{2,4}|~\s*\(|<attached:|\bimage omitted\b|\b0[789]\d{9}\b|\+?\s*234[\s.\-]?\d{3}[\s.\-]?\d{3}[\s.\-]?\d{4}/i;
 
 const FALLBACK_DESCRIPTION = 'Imported from WhatsApp.';
+
+function cleanListingCopy(raw: string, fallback = ''): string {
+  let out = stripContactPhonesFromText(stripChatArtifacts(raw));
+  if (!out.trim()) out = fallback;
+  return out;
+}
 
 async function main() {
   const { apply } = parseArgs();
@@ -46,12 +49,7 @@ async function main() {
 
   await mongoose.connect(process.env.MONGODB_URI);
 
-  const rows = (await Listing.find({
-    $or: [
-      { description: { $regex: SUSPECT_RE } },
-      { title: { $regex: SUSPECT_RE } },
-    ],
-  })
+  const rows = (await Listing.find({})
     .select('_id title description')
     .lean()
     .exec()) as ListingRow[];
@@ -65,9 +63,8 @@ async function main() {
     const beforeDesc = String(row.description ?? '');
     const beforeTitle = String(row.title ?? '');
 
-    let afterDesc = stripChatArtifacts(beforeDesc);
-    if (!afterDesc.trim()) afterDesc = FALLBACK_DESCRIPTION;
-    const afterTitle = stripChatArtifacts(beforeTitle) || beforeTitle;
+    let afterDesc = cleanListingCopy(beforeDesc, FALLBACK_DESCRIPTION);
+    const afterTitle = cleanListingCopy(beforeTitle) || beforeTitle;
 
     const update: Record<string, string> = {};
     if (afterDesc !== beforeDesc) {
@@ -104,7 +101,10 @@ async function main() {
     JSON.stringify(
       {
         apply,
-        matchedSuspect: rows.length,
+        matchedTotal: rows.length,
+        matchedSuspect: rows.filter(
+          (r) => SUSPECT_RE.test(String(r.description ?? '')) || SUSPECT_RE.test(String(r.title ?? ''))
+        ).length,
         scanned,
         changed,
         samples,

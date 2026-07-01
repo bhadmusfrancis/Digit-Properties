@@ -149,6 +149,42 @@ export function stripChatArtifacts(raw: string): string {
     .trim();
 }
 
+/** Nigerian phone tokens embedded in marketing copy (not property prices). */
+const EMBEDDED_PHONE_TOKEN_RE =
+  /\+\s*234[\s.\-]?\d{3}[\s.\-]?\d{3}[\s.\-]?\d{3,5}|\b0[789]\d{9,11}\b|\b234[789]\d{9,11}\b/gi;
+
+/** Asterisk-wrapped phone lists, e.g. *07065628500,08058687903.* */
+const PHONE_IN_ASTERISK_BLOCK_RE =
+  /\*[\s,.\-;:|]*(?:(?:\+\s*234[\s.\-]?\d{3}[\s.\-]?\d{3}[\s.\-]?\d{3,5}|\b0[789]\d{9,11}\b|\b234[789]\d{9,11}\b)[\s,.\-;:|]*)+\*\.?/gi;
+
+/**
+ * Remove phone numbers from public listing copy (titles/descriptions).
+ * Contact details belong in agentPhone/agentName fields, not body text.
+ */
+export function stripContactPhonesFromText(raw: string): string {
+  if (!raw) return raw;
+
+  let t = raw.replace(PHONE_IN_ASTERISK_BLOCK_RE, '*.*');
+  t = t.replace(EMBEDDED_PHONE_TOKEN_RE, '');
+  // Trailing orphaned contact tails after numbers were removed
+  t = t.replace(
+    /\b(?:for\s+)?(?:viewing\s*\/)?(?:further\s+)?inquir(?:y|ies)\s*,?\s*(?:pls\s+|please\s+)?call\s+[A-Za-z][A-Za-z\s]{1,40}\s*$/gim,
+    ''
+  );
+  t = t.replace(
+    /\b(?:pls\s+|please\s+)?(?:call|contact|whatsapp|tel|phone|mobile|reach(?:\s+us)?)(?:\s+on)?\s*[.,*]*\s*$/gim,
+    ''
+  );
+  t = t.replace(/\bon\s*[.,]+\s*$/gim, '');
+  t = t.replace(/,\s*,/g, ',');
+  t = t.replace(/[ \t]+\n/g, '\n');
+  t = t.replace(/\n{3,}/g, '\n\n');
+  t = t.replace(/[ \t]{2,}/g, ' ');
+  t = t.replace(/\s+([.,])/g, '$1');
+  t = t.replace(/\.\s*\./g, '.');
+  return t.trim();
+}
+
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -734,7 +770,7 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
         ? Math.round(pricePerSqm * area)
         : pricePerSqm ?? 0;
 
-  const desc = text;
+  const desc = stripContactPhonesFromText(text);
   const title = buildCanonicalListingTitle({
     listingType,
     propertyType,
