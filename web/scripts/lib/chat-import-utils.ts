@@ -1,8 +1,9 @@
 import { createHash } from 'crypto';
-import { existsSync, readFileSync, statSync } from 'fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import { findDuplicateAmongCandidates } from '../../src/lib/listing-dedupe';
+import { ALL_CHATS_PATH } from './chat-import-paths';
 
 export const ATTACHED_RE = /<attached:\s*([^>]+)>/gi;
 export const MSG_HEADER_RE = /^\[\d{1,2}\/\d{1,2}\/\d{2,4},/;
@@ -471,4 +472,31 @@ export async function uploadListingMediaToCloudinary(
   }
 
   throw new Error('Upload failed after retries');
+}
+
+/** Remove duplicate message fingerprints from the global All_chats.txt archive. */
+export function dedupeAllChatsArchive(): { before: number; after: number; removed: number } {
+  if (!existsSync(ALL_CHATS_PATH)) {
+    return { before: 0, after: 0, removed: 0 };
+  }
+  const raw = readFileSync(ALL_CHATS_PATH, 'utf8');
+  const messages = splitChatMessages(raw);
+  const seen = new Set<string>();
+  const kept: string[] = [];
+  let removed = 0;
+  for (const full of messages) {
+    const { body, senderPhone } = parseMessageMeta(full);
+    const clean = cleanBodyForParser(body);
+    const key = clean.length >= 15 ? listingFingerprint(clean, senderPhone) : full.trim();
+    if (seen.has(key)) {
+      removed++;
+      continue;
+    }
+    seen.add(key);
+    kept.push(full.trimEnd());
+  }
+  if (removed > 0) {
+    writeFileSync(ALL_CHATS_PATH, kept.join('\n') + '\n', 'utf8');
+  }
+  return { before: messages.length, after: kept.length, removed };
 }

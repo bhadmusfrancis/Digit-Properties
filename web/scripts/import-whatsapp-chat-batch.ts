@@ -2,6 +2,7 @@
  * Import a WhatsApp export folder into listings.
  *
  * Protocol:
+ * 0. Dedupe repo-root All_chats.txt (remove duplicate fingerprints before import)
  * 1. Build chat.txt from _chat.txt (contacts.txt in the SAME folder only)
  * 2. Dedupe against repo-root All_chats.txt (all groups)
  * 3. Import listings with media + real-estate filter (dedupe before any upload)
@@ -33,8 +34,10 @@ import {
   createChatImportDedupeState,
   shouldSkipChatImportBeforeUpload,
   markChatImportAccepted,
+  dedupeAllChatsArchive,
   type ChatImportDedupeState,
 } from './lib/chat-import-utils';
+import { stripContactPhonesFromText } from '../src/lib/whatsapp-listing-parser';
 import { ALL_CHATS_PATH, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
 import { mongoUriForConnect } from './lib/mongo-uri';
 
@@ -146,6 +149,10 @@ async function main() {
   console.log(`Source: ${sourceDir}`);
   console.log(`All chats: ${ALL_CHATS_PATH}`);
   console.log(`Batch tag: ${batchTag}`);
+
+  console.log('\nStep 0: Dedupe All_chats.txt before import…');
+  const allChatsDedupe = dedupeAllChatsArchive();
+  console.log(JSON.stringify(allChatsDedupe, null, 2));
 
   if (!existsSync(path.join(sourceDir, '_chat.txt'))) {
     console.error(`Missing ${path.join(sourceDir, '_chat.txt')}`);
@@ -377,7 +384,7 @@ async function main() {
 
     const { parsed, confidence, missing } = one;
     if (!parsed.agentName && msg.senderName) parsed.agentName = msg.senderName;
-    let description = parsed.description;
+    let description = stripContactPhonesFromText(parsed.description);
     if (description.length < 20) description = `${description}\n\n(Imported from WhatsApp chat.)`.slice(0, 5000);
     if (description.length > 5000) description = description.slice(0, 5000);
 
