@@ -60,12 +60,15 @@ export async function GET(req: Request) {
     })
       .limit(10)
       .lean();
-    for (const ad of activeAds) {
-      const row = ad as { _id: mongoose.Types.ObjectId; media: { url: string; type: string }; targetUrl: string };
-      pool.push({
-        type: 'ad',
-        ad: { _id: row._id.toString(), media: row.media, targetUrl: row.targetUrl },
-      });
+    const adsenseReviewMode = process.env.ADSENSE_REVIEW_MODE === 'true';
+    if (!adsenseReviewMode) {
+      for (const ad of activeAds) {
+        const row = ad as { _id: mongoose.Types.ObjectId; media: { url: string; type: string }; targetUrl: string };
+        pool.push({
+          type: 'ad',
+          ad: { _id: row._id.toString(), media: row.media, targetUrl: row.targetUrl },
+        });
+      }
     }
 
     const config = await AdConfig.findOne().lean();
@@ -77,7 +80,7 @@ export async function GET(req: Request) {
 
     const adsterra = config?.adsterra as Record<string, string> | undefined;
     const adsterraCode = placementConfigValue(adsterra, placement);
-    if (adsterraCode) {
+    if (adsterraCode && !adsenseReviewMode) {
       pool.push({ type: 'adsterra', code: adsterraCode });
     }
 

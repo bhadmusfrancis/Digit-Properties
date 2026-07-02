@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { MAX_CONTACT_MESSAGE } from '@/lib/validations';
 import { SOCIAL_LINKS } from '@/lib/constants';
+import { CONTACT_EMAIL } from '@/lib/site-contact';
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
 const CAPTCHA_CONTAINER_ID = 'contact-recaptcha-container';
@@ -129,7 +130,8 @@ export default function ContactPage() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
       <h1 className="text-2xl font-bold text-gray-900">Contact us</h1>
       <p className="mt-2 text-gray-600">
-        Send us a message and we&apos;ll get back to you as soon as we can.
+        Send us a message and we&apos;ll get back to you as soon as we can. You can also email us directly at{' '}
+        <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-primary-600 hover:underline">{CONTACT_EMAIL}</a>.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 max-w-xl space-y-6">
@@ -189,20 +191,14 @@ export default function ContactPage() {
         <div className="space-y-2">
           <div id={CAPTCHA_CONTAINER_ID} ref={captchaContainerRef} className="min-h-[78px]" />
           {RECAPTCHA_SITE_KEY ? (
-            <>
-              <p className="text-xs text-gray-500">
-                This site is protected by reCAPTCHA. Google Privacy Policy and Terms apply.
-              </p>
-              <p className="text-xs text-blue-600">
-                Add this site&apos;s domain (e.g. <strong>localhost</strong> or your production domain) at{' '}
-                <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener noreferrer" className="underline">google.com/recaptcha/admin</a> → edit your key → Domains.
-              </p>
-            </>
-          ) : (
-            <p className="text-xs text-amber-600">
-              reCAPTCHA is not configured. Set <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_RECAPTCHA_SITE_KEY</code> and <code className="bg-amber-100 px-1 rounded">RECAPTCHA_SECRET_KEY</code> in your environment. Local: add to <code className="bg-amber-100 px-1 rounded">.env.local</code> and restart the dev server. Production: set in your host&apos;s dashboard (e.g. Vercel → Environment Variables) and redeploy. Add this site&apos;s domain (e.g. localhost or your domain) at google.com/recaptcha/admin.
+            <p className="text-xs text-gray-500">
+              This site is protected by reCAPTCHA. Google Privacy Policy and Terms apply.
             </p>
-          )}
+          ) : process.env.NODE_ENV === 'development' ? (
+            <p className="text-xs text-amber-600">
+              reCAPTCHA is not configured. Set <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_RECAPTCHA_SITE_KEY</code> and <code className="bg-amber-100 px-1 rounded">RECAPTCHA_SECRET_KEY</code> in <code className="bg-amber-100 px-1 rounded">.env.local</code>.
+            </p>
+          ) : null}
         </div>
         {status === 'sent' && (
           <p className="text-sm text-green-600">Message sent. We&apos;ll be in touch.</p>

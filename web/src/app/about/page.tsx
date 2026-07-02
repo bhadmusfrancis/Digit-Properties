@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { canonicalAlternates } from '@/lib/seo/canonical';
+import { CONTACT_EMAIL } from '@/lib/site-contact';
 
 export const metadata: Metadata = {
   title: 'About Us',
@@ -25,6 +26,38 @@ export default function AboutPage() {
         <p className="text-lg text-gray-600">
           Digit Properties is a Nigerian real estate platform that connects buyers, sellers, renters, and developers with the right properties and the right paperwork. We develop property ourselves and support others with land titling, development documentation, property valuation for different purposes, and verification of key documents such as Survey plans and Certificates of Occupancy (C of O).
         </p>
+        <p className="mt-4 text-lg text-gray-600">
+          Digit Properties is a brand of <strong>FABHA International</strong>, with offices in Lagos, Ibadan, and Warri. Reach us at{' '}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-primary-600 hover:underline">{CONTACT_EMAIL}</a>.
+        </p>
+      </section>
+
+      <section className="border-t border-gray-200 bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-900">Who We Are</h2>
+          <p className="mt-4 max-w-3xl text-gray-600">
+            FABHA International built Digit Properties to make Nigerian real estate more transparent — from finding a home or plot of land to verifying Survey plans and C of O documents before you pay. Our team combines marketplace technology with on-the-ground experience in Lagos, Ibadan, and the Niger Delta markets.
+          </p>
+          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-lg font-bold text-primary-700">FI</div>
+              <h3 className="mt-4 font-semibold text-gray-900">FABHA International</h3>
+              <p className="mt-2 text-sm text-gray-600">Parent company operating Digit Properties across Nigeria.</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-lg font-bold text-primary-700">DP</div>
+              <h3 className="mt-4 font-semibold text-gray-900">Digit Properties Team</h3>
+              <p className="mt-2 text-sm text-gray-600">Marketplace, listings, and customer support based in Lagos, Ibadan, and Warri.</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-lg font-bold text-primary-700">@</div>
+              <h3 className="mt-4 font-semibold text-gray-900">Contact</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-600 hover:underline">{CONTACT_EMAIL}</a>
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="border-t border-gray-200 bg-gray-50">

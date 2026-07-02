@@ -14,6 +14,7 @@ import {
   type LocationLandingParams,
 } from '@/lib/location-seo';
 import { countActiveListingsForLanding, resolvePlaceForLanding } from '@/lib/location-seo-server';
+import { buildLocationLandingEditorialContent } from '@/lib/location-landing-content';
 
 type PageProps = {
   params: Promise<{ stateSlug: string; rest?: string[] }>;
@@ -71,14 +72,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     listingType: landing.listingType,
   });
 
+  const editorial = buildLocationLandingEditorialContent(landing, listingCount);
+
   return {
     title: meta.title,
-    description: meta.description,
+    description: editorial.metaDescription,
     alternates: { canonical },
     robots: listingCount > 0 ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: {
       title: `${meta.title} | Digit Properties`,
-      description: meta.description,
+      description: editorial.metaDescription,
       url: canonical,
       siteName: 'Digit Properties',
       locale: 'en_NG',
@@ -86,7 +89,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: meta.title,
-      description: meta.description,
+      description: editorial.metaDescription,
     },
   };
 }
@@ -97,6 +100,13 @@ export default async function LocationLandingPage({ params }: PageProps) {
   if (!resolved) notFound();
 
   const { landing, path, meta } = resolved;
+  const listingCount = await countActiveListingsForLanding({
+    state: landing.state,
+    city: landing.city,
+    suburb: landing.suburb,
+    listingType: landing.listingType,
+  });
+  const editorial = buildLocationLandingEditorialContent(landing, listingCount);
   const presetFilters = locationLandingPresetFilters(landing);
   const related = relatedLocationLinks(landing.state, {
     placeName: landing.placeName,
@@ -123,7 +133,7 @@ export default async function LocationLandingPage({ params }: PageProps) {
           ]),
           buildCollectionPageJsonLd({
             name: meta.title,
-            description: meta.description,
+            description: editorial.metaDescription,
             path,
           }),
         ]}
@@ -131,7 +141,8 @@ export default async function LocationLandingPage({ params }: PageProps) {
       <ListingsPageClient
         presetFilters={presetFilters}
         pageTitle={meta.title}
-        pageDescription={meta.description}
+        pageDescription={editorial.metaDescription}
+        editorialHtml={editorial.html}
         relatedLinks={related}
       />
     </>

@@ -253,9 +253,9 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
       <div className="mt-6 flex justify-center">
         <div className="relative w-full max-w-lg">
           <SponsoredLabel className="absolute right-3 top-2 z-10" />
-          <div
+          <HtmlAdEmbed
+            html={data.adsenseCode}
             className="min-h-[120px] w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
-            dangerouslySetInnerHTML={{ __html: data.adsenseCode }}
           />
         </div>
       </div>

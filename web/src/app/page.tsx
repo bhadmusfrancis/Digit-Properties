@@ -3,16 +3,26 @@ import type { Metadata } from 'next';
 import { canonicalAlternates } from '@/lib/seo/canonical';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { TrendingListings } from '@/components/listings/TrendingListings';
-import { TrendHighlights } from '@/components/trends/TrendHighlights';
 import { LocationHighlights } from '@/components/listings/LocationHighlights';
+import { HomeFeaturedListings, HomeTrendHighlights } from '@/components/home/HomeServerSections';
 import { buildLocationLandingPath } from '@/lib/location-seo';
 import { LISTING_TYPE } from '@/lib/constants';
+import {
+  fetchHomeFeaturedListings,
+  fetchHomeTrendingListings,
+  fetchHomeTrendPosts,
+} from '@/lib/homepage-listings-server';
 
 export const metadata: Metadata = {
   ...canonicalAlternates('/'),
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [featuredListings, trendingListings, trendPosts] = await Promise.all([
+    fetchHomeFeaturedListings(8),
+    fetchHomeTrendingListings(8),
+    fetchHomeTrendPosts(4),
+  ]);
 
   return (
     <div>
@@ -22,7 +32,7 @@ export default function HomePage() {
             Find Your Dream Property in Nigeria
           </h1>
           <p className="mt-6 max-w-2xl text-xl text-primary-100">
-            Browse thousands of apartments, houses, land, and commercial properties for sale and rent across Lagos, Abuja, Port Harcourt, and beyond.
+            Browse verified apartments, houses, land, and commercial properties for sale and rent across Lagos, Abuja, Port Harcourt, Ibadan, and beyond.
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link href={buildLocationLandingPath('Lagos', { listingType: LISTING_TYPE.SALE })} className="btn bg-white text-primary-700 hover:bg-primary-50">
@@ -43,6 +53,7 @@ export default function HomePage() {
           </Link>
         </div>
         <FeaturedSlot />
+        <HomeFeaturedListings listings={featuredListings} />
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 border-t border-gray-200">
@@ -52,10 +63,10 @@ export default function HomePage() {
             View all →
           </Link>
         </div>
-        <TrendingListings />
+        <TrendingListings initialListings={trendingListings} />
       </section>
 
-      <TrendHighlights />
+      <HomeTrendHighlights posts={trendPosts} />
 
       <LocationHighlights />
 

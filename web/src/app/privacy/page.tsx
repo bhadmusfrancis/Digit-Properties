@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { canonicalAlternates } from '@/lib/seo/canonical';
+import { CONTACT_EMAIL } from '@/lib/site-contact';
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Digit Properties';
 
@@ -109,31 +110,50 @@ export default function PrivacyPage() {
           </p>
         </section>
 
+        <section id="advertising" className="mb-10">
+          <h2 className="text-xl font-semibold text-gray-900">9. Advertising and Third-Party Partners</h2>
+          <p>
+            We use third-party advertising partners, including <strong>Google AdSense</strong>, to display advertisements on the Platform. These partners may use cookies, web beacons, IP addresses, and similar technologies to serve ads, measure ad performance, and prevent fraud.
+          </p>
+          <p className="mt-4">
+            Google, as a third-party vendor, uses cookies to serve ads on our site. Google&apos;s use of advertising cookies enables it and its partners to serve ads based on your visit to this and other sites on the Internet. You may opt out of personalized advertising by visiting{' '}
+            <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Google Ads Settings</a>
+            . For more information on how Google uses data when you use our partners&apos; sites or apps, see{' '}
+            <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">How Google uses data when you use our partners&apos; sites or apps</a>.
+          </p>
+          <p className="mt-4">
+            Third-party ad networks may collect information about your visits to this and other websites to provide relevant advertisements. We do not control these third parties&apos; data practices; please review their privacy policies. Our contact email for privacy questions is{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-600 hover:underline">{CONTACT_EMAIL}</a>.
+          </p>
+        </section>
+
         <section id="children" className="mb-10">
-          <h2 className="text-xl font-semibold text-gray-900">9. Children</h2>
+          <h2 className="text-xl font-semibold text-gray-900">10. Children</h2>
           <p>
             The Platform is not intended for users under 18. We do not knowingly collect personal data from children. If you believe we have collected data from a child, please contact us and we will take steps to delete it.
           </p>
         </section>
 
         <section id="international" className="mb-10">
-          <h2 className="text-xl font-semibold text-gray-900">10. International Transfers</h2>
+          <h2 className="text-xl font-semibold text-gray-900">11. International Transfers</h2>
           <p>
             Your data may be processed in Nigeria and in countries where our service providers operate. We ensure appropriate safeguards (e.g. contracts, adequacy decisions where applicable) are in place for such transfers as required by law.
           </p>
         </section>
 
         <section id="changes" className="mb-10">
-          <h2 className="text-xl font-semibold text-gray-900">11. Changes to This Policy</h2>
+          <h2 className="text-xl font-semibold text-gray-900">12. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. We will post the updated policy on this page and update the &quot;Last updated&quot; date. For material changes, we may notify you by email or through the Platform. Continued use after changes constitutes acceptance of the updated policy.
           </p>
         </section>
 
         <section id="contact" className="mb-10">
-          <h2 className="text-xl font-semibold text-gray-900">12. Contact Us</h2>
+          <h2 className="text-xl font-semibold text-gray-900">13. Contact Us</h2>
           <p>
-            For questions about this Privacy Policy or our data practices, please contact us via our <Link href="/contact" className="text-primary-600 hover:underline">Contact</Link> page or the contact details published on the Platform.
+            For questions about this Privacy Policy or our data practices, please contact us at{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-600 hover:underline">{CONTACT_EMAIL}</a>{' '}
+            or via our <Link href="/contact" className="text-primary-600 hover:underline">Contact</Link> page.
           </p>
         </section>
       </div>
