@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { TrendImage } from '@/components/trends/TrendImage';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
+import { getTrendAuthorBio } from '@/lib/trend-authors';
 
 export type TrendPost = {
   _id: string;
@@ -143,6 +144,13 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
                 prose-strong:text-slate-900 prose-strong:font-semibold"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
+
+            {post.author && (
+              <footer className="mt-10 rounded-xl border border-slate-200 bg-slate-50 px-6 py-5">
+                <p className="text-sm font-semibold text-slate-900">{post.author}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{getTrendAuthorBio(post.author)}</p>
+              </footer>
+            )}
           </article>
 
           <aside className="lg:pt-12">

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { buildLocationLandingPath } from '@/lib/location-seo';
 import { LISTING_TYPE, SOCIAL_LINKS } from '@/lib/constants';
+import { CONTACT_EMAIL } from '@/lib/site-contact';
 
 export function Footer() {
   return (
@@ -13,6 +14,9 @@ export function Footer() {
             </div>
             <p className="mt-4 text-sm">
               Nigeria premier real estate platform. Buy, sell, and rent properties with confidence.
+            </p>
+            <p className="mt-3 text-sm">
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-white">{CONTACT_EMAIL}</a>
             </p>
             <div className="mt-6">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Follow us</h3>

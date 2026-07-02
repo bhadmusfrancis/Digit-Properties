@@ -22,6 +22,8 @@ type ListingsPageClientProps = {
   presetFilters?: Record<string, string>;
   pageTitle?: string;
   pageDescription?: string;
+  /** Rich HTML editorial block (location guides, etc.) */
+  editorialHtml?: string;
   relatedLinks?: { href: string; label: string }[];
 };
 
@@ -56,6 +58,7 @@ function ListingsContent({
   presetFilters,
   pageTitle,
   pageDescription,
+  editorialHtml,
   relatedLinks,
 }: ListingsPageClientProps) {
   const searchParams = useSearchParams();
@@ -125,6 +128,11 @@ function ListingsContent({
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-bold text-gray-900">{pageTitle ?? 'Property Listings'}</h1>
       {pageDescription && <p className="mt-2 max-w-3xl text-gray-600">{pageDescription}</p>}
+      {editorialHtml && (
+        <section className="mt-6 max-w-4xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div dangerouslySetInnerHTML={{ __html: editorialHtml }} />
+        </section>
+      )}
       {relatedLinks && relatedLinks.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {relatedLinks.map((link) => (

@@ -62,10 +62,10 @@ function getLocationFromCoords(lat: number, lon: number): Promise<LocationParams
     .catch(() => null);
 }
 
-export function TrendingListings() {
+export function TrendingListings({ initialListings = [] }: { initialListings?: ListingRow[] }) {
   const [location, setLocation] = useState<LocationParams>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const nationalListingsRef = useRef<ListingRow[] | null>(null);
+  const nationalListingsRef = useRef<ListingRow[] | null>(initialListings.length ? initialListings : null);
 
   useEffect(() => {
     if (!navigator?.geolocation) return;
@@ -113,10 +113,12 @@ export function TrendingListings() {
     if (flat.length) nationalListingsRef.current = flat;
   }, [data?.pages, hasLocationFilter]);
 
-  const rawListings: ListingRow[] = useMemo(
-    () => data?.pages.flatMap((p) => p.listings ?? []) ?? [],
-    [data?.pages]
-  );
+  const rawListings: ListingRow[] = useMemo(() => {
+    const fromPages = data?.pages.flatMap((p) => p.listings ?? []) ?? [];
+    if (fromPages.length > 0) return fromPages;
+    if (!hasLocationFilter && initialListings.length > 0) return initialListings;
+    return fromPages;
+  }, [data?.pages, hasLocationFilter, initialListings]);
 
   const listings: ListingRow[] = useMemo(() => {
     if (rawListings.length > 0) return rawListings;
@@ -140,7 +142,7 @@ export function TrendingListings() {
     return () => obs.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, listings.length]);
 
-  if (isPending && listings.length === 0) {
+  if (isPending && listings.length === 0 && initialListings.length === 0) {
     return (
       <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {[...Array(8)].map((_, i) => (
