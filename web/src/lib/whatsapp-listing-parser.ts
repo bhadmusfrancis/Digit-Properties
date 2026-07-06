@@ -185,6 +185,18 @@ export function stripContactPhonesFromText(raw: string): string {
   return t.trim();
 }
 
+/** Preserve WhatsApp line breaks and punctuation while stripping export artifacts. */
+export function prepareWhatsAppListingDescription(raw: string): string {
+  const stripped = stripChatArtifacts(raw)
+    .replace(/\r\n/g, '\n')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return stripContactPhonesFromText(stripped);
+}
+
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -752,7 +764,8 @@ function extractLocation(text: string): { state: string; city: string; address: 
  * Fills defaults for missing fields; description is the original text.
  */
 export function parseWhatsAppListingText(raw: string): ParseResult {
-  const text = normalizeText(stripChatArtifacts(raw));
+  const stripped = stripChatArtifacts(raw);
+  const text = normalizeText(stripped);
   const missing: string[] = [];
 
   const { value: priceVal, rentPeriod, pricePerSqm } = extractPrice(text);
@@ -770,7 +783,7 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
         ? Math.round(pricePerSqm * area)
         : pricePerSqm ?? 0;
 
-  const desc = stripContactPhonesFromText(text);
+  const desc = prepareWhatsAppListingDescription(raw);
   const title = buildCanonicalListingTitle({
     listingType,
     propertyType,

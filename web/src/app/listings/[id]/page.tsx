@@ -14,6 +14,7 @@ import { ListingTrustCaveat } from '@/components/listings/ListingTrustCaveat';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
 import { ListingTemporarilyUnavailable } from '@/components/listings/ListingTemporarilyUnavailable';
 import { ListingIndexabilityBanner } from '@/components/listings/ListingIndexabilityBanner';
+import { ListingDescriptionContent } from '@/components/listings/ListingDescriptionContent';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS, USER_ROLES, formatListingTypeLabel, formatPropertyTypesLine, POPULAR_AMENITIES } from '@/lib/constants';
@@ -625,16 +626,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 </span>
                 <span>{formatListingTypeLabel(String(listing.listingType ?? ''))}</span>
               </div>
-              {listing.description && /<[a-z][\s\S]*>/i.test(listing.description) ? (
-                <div
-                  className="rich-html-content mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0 prose-img:max-w-full prose-table:my-4 prose-table:border-collapse prose-th:border prose-td:border prose-a:text-primary-600"
-                  dangerouslySetInnerHTML={{ __html: listing.description }}
-                />
-              ) : (
-                <div className="mt-4 text-gray-700 prose prose-slate max-w-none prose-p:my-2">
-                  <p>{listing.description}</p>
-                </div>
-              )}
+              <ListingDescriptionContent
+                description={listing.description ?? ''}
+                tags={(listing as { tags?: string[] }).tags}
+              />
               {derivedAmenities.length > 0 && (
                 <div className="mt-6">
                   <h3 className="font-semibold text-gray-900">Amenities</h3>

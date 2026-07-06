@@ -279,7 +279,9 @@ export async function PATCH(
       parsed.data.price !== undefined ||
       parsed.data.listingType !== undefined;
     if (shouldRefreshSeoDescription) {
-      listing.description = enrichListingDescriptionForSeo(listingDocToShareFields(listing));
+      listing.description = enrichListingDescriptionForSeo(listingDocToShareFields(listing), {
+        tags: Array.isArray(listing.tags) ? listing.tags.map(String) : undefined,
+      });
     }
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);
