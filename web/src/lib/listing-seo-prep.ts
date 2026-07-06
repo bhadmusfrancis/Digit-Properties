@@ -63,9 +63,20 @@ export function applyImportSeoTags(tags: string[] | undefined): string[] {
   return mergeUniqueLists(base, [WHATSAPP_CHAT_IMPORT_TAG, WHATSAPP_IMPORT_TAG]);
 }
 
-/** Expand thin WhatsApp paste descriptions into indexable copy (price, type, location, media). */
-export function enrichListingDescriptionForSeo(fields: ListingShareFields): string {
+export function isWhatsAppImportTags(tags: string[] | undefined): boolean {
+  if (!Array.isArray(tags)) return false;
+  return tags.some(
+    (t) => t === WHATSAPP_IMPORT_TAG || t === WHATSAPP_CHAT_IMPORT_TAG
+  );
+}
+
+/** Expand thin paste descriptions into indexable copy (price, type, location, media). */
+export function enrichListingDescriptionForSeo(
+  fields: ListingShareFields,
+  options?: { tags?: string[] }
+): string {
   const raw = (fields.description ?? '').trim();
+  if (isWhatsAppImportTags(options?.tags)) return raw;
   if (raw.length >= MIN_SEO_DESCRIPTION_LEN) return raw;
   return buildListingShareDescription(fields, { maxLen: 5000 });
 }
@@ -105,6 +116,6 @@ export function prepareListingFieldsForSeo(input: ListingSeoPrepInput): {
     images,
     videos,
   });
-  const description = enrichListingDescriptionForSeo(shareFields);
+  const description = enrichListingDescriptionForSeo(shareFields, { tags });
   return { description, images, videos, tags };
 }
