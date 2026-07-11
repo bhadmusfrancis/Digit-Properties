@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
+import {
+  buildListingMediaDownloadFilename,
+  downloadListingMedia,
+  isDownloadableListingMedia,
+} from '@/lib/media-download';
 import { listingImageProps } from '@/lib/next-image';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SponsoredLabel } from '@/components/ui/SponsoredLabel';
@@ -133,12 +138,14 @@ export function ListingImageGallery({
   const [index, setIndex] = useState(0);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
+  const [downloading, setDownloading] = useState(false);
   const inlineVideoRef = useRef<HTMLVideoElement>(null);
   const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
   const list = images?.filter((img) => img?.url) ?? [];
   const current = list[index] ?? list[0];
   const total = list.length;
   const zoom = ZOOM_LEVELS[zoomIndex] ?? 1;
+  const canDownload = isDownloadableListingMedia(current?.url, current?.public_id);
 
   const goPrev = useCallback(() => {
     setIndex((i) => (i <= 0 ? total - 1 : i - 1));
@@ -161,6 +168,23 @@ export function ListingImageGallery({
   const zoomOut = useCallback(() => {
     setZoomIndex((i) => Math.max(i - 1, 0));
   }, []);
+
+  const handleDownload = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!current?.url || !canDownload || downloading) return;
+      const kind = current.type === 'video' ? 'video' : 'image';
+      const filename = buildListingMediaDownloadFilename(title, kind, index, current.url);
+      setDownloading(true);
+      try {
+        await downloadListingMedia({ url: current.url, filename });
+      } finally {
+        setDownloading(false);
+      }
+    },
+    [canDownload, current, downloading, index, title]
+  );
 
   useEffect(() => {
     if (total <= 1) return;
@@ -262,12 +286,33 @@ export function ListingImageGallery({
         )}
         {isBoosted && <SponsoredLabel overlay className="absolute left-4 top-4 z-30" />}
         <ListingMarketStatusSticker soldAt={soldAt} rentedAt={rentedAt} variant="gallery" />
-        <span className="absolute right-4 bottom-4 z-30 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-          </svg>
-          View fullscreen
-        </span>
+        <div className="absolute right-4 bottom-4 z-30 flex items-center gap-2">
+          {canDownload && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/50 disabled:opacity-60"
+              aria-label={current.type === 'video' ? 'Download video' : 'Download photo'}
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              {downloading ? 'Downloading…' : 'Download'}
+            </button>
+          )}
+          <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+            View fullscreen
+          </span>
+        </div>
         {/* Prev / Next – when more than one image, show on gallery (don't trigger fullscreen) */}
         {total > 1 && (
           <>
@@ -355,6 +400,25 @@ export function ListingImageGallery({
                 </svg>
               </button>
             </div>
+            {canDownload && (
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-2.5 text-sm font-medium text-white hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-60"
+                aria-label={current.type === 'video' ? 'Download video' : 'Download photo'}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                {downloading ? 'Downloading…' : 'Download'}
+              </button>
+            )}
             <button
               type="button"
               onClick={closeFullscreen}
