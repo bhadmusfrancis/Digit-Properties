@@ -6,6 +6,7 @@ import { canViewListingOnSite, isListingPendingApprovalHidden } from '@/lib/list
 import { ListingLocationMap } from '@/components/listings/ListingLocationMap';
 import { ListingSidebarTabs } from '@/components/listings/ListingSidebarTabs';
 import { ListingImageGallery } from '@/components/listings/ListingImageGallery';
+import { ListingAdminPanel } from '@/components/listings/ListingAdminPanel';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
@@ -570,6 +571,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               isBoosted={isBoosted}
               soldAt={listing.soldAt}
               rentedAt={listing.rentedAt}
+              canDownloadMedia={isAdmin}
             />
             {listingVideoSeoItems.length > 0 ? (
               <div className="border-t border-gray-100 px-6 py-3">
@@ -706,6 +708,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               viewCount={listing.viewCount ?? 0}
               likeCount={likeCount}
             />
+            {isAdmin && (
+              <ListingAdminPanel
+                listingId={listingId}
+                listingType={String(listing.listingType ?? '')}
+                listingTitle={listing.title}
+                soldAt={listing.soldAt}
+                rentedAt={listing.rentedAt}
+                agentName={listing.agentName}
+                agentPhone={listing.agentPhone}
+                agentEmail={listing.agentEmail}
+              />
+            )}
             {canEditListing && (
               <div className="mt-4 flex gap-3">
                 <Link href={`/listings/${listing._id}/edit`} className="btn-primary flex-1 text-center">
