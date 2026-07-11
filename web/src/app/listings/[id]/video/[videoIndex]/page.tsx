@@ -9,6 +9,7 @@ import { ListingWatchVideo } from '@/components/listings/ListingWatchVideo';
 import { ListingMediaDownloadButton } from '@/components/listings/ListingMediaDownloadButton';
 import { ListingTemporarilyUnavailable } from '@/components/listings/ListingTemporarilyUnavailable';
 import { dbConnect } from '@/lib/db';
+import { USER_ROLES } from '@/lib/constants';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { resolveListingPublicSegment } from '@/lib/resolve-listing';
 import { siteOrigin } from '@/lib/site-metadata';
@@ -209,6 +210,7 @@ export default async function ListingVideoWatchPage({
     videos: galleryVideos,
   });
   const seo = seoItems[videoIndex]!;
+  const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
 
   return (
     <>
@@ -247,6 +249,7 @@ export default async function ListingVideoWatchPage({
             public_id={video.public_id}
             title={title}
             videoIndex={videoIndex}
+            canDownloadMedia={isAdmin}
           />
         </div>
         {description ? (

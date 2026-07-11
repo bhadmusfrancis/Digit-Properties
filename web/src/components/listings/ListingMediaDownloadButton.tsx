@@ -13,11 +13,19 @@ type Props = {
   title: string;
   /** 0-based index among listing videos (for filename). */
   videoIndex?: number;
+  /** Admin-only: when false, the button is not rendered. */
+  canDownloadMedia?: boolean;
 };
 
-export function ListingMediaDownloadButton({ url, public_id, title, videoIndex = 0 }: Props) {
+export function ListingMediaDownloadButton({
+  url,
+  public_id,
+  title,
+  videoIndex = 0,
+  canDownloadMedia = false,
+}: Props) {
   const [downloading, setDownloading] = useState(false);
-  const canDownload = isDownloadableListingMedia(url, public_id);
+  const canDownload = canDownloadMedia && isDownloadableListingMedia(url, public_id);
 
   const onClick = useCallback(async () => {
     if (!canDownload || downloading) return;

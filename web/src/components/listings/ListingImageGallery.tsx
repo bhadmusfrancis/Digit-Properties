@@ -126,6 +126,7 @@ export function ListingImageGallery({
   isBoosted,
   soldAt,
   rentedAt,
+  canDownloadMedia = false,
 }: {
   images: MediaItem[];
   title: string;
@@ -134,6 +135,8 @@ export function ListingImageGallery({
   isBoosted?: boolean;
   soldAt?: string | Date | null;
   rentedAt?: string | Date | null;
+  /** Admin-only: show download controls for listing photos/videos. */
+  canDownloadMedia?: boolean;
 }) {
   const [index, setIndex] = useState(0);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
@@ -145,7 +148,8 @@ export function ListingImageGallery({
   const current = list[index] ?? list[0];
   const total = list.length;
   const zoom = ZOOM_LEVELS[zoomIndex] ?? 1;
-  const canDownload = isDownloadableListingMedia(current?.url, current?.public_id);
+  const canDownload =
+    canDownloadMedia && isDownloadableListingMedia(current?.url, current?.public_id);
 
   const goPrev = useCallback(() => {
     setIndex((i) => (i <= 0 ? total - 1 : i - 1));
