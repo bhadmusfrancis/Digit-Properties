@@ -245,7 +245,7 @@ export default async function ListingVideoWatchPage({
           <ListingMediaDownloadButton
             url={video.url}
             public_id={video.public_id}
-            title={String(listing.title ?? seo.name)}
+            title={title}
             videoIndex={videoIndex}
           />
         </div>
