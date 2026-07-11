@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth-options';
 import { canViewListingOnSite, isListingPendingApprovalHidden } from '@/lib/listing-access';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ListingWatchVideo } from '@/components/listings/ListingWatchVideo';
+import { ListingMediaDownloadButton } from '@/components/listings/ListingMediaDownloadButton';
 import { ListingTemporarilyUnavailable } from '@/components/listings/ListingTemporarilyUnavailable';
 import { dbConnect } from '@/lib/db';
 import { getListingPublicPath } from '@/lib/listing-path';
@@ -240,6 +241,14 @@ export default async function ListingVideoWatchPage({
           {locationLabel.trim() ? <p className="mt-1 text-gray-600">{locationLabel}</p> : null}
         </header>
         <ListingWatchVideo src={video.url} public_id={video.public_id} title={seo.name} />
+        <div className="mt-4">
+          <ListingMediaDownloadButton
+            url={video.url}
+            public_id={video.public_id}
+            title={String(listing.title ?? seo.name)}
+            videoIndex={videoIndex}
+          />
+        </div>
         {description ? (
           <p className="mt-6 text-sm leading-relaxed text-gray-700">{description.slice(0, 500)}</p>
         ) : null}
