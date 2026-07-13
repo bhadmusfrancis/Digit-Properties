@@ -10,6 +10,7 @@ import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
 import mongoose from 'mongoose';
 import { canNonAdminEditListing, roleBypassesEditWindow } from '@/lib/listing-edit-window';
+import { isWhatsAppImportListing } from '@/lib/whatsapp-description';
 
 export default async function EditListingPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -61,6 +62,9 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   const storedTypes = (listing as { propertyTypes?: string[] }).propertyTypes;
   const propertyTypesForForm =
     Array.isArray(storedTypes) && storedTypes.length > 0 ? storedTypes : [listing.propertyType];
+
+  const listingTags = Array.isArray(listing.tags) ? listing.tags.map(String) : [];
+  const descriptionFormat = isWhatsAppImportListing(listingTags) ? 'whatsapp' : 'rich';
 
   const editInitial: ListingFormProps['editInitial'] = {
     title: listing.title,
@@ -119,7 +123,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
         </div>
       ) : null}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <ListingForm editId={id} editInitial={editInitial} />
+        <ListingForm editId={id} editInitial={editInitial} descriptionFormat={descriptionFormat} />
       </div>
     </div>
   );

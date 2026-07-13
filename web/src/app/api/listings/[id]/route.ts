@@ -281,6 +281,12 @@ export async function PATCH(
     if (shouldRefreshSeoDescription) {
       listing.description = enrichListingDescriptionForSeo(listingDocToShareFields(listing), {
         tags: Array.isArray(listing.tags) ? listing.tags.map(String) : undefined,
+        title: listing.title,
+        bedrooms: listing.bedrooms,
+        bathrooms: listing.bathrooms,
+        toilets: listing.toilets,
+        area: listing.area,
+        amenities: Array.isArray(listing.amenities) ? listing.amenities.map(String) : undefined,
       });
     }
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {

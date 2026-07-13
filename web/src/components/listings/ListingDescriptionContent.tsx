@@ -1,4 +1,5 @@
 import {
+  ensureWhatsAppStyleDescription,
   formatWhatsAppMarkupToHtml,
   isWhatsAppImportListing,
 } from '@/lib/whatsapp-description';
@@ -16,10 +17,11 @@ export function ListingDescriptionContent({ description, tags, className = 'mt-4
   const looksLikeHtml = /<[a-z][\s\S]*>/i.test(description);
 
   if (isWaImport) {
+    const waText = ensureWhatsAppStyleDescription(description);
     return (
       <div
         className={`${className} text-gray-700 leading-relaxed break-words [&_strong]:font-semibold [&_em]:italic [&_del]:line-through`}
-        dangerouslySetInnerHTML={{ __html: formatWhatsAppMarkupToHtml(description) }}
+        dangerouslySetInnerHTML={{ __html: formatWhatsAppMarkupToHtml(waText) }}
       />
     );
   }
