@@ -458,6 +458,7 @@ export default function ImportFromWhatsAppPage() {
               key={currentIndex}
               editInitial={currentListing ?? undefined}
               getFormRef={formRef}
+              descriptionFormat="whatsapp"
             />
           </div>
 

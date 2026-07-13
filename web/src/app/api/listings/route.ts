@@ -255,6 +255,11 @@ export async function POST(req: Request) {
       images: parsed.data.images,
       videos: parsed.data.videos,
       tags: parsed.data.tags,
+      bedrooms: parsed.data.bedrooms,
+      bathrooms: parsed.data.bathrooms,
+      toilets: parsed.data.toilets,
+      area: parsed.data.area,
+      amenities: parsed.data.amenities,
     });
     const { images, videos, description: seoDescription, tags: seoTags } = seo;
     if (images.length > limits.maxImages) {

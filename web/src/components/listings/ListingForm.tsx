@@ -9,6 +9,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NIGERIAN_STATES, PROPERTY_TYPES, POPULAR_AMENITIES, LISTING_TYPE } from '@/lib/constants';
 import { LocationAddress } from '@/components/listings/LocationAddress';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import { WhatsAppMarkupEditor } from '@/components/ui/WhatsAppMarkupEditor';
+import { ensureWhatsAppStyleDescription } from '@/lib/whatsapp-description';
 import { generateListingTitle } from '@/lib/listing-title';
 import { generateListingDescriptionHtml } from '@/lib/listing-description';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
@@ -100,9 +102,27 @@ export type ListingFormProps = {
   };
   /** When set, parent can read current form values and images (e.g. for multi-listing import next/prev). */
   getFormRef?: React.MutableRefObject<ListingFormRef | null>;
+  /** Use WhatsApp-style plain markup (*bold*, _italic_) instead of HTML rich text. */
+  descriptionFormat?: 'rich' | 'whatsapp';
 };
 
-export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProps = {}) {
+function normalizeInitialDescription(
+  description: string | undefined,
+  format: 'rich' | 'whatsapp'
+): string {
+  const raw = description ?? '';
+  if (format === 'whatsapp') {
+    return ensureWhatsAppStyleDescription(raw);
+  }
+  return raw;
+}
+
+export function ListingForm({
+  editId,
+  editInitial,
+  getFormRef,
+  descriptionFormat = 'rich',
+}: ListingFormProps = {}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [images, setImages] = useState<{ url: string; public_id: string }[]>(editInitial?.images ?? []);
@@ -226,7 +246,7 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
     resolver: zodResolver(schema),
     defaultValues: editInitial ? {
       title: editInitial.title ?? '',
-      description: editInitial.description ?? '',
+      description: normalizeInitialDescription(editInitial.description, descriptionFormat),
       listingType: editInitial.listingType ?? 'sale',
       propertyTypes: resolvedInitialTypes.slice(0, 3) as FormData['propertyTypes'],
       price: editInitial.price ?? 0,
@@ -629,17 +649,21 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
                 Description <span className="text-red-500">*</span>
               </label>
               <p className="mt-1 text-xs text-gray-500">
-                Write your own copy, or use Generate description to draft one from your property details.
+                {descriptionFormat === 'whatsapp'
+                  ? 'Edit the imported description. Use *bold*, _italic_, or ~strikethrough~ like WhatsApp.'
+                  : 'Write your own copy, or use Generate description to draft one from your property details.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={generateDescription}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
-              >
-                Generate description
-              </button>
+              {descriptionFormat !== 'whatsapp' ? (
+                <button
+                  type="button"
+                  onClick={generateDescription}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+                >
+                  Generate description
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={generateTitle}
@@ -652,15 +676,25 @@ export function ListingForm({ editId, editInitial, getFormRef }: ListingFormProp
           <Controller
             name="description"
             control={control}
-            render={({ field }) => (
-              <RichTextEditor
-                value={field.value}
-                onChange={field.onChange}
-                minHeight="180px"
-                disabled={isUploading}
-                placeholder="Describe the property in detail. Use words like luxury, modern, spacious for better SEO."
-              />
-            )}
+            render={({ field }) =>
+              descriptionFormat === 'whatsapp' ? (
+                <WhatsAppMarkupEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  minHeight="180px"
+                  disabled={isUploading}
+                  placeholder="Describe the property in detail. Use *bold* or _italic_ for emphasis."
+                />
+              ) : (
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  minHeight="180px"
+                  disabled={isUploading}
+                  placeholder="Describe the property in detail. Use words like luxury, modern, spacious for better SEO."
+                />
+              )
+            }
           />
           {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
         </div>

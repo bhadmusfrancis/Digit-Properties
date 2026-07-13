@@ -2,17 +2,20 @@ import { isVideoUrl } from '@/lib/listing-default-image';
 import { dedupeImagesByPublicId } from '@/lib/listing-dedupe';
 import { mergeUniqueLists, normalizeList } from '@/lib/listing-amenities';
 import {
-  buildListingShareDescription,
   listingDocToShareFields,
   type ListingShareFields,
 } from '@/lib/listing-share-text';
+import {
+  buildHumanListingDescriptionHtml,
+  humanListingDescriptionInputFromDoc,
+  shouldHumanizeListingDescription,
+} from '@/lib/listing-human-description';
+import { prepareWhatsAppListingDescription } from '@/lib/whatsapp-listing-parser';
 
 export const WHATSAPP_CHAT_IMPORT_TAG = 'whatsapp-chat-import';
 export const WHATSAPP_IMPORT_TAG = 'whatsapp-import';
 
 export type ListingMediaRecord = { url: string; public_id: string };
-
-const MIN_SEO_DESCRIPTION_LEN = 80;
 
 function toMediaRecord(item: { url?: string; public_id?: string }): ListingMediaRecord | null {
   const url = typeof item?.url === 'string' ? item.url.trim() : '';
@@ -70,15 +73,52 @@ export function isWhatsAppImportTags(tags: string[] | undefined): boolean {
   );
 }
 
-/** Expand thin paste descriptions into indexable copy (price, type, location, media). */
+/** Expand very short descriptions into readable, indexable copy. */
 export function enrichListingDescriptionForSeo(
   fields: ListingShareFields,
-  options?: { tags?: string[] }
+  options?: {
+    tags?: string[];
+    title?: string;
+    bedrooms?: number;
+    bathrooms?: number;
+    toilets?: number;
+    area?: number;
+    amenities?: string[];
+  }
 ): string {
   const raw = (fields.description ?? '').trim();
-  if (isWhatsAppImportTags(options?.tags)) return raw;
-  if (raw.length >= MIN_SEO_DESCRIPTION_LEN) return raw;
-  return buildListingShareDescription(fields, { maxLen: 5000 });
+  // Keep WhatsApp import copy as plain WhatsApp markup (line breaks / *bold*).
+  if (isWhatsAppImportTags(options?.tags)) {
+    return prepareWhatsAppListingDescription(raw);
+  }
+  if (!shouldHumanizeListingDescription(raw)) {
+    return raw;
+  }
+
+  return buildHumanListingDescriptionHtml(
+    humanListingDescriptionInputFromDoc({
+      title: options?.title ?? fields.title,
+      description: raw,
+      price: fields.price,
+      listingType: fields.listingType,
+      rentPeriod: fields.rentPeriod,
+      propertyType: fields.propertyType,
+      propertyTypes: fields.propertyTypes ?? undefined,
+      location: fields.location
+        ? {
+            address: fields.location.address ?? undefined,
+            suburb: fields.location.suburb ?? undefined,
+            city: fields.location.city ?? undefined,
+            state: fields.location.state ?? undefined,
+          }
+        : undefined,
+      bedrooms: options?.bedrooms,
+      bathrooms: options?.bathrooms,
+      toilets: options?.toilets,
+      area: options?.area,
+      amenities: options?.amenities,
+    })
+  );
 }
 
 export type ListingSeoPrepInput = {
@@ -94,6 +134,10 @@ export type ListingSeoPrepInput = {
   videos?: { url?: string; public_id?: string }[];
   tags?: string[];
   amenities?: string[];
+  bedrooms?: number;
+  bathrooms?: number;
+  toilets?: number;
+  area?: number;
 };
 
 export function prepareListingFieldsForSeo(input: ListingSeoPrepInput): {
@@ -116,6 +160,14 @@ export function prepareListingFieldsForSeo(input: ListingSeoPrepInput): {
     images,
     videos,
   });
-  const description = enrichListingDescriptionForSeo(shareFields, { tags });
+  const description = enrichListingDescriptionForSeo(shareFields, {
+    tags,
+    title: input.title,
+    bedrooms: input.bedrooms,
+    bathrooms: input.bathrooms,
+    toilets: input.toilets,
+    area: input.area,
+    amenities: input.amenities,
+  });
   return { description, images, videos, tags };
 }
