@@ -2,7 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { shouldTrackPath } from '@/lib/analytics-track';
+import { USER_ROLES } from '@/lib/constants';
 
 const SESSION_STORAGE_KEY = 'dp_visitor_client';
 
@@ -36,15 +38,17 @@ function trackPageView(path: string) {
 export function PageViewTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const lastTracked = useRef<string | null>(null);
 
   useEffect(() => {
+    if (session?.user?.role === USER_ROLES.ADMIN) return;
     const query = searchParams?.toString();
     const path = query ? `${pathname}?${query}` : pathname;
     if (lastTracked.current === path) return;
     lastTracked.current = path;
     trackPageView(pathname);
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, session?.user?.role]);
 
   return null;
 }

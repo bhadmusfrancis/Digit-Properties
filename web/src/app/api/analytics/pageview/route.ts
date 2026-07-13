@@ -4,6 +4,7 @@ import PageView from '@/models/PageView';
 import { getSession } from '@/lib/get-session';
 import { getRequestCountryCode, countryDisplayName } from '@/lib/request-geo';
 import { isBotUserAgent, normalizeReferrer, shouldTrackPath } from '@/lib/analytics-track';
+import { USER_ROLES } from '@/lib/constants';
 
 const SESSION_COOKIE = 'dp_visitor';
 const SESSION_MAX_AGE_SEC = 30 * 60;
@@ -60,6 +61,10 @@ export async function POST(req: Request) {
     }
 
     const session = await getSession(req);
+    if (session?.user?.role === USER_ROLES.ADMIN) {
+      return new NextResponse(null, { status: 204 });
+    }
+
     const userId = session?.user?.id;
 
     await PageView.create({
