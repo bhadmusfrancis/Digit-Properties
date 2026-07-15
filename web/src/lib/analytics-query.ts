@@ -13,12 +13,54 @@ import User from '@/models/User';
 import PageView from '@/models/PageView';
 import { USER_ROLES } from '@/lib/constants';
 
+export const ALLOWED_ANALYTICS_PERIODS = ['24h', '7d', '30d', '90d'] as const;
+export type AnalyticsPeriod = (typeof ALLOWED_ANALYTICS_PERIODS)[number];
+
+/** @deprecated Prefer AnalyticsPeriod / parseAnalyticsPeriod */
 export const ALLOWED_ANALYTICS_DAYS = [7, 30, 90] as const;
+/** @deprecated Prefer AnalyticsPeriod */
 export type AnalyticsDays = (typeof ALLOWED_ANALYTICS_DAYS)[number];
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+
+export type AnalyticsWindow = {
+  period: AnalyticsPeriod;
+  /** Numeric size used in copy ("previous 7 days") and legacy `days` field. */
+  days: number;
+  label: string;
+  since: Date;
+  until: Date;
+  previousSince: Date;
+  previousUntil: Date;
+  chartMode: 'hourly' | 'daily';
+  comparisonLabel: string;
+};
+
+export function parseAnalyticsPeriod(
+  periodRaw: string | null,
+  daysRaw: string | null = null
+): AnalyticsPeriod {
+  const period = (periodRaw ?? '').trim().toLowerCase();
+  if ((ALLOWED_ANALYTICS_PERIODS as readonly string[]).includes(period)) {
+    return period as AnalyticsPeriod;
+  }
+
+  // Legacy ?days= support (1 → 24h rolling window)
+  const n = Number(daysRaw ?? '');
+  if (n === 1) return '24h';
+  if (n === 7) return '7d';
+  if (n === 30) return '30d';
+  if (n === 90) return '90d';
+  return '30d';
+}
+
+/** @deprecated Prefer parseAnalyticsPeriod */
 export function parseAnalyticsDays(raw: string | null): AnalyticsDays {
-  const n = Number(raw ?? '30');
-  return (ALLOWED_ANALYTICS_DAYS as readonly number[]).includes(n) ? (n as AnalyticsDays) : 30;
+  const period = parseAnalyticsPeriod(null, raw);
+  if (period === '7d') return 7;
+  if (period === '90d') return 90;
+  return 30;
 }
 
 export function startDateForDays(days: number): Date {
@@ -28,19 +70,58 @@ export function startDateForDays(days: number): Date {
   return start;
 }
 
+export function resolveAnalyticsWindow(period: AnalyticsPeriod, now = new Date()): AnalyticsWindow {
+  if (period === '24h') {
+    const until = new Date(now);
+    const since = new Date(now.getTime() - DAY_MS);
+    const previousUntil = since;
+    const previousSince = new Date(since.getTime() - DAY_MS);
+    return {
+      period,
+      days: 1,
+      label: '24 hours',
+      since,
+      until,
+      previousSince,
+      previousUntil,
+      chartMode: 'hourly',
+      comparisonLabel: 'previous 24 hours',
+    };
+  }
+
+  const dayCount = period === '7d' ? 7 : period === '90d' ? 90 : 30;
+  const until = new Date(now);
+  const since = startDateForDays(dayCount);
+  // End of the previous period is the start of the current window.
+  const previousUntil = new Date(since);
+  const previousSince = new Date(since);
+  previousSince.setUTCDate(previousSince.getUTCDate() - dayCount);
+
+  return {
+    period,
+    days: dayCount,
+    label: `${dayCount} days`,
+    since,
+    until,
+    previousSince,
+    previousUntil,
+    chartMode: 'daily',
+    comparisonLabel: `previous ${dayCount} days`,
+  };
+}
+
 async function getAdminUserIds(): Promise<Types.ObjectId[]> {
   const admins = await User.find({ role: USER_ROLES.ADMIN }).select('_id').lean();
   return admins.map((u) => u._id as Types.ObjectId);
 }
 
-type CountRow = { _id: string; count: number };
 type DayRow = { _id: string; views: number; visitors: string[] };
 type CountryRow = { _id: string; countryName: string; views: number; visitors: string[] };
 type HourRow = { _id: number; count: number };
 type PageRow = { _id: string; views: number; visitors: string[] };
 type EntryRow = { _id: string; count: number };
-type SourceRow = { _id: string | null; count: number };
 type DeviceRow = { _id: string; count: number };
+type HourBucketRow = { _id: string; views: number; visitors: string[] };
 
 function fillDailySeries(
   since: Date,
@@ -55,6 +136,29 @@ function fillDailySeries(
     const key = d.toISOString().slice(0, 10);
     const row = map.get(key);
     out.push({ date: key, views: row?.views ?? 0, visitors: row?.visitors ?? 0 });
+  }
+  return out;
+}
+
+function fillHourlySeries(
+  until: Date,
+  hours: number,
+  rows: { _id: string; views: number; visitors: number }[]
+): { hourKey: string; label: string; views: number; visitors: number }[] {
+  const map = new Map(rows.map((r) => [r._id, r]));
+  const out: { hourKey: string; label: string; views: number; visitors: number }[] = [];
+  const endHour = new Date(until);
+  endHour.setUTCMinutes(0, 0, 0);
+  for (let i = hours - 1; i >= 0; i--) {
+    const d = new Date(endHour.getTime() - i * HOUR_MS);
+    const key = d.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+    const row = map.get(key);
+    out.push({
+      hourKey: key,
+      label: `${String(d.getUTCHours()).padStart(2, '0')}:00`,
+      views: row?.views ?? 0,
+      visitors: row?.visitors ?? 0,
+    });
   }
   return out;
 }
@@ -83,14 +187,28 @@ function deviceLabel(device: DeviceType): string {
   }
 }
 
-export async function loadPublicTrafficReport(days: AnalyticsDays) {
-  const since = startDateForDays(days);
-  const previousSince = new Date(since);
-  previousSince.setUTCDate(previousSince.getUTCDate() - days);
+export async function loadPublicTrafficReport(periodOrDays: AnalyticsPeriod | AnalyticsDays | 1) {
+  const period: AnalyticsPeriod =
+    typeof periodOrDays === 'number'
+      ? periodOrDays === 1
+        ? '24h'
+        : periodOrDays === 7
+          ? '7d'
+          : periodOrDays === 90
+            ? '90d'
+            : '30d'
+      : periodOrDays;
+
+  const window = resolveAnalyticsWindow(period);
+  const { since, until, previousSince, previousUntil, days, chartMode, comparisonLabel, label } =
+    window;
+
   const adminUserIds = await getAdminUserIds();
   const match = buildPublicTrafficFilter(since, adminUserIds);
+  match.createdAt = { $gte: since, $lte: until };
+
   const previousMatch = buildPublicTrafficFilter(previousSince, adminUserIds);
-  previousMatch.createdAt = { $gte: previousSince, $lt: since };
+  previousMatch.createdAt = { $gte: previousSince, $lt: previousUntil };
 
   const [
     totalViews,
@@ -98,6 +216,7 @@ export async function loadPublicTrafficReport(days: AnalyticsDays) {
     previousViews,
     previousVisitors,
     viewsByDay,
+    viewsByHourBucket,
     viewsByCountry,
     hourlyDistribution,
     topPages,
@@ -110,17 +229,34 @@ export async function loadPublicTrafficReport(days: AnalyticsDays) {
     PageView.distinct('sessionId', match).then((ids) => ids.length),
     PageView.countDocuments(previousMatch),
     PageView.distinct('sessionId', previousMatch).then((ids) => ids.length),
-    PageView.aggregate<DayRow>([
-      { $match: match },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'UTC' } },
-          views: { $sum: 1 },
-          visitors: { $addToSet: '$sessionId' },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]),
+    chartMode === 'daily'
+      ? PageView.aggregate<DayRow>([
+          { $match: match },
+          {
+            $group: {
+              _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'UTC' } },
+              views: { $sum: 1 },
+              visitors: { $addToSet: '$sessionId' },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ])
+      : Promise.resolve([] as DayRow[]),
+    chartMode === 'hourly'
+      ? PageView.aggregate<HourBucketRow>([
+          { $match: match },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: '%Y-%m-%dT%H', date: '$createdAt', timezone: 'UTC' },
+              },
+              views: { $sum: 1 },
+              visitors: { $addToSet: '$sessionId' },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ])
+      : Promise.resolve([] as HourBucketRow[]),
     PageView.aggregate<CountryRow>([
       { $match: match },
       {
@@ -136,7 +272,7 @@ export async function loadPublicTrafficReport(days: AnalyticsDays) {
     ]),
     PageView.aggregate<HourRow>([
       { $match: match },
-      { $group: { _id: { $hour: '$createdAt' }, count: { $sum: 1 } } },
+      { $group: { _id: { $hour: { date: '$createdAt', timezone: 'UTC' } }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ]),
     PageView.aggregate<PageRow>([
@@ -170,15 +306,31 @@ export async function loadPublicTrafficReport(days: AnalyticsDays) {
     ]),
   ]);
 
-  const dailyViews = fillDailySeries(
-    since,
-    days,
-    viewsByDay.map((row) => ({
-      _id: row._id,
-      views: row.views,
-      visitors: row.visitors.length,
-    }))
-  );
+  const dailyViews =
+    chartMode === 'daily'
+      ? fillDailySeries(
+          since,
+          days,
+          viewsByDay.map((row) => ({
+            _id: row._id,
+            views: row.views,
+            visitors: row.visitors.length,
+          }))
+        )
+      : [];
+
+  const hourlyViews =
+    chartMode === 'hourly'
+      ? fillHourlySeries(
+          until,
+          24,
+          viewsByHourBucket.map((row) => ({
+            _id: row._id,
+            views: row.views,
+            visitors: row.visitors.length,
+          }))
+        )
+      : [];
 
   const hours = Array.from({ length: 24 }, (_, hour) => {
     const row = hourlyDistribution.find((h) => h._id === hour);
@@ -234,8 +386,13 @@ export async function loadPublicTrafficReport(days: AnalyticsDays) {
     uniqueVisitors > 0 ? Math.round((singlePageSessions / uniqueVisitors) * 1000) / 10 : 0;
 
   return {
+    period,
     days,
+    label,
+    chartMode,
+    comparisonLabel,
     since: since.toISOString(),
+    until: until.toISOString(),
     summary: {
       totalViews,
       uniqueVisitors,
@@ -249,6 +406,7 @@ export async function loadPublicTrafficReport(days: AnalyticsDays) {
       peakHourViews: peakHour.count,
     },
     dailyViews,
+    hourlyViews,
     hourlyDistribution: hours,
     trafficSources,
     devices,

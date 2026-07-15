@@ -2,9 +2,16 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 
+type AnalyticsPeriod = '24h' | '7d' | '30d' | '90d';
+
 type AnalyticsResponse = {
+  period: AnalyticsPeriod;
   days: number;
+  label: string;
+  chartMode: 'hourly' | 'daily';
+  comparisonLabel: string;
   since: string;
+  until: string;
   summary: {
     totalViews: number;
     uniqueVisitors: number;
@@ -18,6 +25,7 @@ type AnalyticsResponse = {
     peakHourViews: number;
   };
   dailyViews: { date: string; views: number; visitors: number }[];
+  hourlyViews: { hourKey: string; label: string; views: number; visitors: number }[];
   hourlyDistribution: { hour: number; count: number }[];
   trafficSources: { source: string; label: string; count: number; percent: number }[];
   devices: { device: string; label: string; count: number; percent: number }[];
@@ -34,11 +42,12 @@ type AnalyticsResponse = {
   topReferrers: { referrer: string; count: number }[];
 };
 
-const RANGE_OPTIONS = [
-  { label: '7 days', value: 7 },
-  { label: '30 days', value: 30 },
-  { label: '90 days', value: 90 },
-] as const;
+const RANGE_OPTIONS: { label: string; value: AnalyticsPeriod }[] = [
+  { label: '24 hours', value: '24h' },
+  { label: '7 days', value: '7d' },
+  { label: '30 days', value: '30d' },
+  { label: '90 days', value: '90d' },
+];
 
 const SOURCE_COLORS: Record<string, string> = {
   direct: '#0ea5e9',
@@ -64,6 +73,39 @@ function formatShortDate(iso: string): string {
 
 function formatHourUtc(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00 UTC`;
+}
+
+function formatRangeLabel(sinceIso: string, untilIso: string, chartMode: 'hourly' | 'daily'): string {
+  const since = new Date(sinceIso);
+  const until = new Date(untilIso);
+  if (chartMode === 'hourly') {
+    return `${since.toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+      hour12: false,
+    })} → ${until.toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+      hour12: false,
+    })} UTC`;
+  }
+  return `${since.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })} → ${until.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })} (UTC)`;
 }
 
 function TrendBadge({ value }: { value: number | null }) {
@@ -201,6 +243,67 @@ function DailyChart({
   );
 }
 
+function HourlyTimelineChart({ data }: { data: AnalyticsResponse['hourlyViews'] }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const maxViews = Math.max(1, ...data.map((d) => d.views));
+  const maxVisitors = Math.max(1, ...data.map((d) => d.visitors));
+
+  return (
+    <div className="relative">
+      <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-primary-500" />
+          Page views
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          Unique visitors
+        </span>
+      </div>
+      <div className="flex h-52 items-end gap-0.5 sm:gap-1">
+        {data.map((hour, i) => {
+          const viewHeight = Math.max(hour.views > 0 ? 6 : 0, Math.round((hour.views / maxViews) * 100));
+          const visitorHeight = Math.max(
+            hour.visitors > 0 ? 4 : 0,
+            Math.round((hour.visitors / maxVisitors) * 72)
+          );
+          const showLabel = i === 0 || i === data.length - 1 || i % 4 === 0;
+
+          return (
+            <div
+              key={hour.hourKey}
+              className="relative flex min-w-0 flex-1 flex-col items-center justify-end"
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              {hovered === i ? (
+                <div className="absolute bottom-full z-10 mb-2 w-max max-w-[150px] rounded-lg border border-gray-200 bg-gray-900 px-2.5 py-2 text-center text-[11px] text-white shadow-lg">
+                  <p className="font-medium">{hour.label} UTC</p>
+                  <p className="mt-0.5 text-primary-200">{formatNumber(hour.views)} views</p>
+                  <p className="text-emerald-200">{formatNumber(hour.visitors)} visitors</p>
+                </div>
+              ) : null}
+              <div className="flex w-full items-end justify-center gap-px sm:gap-0.5">
+                <div
+                  className="w-[42%] max-w-[14px] rounded-t bg-primary-500/90 transition-all hover:bg-primary-600 sm:max-w-none sm:w-[45%]"
+                  style={{ height: `${viewHeight}%` }}
+                />
+                <div
+                  className="w-[42%] max-w-[14px] rounded-t bg-emerald-400/90 transition-all hover:bg-emerald-500 sm:max-w-none sm:w-[45%]"
+                  style={{ height: `${visitorHeight}%` }}
+                />
+              </div>
+              {showLabel ? (
+                <span className="mt-2 hidden truncate text-[10px] text-gray-400 sm:block">{hour.label}</span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function HourlyChart({ data }: { data: AnalyticsResponse['hourlyDistribution'] }) {
   const max = Math.max(1, ...data.map((h) => h.count));
   const peak = data.reduce((best, h) => (h.count > best.count ? h : best), data[0]);
@@ -241,7 +344,7 @@ function HourlyChart({ data }: { data: AnalyticsResponse['hourlyDistribution'] }
 function DonutChart({
   segments,
 }: {
-  segments: { key: string; label: string; percent: number; color: string }[];
+  segments: { key: string; label: string; percent: number; color: string; count?: number }[];
 }) {
   const total = segments.reduce((sum, s) => sum + s.percent, 0) || 1;
   let offset = 0;
@@ -271,7 +374,10 @@ function DonutChart({
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
               <span className="truncate text-gray-700">{s.label}</span>
             </span>
-            <span className="shrink-0 tabular-nums font-medium text-gray-900">{s.percent}%</span>
+            <span className="shrink-0 tabular-nums font-medium text-gray-900">
+              {s.count !== undefined ? `${formatNumber(s.count)} · ` : ''}
+              {s.percent}%
+            </span>
           </div>
         ))}
       </div>
@@ -388,32 +494,43 @@ function LoadingSkeleton() {
 }
 
 function AdminAnalyticsContent() {
-  const [days, setDays] = useState(30);
+  const [period, setPeriod] = useState<AnalyticsPeriod>('30d');
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/admin/analytics?days=${days}`)
+    fetch(`/api/admin/analytics?period=${period}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
       .then(async (r) => {
         const json = await r.json();
         if (!r.ok) throw new Error(json.error || 'Failed to load analytics');
         setData(json);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load analytics'))
-      .finally(() => setLoading(false));
-  }, [days]);
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setError(err instanceof Error ? err.message : 'Failed to load analytics');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [period]);
 
   const sourceSegments = useMemo(
     () =>
       (data?.trafficSources ?? [])
-        .filter((s) => s.percent > 0)
+        .filter((s) => s.count > 0)
         .map((s) => ({
           key: s.source,
           label: s.label,
           percent: s.percent,
+          count: s.count,
           color: SOURCE_COLORS[s.source] ?? '#94a3b8',
         })),
     [data]
@@ -422,11 +539,12 @@ function AdminAnalyticsContent() {
   const deviceSegments = useMemo(
     () =>
       (data?.devices ?? [])
-        .filter((d) => d.percent > 0)
+        .filter((d) => d.count > 0)
         .map((d) => ({
           key: d.device,
           label: d.label,
           percent: d.percent,
+          count: d.count,
           color: DEVICE_COLORS[d.device] ?? '#94a3b8',
         })),
     [data]
@@ -444,15 +562,20 @@ function AdminAnalyticsContent() {
             <p className="mt-2 text-sm leading-relaxed text-primary-100/90">
               Visitor behaviour across the public site — admin and dashboard activity are excluded from this report.
             </p>
+            {data ? (
+              <p className="mt-3 text-xs font-medium text-primary-100/80">
+                Showing {data.label}: {formatRangeLabel(data.since, data.until, data.chartMode)}
+              </p>
+            ) : null}
           </div>
-          <div className="inline-flex shrink-0 rounded-xl border border-white/20 bg-white/10 p-1 backdrop-blur-sm">
+          <div className="inline-flex shrink-0 flex-wrap rounded-xl border border-white/20 bg-white/10 p-1 backdrop-blur-sm">
             {RANGE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setDays(opt.value)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                  days === opt.value
+                onClick={() => setPeriod(opt.value)}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-all sm:px-4 ${
+                  period === opt.value
                     ? 'bg-white text-slate-900 shadow-sm'
                     : 'text-white/85 hover:bg-white/10 hover:text-white'
                 }`}
@@ -474,7 +597,7 @@ function AdminAnalyticsContent() {
             <StatCard
               label="Page views"
               value={formatNumber(data.summary.totalViews)}
-              sub={`vs previous ${data.days} days`}
+              sub={`vs ${data.comparisonLabel}`}
               trend={data.summary.viewsChangePercent}
               accent="#0ea5e9"
             />
@@ -501,9 +624,17 @@ function AdminAnalyticsContent() {
 
           <SectionCard
             title="Traffic over time"
-            description="Daily page views and unique visitors (UTC)"
+            description={
+              data.chartMode === 'hourly'
+                ? 'Hourly page views and unique visitors for the last 24 hours (UTC)'
+                : `Daily page views and unique visitors across the selected ${data.label} (UTC)`
+            }
           >
-            <DailyChart data={data.dailyViews} days={data.days} />
+            {data.chartMode === 'hourly' ? (
+              <HourlyTimelineChart data={data.hourlyViews} />
+            ) : (
+              <DailyChart data={data.dailyViews} days={data.days} />
+            )}
           </SectionCard>
 
           <div className="grid gap-6 xl:grid-cols-3">
@@ -525,7 +656,7 @@ function AdminAnalyticsContent() {
 
             <SectionCard
               title="Hourly activity"
-              description="When visitors browse (UTC)"
+              description="When visitors browse within this period (UTC)"
               className="xl:col-span-1"
             >
               <HourlyChart data={data.hourlyDistribution} />
