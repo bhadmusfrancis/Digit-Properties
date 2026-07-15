@@ -258,6 +258,9 @@ async function main() {
     await Listing.create({
       ...payloadWithMedia,
       description: seoCreate.description,
+      ...(seoCreate.originalDescription
+        ? { originalDescription: seoCreate.originalDescription }
+        : {}),
       images: seoCreate.images,
       videos: seoCreate.videos.length ? seoCreate.videos : [],
       tags: seoCreate.tags,

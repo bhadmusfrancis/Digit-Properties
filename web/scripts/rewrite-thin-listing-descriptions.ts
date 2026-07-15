@@ -1,5 +1,7 @@
 /**
- * Rewrite listing descriptions shorter than 100 plain-text characters into human-readable HTML.
+ * Rewrite listing descriptions shorter than 250 plain-text characters into human-readable HTML.
+ * Keeps the original text on `originalDescription` and tags with `wa-rewritten`.
+ * Original chat bodies remain in All_chats.txt, linked via `wa-fp:` fingerprints.
  *
  *   cd web
  *   npx tsx scripts/rewrite-thin-listing-descriptions.ts              # dry-run
@@ -18,7 +20,9 @@ import {
 } from '../src/lib/listing-human-description';
 import { LISTING_STATUS } from '../src/lib/constants';
 import { isWhatsAppImportTags } from '../src/lib/listing-seo-prep';
+import { prepareWhatsAppListingDescription } from '../src/lib/whatsapp-listing-parser';
 import { stripHtml } from '../src/lib/utils';
+import { mergeUniqueLists } from '../src/lib/listing-amenities';
 
 if (process.platform === 'win32') {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -52,7 +56,7 @@ async function main() {
 
   let cursor = Listing.find({ status: LISTING_STATUS.ACTIVE })
     .select(
-      'title description price listingType rentPeriod propertyType propertyTypes location bedrooms bathrooms toilets area amenities tags'
+      'title description originalDescription price listingType rentPeriod propertyType propertyTypes location bedrooms bathrooms toilets area amenities tags'
     )
     .sort({ updatedAt: 1 })
     .lean();
@@ -65,33 +69,49 @@ async function main() {
   let skipped = 0;
 
   for (const row of rows) {
-    const desc = String(row.description ?? '');
     const tags = Array.isArray(row.tags) ? row.tags.map(String) : [];
-    // Preserve WhatsApp-style plain text on import listings.
-    if (isWhatsAppImportTags(tags)) {
-      skipped++;
-      continue;
-    }
-    if (!shouldHumanizeListingDescription(desc)) {
+    const existingOriginal =
+      typeof (row as { originalDescription?: string }).originalDescription === 'string'
+        ? String((row as { originalDescription?: string }).originalDescription).trim()
+        : '';
+    const descRaw = String(row.description ?? '');
+    // Prefer previously saved original; otherwise use current description (WhatsApp-normalized when import).
+    const sourcePlain = existingOriginal
+      ? existingOriginal
+      : isWhatsAppImportTags(tags)
+        ? prepareWhatsAppListingDescription(descRaw)
+        : stripHtml(descRaw).trim();
+
+    if (!shouldHumanizeListingDescription(sourcePlain)) {
       skipped++;
       continue;
     }
 
     candidates++;
-    const next = buildHumanListingDescriptionHtml(humanListingDescriptionInputFromDoc(row));
-    const currentPlain = stripHtml(desc).trim();
+    const next = buildHumanListingDescriptionHtml(
+      humanListingDescriptionInputFromDoc({ ...row, description: sourcePlain })
+    );
+    const currentPlain = stripHtml(descRaw).trim();
     const nextPlain = stripHtml(next).trim();
-    if (currentPlain === nextPlain) {
+    if (currentPlain === nextPlain && existingOriginal) {
       skipped++;
       continue;
     }
 
     updated++;
     const preview = String(row.title ?? row._id).slice(0, 60);
-    console.log(`${apply ? 'update' : 'would update'}: ${preview} (${currentPlain.length} chars)`);
+    console.log(
+      `${apply ? 'update' : 'would update'}: ${preview} (${sourcePlain.length} → ~${nextPlain.length} chars)`
+    );
 
     if (apply) {
-      await Listing.findByIdAndUpdate(row._id, { $set: { description: next } });
+      await Listing.findByIdAndUpdate(row._id, {
+        $set: {
+          description: next,
+          originalDescription: sourcePlain,
+          tags: mergeUniqueLists(tags, ['wa-rewritten']),
+        },
+      });
     }
   }
 

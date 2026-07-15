@@ -10,7 +10,8 @@ export type HumanListingDescriptionInput = DescriptionInput & {
   amenities?: string[];
 };
 
-export const MIN_HUMAN_REWRITE_DESCRIPTION_LEN = 100;
+/** Plain-text descriptions shorter than this are rewritten to avoid thin/low-value pages. */
+export const MIN_HUMAN_REWRITE_DESCRIPTION_LEN = 250;
 
 /** True when plain-text description is shorter than the rewrite threshold. */
 export function shouldHumanizeListingDescription(description: string | null | undefined): boolean {

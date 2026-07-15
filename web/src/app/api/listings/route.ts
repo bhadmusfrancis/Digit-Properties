@@ -261,7 +261,7 @@ export async function POST(req: Request) {
       area: parsed.data.area,
       amenities: parsed.data.amenities,
     });
-    const { images, videos, description: seoDescription, tags: seoTags } = seo;
+    const { images, videos, description: seoDescription, tags: seoTags, originalDescription } = seo;
     if (images.length > limits.maxImages) {
       return NextResponse.json(
         { error: `You can add up to ${limits.maxImages} images per listing.` },
@@ -339,6 +339,7 @@ export async function POST(req: Request) {
     const listing = await Listing.create({
       ...rest,
       description: seoDescription,
+      ...(originalDescription ? { originalDescription } : {}),
       propertyType: resolvedPt.propertyType,
       propertyTypes: resolvedPt.propertyTypes,
       amenities,

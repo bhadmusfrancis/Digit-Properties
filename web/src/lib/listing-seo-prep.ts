@@ -73,6 +73,13 @@ export function isWhatsAppImportTags(tags: string[] | undefined): boolean {
   );
 }
 
+export type EnrichedListingDescription = {
+  description: string;
+  /** Set when the public description was rewritten from a shorter original. */
+  originalDescription?: string;
+  rewritten: boolean;
+};
+
 /** Expand very short descriptions into readable, indexable copy. */
 export function enrichListingDescriptionForSeo(
   fields: ListingShareFields,
@@ -85,20 +92,20 @@ export function enrichListingDescriptionForSeo(
     area?: number;
     amenities?: string[];
   }
-): string {
+): EnrichedListingDescription {
   const raw = (fields.description ?? '').trim();
-  // Keep WhatsApp import copy as plain WhatsApp markup (line breaks / *bold*).
-  if (isWhatsAppImportTags(options?.tags)) {
-    return prepareWhatsAppListingDescription(raw);
-  }
-  if (!shouldHumanizeListingDescription(raw)) {
-    return raw;
+  const waPrepared = isWhatsAppImportTags(options?.tags)
+    ? prepareWhatsAppListingDescription(raw)
+    : raw;
+
+  if (!shouldHumanizeListingDescription(waPrepared)) {
+    return { description: waPrepared, rewritten: false };
   }
 
-  return buildHumanListingDescriptionHtml(
+  const rewritten = buildHumanListingDescriptionHtml(
     humanListingDescriptionInputFromDoc({
       title: options?.title ?? fields.title,
-      description: raw,
+      description: waPrepared,
       price: fields.price,
       listingType: fields.listingType,
       rentPeriod: fields.rentPeriod,
@@ -119,6 +126,11 @@ export function enrichListingDescriptionForSeo(
       amenities: options?.amenities,
     })
   );
+  return {
+    description: rewritten,
+    originalDescription: waPrepared,
+    rewritten: true,
+  };
 }
 
 export type ListingSeoPrepInput = {
@@ -142,6 +154,7 @@ export type ListingSeoPrepInput = {
 
 export function prepareListingFieldsForSeo(input: ListingSeoPrepInput): {
   description: string;
+  originalDescription?: string;
   images: ListingMediaRecord[];
   videos: ListingMediaRecord[];
   tags: string[];
@@ -160,7 +173,7 @@ export function prepareListingFieldsForSeo(input: ListingSeoPrepInput): {
     images,
     videos,
   });
-  const description = enrichListingDescriptionForSeo(shareFields, {
+  const enriched = enrichListingDescriptionForSeo(shareFields, {
     tags,
     title: input.title,
     bedrooms: input.bedrooms,
@@ -169,5 +182,14 @@ export function prepareListingFieldsForSeo(input: ListingSeoPrepInput): {
     area: input.area,
     amenities: input.amenities,
   });
-  return { description, images, videos, tags };
+  const nextTags = enriched.rewritten
+    ? mergeUniqueLists(tags, ['wa-rewritten'])
+    : tags;
+  return {
+    description: enriched.description,
+    originalDescription: enriched.originalDescription,
+    images,
+    videos,
+    tags: nextTags,
+  };
 }

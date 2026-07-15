@@ -279,7 +279,7 @@ export async function PATCH(
       parsed.data.price !== undefined ||
       parsed.data.listingType !== undefined;
     if (shouldRefreshSeoDescription) {
-      listing.description = enrichListingDescriptionForSeo(listingDocToShareFields(listing), {
+      const enriched = enrichListingDescriptionForSeo(listingDocToShareFields(listing), {
         tags: Array.isArray(listing.tags) ? listing.tags.map(String) : undefined,
         title: listing.title,
         bedrooms: listing.bedrooms,
@@ -288,6 +288,11 @@ export async function PATCH(
         area: listing.area,
         amenities: Array.isArray(listing.amenities) ? listing.amenities.map(String) : undefined,
       });
+      listing.description = enriched.description;
+      if (enriched.rewritten && enriched.originalDescription) {
+        (listing as { originalDescription?: string }).originalDescription =
+          enriched.originalDescription;
+      }
     }
     if (isAdmin && body.createdBy && mongoose.Types.ObjectId.isValid(body.createdBy)) {
       listing.createdBy = new mongoose.Types.ObjectId(body.createdBy);

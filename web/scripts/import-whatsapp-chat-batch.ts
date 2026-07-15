@@ -3,10 +3,14 @@
  *
  * Protocol:
  * 0. Dedupe repo-root All_chats.txt (remove duplicate fingerprints before import)
- * 1. Build chat.txt from _chat.txt (contacts.txt in the SAME folder only)
- * 2. Dedupe against repo-root All_chats.txt (all groups)
- * 3. Import listings with media + real-estate filter (dedupe before any upload)
- * 4. Append new messages to All_chats.txt after successful imports
+ * 1. Build chat.txt from _chat.txt using repo-root All_contacts.txt
+ * 2. Dedupe against All_chats.txt + MongoDB (before any Cloudinary upload)
+ * 3. Import real-estate listings (media optional; neighbouring same-contact media/text merged)
+ *    - Require a price on every listing
+ *    - Skip text-only listings priced above 500 million NGN
+ *    - Rewrite descriptions under 250 chars; keep originals in All_chats.txt + originalDescription
+ *    - Text-only or price < 5M listings use contactSource=listing
+ * 4. Append original messages to All_chats.txt after successful imports
  * 5. Dedupe listings in MongoDB
  *
  *   cd web
@@ -38,7 +42,8 @@ import {
   type ChatImportDedupeState,
 } from './lib/chat-import-utils';
 import { stripContactPhonesFromText } from '../src/lib/whatsapp-listing-parser';
-import { ALL_CHATS_PATH, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
+import { defaultChatImportContactSource } from '../src/lib/listing-contact-display';
+import { ALL_CHATS_PATH, ALL_CONTACTS_PATH, MAX_NO_MEDIA_LISTING_PRICE, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
 import { mongoUriForConnect } from './lib/mongo-uri';
 
 const AUTHOR_EMAIL_DEFAULT = 'fabhainternation@gmail.com';
@@ -148,6 +153,7 @@ async function main() {
 
   console.log(`Source: ${sourceDir}`);
   console.log(`All chats: ${ALL_CHATS_PATH}`);
+  console.log(`All contacts: ${ALL_CONTACTS_PATH}`);
   console.log(`Batch tag: ${batchTag}`);
 
   console.log('\nStep 0: Dedupe All_chats.txt before import…');
@@ -158,13 +164,13 @@ async function main() {
     console.error(`Missing ${path.join(sourceDir, '_chat.txt')}`);
     process.exit(1);
   }
-  if (!existsSync(path.join(sourceDir, 'contacts.txt'))) {
-    console.error(`Missing ${path.join(sourceDir, 'contacts.txt')} (must be in the same folder as _chat.txt)`);
+  if (!existsSync(ALL_CONTACTS_PATH)) {
+    console.error(`Missing ${ALL_CONTACTS_PATH} (merge contacts.txt files into All_contacts.txt first)`);
     process.exit(1);
   }
 
   if (!skipBuild) {
-    console.log('\nStep 1: Build chat.txt (real-estate filter, local contacts.txt)…');
+    console.log('\nStep 1: Build chat.txt (real-estate filter, All_contacts.txt)…');
     try {
       execSync(`python "${BUILD_CHAT_PY}" --dir "${sourceDir}"`, {
         stdio: 'inherit',
@@ -191,21 +197,27 @@ async function main() {
   const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
 
   const candidates: ParsedChatMessage[] = [];
-  let skippedNoMedia = 0;
+  let skippedNoMediaOverPrice = 0;
   let skippedNotListing = 0;
+  let skippedNoPrice = 0;
   const mediaMergePreview = buildMediaMergeMap(allSource, parseWhatsAppListingText);
 
   for (const msg of allSource) {
     const previewFiles = [
       ...new Set([...(msg.files ?? []), ...(mediaMergePreview.get(msg.index) ?? [])]),
     ];
-    if (!hasResolvableMedia(previewFiles, sourceDir)) {
-      skippedNoMedia++;
-      continue;
-    }
+    const hasMedia = hasResolvableMedia(previewFiles, sourceDir);
     const one = parseWhatsAppListingText(msg.clean);
     if (!looksLikeListingFromClean(msg.clean, one)) {
       skippedNotListing++;
+      continue;
+    }
+    if (one.parsed.price <= 0) {
+      skippedNoPrice++;
+      continue;
+    }
+    if (!hasMedia && one.parsed.price > MAX_NO_MEDIA_LISTING_PRICE) {
+      skippedNoMediaOverPrice++;
       continue;
     }
     candidates.push(msg);
@@ -278,15 +290,16 @@ async function main() {
       )
   );
 
-  console.log('\nStep 2: Filter (media + real-estate + dedupe before upload)');
+  console.log('\nStep 2: Filter (real-estate + price + dedupe before upload; media optional)');
   console.log(
     JSON.stringify(
       {
         sourceMessages: allSource.length,
-        candidatesWithMedia: candidates.length,
+        candidates: candidates.length,
         toImport: newMessages.length,
         eligibleForAllChatsIfAllSucceed: toAppend.length,
-        skippedNoMedia,
+        skippedNoMediaOverPrice,
+        skippedNoPrice,
         skippedNotListing,
         skippedAlreadyInDb,
         skippedSimilarDup,
@@ -305,8 +318,15 @@ async function main() {
     console.error('MONGODB_URI missing');
     process.exit(1);
   }
+  const needsCloudinary = newMessages.some((msg) => {
+    const merged = [
+      ...new Set([...(msg.files ?? []), ...(mediaMergePreview.get(msg.index) ?? [])]),
+    ];
+    return hasResolvableMedia(merged, sourceDir);
+  });
   if (
     !dryRun &&
+    needsCloudinary &&
     (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
       !process.env.CLOUDINARY_API_KEY ||
       !process.env.CLOUDINARY_API_SECRET)
@@ -343,7 +363,6 @@ async function main() {
     dedupeState = createChatImportDedupeState(canonicalFps, canonicalBodies, authorIndex);
   }
 
-  const mediaMergeMap = buildMediaMergeMap(newMessages, parseWhatsAppListingText);
   const uploadCache = new Map<string, { url: string; public_id: string; kind: 'image' | 'video' }>();
 
   let created = 0;
@@ -376,17 +395,26 @@ async function main() {
       continue;
     }
 
-    const mergedFiles = [...new Set([...(msg.files ?? []), ...(mediaMergeMap.get(mi) ?? [])])];
-    if (!hasResolvableMedia(mergedFiles, sourceDir)) {
-      logSkip('no resolvable media on disk', titleHint);
-      continue;
-    }
+    // Merge neighbouring same-contact media-only posts (indexed against full source).
+    const mergedFiles = [
+      ...new Set([...(msg.files ?? []), ...(mediaMergePreview.get(msg.index) ?? [])]),
+    ];
+    const hasMedia = hasResolvableMedia(mergedFiles, sourceDir);
 
     const { parsed, confidence, missing } = one;
     if (!parsed.agentName && msg.senderName) parsed.agentName = msg.senderName;
     let description = stripContactPhonesFromText(parsed.description);
     if (description.length < 20) description = `${description}\n\n(Imported from WhatsApp chat.)`.slice(0, 5000);
     if (description.length > 5000) description = description.slice(0, 5000);
+
+    if (parsed.price <= 0) {
+      logSkip('price missing or zero', parsed.title || titleHint);
+      continue;
+    }
+    if (!hasMedia && parsed.price > MAX_NO_MEDIA_LISTING_PRICE) {
+      logSkip(`no media and price > ${MAX_NO_MEDIA_LISTING_PRICE}`, parsed.title || titleHint);
+      continue;
+    }
 
     let fp: string;
     if (dedupeState) {
@@ -420,6 +448,7 @@ async function main() {
         'whatsapp-chat-import',
         batchTag,
         fpTag,
+        ...(hasMedia ? [] : ['wa-no-media']),
         ...(tsTag ? [tsTag] : []),
       ]),
     ];
@@ -441,15 +470,17 @@ async function main() {
       agentPhone: parsed.agentPhone,
       agentEmail: parsed.agentEmail,
       rentPeriod: parsed.rentPeriod,
+      // Text-only / under ₦5M default to listing contact; editors can override later.
+      contactSource: defaultChatImportContactSource({
+        hasMedia,
+        price: parsed.price,
+        hasListingContact: !!(parsed.agentPhone || parsed.agentName || parsed.agentEmail),
+      }),
       status: 'active' as const,
       images: [] as { url: string; public_id: string }[],
       videos: [] as { url: string; public_id: string }[],
     };
 
-    if (payload.price <= 0) {
-      logSkip('price missing or zero', payload.title);
-      continue;
-    }
     if (payload.listingType === 'rent' && !payload.rentPeriod) {
       payload.rentPeriod = 'year';
     }
@@ -463,7 +494,7 @@ async function main() {
 
     if (dryRun) {
       console.log(
-        `[dry-run] create: "${validated.data.title.slice(0, 55)}..." | ${confidence} | ${mergedFiles.length} file(s)`
+        `[dry-run] create: "${validated.data.title.slice(0, 55)}..." | ${confidence} | ${mergedFiles.length} file(s)${hasMedia ? '' : ' | no-media'}`
       );
       created++;
       messagesCreated.push(msg);
@@ -501,7 +532,7 @@ async function main() {
       }
     }
 
-    if (images.length === 0 && videos.length === 0) {
+    if (hasMedia && images.length === 0 && videos.length === 0) {
       logSkip(`no media uploaded (${mergedFiles.join(', ') || 'none'})`, one.parsed.title || titleHint);
       continue;
     }
@@ -510,6 +541,7 @@ async function main() {
       ...validated.data,
       images,
       videos,
+      contactSource: payload.contactSource,
     };
 
     const seoCreate = prepareListingFieldsForSeo({
@@ -524,10 +556,18 @@ async function main() {
       images: payloadWithMedia.images,
       videos: payloadWithMedia.videos,
       tags: payloadWithMedia.tags,
+      bedrooms: payloadWithMedia.bedrooms,
+      bathrooms: payloadWithMedia.bathrooms,
+      toilets: payloadWithMedia.toilets,
+      area: payloadWithMedia.area,
+      amenities: payloadWithMedia.amenities,
     });
     await Listing.create({
       ...payloadWithMedia,
       description: seoCreate.description,
+      ...(seoCreate.originalDescription
+        ? { originalDescription: seoCreate.originalDescription }
+        : {}),
       images: seoCreate.images,
       videos: seoCreate.videos.length ? seoCreate.videos : [],
       tags: seoCreate.tags,
@@ -542,7 +582,9 @@ async function main() {
     created++;
     messagesCreated.push(msg);
     if (dedupeState) markChatImportAccepted(dedupeState, fp, clean, mergedFiles);
-    console.log(`  ok: "${payloadWithMedia.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'})`);
+    console.log(
+      `  ok: "${payloadWithMedia.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'}${seoCreate.originalDescription ? '; rewritten' : ''}${hasMedia ? '' : '; no-media'})`
+    );
   }
 
   if (!dryRun) await mongoose.disconnect();

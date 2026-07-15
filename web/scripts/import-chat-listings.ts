@@ -437,6 +437,9 @@ async function main() {
             tags: seoUpdate.tags,
             title: validated.data.title,
             description: seoUpdate.description,
+            ...(seoUpdate.originalDescription
+              ? { originalDescription: seoUpdate.originalDescription }
+              : {}),
             price: validated.data.price,
             listingType: validated.data.listingType,
             propertyType: validated.data.propertyType,
@@ -475,6 +478,9 @@ async function main() {
     await Listing.create({
       ...validated.data,
       description: seoCreate.description,
+      ...(seoCreate.originalDescription
+        ? { originalDescription: seoCreate.originalDescription }
+        : {}),
       images: seoCreate.images,
       videos: seoCreate.videos.length ? seoCreate.videos : [],
       tags: seoCreate.tags,
