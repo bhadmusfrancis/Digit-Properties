@@ -5,7 +5,7 @@ Each message header is rewritten to include a contact phone:
   [date, time] ~ <display name> ~ (<phone>):
 
 Phone lookup uses the export folder's contacts.txt when present, otherwise
-repo-root all_contacts.txt. Unmatched senders fall back to the global list.
+repo-root All_contacts.txt. Unmatched senders fall back to the global list.
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from rapidfuzz import fuzz, process
 
 REPO = Path(__file__).resolve().parent
 BUILD_DIR = REPO / "WhatsApp Chat - WORLD MARKET"
-ALL_CONTACTS = REPO / "all_contacts.txt"
+ALL_CONTACTS = REPO / "All_contacts.txt"
 OUT = REPO / "all_raw_chats.txt"
 
 if str(BUILD_DIR) not in sys.path:

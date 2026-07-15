@@ -32,6 +32,11 @@ export interface IListing {
   createdByType: 'admin' | 'ai' | 'bot' | 'user';
   /** Which contact details should be shown for this listing. */
   contactSource?: 'author' | 'listing';
+  /**
+   * Original chat/paste text when `description` was rewritten for SEO
+   * (linked to All_chats.txt via `wa-fp:` tag).
+   */
+  originalDescription?: string;
   agentName?: string;
   agentPhone?: string;
   agentEmail?: string;
@@ -104,6 +109,7 @@ const ListingSchema = new Schema<IListing>(
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     createdByType: { type: String, enum: ['admin', 'ai', 'bot', 'user'], default: 'user' },
     contactSource: { type: String, enum: ['author', 'listing'], default: 'author' },
+    originalDescription: String,
     agentName: String,
     agentPhone: String,
     agentEmail: String,

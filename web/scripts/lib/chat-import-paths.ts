@@ -6,6 +6,12 @@ export const REPO_ROOT = path.resolve(process.cwd(), '..');
 /** Global chat archive for deduplication and append-after-import (all groups). */
 export const ALL_CHATS_PATH = path.join(REPO_ROOT, 'All_chats.txt');
 
+/** Merged, deduped contacts for every WhatsApp chat import (all groups). */
+export const ALL_CONTACTS_PATH = path.join(REPO_ROOT, 'All_contacts.txt');
+
+/** Skip Cloudinary uploads for text-only listings above this asking price (NGN). */
+export const MAX_NO_MEDIA_LISTING_PRICE = 500_000_000;
+
 export function slugFromChatDir(dirName: string): string {
   return dirName
     .replace(/^WhatsApp Chat\s*-\s*/i, '')

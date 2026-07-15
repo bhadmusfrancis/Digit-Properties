@@ -277,6 +277,9 @@ async function main() {
     await Listing.create({
       ...validated.data,
       description: seoCreate.description,
+      ...(seoCreate.originalDescription
+        ? { originalDescription: seoCreate.originalDescription }
+        : {}),
       images: seoCreate.images,
       videos: seoCreate.videos.length ? seoCreate.videos : [],
       tags: seoCreate.tags,

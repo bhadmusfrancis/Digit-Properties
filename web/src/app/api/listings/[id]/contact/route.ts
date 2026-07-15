@@ -20,7 +20,9 @@ export async function GET(
     }
 
     const listing = await Listing.findById(id)
-      .select('status agentName agentPhone agentEmail title createdBy contactSource createdByType')
+      .select(
+        'status agentName agentPhone agentEmail title createdBy contactSource createdByType tags price images videos'
+      )
       .populate('createdBy', 'firstName name phone email role')
       .lean();
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -41,6 +43,10 @@ export async function GET(
       contactSource: (listing as { contactSource?: string }).contactSource,
       createdByType: (listing as { createdByType?: string }).createdByType,
       createdBy: listing.createdBy,
+      tags: (listing as { tags?: string[] }).tags,
+      price: (listing as { price?: number }).price,
+      images: (listing as { images?: { url?: string; public_id?: string }[] }).images,
+      videos: (listing as { videos?: { url?: string; public_id?: string }[] }).videos,
     });
     return NextResponse.json({
       ...contact,

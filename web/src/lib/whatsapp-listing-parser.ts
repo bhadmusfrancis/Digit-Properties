@@ -249,11 +249,29 @@ function isPercentLiteral(text: string, matchIndex: number, matchLen: number): b
   return tail.startsWith('%') || tail.startsWith('*');
 }
 
+/** True when the matched amount is an area/size (e.g. "1781 Sqm"), not a price. */
+function isAreaUnitAfter(text: string, matchIndex: number, matchLen: number): boolean {
+  const tail = text.slice(matchIndex + matchLen).trimStart();
+  return /^(?:sq\.?\s*m(?:eters?)?|sqm|m\s*2|m²|acres?|hectares?|ha|plots?)\b/i.test(tail);
+}
+
+/**
+ * True when a trailing "m" multiplier is actually square meters
+ * (e.g. "1,123.100m²" / "500m2"), not millions.
+ */
+function isSquareMeterMultiplier(text: string, matchIndex: number, matchLen: number, multRaw: string): boolean {
+  if (multRaw !== 'm') return false;
+  const after = text.slice(matchIndex + matchLen);
+  return /^[²2]/.test(after) || /^\s*[²2]\b/.test(after);
+}
+
 function collectPriceHits(text: string): PriceHit[] {
   const hits: PriceHit[] = [];
-  const multPart = '(?:m|million|k|thousand|bn|billion|b(?![a-z]))';
-  const multCapture = '(m|million|k|thousand|bn|billion|b(?![a-z]))';
-  const labeledAmount = `(?:(?:₦|NGN|N)\\s*)?([\\d.,]+)\\s*(${multCapture})?`;
+  // "m" must not swallow m² / m2 (plot size written as 1,123.100m²).
+  const multPart = '(?:m(?![²2])|million|k|thousand|bn|billion|b(?![a-z]))';
+  const multCapture = '(m(?![²2])|million|k|thousand|bn|billion|b(?![a-z]))';
+  // "#" is a common WhatsApp stand-in for ₦.
+  const labeledAmount = `(?:(?:₦|NGN|N|#)\\s*)?([\\d.,]+)\\s*(${multCapture})?`;
   const specs: Array<{ re: RegExp; priority: number; requireMult?: boolean }> = [
     {
       re: new RegExp(
@@ -274,8 +292,8 @@ function collectPriceHits(text: string): PriceHit[] {
       priority: 90,
     },
     { re: new RegExp(`\\b([\\d.,]+)\\s*(${multCapture})\\s*net\\b`, 'gi'), priority: 88, requireMult: true },
-    { re: /(?:₦|NGN)\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b(?![a-z]))?/gi, priority: 80 },
-    { re: /(?:^|[\s,(])N\s*([\d.,]+)\s*(m|million|k|thousand|bn|billion|b(?![a-z]))?/gi, priority: 75 },
+    { re: /(?:₦|NGN|#)\s*([\d.,]+)\s*(m(?![²2])|million|k|thousand|bn|billion|b(?![a-z]))?/gi, priority: 80 },
+    { re: /(?:^|[\s,(])N\s*([\d.,]+)\s*(m(?![²2])|million|k|thousand|bn|billion|b(?![a-z]))?/gi, priority: 75 },
     { re: new RegExp(`\\b([\\d.,]+)\\s*(${multPart})\\b`, 'gi'), priority: 70, requireMult: true },
   ];
 
@@ -286,6 +304,8 @@ function collectPriceHits(text: string): PriceHit[] {
       const multRaw = (m[2] || '').toLowerCase();
       if (requireMult && !multRaw) continue;
       if (isPercentLiteral(text, m.index, m[0].length)) continue;
+      if (isAreaUnitAfter(text, m.index, m[0].length)) continue;
+      if (isSquareMeterMultiplier(text, m.index, m[0].length, multRaw)) continue;
       const value = parseAmountToken(m[1], multRaw || undefined);
       if (value > 0) hits.push({ value, priority, pos: m.index });
     }
@@ -304,6 +324,11 @@ function pickBestPriceHit(hits: PriceHit[]): number {
   // Prefer a multiplied primary amount when a bare fee percent (e.g. 10) slipped through.
   if (value <= 100) {
     const scaled = hits.filter((h) => h.value >= 100_000);
+    if (scaled.length) value = Math.max(...scaled.map((h) => h.value));
+  }
+  // Prefer currency/scaled amounts when a bare "for sale <area>" number won on priority.
+  if (value > 0 && value < 500_000) {
+    const scaled = hits.filter((h) => h.value >= 500_000);
     if (scaled.length) value = Math.max(...scaled.map((h) => h.value));
   }
   return value;
@@ -330,6 +355,8 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
   }
 
   rest = rest.replace(/\b[\d.,]+\s*(?:acres?|hectares?|hectare|ha)\b/gi, ' ');
+  // Strip plot sizes like "1,123.100m²" / "500m2" so "m" is not read as millions.
+  rest = rest.replace(/\b[\d.,]+\s*(?:sq\.?\s*m(?:eters?)?|sqm|m\s*[²2]|m²)/gi, ' ');
 
   const perSqmMatch = rest.match(/(?:price|price:)\s*([\d.,]+)\s*m\s*\/\s*sqm/i) ?? rest.match(/\b([\d.,]+)\s*m\s*\/\s*sqm/i);
   if (perSqmMatch) {
@@ -390,6 +417,14 @@ export function isLikelyMispricedWhatsAppListing(input: {
   if (hasScaledAmount && current < 500_000 && next >= 500_000 && next > current * 10) {
     return { mispriced: true, reparsedPrice: next, reason: 'description mentions m/k/bn amount' };
   }
+  // Area mistaken as price (e.g. "For Sale 1781 Sqm … ₦650M" stored as 1781).
+  if (hasScaledAmount && current >= 100 && current <= 50_000 && next >= 1_000_000 && next > current * 100) {
+    return { mispriced: true, reparsedPrice: next, reason: 'area/size stored as price' };
+  }
+  // Plot size with m² parsed as millions (e.g. "1,123.100m² … #100m" stored as 1.123B).
+  if (hasScaledAmount && next >= 1_000_000 && current > next * 5 && current >= 10_000_000) {
+    return { mispriced: true, reparsedPrice: next, reason: 'area m² mistaken for millions' };
+  }
   if (next > current * 50 && next >= 100_000) {
     return { mispriced: true, reparsedPrice: next, reason: 'reparsed price much higher' };
   }
@@ -397,9 +432,12 @@ export function isLikelyMispricedWhatsAppListing(input: {
   return { mispriced: false, reparsedPrice: next };
 }
 
-/** Extract area in square meters (e.g. 500sqm, 1,634sqm, 2,400sqm). */
+/** Extract area in square meters (e.g. 500sqm, 1,634sqm, 1,123.100m²). */
 function extractArea(text: string): { area: number; rest: string } {
-  const m = text.match(/\b([\d,]+)\s*sqm\b/i);
+  const m =
+    text.match(/\b([\d,.]+)\s*(?:sq\.?\s*m(?:eters?)?|sqm)\b/i) ??
+    text.match(/\b([\d,.]+)\s*m\s*[²2]/i) ??
+    text.match(/\b([\d,.]+)\s*m²/i);
   if (m) {
     const area = parseFloat(m[1].replace(/,/g, ''));
     return { area: area > 0 ? area : 0, rest: text.replace(m[0], ' ') };

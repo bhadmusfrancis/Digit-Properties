@@ -1,9 +1,9 @@
 """
 Build chat.txt from _chat.txt in a WhatsApp export folder.
 
-Requires in the same folder:
-  - _chat.txt
-  - contacts.txt   (only this contacts file is used — not from other groups)
+Requires:
+  - _chat.txt in the export folder
+  - repo-root All_contacts.txt (merged contacts for all groups)
 
 Cutoff for new messages: last timestamp in repo-root All_chats.txt (if present),
 else processes all messages from DEFAULT_CUTOFF onward.
@@ -28,6 +28,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 BUILD_MODULE_DIR = REPO / "WhatsApp Chat - WORLD MARKET"
 ALL_CHATS = REPO / "All_chats.txt"
+ALL_CONTACTS = REPO / "All_contacts.txt"
 
 if str(BUILD_MODULE_DIR) not in sys.path:
     sys.path.insert(0, str(BUILD_MODULE_DIR))
@@ -63,7 +64,7 @@ def main() -> None:
     parser.add_argument(
         "--dir",
         required=True,
-        help="Export folder containing _chat.txt and contacts.txt",
+        help="Export folder containing _chat.txt",
     )
     parser.add_argument(
         "--all",
@@ -80,14 +81,16 @@ def main() -> None:
 
     base = Path(args.dir).resolve()
     src = base / "_chat.txt"
-    cpath = base / "contacts.txt"
     out = base / "chat.txt"
 
     if not src.is_file():
         print(f"Missing {src}", file=sys.stderr)
         sys.exit(1)
-    if not cpath.is_file():
-        print(f"Missing {cpath} (contacts must be in the same folder as _chat.txt)", file=sys.stderr)
+    if not ALL_CONTACTS.is_file():
+        print(
+            f"Missing {ALL_CONTACTS} (merge all contacts.txt into All_contacts.txt first)",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if args.since:
@@ -100,7 +103,7 @@ def main() -> None:
         cutoff = DEFAULT_CUTOFF
     else:
         cutoff = cutoff_from_all_chats()
-    contacts = load_contacts(cpath)
+    contacts = load_contacts(ALL_CONTACTS)
     unmatched: dict[str, int] = {}
     buf: list[str] = []
     collected: list[str] = []
@@ -126,7 +129,7 @@ def main() -> None:
     out.write_text("".join(deduped), encoding="utf-8", newline="\n")
 
     print(f"Wrote {out}")
-    print(f"Contacts: {cpath}")
+    print(f"Contacts: {ALL_CONTACTS} ({len(contacts)} entries)")
     print(f"Dedup basis (cutoff from All_chats.txt): {cutoff.isoformat(sep=' ')}")
     print(f"Messages after real-estate filter: {before}")
     print(f"Similar duplicates removed (keeping first): {n_drop_sim}")
