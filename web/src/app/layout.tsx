@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { siteMetadataBase, siteOrigin } from '@/lib/site-metadata';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/GoogleTagManager';
+import { GoogleAdSense } from '@/components/GoogleAdSense';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/seo/structured-data';
 import { TWITTER_HANDLE } from '@/lib/constants';
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <JsonLd data={[buildOrganizationJsonLd(), buildWebSiteJsonLd()]} />
         <GoogleTagManager />
         <GoogleTagManagerNoScript />
+        <GoogleAdSense />
         <Providers>
           <div className="flex min-h-screen flex-col">
             <Header />
