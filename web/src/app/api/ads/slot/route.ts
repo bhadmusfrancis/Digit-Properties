@@ -25,12 +25,16 @@ export async function GET(req: Request) {
 
     await dbConnect();
     const now = new Date();
-    const pool: Array<
+    type SlotItem =
       | { type: 'listing'; listing: unknown }
       | { type: 'ad'; ad: unknown }
       | { type: 'adsense'; code: string }
-      | { type: 'adsterra'; code: string }
-    > = [];
+      | { type: 'adsterra'; code: string };
+
+    /** Content (featured listings + paid user ads). */
+    const contentPool: SlotItem[] = [];
+    /** Network ads — kept separate so ~20 listings cannot drown out AdSense. */
+    const networkPool: SlotItem[] = [];
 
     if (placement === 'home_featured') {
       const listings = await Listing.find({
@@ -45,7 +49,7 @@ export async function GET(req: Request) {
       for (const l of listings) {
         const row = l as { _id: mongoose.Types.ObjectId; createdBy?: unknown; [k: string]: unknown };
         const { createdBy: cb, ...rest } = row;
-        pool.push({
+        contentPool.push({
           type: 'listing',
           listing: { ...rest, _id: row._id.toString(), createdBy: shapePublicCreatedBy(cb) ?? cb },
         });
@@ -64,7 +68,7 @@ export async function GET(req: Request) {
     if (!adsenseReviewMode) {
       for (const ad of activeAds) {
         const row = ad as { _id: mongoose.Types.ObjectId; media: { url: string; type: string }; targetUrl: string };
-        pool.push({
+        contentPool.push({
           type: 'ad',
           ad: { _id: row._id.toString(), media: row.media, targetUrl: row.targetUrl },
         });
@@ -75,20 +79,29 @@ export async function GET(req: Request) {
     const adsense = config?.adsense as Record<string, string> | undefined;
     const adsenseCode = placementConfigValue(adsense, placement);
     if (adsenseCode) {
-      pool.push({ type: 'adsense', code: adsenseCode });
+      networkPool.push({ type: 'adsense', code: adsenseCode });
     }
 
     const adsterra = config?.adsterra as Record<string, string> | undefined;
     const adsterraCode = placementConfigValue(adsterra, placement);
     if (adsterraCode && !adsenseReviewMode) {
-      pool.push({ type: 'adsterra', code: adsterraCode });
+      networkPool.push({ type: 'adsterra', code: adsterraCode });
     }
 
-    if (pool.length === 0) {
+    if (contentPool.length === 0 && networkPool.length === 0) {
       return NextResponse.json({ type: null, listing: null, ad: null, adsenseCode: null, adsterraCode: null });
     }
 
-    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    // When network ads are configured, pick that group first (70%) so Featured slots
+    // show AdSense/Adsterra instead of almost always a random featured listing.
+    let pickPool: SlotItem[];
+    if (networkPool.length && contentPool.length) {
+      pickPool = Math.random() < 0.7 ? networkPool : contentPool;
+    } else {
+      pickPool = networkPool.length ? networkPool : contentPool;
+    }
+
+    const chosen = pickPool[Math.floor(Math.random() * pickPool.length)]!;
     if (chosen.type === 'listing') {
       return NextResponse.json({ type: 'listing', listing: chosen.listing, ad: null, adsenseCode: null, adsterraCode: null });
     }

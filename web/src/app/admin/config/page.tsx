@@ -336,8 +336,11 @@ export default function AdminConfigPage() {
                       adsense: { ...c!.adsense, [p]: e.target.value },
                     }))}
                     className="input mt-1 w-full font-mono text-sm"
-                    placeholder="Paste AdSense ins + script block..."
+                    placeholder="Paste AdSense <ins class=&quot;adsbygoogle&quot;> + (adsbygoogle).push({})"
                   />
+                  <p className="mt-1 text-xs text-gray-400">
+                    Create a Display ad unit in AdSense, then paste the full snippet here and click Save. Without a saved snippet this slot cannot show manual AdSense.
+                  </p>
                 </div>
                 <div className="mt-4">
                   <label className="block text-xs font-medium text-gray-500">
@@ -354,7 +357,7 @@ export default function AdminConfigPage() {
                     placeholder="Paste Adsterra invoke.js script + container div..."
                   />
                   <p className="mt-1 text-xs text-gray-400">
-                    Paste both the <code>&lt;script&gt;</code> and the <code>&lt;div id=&quot;container-…&quot;&gt;</code>. Scripts are executed on render. If both AdSense and Adsterra are set for a slot, one is shown at random alongside any listings/user ads.
+                    Paste both the <code>&lt;script&gt;</code> and the <code>&lt;div id=&quot;container-…&quot;&gt;</code>. Scripts are executed on render. When AdSense/Adsterra is set, Featured slots prefer network ads (~70%) over featured listings so units are not drowned out.
                   </p>
                 </div>
               </div>
