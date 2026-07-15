@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import { USER_ROLES } from '@/lib/constants';
-import { loadPublicTrafficReport, parseAnalyticsDays } from '@/lib/analytics-query';
+import { loadPublicTrafficReport, parseAnalyticsPeriod } from '@/lib/analytics-query';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
@@ -12,12 +14,16 @@ export async function GET(req: Request) {
     }
 
     const url = new URL(req.url);
-    const days = parseAnalyticsDays(url.searchParams.get('days'));
+    const period = parseAnalyticsPeriod(url.searchParams.get('period'), url.searchParams.get('days'));
 
     await dbConnect();
-    const report = await loadPublicTrafficReport(days);
+    const report = await loadPublicTrafficReport(period);
 
-    return NextResponse.json(report);
+    return NextResponse.json(report, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   } catch (e) {
     console.error('admin analytics error', e);
     return NextResponse.json({ error: 'Failed to load analytics' }, { status: 500 });
