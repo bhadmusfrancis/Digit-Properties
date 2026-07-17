@@ -34,12 +34,13 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     }
 
     await dbConnect();
-    let role = session.user.role;
+    let role: string | null | undefined = session.user.role;
     if (mongoose.Types.ObjectId.isValid(session.user.id)) {
       try {
         const dbUser = await User.findById(session.user.id).select('role').lean();
-        if (typeof (dbUser as { role?: string } | null)?.role === 'string') {
-          role = (dbUser as { role: string }).role;
+        const dbRole = (dbUser as { role?: string } | null)?.role;
+        if (typeof dbRole === 'string' && dbRole.trim()) {
+          role = dbRole;
         }
       } catch (e) {
         console.error('[EditListingPage] role lookup failed', e);
