@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import { LISTING_STATUS, LISTING_TYPE, PROPERTY_TYPES } from '@/lib/constants';
+import { mongooseConn } from '@/lib/mongoose-conn';
 
 export interface ILocation {
   address: string;
@@ -140,5 +141,6 @@ ListingSchema.index({ highlighted: 1, status: 1 });
 ListingSchema.index({ previousSlugs: 1 });
 ListingSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
-const Listing: Model<IListing> = mongoose.models.Listing ?? mongoose.model<IListing>('Listing', ListingSchema);
+const _m = mongooseConn();
+const Listing: Model<IListing> = _m.models.Listing ?? _m.model<IListing>('Listing', ListingSchema);
 export default Listing;
