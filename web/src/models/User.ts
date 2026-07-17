@@ -134,5 +134,6 @@ const UserSchema = new Schema<IUser>(
 );
 
 const _m = mongooseConn();
-const User: Model<IUser> = _m.models.User ?? _m.model<IUser>('User', UserSchema);
+const User: Model<IUser> =
+  (_m.models?.User as Model<IUser> | undefined) ?? _m.model<IUser>('User', UserSchema);
 export default User;

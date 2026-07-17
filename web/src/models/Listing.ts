@@ -142,5 +142,7 @@ ListingSchema.index({ previousSlugs: 1 });
 ListingSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 const _m = mongooseConn();
-const Listing: Model<IListing> = _m.models.Listing ?? _m.model<IListing>('Listing', ListingSchema);
+const Listing: Model<IListing> =
+  (_m.models?.Listing as Model<IListing> | undefined) ??
+  _m.model<IListing>('Listing', ListingSchema);
 export default Listing;

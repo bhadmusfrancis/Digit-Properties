@@ -12,5 +12,8 @@ export function mongooseConn(): typeof mongooseImport {
   const m = mongooseImport as MongooseSingleton;
   if (m && typeof m.model === 'function' && m.models) return m;
   if (m?.default && typeof m.default.model === 'function') return m.default;
+  // Last resort: still prefer a value that has .model so callers can register schemas.
+  if (m && typeof m.model === 'function') return m;
+  if (m?.default && typeof m.default.model === 'function') return m.default;
   return m;
 }
