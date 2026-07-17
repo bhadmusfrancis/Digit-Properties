@@ -67,8 +67,13 @@ function matchesTypedPrefix(label: string, query: string): boolean {
   if (head && !t.includes(head)) return false;
   if (!tail) return true;
   // Require final typed fragment to align with a word boundary (e.g. "es" -> "estate")
-  const boundary = new RegExp(`(^|[\\s,.-])${tail}`);
-  return boundary.test(t);
+  try {
+    const escaped = tail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const boundary = new RegExp(`(^|[\\s,.-])${escaped}`);
+    return boundary.test(t);
+  } catch {
+    return t.includes(tail);
+  }
 }
 
 function scoreSuggestion(query: string, s: PlaceSuggestion): number {
