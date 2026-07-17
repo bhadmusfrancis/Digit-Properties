@@ -32,7 +32,7 @@ import { canUserEditListing } from '@/lib/listing-edit-window';
 import { revalidateAllSitemaps, revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -42,12 +42,40 @@ export async function GET(
     }
 
     await dbConnect();
-    const session = await getSession(_req);
+    const session = await getSession(req);
+    const forEdit = new URL(req.url).searchParams.get('forEdit') === '1';
+
     const pre = await Listing.findById(id)
-      .select('status createdBy')
+      .select('status createdBy createdAt claimedAt')
       .lean();
     if (!pre) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    if (
+
+    if (forEdit) {
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      let role: string | null | undefined = session.user.role;
+      if (mongoose.Types.ObjectId.isValid(session.user.id)) {
+        try {
+          const dbUser = await User.findById(session.user.id).select('role').lean();
+          const dbRole = (dbUser as { role?: string } | null)?.role;
+          if (typeof dbRole === 'string' && dbRole.trim()) role = dbRole;
+        } catch (e) {
+          console.error('[GET listing forEdit] role lookup failed', e);
+        }
+      }
+      if (
+        !canUserEditListing({
+          role,
+          userId: session.user.id,
+          listingCreatedBy: String(pre.createdBy),
+          createdAt: (pre as { createdAt?: Date }).createdAt,
+          claimedAt: (pre as { claimedAt?: Date }).claimedAt,
+        })
+      ) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    } else if (
       !canViewListingOnSite({
         status: pre.status,
         createdBy: pre.createdBy,
@@ -57,13 +85,11 @@ export async function GET(
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const listing = await Listing.findByIdAndUpdate(
-      id,
-      { $inc: { viewCount: 1 } },
-      { new: true }
-    )
-      .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
-      .lean();
+    const listing = forEdit
+      ? await Listing.findById(id).populate('createdBy', USER_PUBLIC_BADGE_FIELDS).lean()
+      : await Listing.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true })
+          .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
+          .lean();
 
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -74,11 +100,18 @@ export async function GET(
           public_id: img?.public_id ?? '',
         })).filter((img: { url: string }) => img.url)
       : [];
+    const videos = Array.isArray((listing as { videos?: { url?: string; public_id?: string }[] }).videos)
+      ? (listing as { videos: { url?: string; public_id?: string }[] }).videos.map((v) => ({
+          url: v?.url ?? '',
+          public_id: v?.public_id ?? '',
+        })).filter((v) => v.url || v.public_id)
+      : [];
     const { createdBy, ...listingRest } = listing as typeof listing & { createdBy?: unknown };
     return NextResponse.json({
       ...listingRest,
       createdBy: shapePublicCreatedBy(createdBy) ?? createdBy,
       images,
+      videos,
       likeCount,
       isBoosted: listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date(),
     });
