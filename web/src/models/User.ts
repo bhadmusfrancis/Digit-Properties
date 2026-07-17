@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import { USER_ROLES, SUBSCRIPTION_TIERS } from '@/lib/constants';
+import { mongooseConn } from '@/lib/mongoose-conn';
 
 /** Scanned data from ID document (OCR or user consent). */
 export interface IIdScannedData {
@@ -132,5 +133,6 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-const User: Model<IUser> = mongoose.models.User ?? mongoose.model<IUser>('User', UserSchema);
+const _m = mongooseConn();
+const User: Model<IUser> = _m.models.User ?? _m.model<IUser>('User', UserSchema);
 export default User;
