@@ -28,7 +28,7 @@ import {
   normalizeListingMediaForSeo,
 } from '@/lib/listing-seo-prep';
 import { listingDocToShareFields } from '@/lib/listing-share-text';
-import { canNonAdminEditListing, roleBypassesEditWindow } from '@/lib/listing-edit-window';
+import { canUserEditListing } from '@/lib/listing-edit-window';
 import { revalidateAllSitemaps, revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 export async function GET(
@@ -107,13 +107,21 @@ export async function PATCH(
 
     const isAdmin = session.user.role === USER_ROLES.ADMIN;
     const isOwner = listing.createdBy.toString() === session.user.id;
-    const canBypassEditWindow = roleBypassesEditWindow(session.user.role);
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    if (!canBypassEditWindow && isOwner && !canNonAdminEditListing({ createdAt: listing.createdAt, claimedAt: listing.claimedAt })) {
+    if (
+      !canUserEditListing({
+        role: session.user.role,
+        userId: session.user.id,
+        listingCreatedBy: listing.createdBy.toString(),
+        createdAt: listing.createdAt,
+        claimedAt: listing.claimedAt,
+      })
+    ) {
       return NextResponse.json(
-        { error: 'Listings can only be edited within 24 hours of creation or claim for non-admin users.' },
+        {
+          error: isOwner
+            ? 'Listings can only be edited within 24 hours of creation or claim for non-admin users.'
+            : 'Forbidden',
+        },
         { status: 403 }
       );
     }
