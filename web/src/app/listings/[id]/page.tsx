@@ -52,7 +52,7 @@ import {
   relatedLocationLinks,
 } from '@/lib/location-seo';
 import { resolveListingPublicSegment } from '@/lib/resolve-listing';
-import { canNonAdminEditListing, roleBypassesEditWindow } from '@/lib/listing-edit-window';
+import { canUserEditListing } from '@/lib/listing-edit-window';
 import { isListingIndexable } from '@/lib/seo/listing-indexability';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -376,13 +376,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       }) ||
       (createdByOid != null && botUserIds.some((id) => id.equals(createdByOid)));
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
-    const canEditListing =
-      isOwner &&
-      (roleBypassesEditWindow(session?.user?.role) ||
-        canNonAdminEditListing({
-          createdAt: listing.createdAt as Date,
-          claimedAt: (listing as { claimedAt?: Date }).claimedAt,
-        }));
+    const canEditListing = canUserEditListing({
+      role: session?.user?.role,
+      userId: session?.user?.id,
+      listingCreatedBy: createdById,
+      createdAt: listing.createdAt as Date,
+      claimedAt: (listing as { claimedAt?: Date }).claimedAt,
+    });
 
     const baseUrl = siteOrigin();
     const shareFields = listingDocToShareFields({
@@ -725,9 +725,15 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <Link href={`/listings/${listing._id}/edit`} className="btn-primary flex-1 text-center">
                   Edit listing
                 </Link>
-                <Link href="/dashboard/listings" className="btn-secondary flex-1 text-center">
-                  My Properties
-                </Link>
+                {isOwner ? (
+                  <Link href="/dashboard/listings" className="btn-secondary flex-1 text-center">
+                    My Properties
+                  </Link>
+                ) : isAdmin ? (
+                  <Link href="/admin/listings" className="btn-secondary flex-1 text-center">
+                    Admin listings
+                  </Link>
+                ) : null}
               </div>
             )}
             <Link href="/listings" className="btn-secondary mt-4 block text-center">

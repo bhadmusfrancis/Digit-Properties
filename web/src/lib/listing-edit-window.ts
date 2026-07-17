@@ -44,3 +44,23 @@ export function canNonAdminEditListing(opts: {
   const now = opts.now ?? Date.now();
   return now - startMs <= NON_ADMIN_EDIT_WINDOW_MS;
 }
+
+/** Whether the current user may open/save the listing editor. Admins can edit every listing. */
+export function canUserEditListing(opts: {
+  role?: string | null;
+  userId?: string | null;
+  listingCreatedBy?: string | null;
+  createdAt?: Date | string;
+  claimedAt?: Date | string | null;
+}): boolean {
+  const role = (opts.role || '').toLowerCase();
+  if (role === USER_ROLES.ADMIN) return true;
+  const userId = opts.userId ? String(opts.userId) : '';
+  const ownerId = opts.listingCreatedBy ? String(opts.listingCreatedBy) : '';
+  if (!userId || !ownerId || userId !== ownerId) return false;
+  if (roleBypassesEditWindow(role)) return true;
+  return canNonAdminEditListing({
+    createdAt: opts.createdAt,
+    claimedAt: opts.claimedAt,
+  });
+}

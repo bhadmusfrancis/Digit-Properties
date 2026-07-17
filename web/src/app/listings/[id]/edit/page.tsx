@@ -1,36 +1,35 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
-import { dbConnect } from '@/lib/db';
-import Listing from '@/models/Listing';
 import { ListingForm } from '@/components/listings/ListingForm';
 import type { ListingFormProps } from '@/components/listings/ListingForm';
-import { LISTING_STATUS, USER_ROLES } from '@/lib/constants';
+import { LISTING_STATUS } from '@/lib/constants';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
-import mongoose from 'mongoose';
-import { canNonAdminEditListing, roleBypassesEditWindow } from '@/lib/listing-edit-window';
+import { canUserEditListing } from '@/lib/listing-edit-window';
 import { isWhatsAppImportListing } from '@/lib/whatsapp-description';
+import { findListingByPublicParam } from '@/lib/resolve-listing';
 
 export default async function EditListingPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) notFound();
 
-  const { id } = await params;
-  if (!mongoose.Types.ObjectId.isValid(id)) notFound();
+  const { id: param } = await params;
+  const found = await findListingByPublicParam(param);
+  if (!found || found.type !== 'listing') notFound();
+  const listing = found.listing;
+  const listingId = String(listing._id);
 
-  await dbConnect();
-  const listing = await Listing.findById(id).lean();
-  if (!listing) notFound();
+  // Prefer canonical id URLs for the editor (form PATCH uses ObjectId).
+  if (param.trim() !== listingId) {
+    redirect(`/listings/${listingId}/edit`);
+  }
 
-  const isAdmin = session.user.role === USER_ROLES.ADMIN;
-  const isOwner = String(listing.createdBy) === session.user.id;
-  const canBypassEditWindow = roleBypassesEditWindow(session.user.role);
-  if (!isAdmin && !isOwner) notFound();
   if (
-    !canBypassEditWindow &&
-    isOwner &&
-    !canNonAdminEditListing({
+    !canUserEditListing({
+      role: session.user.role,
+      userId: session.user.id,
+      listingCreatedBy: String(listing.createdBy),
       createdAt: listing.createdAt as Date,
       claimedAt: (listing as { claimedAt?: Date }).claimedAt,
     })
@@ -106,7 +105,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Edit listing</h1>
-        <Link href={`/listings/${id}`} className="text-sm text-primary-600 hover:underline">
+        <Link href={`/listings/${listingId}`} className="text-sm text-primary-600 hover:underline">
           ← View listing
         </Link>
       </div>
@@ -123,7 +122,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
         </div>
       ) : null}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <ListingForm editId={id} editInitial={editInitial} descriptionFormat={descriptionFormat} />
+        <ListingForm editId={listingId} editInitial={editInitial} descriptionFormat={descriptionFormat} />
       </div>
     </div>
   );
