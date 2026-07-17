@@ -75,7 +75,12 @@ export const authOptions: AuthOptionsWithTrustHost = {
         token.role = (user as { role?: string }).role ?? USER_ROLES.GUEST;
         try {
           await dbConnect();
-          const dbUser = await User.findById(user.id).select('verifiedAt emailVerificationToken emailVerificationExpires termsAcceptedAt privacyAcceptedAt').lean();
+          const dbUser = await User.findById(user.id)
+            .select('verifiedAt emailVerificationToken emailVerificationExpires termsAcceptedAt privacyAcceptedAt role')
+            .lean();
+          if (dbUser && typeof (dbUser as { role?: string }).role === 'string') {
+            token.role = (dbUser as { role: string }).role;
+          }
           if (dbUser && !dbUser.verifiedAt) {
             const tokenExpired = !dbUser.emailVerificationExpires || new Date() > dbUser.emailVerificationExpires;
             const noPendingToken = !dbUser.emailVerificationToken || tokenExpired;
