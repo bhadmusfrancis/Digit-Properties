@@ -21,9 +21,11 @@ import {
   ownerListingStatusBadgeClass,
 } from '@/lib/listing-status-display';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { getListingPublicPath } from '@/lib/listing-path';
 
 type ListingRow = {
   _id: string;
+  slug?: string;
   title: string;
   price: number;
   status: string;
@@ -125,7 +127,7 @@ export function MyListingsTable({
               <div className="min-w-0 flex-1">
                 <button
                   type="button"
-                  onClick={() => router.push(`/listings/${l._id}`)}
+                  onClick={() => router.push(getListingPublicPath(l))}
                   className="line-clamp-2 text-left text-sm font-semibold text-gray-900 hover:text-primary-600"
                 >
                   {l.title}
@@ -232,7 +234,7 @@ export function MyListingsTable({
             return (
             <tr
               key={l._id}
-              onClick={() => router.push(`/listings/${l._id}`)}
+              onClick={() => router.push(getListingPublicPath(l))}
               className="cursor-pointer hover:bg-gray-50 transition-colors"
             >
               <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>

@@ -39,6 +39,7 @@ const TAB_META: Record<SidebarTab, { label: string; icon: React.ReactNode }> = {
 
 export function ListingSidebarTabs({
   listingId,
+  listingPublicPath,
   listingType,
   listingTitle,
   propertyType,
@@ -55,6 +56,8 @@ export function ListingSidebarTabs({
   likeCount,
 }: {
   listingId: string;
+  /** Canonical public path (`/listings/{slug}`) for share / sign-in links. */
+  listingPublicPath: string;
   listingType: string;
   listingTitle: string;
   propertyType: string;
@@ -132,6 +135,7 @@ export function ListingSidebarTabs({
             <ListingDetailClient
               embedded
               listingId={listingId}
+              listingPublicPath={listingPublicPath}
               title={title}
               createdBy={createdBy}
               createdByType={createdByType}
@@ -157,6 +161,7 @@ export function ListingSidebarTabs({
               createdBy={createdBy}
               createdByType={createdByType}
               currentListingId={listingId}
+              currentListingPublicPath={listingPublicPath}
             />
           </div>
         )}

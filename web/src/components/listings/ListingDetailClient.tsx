@@ -13,6 +13,8 @@ type ClaimListing = { _id: string; title: string; price: number; listingType?: s
 
 interface Props {
   listingId: string;
+  /** Canonical public path for WhatsApp / share / sign-in callback (`/listings/{slug}`). */
+  listingPublicPath: string;
   title: string;
   createdBy: PublicCreatedBy | null;
   createdByType: string;
@@ -26,6 +28,7 @@ interface Props {
 
 export function ListingDetailClient({
   listingId,
+  listingPublicPath,
   title,
   createdBy,
   createdByType,
@@ -205,9 +208,9 @@ export function ListingDetailClient({
     router.push('/dashboard/listings');
   };
 
-  const listingUrl = `${baseUrl}/listings/${listingId}`;
+  const listingUrl = `${baseUrl}${listingPublicPath.startsWith('/') ? listingPublicPath : `/${listingPublicPath}`}`;
   const whatsappMessage = `Hi, I'm interested in this property: ${title} - ${listingUrl}`;
-  const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(`/listings/${listingId}`)}`;
+  const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(listingPublicPath)}`;
 
   const requireSignIn = () => {
     if (status === 'loading') return false;

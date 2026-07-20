@@ -1,7 +1,5 @@
 import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/db';
-import { findDeletedListingPathRedirect } from '@/lib/listing-path-redirect';
-import { inferRedirectDestinationFromListingSegment } from '@/lib/infer-listing-redirect';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { getListingPathSegment } from '@/lib/listing-path';
 import Listing, { type IListing } from '@/models/Listing';
@@ -10,12 +8,12 @@ type ListingLean = IListing & { _id: mongoose.Types.ObjectId; slug?: string };
 
 export type FindListingByPublicParamResult =
   | { type: 'listing'; listing: ListingLean }
-  | { type: 'redirect'; destinationPath: string };
+  | { type: 'gone' };
 
-export async function findListingByPublicParam(param: string): Promise<FindListingByPublicParamResult | null> {
+export async function findListingByPublicParam(param: string): Promise<FindListingByPublicParamResult> {
   await dbConnect();
   const trimmed = param.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return { type: 'gone' };
 
   if (mongoose.Types.ObjectId.isValid(trimmed)) {
     const byId = await Listing.findById(trimmed).lean();
@@ -28,12 +26,9 @@ export async function findListingByPublicParam(param: string): Promise<FindListi
   const byPreviousSlug = await Listing.findOne({ previousSlugs: trimmed }).lean();
   if (byPreviousSlug) return { type: 'listing', listing: byPreviousSlug as ListingLean };
 
-  const destinationPath = await findDeletedListingPathRedirect(trimmed);
-  if (destinationPath) return { type: 'redirect', destinationPath };
-
-  // Deleted listings (or legacy slug URLs) without a DB tombstone: send crawlers to the
-  // nearest location browse page instead of a hard 404.
-  return { type: 'redirect', destinationPath: inferRedirectDestinationFromListingSegment(trimmed) };
+  // Deleted / unknown segments: 404 (not soft-redirect to /listings or location pages).
+  // Soft redirects inflated GSC "Page with redirect" and wasted crawl budget.
+  return { type: 'gone' };
 }
 
 /** Ensure slug exists on the document (lazy backfill for legacy listings). */
@@ -58,13 +53,11 @@ export async function resolveListingPublicSegment(param: string): Promise<{
   publicSegment?: string;
   shouldRedirect: boolean;
   redirectTo?: string;
+  gone?: boolean;
 }> {
   const found = await findListingByPublicParam(param);
-  if (!found) {
-    throw new Error('NOT_FOUND');
-  }
-  if (found.type === 'redirect') {
-    return { shouldRedirect: true, redirectTo: found.destinationPath };
+  if (found.type === 'gone') {
+    return { shouldRedirect: false, gone: true };
   }
 
   const listing = found.listing;

@@ -74,12 +74,15 @@ export function ListingAuthorPanel({
   createdBy,
   createdByType,
   currentListingId,
+  currentListingPublicPath,
   embedded = false,
 }: {
   authorId: string | undefined;
   createdBy: PublicCreatedBy | null;
   createdByType: string;
   currentListingId: string;
+  /** Canonical public path for sign-in return (`/listings/{slug}`). */
+  currentListingPublicPath: string;
   /** Compact layout inside the combined Contact tab; constrains horizontal scroll. */
   embedded?: boolean;
 }) {
@@ -187,7 +190,7 @@ export function ListingAuthorPanel({
               <AuthorLikeButton
                 authorId={authorId}
                 variant="panel"
-                signInCallbackUrl={`/listings/${currentListingId}`}
+                signInCallbackUrl={currentListingPublicPath}
               />
             </div>
           )}

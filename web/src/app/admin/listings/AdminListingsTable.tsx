@@ -10,11 +10,13 @@ import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-
 import { SortColumnHeader } from '@/components/listings/SortColumnHeader';
 import { ListingSortMobileBar } from '@/components/listings/ListingSortMobileBar';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { getListingPublicPath } from '@/lib/listing-path';
 import { AdminListingActions } from './AdminListingActions';
 
 type User = { _id: string; name?: string; email?: string };
 type Listing = {
   _id: string;
+  slug?: string;
   title: string;
   locationLine?: string;
   price: number;
@@ -137,7 +139,7 @@ export function AdminListingsTable({
               <div className="min-w-0 flex-1">
                 <button
                   type="button"
-                  onClick={() => router.push(`/listings/${l._id}`)}
+                  onClick={() => router.push(getListingPublicPath(l))}
                   className="line-clamp-2 text-left text-sm font-semibold text-gray-900 hover:text-primary-600"
                 >
                   {l.title}
@@ -171,6 +173,7 @@ export function AdminListingsTable({
             <div className="mt-3 border-t border-gray-100 pt-3">
               <AdminListingActions
                 listingId={l._id}
+                listingSlug={l.slug}
                 status={l.status}
                 listingType={l.listingType}
                 soldAt={l.soldAt}
@@ -236,7 +239,7 @@ export function AdminListingsTable({
               <Fragment key={l._id}>
                 <tr
                   key={`${l._id}-main`}
-                  onClick={() => router.push(`/listings/${l._id}`)}
+                  onClick={() => router.push(getListingPublicPath(l))}
                   className="cursor-pointer transition-colors hover:bg-gray-50"
                 >
                   <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
@@ -276,6 +279,7 @@ export function AdminListingsTable({
                     <div onClick={(e) => e.stopPropagation()}>
                       <AdminListingActions
                         listingId={l._id}
+                        listingSlug={l.slug}
                         status={l.status}
                         listingType={l.listingType}
                         soldAt={l.soldAt}
