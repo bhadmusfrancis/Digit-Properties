@@ -9,7 +9,6 @@
  *    - Require a price on every listing
  *    - Skip text-only listings priced above 500 million NGN
  *    - Rewrite descriptions under 250 chars; keep originals in All_chats.txt + originalDescription
- *    - Text-only or price < 5M listings use contactSource=listing
  * 4. Append original messages to All_chats.txt after successful imports
  * 5. Dedupe listings in MongoDB
  *
@@ -42,7 +41,6 @@ import {
   type ChatImportDedupeState,
 } from './lib/chat-import-utils';
 import { stripContactPhonesFromText } from '../src/lib/whatsapp-listing-parser';
-import { defaultChatImportContactSource } from '../src/lib/listing-contact-display';
 import { ALL_CHATS_PATH, ALL_CONTACTS_PATH, MAX_NO_MEDIA_LISTING_PRICE, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
 import { mongoUriForConnect } from './lib/mongo-uri';
 
@@ -470,12 +468,7 @@ async function main() {
       agentPhone: parsed.agentPhone,
       agentEmail: parsed.agentEmail,
       rentPeriod: parsed.rentPeriod,
-      // Text-only / under ₦5M default to listing contact; editors can override later.
-      contactSource: defaultChatImportContactSource({
-        hasMedia,
-        price: parsed.price,
-        hasListingContact: !!(parsed.agentPhone || parsed.agentName || parsed.agentEmail),
-      }),
+      contactSource: 'author' as const,
       status: 'active' as const,
       images: [] as { url: string; public_id: string }[],
       videos: [] as { url: string; public_id: string }[],

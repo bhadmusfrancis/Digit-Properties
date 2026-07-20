@@ -3,9 +3,6 @@ import { toFirstName } from '@/lib/display-name';
 
 export type ListingContactSource = 'listing' | 'author';
 
-/** Chat imports under this price default to listing (poster) contact, even with media. */
-export const LISTING_CONTACT_LOW_PRICE_NGN = 5_000_000;
-
 export type ListingContactRow = {
   agentName?: string | null;
   agentPhone?: string | null;
@@ -14,9 +11,6 @@ export type ListingContactRow = {
   createdByType?: string | null;
   createdBy?: unknown;
   tags?: string[] | null;
-  price?: number | null;
-  images?: { url?: string | null; public_id?: string | null }[] | null;
-  videos?: { url?: string | null; public_id?: string | null }[] | null;
 };
 
 type CreatorContact = {
@@ -46,29 +40,6 @@ function creatorFrom(listing: ListingContactRow): CreatorContact | null {
   const cb = listing.createdBy;
   if (!cb || typeof cb !== 'object') return null;
   return cb as CreatorContact;
-}
-
-function mediaItemPresent(item: { url?: string | null; public_id?: string | null } | null | undefined): boolean {
-  return Boolean(item?.url?.trim() || item?.public_id?.trim());
-}
-
-export function listingHasMedia(listing: Pick<ListingContactRow, 'images' | 'videos'>): boolean {
-  const imgs = Array.isArray(listing.images) ? listing.images : [];
-  const vids = Array.isArray(listing.videos) ? listing.videos : [];
-  return imgs.some(mediaItemPresent) || vids.some(mediaItemPresent);
-}
-
-/** Default for WhatsApp chat imports (editors can override via contactSource). */
-export function defaultChatImportContactSource(opts: {
-  hasMedia: boolean;
-  price: number;
-  hasListingContact: boolean;
-}): ListingContactSource {
-  if (!opts.hasListingContact) return 'author';
-  const price = Number.isFinite(opts.price) ? opts.price : 0;
-  const lowPrice = price > 0 && price < LISTING_CONTACT_LOW_PRICE_NGN;
-  if (!opts.hasMedia || lowPrice) return 'listing';
-  return 'author';
 }
 
 /** Prefer poster/listing contact when the listing stores contactSource=listing. */
