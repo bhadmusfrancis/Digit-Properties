@@ -46,6 +46,7 @@ export async function generateMetadata({
     } catch {
       return {};
     }
+    if (resolved.gone) return {};
     const { listing, publicSegment } = resolved;
     if (!listing || !publicSegment) return {};
 
@@ -151,6 +152,7 @@ export default async function ListingVideoWatchPage({
   } catch {
     notFound();
   }
+  if (resolved.gone) notFound();
   const { listing: listingPre, publicSegment, shouldRedirect, redirectTo } = resolved;
   if (!listingPre || !publicSegment) notFound();
 

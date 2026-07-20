@@ -97,7 +97,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     await dbConnect();
     const [listings, trends, locationRoutes, authorIds] = await Promise.all([
-      Listing.find({ status: LISTING_STATUS.ACTIVE })
+      Listing.find({
+        status: LISTING_STATUS.ACTIVE,
+        slug: { $exists: true, $nin: [null, ''] },
+      })
         .select('_id slug updatedAt images videos description')
         .lean(),
       Trend.find({ status: TREND_STATUS.PUBLISHED })

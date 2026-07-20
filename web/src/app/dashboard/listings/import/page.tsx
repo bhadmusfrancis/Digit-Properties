@@ -7,6 +7,7 @@ import { ListingForm } from '@/components/listings/ListingForm';
 import type { ListingFormRef } from '@/components/listings/ListingForm';
 import type { ParsedListing } from '@/lib/whatsapp-listing-parser';
 import { USER_ROLES, type ListingType } from '@/lib/constants';
+import { getListingPublicPath } from '@/lib/listing-path';
 
 export type EditInitialShape = {
   title: string;
@@ -105,7 +106,7 @@ type SenderDetails = { name?: string; phone?: string; waId?: string };
 type ImportMode = 'single' | 'multiple';
 
 /** Per-index list of possible duplicate existing listings (from check-duplicates API). */
-type DuplicateMap = Record<number, { _id: string; title: string }[]>;
+type DuplicateMap = Record<number, { _id: string; slug?: string; title: string }[]>;
 
 export default function ImportFromWhatsAppPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -410,7 +411,7 @@ export default function ImportFromWhatsAppPage() {
                 {duplicateMap[currentIndex].map((dup) => (
                   <li key={dup._id}>
                     <a
-                      href={`/listings/${dup._id}`}
+                      href={getListingPublicPath(dup)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary-600 hover:underline"

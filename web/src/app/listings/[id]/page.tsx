@@ -66,6 +66,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     } catch {
       return {};
     }
+    if (resolved.gone) return {};
     const { listing, publicSegment } = resolved;
     if (!listing || !publicSegment) return {};
 
@@ -186,6 +187,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   } catch {
     notFound();
   }
+  if (resolved.gone) notFound();
   const { listing: listingPre, publicSegment, shouldRedirect, redirectTo } = resolved;
   if (shouldRedirect && redirectTo) {
     permanentRedirect(redirectTo);
@@ -693,6 +695,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             />
             <ListingSidebarTabs
               listingId={listingId}
+              listingPublicPath={listingPublicPath}
               listingType={String(listing.listingType ?? '')}
               listingTitle={listing.title}
               propertyType={String(listing.propertyType ?? '')}
@@ -722,7 +725,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             )}
             {canEditListing && (
               <div className="mt-4 flex gap-3">
-                <Link href={`/listings/${listing._id}/edit`} className="btn-primary flex-1 text-center">
+                <Link href={`${listingPublicPath}/edit`} className="btn-primary flex-1 text-center">
                   Edit listing
                 </Link>
                 {isOwner ? (

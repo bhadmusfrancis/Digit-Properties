@@ -5,7 +5,7 @@ import type { ListingSortKey } from '@/lib/sort-listing-rows';
 import { buildAdminListingSearchMatch } from '@/lib/admin-listing-search';
 
 const listingFieldsMy =
-  'title price status listingType rentPeriod propertyType images videos featured highlighted boostPackage boostExpiresAt soldAt rentedAt createdAt claimedAt';
+  'slug title price status listingType rentPeriod propertyType images videos featured highlighted boostPackage boostExpiresAt soldAt rentedAt createdAt claimedAt';
 
 /**
  * Aggregation $match does not cast string → ObjectId like Mongoose find() does.
@@ -157,7 +157,7 @@ export async function fetchMyListingsPage(
 }
 
 const listingFieldsAdmin =
-  'title price status listingType rentPeriod propertyType location images videos featured highlighted soldAt rentedAt createdBy createdAt';
+  'slug title price status listingType rentPeriod propertyType location images videos featured highlighted soldAt rentedAt createdBy createdAt';
 
 export async function countAdminListings(searchQuery?: string) {
   const match = await buildAdminListingSearchMatch(searchQuery);

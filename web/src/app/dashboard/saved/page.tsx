@@ -6,9 +6,11 @@ import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { getListingDisplayImage } from '@/lib/listing-default-image';
 import { listingImageProps } from '@/lib/next-image';
+import { getListingPublicPath } from '@/lib/listing-path';
 
 type FavoriteListing = {
   _id: string;
+  slug?: string;
   title: string;
   price: number;
   listingType?: string;
@@ -44,7 +46,7 @@ export default function SavedListingsPage() {
         {list.map((l) => {
           const thumbUrl = getListingDisplayImage(l.images, l.propertyType ?? 'apartment', l.videos);
           return (
-            <Link key={l._id} href={`/listings/${l._id}`} className="flex gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50 sm:gap-4 sm:p-4">
+            <Link key={l._id} href={getListingPublicPath(l)} className="flex gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50 sm:gap-4 sm:p-4">
               <div className="h-20 w-28 shrink-0 overflow-hidden rounded-md bg-gray-100">
                 {thumbUrl ? (
                   <Image

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS } from '@/lib/constants';
-import { getListingPathSegment } from '@/lib/listing-path';
+import { getListingSlugSegment } from '@/lib/listing-path';
 import { plainTextExcerpt } from '@/lib/utils';
 import { isListingIndexable } from '@/lib/seo/listing-indexability';
 import { collectListingPhotoUrls, toAbsoluteImageUrlForSeo } from '@/lib/seo/listing-images';
@@ -22,6 +22,12 @@ export type ListingSitemapRow = {
   videos?: { url?: string; public_id?: string }[];
 };
 
+/** Only slug URLs — never ObjectId (those 308 and show up as GSC "Page with redirect"). */
+function listingSitemapPath(listing: ListingSitemapRow): string | null {
+  const slug = getListingSlugSegment(listing);
+  return slug ? `/listings/${slug}` : null;
+}
+
 export function escapeSitemapXml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -34,7 +40,10 @@ export function escapeSitemapXml(value: string): string {
 /** Active listings used by main, image, and video sitemaps. */
 export async function fetchActiveListingsForSitemap(): Promise<ListingSitemapRow[]> {
   await dbConnect();
-  const rows = await Listing.find({ status: LISTING_STATUS.ACTIVE })
+  const rows = await Listing.find({
+    status: LISTING_STATUS.ACTIVE,
+    slug: { $exists: true, $nin: [null, ''] },
+  })
     .select('_id slug title description createdAt updatedAt images videos')
     .lean();
   return rows as ListingSitemapRow[];
@@ -47,8 +56,9 @@ export function buildImageSitemapUrlEntries(listings: ListingSitemapRow[], base:
     const photos = collectListingPhotoUrls(doc.images, { max: 24 });
     if (!photos.length) continue;
 
-    const segment = getListingPathSegment({ _id: String(doc._id), slug: doc.slug });
-    const pageUrl = `${base}/listings/${segment}`;
+    const listingPath = listingSitemapPath(doc);
+    if (!listingPath) continue;
+    const pageUrl = `${base}${listingPath}`;
     const title = escapeSitemapXml(String(doc.title ?? 'Property listing').slice(0, 200));
 
     const imageBlocks = photos
@@ -82,8 +92,8 @@ export function buildVideoSitemapUrlEntries(listings: ListingSitemapRow[], base:
       continue;
     }
 
-    const segment = getListingPathSegment({ _id: String(doc._id), slug: doc.slug });
-    const pagePath = `/listings/${segment}`;
+    const pagePath = listingSitemapPath(doc);
+    if (!pagePath) continue;
     const uploadDate = (doc.updatedAt ?? doc.createdAt ?? new Date()).toISOString();
     const description = plainTextExcerpt(
       String(doc.description ?? ''),
@@ -139,9 +149,10 @@ export function buildListingDetailSitemapRoutes(
       continue;
     }
 
+    const listingPath = listingSitemapPath(row);
+    if (!listingPath) continue;
+
     const updated = row.updatedAt ? new Date(row.updatedAt) : now;
-    const segment = getListingPathSegment({ _id: String(row._id), slug: row.slug });
-    const listingPath = `/listings/${segment}`;
 
     routes.push({
       url: `${base}${listingPath}`,

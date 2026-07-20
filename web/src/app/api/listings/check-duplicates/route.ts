@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const listings = Array.isArray(body?.listings) ? body.listings as ListingInput[] : [];
+    const listings = Array.isArray(body?.listings) ? (body.listings as ListingInput[]) : [];
     if (listings.length === 0) {
       return NextResponse.json({ results: [] });
     }
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     await dbConnect();
     const userId = new mongoose.Types.ObjectId(session.user.id);
 
-    const results: { index: number; duplicates: { _id: string; title: string }[] }[] = [];
+    const results: { index: number; duplicates: { _id: string; slug?: string; title: string }[] }[] = [];
 
     for (let i = 0; i < listings.length; i++) {
       const row = listings[i];
@@ -72,22 +72,37 @@ export async function POST(req: Request) {
       }
 
       const candidates = await Listing.find(match)
-        .select('_id title price location agentPhone')
+        .select('_id slug title price location agentPhone')
         .limit(15)
         .lean();
 
-      const duplicates: { _id: string; title: string }[] = [];
+      const duplicates: { _id: string; slug?: string; title: string }[] = [];
       for (const doc of candidates) {
         const samePrice = price <= 0 || Number(doc.price) === price;
         const sameState = !state || (doc.location as { state?: string })?.state?.toLowerCase() === state.toLowerCase();
         const sameCity = !city || (doc.location as { city?: string })?.city?.toLowerCase() === city.toLowerCase();
         const samePhone = !agentPhone || normalizePhone((doc as { agentPhone?: string }).agentPhone) === agentPhone;
         const docTitleNorm = normalizeTitle(doc.title);
-        const titleOverlap = !titleNorm || !docTitleNorm || docTitleNorm.includes(titleNorm) || titleNorm.includes(docTitleNorm) || docTitleNorm.slice(0, 30) === titleNorm.slice(0, 30);
+        const titleOverlap =
+          !titleNorm ||
+          !docTitleNorm ||
+          docTitleNorm.includes(titleNorm) ||
+          titleNorm.includes(docTitleNorm) ||
+          docTitleNorm.slice(0, 30) === titleNorm.slice(0, 30);
 
-        const score = (samePrice ? 1 : 0) + (sameState ? 1 : 0) + (sameCity ? 1 : 0) + (samePhone ? 1 : 0) + (titleOverlap ? 1 : 0);
+        const score =
+          (samePrice ? 1 : 0) +
+          (sameState ? 1 : 0) +
+          (sameCity ? 1 : 0) +
+          (samePhone ? 1 : 0) +
+          (titleOverlap ? 1 : 0);
         if (score >= 2) {
-          duplicates.push({ _id: String(doc._id), title: doc.title || 'Untitled' });
+          const slug = typeof doc.slug === 'string' ? doc.slug.trim() : '';
+          duplicates.push({
+            _id: String(doc._id),
+            ...(slug ? { slug } : {}),
+            title: doc.title || 'Untitled',
+          });
         }
       }
 
