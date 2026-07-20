@@ -1058,8 +1058,7 @@ export function ListingForm({
         <div>
           <label className="block text-sm font-medium text-gray-700">Contact (optional)</label>
           <p className="mt-1 text-xs text-gray-500">
-            Choose whether viewers see Author contact (account) or Listing contact (details below). Chat
-            imports default to Listing contact when there is no media or price is under ₦5M — you can
+            Choose whether viewers see Author contact (account) or Listing contact (details below). You can
             change this anytime.
           </p>
           <div className="mt-3 flex flex-wrap gap-4" role="radiogroup" aria-label="Contact source">
