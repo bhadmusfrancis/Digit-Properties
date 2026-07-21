@@ -21,7 +21,7 @@ export async function GET(
 
     const listing = await Listing.findById(id)
       .select(
-        'status agentName agentPhone agentEmail title createdBy contactSource createdByType tags price images videos'
+        'status agentName agentPhone agentEmail title createdBy contactSource createdByType tags'
       )
       .populate('createdBy', 'firstName name phone email role')
       .lean();
@@ -44,9 +44,6 @@ export async function GET(
       createdByType: (listing as { createdByType?: string }).createdByType,
       createdBy: listing.createdBy,
       tags: (listing as { tags?: string[] }).tags,
-      price: (listing as { price?: number }).price,
-      images: (listing as { images?: { url?: string; public_id?: string }[] }).images,
-      videos: (listing as { videos?: { url?: string; public_id?: string }[] }).videos,
     });
     return NextResponse.json({
       ...contact,
