@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 
 const PAGE_SIZE = 12;
+/** Infinite scroll only until this many similar listings; then require "Load more". */
+const AUTO_LOAD_LIMIT = 60;
 
 export interface SimilarListingItem {
   _id: string;
@@ -65,9 +67,11 @@ export function SimilarListingsInfinite({ listingId, initialListings, subtitle =
     }
   }, [listingId, hasMore, loading]);
 
+  const shouldAutoLoad = listings.length < AUTO_LOAD_LIMIT;
+
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore) return;
+    if (!sentinel || !hasMore || !shouldAutoLoad) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -78,7 +82,7 @@ export function SimilarListingsInfinite({ listingId, initialListings, subtitle =
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loadMore]);
+  }, [hasMore, loadMore, shouldAutoLoad]);
 
   if (listings.length === 0) return null;
 
@@ -87,12 +91,27 @@ export function SimilarListingsInfinite({ listingId, initialListings, subtitle =
       <h2 className="text-xl font-semibold text-gray-900">Similar properties</h2>
       <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
       <ListingGrid listings={listings} />
-      <div ref={sentinelRef} className="h-4 min-h-4" aria-hidden />
-      {loading && (
-        <div className="mt-6 flex justify-center">
-          <p className="text-sm text-gray-500">Loading more…</p>
+      {hasMore ? (
+        <div className="mt-6 flex flex-col items-center gap-3">
+          {shouldAutoLoad ? (
+            <>
+              <div ref={sentinelRef} className="h-4 min-h-4 w-full" aria-hidden />
+              <p className="text-sm text-gray-500">
+                {loading ? 'Loading more…' : 'Scroll to load more'}
+              </p>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => loadMore()}
+              disabled={loading}
+              className="btn-secondary min-w-[140px]"
+            >
+              {loading ? 'Loading...' : 'Load more'}
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

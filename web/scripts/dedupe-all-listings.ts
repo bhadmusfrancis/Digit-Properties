@@ -57,16 +57,25 @@ function tokenSimilarity(a: string, b: string): number {
   return union > 0 ? overlap / union : 0;
 }
 
-/** Same property repost: matching title/location and overlapping listing text. */
+/**
+ * Same property repost: matching title/location and overlapping listing text.
+ * Slug-base alone is not enough — generic titles ("Land at Badagry, Lagos") share
+ * slug bases via -1/-2 suffixes even when they are different properties.
+ */
 function isTitleLocationDuplicate(a: Row, b: Row): boolean {
   const keyA = listingTitleLocationDedupeKey(a.title ?? '', a.location);
   const keyB = listingTitleLocationDedupeKey(b.title ?? '', b.location);
   if (!keyA || !keyB || keyA !== keyB) return false;
-  if (slugIndicatesRepost(a, b)) return true;
   const descA = normalizeDescriptionForDedupe(a.description ?? '');
   const descB = normalizeDescriptionForDedupe(b.description ?? '');
-  if (descA.length < 20 || descB.length < 20) return true;
-  return tokenSimilarity(descA, descB) >= 0.5;
+  if (descA.length < 20 || descB.length < 20) {
+    // Thin descriptions: only treat as dup when slug base also matches.
+    return slugIndicatesRepost(a, b);
+  }
+  const sim = tokenSimilarity(descA, descB);
+  if (sim >= 0.5) return true;
+  // Near-match text + same slug base (repost with light edits).
+  return sim >= 0.35 && slugIndicatesRepost(a, b);
 }
 
 function slugIndicatesRepost(a: Row, b: Row): boolean {
