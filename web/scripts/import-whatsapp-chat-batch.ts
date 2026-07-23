@@ -7,7 +7,6 @@
  * 2. Dedupe against All_chats.txt + MongoDB (before any Cloudinary upload)
  * 3. Import real-estate listings (media optional; neighbouring same-contact media/text merged)
  *    - Require a price on every listing
- *    - Skip text-only listings priced above 500 million NGN
  *    - Rewrite descriptions under 250 chars; keep originals in All_chats.txt + originalDescription
  * 4. Append original messages to All_chats.txt after successful imports
  * 5. Dedupe listings in MongoDB
@@ -41,7 +40,7 @@ import {
   type ChatImportDedupeState,
 } from './lib/chat-import-utils';
 import { stripContactPhonesFromText } from '../src/lib/whatsapp-listing-parser';
-import { ALL_CHATS_PATH, ALL_CONTACTS_PATH, MAX_NO_MEDIA_LISTING_PRICE, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
+import { ALL_CHATS_PATH, ALL_CONTACTS_PATH, resolveSourceDir, slugFromChatDir } from './lib/chat-import-paths';
 import { mongoUriForConnect } from './lib/mongo-uri';
 
 const AUTHOR_EMAIL_DEFAULT = 'fabhainternation@gmail.com';
@@ -195,16 +194,11 @@ async function main() {
   const { parseWhatsAppListingText } = await import('../src/lib/whatsapp-listing-parser');
 
   const candidates: ParsedChatMessage[] = [];
-  let skippedNoMediaOverPrice = 0;
   let skippedNotListing = 0;
   let skippedNoPrice = 0;
   const mediaMergePreview = buildMediaMergeMap(allSource, parseWhatsAppListingText);
 
   for (const msg of allSource) {
-    const previewFiles = [
-      ...new Set([...(msg.files ?? []), ...(mediaMergePreview.get(msg.index) ?? [])]),
-    ];
-    const hasMedia = hasResolvableMedia(previewFiles, sourceDir);
     const one = parseWhatsAppListingText(msg.clean);
     if (!looksLikeListingFromClean(msg.clean, one)) {
       skippedNotListing++;
@@ -212,10 +206,6 @@ async function main() {
     }
     if (one.parsed.price <= 0) {
       skippedNoPrice++;
-      continue;
-    }
-    if (!hasMedia && one.parsed.price > MAX_NO_MEDIA_LISTING_PRICE) {
-      skippedNoMediaOverPrice++;
       continue;
     }
     candidates.push(msg);
@@ -296,7 +286,6 @@ async function main() {
         candidates: candidates.length,
         toImport: newMessages.length,
         eligibleForAllChatsIfAllSucceed: toAppend.length,
-        skippedNoMediaOverPrice,
         skippedNoPrice,
         skippedNotListing,
         skippedAlreadyInDb,
@@ -377,8 +366,19 @@ async function main() {
 
   console.log('\nStep 3: Import new listings to database…');
 
+  const appendMessageToAllChats = (full: string) => {
+    if (dryRun) return;
+    const current = existsSync(ALL_CHATS_PATH) ? readFileSync(ALL_CHATS_PATH, 'utf8') : '';
+    appendFileSync(
+      ALL_CHATS_PATH,
+      (current.endsWith('\n') || !current ? '' : '\n') + full.trimEnd() + '\n',
+      'utf8'
+    );
+  };
+
   for (let mi = 0; mi < newMessages.length; mi++) {
     const msg = newMessages[mi];
+    try {
     const clean = msg.clean;
     const titleHint = clean.slice(0, 60) || msg.full.slice(0, 60);
     if (clean.length < 15) {
@@ -407,10 +407,6 @@ async function main() {
 
     if (parsed.price <= 0) {
       logSkip('price missing or zero', parsed.title || titleHint);
-      continue;
-    }
-    if (!hasMedia && parsed.price > MAX_NO_MEDIA_LISTING_PRICE) {
-      logSkip(`no media and price > ${MAX_NO_MEDIA_LISTING_PRICE}`, parsed.title || titleHint);
       continue;
     }
 
@@ -526,14 +522,21 @@ async function main() {
     }
 
     if (hasMedia && images.length === 0 && videos.length === 0) {
-      logSkip(`no media uploaded (${mergedFiles.join(', ') || 'none'})`, one.parsed.title || titleHint);
-      continue;
+      console.warn(
+        `  media upload failed for all files (${mergedFiles.join(', ') || 'none'}); creating listing without media`
+      );
     }
+
+    const hadUploadedMedia = images.length > 0 || videos.length > 0;
+    const tagsWithMedia = hadUploadedMedia
+      ? (validated.data.tags ?? []).filter((t) => t !== 'wa-no-media')
+      : [...new Set([...(validated.data.tags ?? []), 'wa-no-media'])];
 
     const payloadWithMedia = {
       ...validated.data,
       images,
       videos,
+      tags: tagsWithMedia,
       contactSource: payload.contactSource,
     };
 
@@ -574,28 +577,42 @@ async function main() {
     });
     created++;
     messagesCreated.push(msg);
+    appendMessageToAllChats(msg.full);
     if (dedupeState) markChatImportAccepted(dedupeState, fp, clean, mergedFiles);
     console.log(
-      `  ok: "${payloadWithMedia.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'}${seoCreate.originalDescription ? '; rewritten' : ''}${hasMedia ? '' : '; no-media'})`
+      `  ok: "${payloadWithMedia.title.slice(0, 55)}..." (${missing.length ? `missing ${missing.length}` : 'ok'}${seoCreate.originalDescription ? '; rewritten' : ''}${hadUploadedMedia ? '' : '; no-media'}) [${created}/${newMessages.length}]`
     );
+    } catch (err) {
+      skipped++;
+      console.error(
+        `  error on message ${mi + 1}/${newMessages.length}:`,
+        err instanceof Error ? err.message : err
+      );
+      if (!dryRun && mongoose.connection.readyState !== 1) {
+        console.warn('  Mongo disconnected — reconnecting…');
+        try {
+          await mongoose.connect(mongoUri);
+        } catch (re) {
+          console.error('  reconnect failed:', re instanceof Error ? re.message : re);
+          break;
+        }
+      }
+    }
   }
 
   if (!dryRun) await mongoose.disconnect();
 
   console.log('\nImport summary:', { created, duplicates, skipped, uploadErrors });
 
-  console.log('\nStep 4: Append successfully imported messages to All_chats.txt…');
-  if (!dryRun && messagesCreated.length > 0) {
-    const appendBlock = messagesCreated.map((m) => m.full).join('\n');
-    const current = existsSync(ALL_CHATS_PATH) ? readFileSync(ALL_CHATS_PATH, 'utf8') : '';
-    appendFileSync(ALL_CHATS_PATH, (current.endsWith('\n') || !current ? '' : '\n') + appendBlock + '\n', 'utf8');
-    console.log(`Appended ${messagesCreated.length} messages to ${ALL_CHATS_PATH}`);
-  } else if (dryRun) {
+  console.log('\nStep 4: All_chats.txt already appended per successful create.');
+  if (dryRun) {
     console.log(
       `[dry-run] Would append ${messagesCreated.length} messages to All_chats.txt (${toAppend.length} eligible if all imports succeed)`
     );
-  } else {
+  } else if (messagesCreated.length === 0) {
     console.log('No listings created; nothing appended to All_chats.txt.');
+  } else {
+    console.log(`Archived ${messagesCreated.length} messages during import.`);
   }
 
   console.log('\nStep 5: Remove duplicate listings in database…');
