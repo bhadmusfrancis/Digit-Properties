@@ -16,6 +16,10 @@ import Listing from '../src/models/Listing';
 import { buildCanonicalListingTitle } from '../src/lib/listing-title';
 import { ensureUniqueListingSlug, withSlugHistoryUpdate } from '../src/lib/listing-slug';
 import { resolveNigeriaPlaceFromText, type ResolvedNigeriaPlace } from '../src/lib/nigeria-place-resolve';
+import {
+  buildHumanListingDescriptionHtml,
+  humanListingDescriptionInputFromDoc,
+} from '../src/lib/listing-human-description';
 import { stripHtml } from '../src/lib/utils';
 import { mongoUriForConnect } from './lib/mongo-uri';
 
@@ -31,11 +35,17 @@ type ListingRow = {
   _id: mongoose.Types.ObjectId;
   title?: string;
   description?: string;
+  originalDescription?: string;
   listingType?: string;
   propertyType?: string;
   propertyTypes?: string[];
   bedrooms?: number;
+  bathrooms?: number;
+  toilets?: number;
   area?: number;
+  price?: number;
+  rentPeriod?: string;
+  amenities?: string[];
   location?: {
     address?: string;
     city?: string;
@@ -63,8 +73,16 @@ function titleInputFromRow(row: ListingRow) {
 
 function locationBlob(row: ListingRow): string {
   const loc = row.location ?? {};
+  // Prefer original seller copy — rewritten HTML often embeds the wrong city
+  // ("a commercial in Lagos") and would fight distinctive suburb matches.
+  const original =
+    typeof row.originalDescription === 'string' ? row.originalDescription.trim() : '';
+  const desc =
+    original ||
+    (typeof row.description === 'string' ? stripHtml(row.description) : '');
   const parts = [
-    typeof row.description === 'string' ? stripHtml(row.description) : '',
+    typeof row.title === 'string' ? row.title : '',
+    desc,
     typeof loc.address === 'string' ? loc.address : '',
   ];
   return parts.join('\n');
@@ -94,7 +112,7 @@ async function main() {
 
   const rows = (await Listing.find(query)
     .select(
-      '_id title description listingType propertyType propertyTypes bedrooms area location slug tags'
+      '_id title description originalDescription listingType propertyType propertyTypes bedrooms area location slug tags price rentPeriod bathrooms toilets amenities'
     )
     .lean()
     .exec()) as ListingRow[];
@@ -103,6 +121,7 @@ async function main() {
   let locationUpdates = 0;
   let titleOnlyUpdates = 0;
   let slugUpdates = 0;
+  let descriptionRewrites = 0;
   const samples: Array<{
     id: string;
     beforeLoc?: unknown;
@@ -184,6 +203,26 @@ async function main() {
         'location.state': hit.state,
       };
 
+      // When location changes, regenerate thin humanized HTML so it no longer says the wrong city.
+      const original =
+        typeof row.originalDescription === 'string' ? row.originalDescription.trim() : '';
+      const tags = Array.isArray(row.tags) ? row.tags.map(String) : [];
+      if (locChanged && (original || tags.includes('wa-rewritten'))) {
+        const sourcePlain = original || stripHtml(String(row.description ?? '')).trim();
+        if (sourcePlain) {
+          $set.description = buildHumanListingDescriptionHtml(
+            humanListingDescriptionInputFromDoc({
+              ...row,
+              title: newTitle,
+              description: sourcePlain,
+              location: rowForTitle.location,
+            })
+          );
+          if (!original) $set.originalDescription = sourcePlain;
+          descriptionRewrites++;
+        }
+      }
+
       const updateOp: Record<string, unknown> = { $set };
       withSlugHistoryUpdate(updateOp, prevSlug, slug);
       if (hit.suburb) $set['location.suburb'] = hit.suburb;
@@ -227,6 +266,7 @@ async function main() {
         scanned,
         locationFieldUpdates: locationUpdates,
         titleRegenerations: locationUpdates + titleOnlyUpdates,
+        descriptionRewrites: apply ? descriptionRewrites : undefined,
         slugUpdates: apply ? slugUpdates : undefined,
         tagFilter: tagFilter ?? null,
         apply,

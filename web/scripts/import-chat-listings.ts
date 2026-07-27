@@ -184,17 +184,22 @@ function looksLikeListingFromClean(clean: string, parsed: { parsed: { price: num
 
 /**
  * A single message that bundles several distinct parcels/properties — numbered
- * "(1)/(2)" / "1)/2." items, or repeated "parcel of land". Such a brief must be
- * split so each parcel becomes its own correctly-typed listing instead of one
- * record typed from whichever asset is named first. The detector is deliberately
- * strict (explicit enumeration markers only) to avoid fragmenting an ordinary
- * listing whose feature/fee lines are merely separated by blank lines.
+ * "(1)/(2)" / "1)/2." items, repeated "parcel of land", or caps street inventory
+ * headers (e.g. "OLOGUN AGBAJE, VICTORIA ISLAND"). Such a brief must be split so
+ * each parcel becomes its own listing. Numbered/parcel detectors stay strict;
+ * inventory headers only count when there are 2+ distinct street headers.
  */
 function isMultiParcelBrief(clean: string): boolean {
   const numbered = (clean.match(/(?:^|\n)\s*\*?\(?\s*\d{1,2}\s*[).]\s/g) || []).length;
   if (numbered >= 2) return true;
   const parcels = (clean.match(/\bparcel\s+of\s+land\b/gi) || []).length;
-  return parcels >= 2;
+  if (parcels >= 2) return true;
+  const inventoryHeaders = (
+    clean.match(
+      /(?:^|[.!?]\s+|\n)\s*(?:LAND(?:\s+WITH|\.?BY)\s+)?(?!OFF\b)[A-Z][A-Z0-9'.-]*(?:\s+(?:(?!OFF\b)[A-Z0-9'.-]+)){0,5},\s*(?:VICTORIA ISLAND|VI\b)/g
+    ) || []
+  ).length;
+  return inventoryHeaders >= 2;
 }
 
 function tsTagFromDate(d: Date | null): string | null {
