@@ -69,6 +69,8 @@ const COMMON_AREAS: Record<string, { city: string; state: string }> = {
   'garki': { city: 'Garki', state: 'FCT' },
   'wuse': { city: 'Wuse', state: 'FCT' },
   'asokoro': { city: 'Asokoro', state: 'FCT' },
+  'gwarinpa': { city: 'Abuja', state: 'FCT' },
+  'gwarimpa': { city: 'Abuja', state: 'FCT' },
   'port harcourt': { city: 'Port Harcourt', state: 'Rivers' },
   'ph city': { city: 'Port Harcourt', state: 'Rivers' },
   'banana island': { city: 'Ikoyi', state: 'Lagos' },
@@ -340,6 +342,9 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
   let rentPeriod: 'day' | 'month' | 'year' | undefined;
   let pricePerSqm: number | undefined;
 
+  // "N2. 7billion" / "N2\. 7billion" chat typos → "N2.7billion"
+  rest = rest.replace(/(\d)\.\s+(\d)/g, '$1.$2');
+
   const periodRe = new RegExp(
     '\\b(per\\s*(?:year|annum|month|day)|p\\.?\\s*a\\.?|p\\.?\\s*m\\.?|yearly|monthly|/year|/month|/day)\\b',
     'i'
@@ -358,9 +363,20 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
   // Strip plot sizes like "1,123.100m²" / "500m2" so "m" is not read as millions.
   rest = rest.replace(/\b[\d.,]+\s*(?:sq\.?\s*m(?:eters?)?|sqm|m\s*[²2]|m²)/gi, ' ');
 
-  const perSqmMatch = rest.match(/(?:price|price:)\s*([\d.,]+)\s*m\s*\/\s*sqm/i) ?? rest.match(/\b([\d.,]+)\s*m\s*\/\s*sqm/i);
+  const perSqmMatch =
+    rest.match(
+      /(?:price|asking)?\s*[:.]?\s*(?:ngn|n|#|₦)?\s*([\d.,]+)\s*(m|million)?\s*(?:\/|\s+per\s+)\s*(?:sq\.?\s*m(?:eters?)?|sqm|sqmt|m\s*[²2]|m²)/i
+    ) ?? rest.match(/\b([\d.,]+)\s*m\s*\/\s*sqm\b/i);
   if (perSqmMatch) {
-    pricePerSqm = parseFloat(perSqmMatch[1].replace(/,/g, '')) * 1_000_000;
+    const rawNum = parseFloat(perSqmMatch[1].replace(/,/g, ''));
+    const unit = (perSqmMatch[2] || '').toLowerCase();
+    // "2.6m/m2" / "2.5Million/sqmt" → millions; bare "2" with "m per sqm" also millions
+    pricePerSqm =
+      unit === 'm' || unit === 'million' || /m\s*\/|million/i.test(perSqmMatch[0])
+        ? rawNum * 1_000_000
+        : rawNum < 100
+          ? rawNum * 1_000_000
+          : rawNum;
     rest = rest.replace(perSqmMatch[0], ' ');
   }
 
@@ -435,7 +451,8 @@ export function isLikelyMispricedWhatsAppListing(input: {
 /** Extract area in square meters (e.g. 500sqm, 1,634sqm, 1,123.100m²). */
 function extractArea(text: string): { area: number; rest: string } {
   const m =
-    text.match(/\b([\d,.]+)\s*(?:sq\.?\s*m(?:eters?)?|sqm)\b/i) ??
+    text.match(/\b([\d,.]+)\s*(?:sq\.?\s*m(?:eters?|t)?|sqm|sqmt)\b/i) ??
+    text.match(/\b([\d,.]+)\s*(?:square\s*met(?:er|re)s?)\b/i) ??
     text.match(/\b([\d,.]+)\s*m\s*[²2]/i) ??
     text.match(/\b([\d,.]+)\s*m²/i);
   if (m) {
@@ -711,7 +728,7 @@ function inferStateWhenUnknown(lower: string): string {
     return 'Lagos';
   }
   if (
-    /\b(abuja|fct|kubwa|maitama|gwarinpa|wuse|jahi|jabi|jayi|lugbe|nyanya|karu|asokoro|guzape|katampe|lokogoma|dutse|kaura|kuje|bwari|gwagwalada|utako|garki)\b/i.test(
+    /\b(abuja|fct|kubwa|maitama|gwarinpa|gwarimpa|wuse|jahi|jabi|jayi|lugbe|nyanya|karu|asokoro|guzape|katampe|lokogoma|dutse|kaura|kuje|bwari|gwagwalada|utako|garki)\b/i.test(
       lower
     )
   ) {
@@ -814,11 +831,12 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
   const { state, city, address, suburb } = extractLocation(text);
   const propertyType = extractPropertyType(text);
 
+  // Prefer explicit per-sqm × area over a bare "2.6m" hit from the same rate line.
   const price =
-    priceVal > 0
-      ? priceVal
-      : pricePerSqm && area
-        ? Math.round(pricePerSqm * area)
+    pricePerSqm && area
+      ? Math.round(pricePerSqm * area)
+      : priceVal > 0
+        ? priceVal
         : pricePerSqm ?? 0;
 
   const desc = prepareWhatsAppListingDescription(raw);
@@ -864,6 +882,35 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
   return { parsed, confidence, missing };
 }
 
+/**
+ * Caps / street inventory headers common in agent bulletins, e.g.
+ * "OLOGUN AGBAJE, VICTORIA ISLAND" / "AHMADU BELLO WAY, VI" / "LAND.BY FEMI PEARSE, …".
+ * Used when blank lines were flattened out of the paste.
+ */
+const INVENTORY_STREET_HEADER =
+  '(?:(?!OFF\\b)[A-Z][A-Z0-9\'.-]*(?:\\s+(?:(?!OFF\\b)[A-Z0-9\'.-]+)){0,5}),\\s*(?:VICTORIA ISLAND|VI\\.?|OPP\\.?\\s+[A-Z][A-Z .]{2,24})\\.?';
+const INVENTORY_LAND_HEADER =
+  'LAND(?:\\s+WITH|\\.?BY)\\s+[A-Z][A-Z0-9 .,’\'&/-]{5,80},\\s*(?:VICTORIA ISLAND|VI\\.?|LAGOS)\\.?';
+const INVENTORY_LOCATION_HEADER_RE = new RegExp(
+  `(?:^|[.!?]["')\\]]*\\s+|(?<=\\b(?:negotiable|asking|naira|billion|million|net|cofo|c\\s*of\\s*o|certificate|neighbourhood|sqm|sqmt|m2|m²|size)\\.?)\\s+|(?<=[a-z0-9)])\\s+(?=${INVENTORY_STREET_HEADER})|\\n\\s*)(${INVENTORY_LAND_HEADER}|${INVENTORY_STREET_HEADER})`,
+  'g'
+);
+
+/** Insert paragraph breaks before inventory location headers, then split. */
+function splitByInventoryLocationHeaders(text: string): string[] {
+  const withBreaks = text.replace(
+    INVENTORY_LOCATION_HEADER_RE,
+    (_match, header: string, offset: number) => {
+      if (offset === 0) return String(header);
+      return `\n\n${header}`;
+    }
+  );
+  return withBreaks
+    .split(/\n\s*\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 20);
+}
+
 /** Splits raw text into segments that may each be one listing (double newlines, numbered items, or dividers). */
 function splitIntoListingBlocks(raw: string): string[] {
   const normalized = raw.replace(/\r\n/g, '\n').trim();
@@ -872,7 +919,13 @@ function splitIntoListingBlocks(raw: string): string[] {
   // Split by double newline or more
   let segments = normalized.split(/\n\s*\n+/).map((s) => s.trim()).filter(Boolean);
 
-  // If we got a single long segment, try splitting by numbered list: "(1)" "(2)" or "1." "2." or "1)" "2)"
+  // Flattened multi-street inventories (VI bulletins etc.): split on caps location headers
+  if (segments.length <= 1 && normalized.length > 200) {
+    const byHeaders = splitByInventoryLocationHeaders(normalized);
+    if (byHeaders.length > 1) segments = byHeaders;
+  }
+
+  // If we still have a single long segment, try splitting by numbered list: "(1)" "(2)" or "1." "2." or "1)" "2)"
   if (segments.length <= 1 && normalized.length > 200) {
     const byNumbered = normalized.split(/\n\s*(?=\(\d+\)\s|\d+[.)]\s|[-•]\s*(?=.*\d\s*(?:m|k|million|bn|sqm)\b|.*for\s*(?:rent|sale)))/i);
     if (byNumbered.length > 1) {

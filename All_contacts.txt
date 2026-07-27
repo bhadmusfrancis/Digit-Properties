@@ -1,5 +1,15 @@
++234 705 281 2070	+234 705 281 2070
 +234 802 211 2984	+234 802 211 2984
++234 803 333 9299	+234 803 333 9299
++234 803 580 2539	+234 803 580 2539
++234 803 718 4155	+234 803 718 4155
 +234 803 819 2937	+234 803 819 2937
++234 805 620 3571	+234 805 620 3571
++234 806 090 7227	+234 806 090 7227
++234 807 280 4437	+234 807 280 4437
++234 813 340 8624	+234 813 340 8624
++234 816 903 2280	+234 816 903 2280
++234 903 427 1406	+234 903 427 1406
 -	+234 806 538 6702
 1st Core Autos	+234 805 606 7126
 3RD EDGE PRINTSHOP	+234 803 333 5647
@@ -16,6 +26,7 @@ Abiodun	+234 802 033 9335
 absemnigltd	+234 803 858 4936
 Abu Hameedah Glo	+234 807 484 2728
 Abumu Global Concepta	+234 802 234 5415
+Accommodation Property	+234 802 095 7235
 Ace	+234 703 028 0054
 Achibel Homes Properties	+234 703 447 8761
 adajionu00💖👩‍❤️‍💋‍👨🏃🏃‍♀️🏃‍♂️	+234 806 473 7876
@@ -145,16 +156,19 @@ Barr. Sam	+234 905 947 7355
 Basambo Properties	+234 706 681 3309
 bash homes property	+234 810 363 0349
 Batunde tech	+234 802 330 0583
+BDWOGU	+234 803 896 0037
 Beauty s_Properties	+234 815 454 4580
 Becky	+234 802 106 7855
 Becky Best Realty	+234 818 123 3883
 Beejay. Ceo Grand Upfront	+234 708 088 8749
+Belo	+234 803 313 7143
 Ben	+234 803 406 2403
 Benedict Emoche Obute	+234 806 415 6060
 benjaminoludiran	+234 703 387 1010
 Bernard Udemba	+234 803 972 8820
 BEST AUTOS	+234 701 342 3414
 Best Option Tech	+234 812 432 8456
+Best options and rates	+234 811 198 7986
 Big Sam Gadget	+234 911 790 3202
 Big Samie	+234 902 725 4745
 BigB	+234 906 151 5506
@@ -191,10 +205,12 @@ Chevix AUTOS	+234 803 772 8240
 chibuzorekeoha	+234 702 518 2659
 chidiimmanuel	+234 806 093 6000
 ChidimmaE Okonkwo	+234 905 532 6582
+chigodnnah2000	+234 813 939 0786
 CHIMATEX CONSULTANT	+234 906 742 1144
 chinedunnanwube	+234 706 245 7165
 Chofess Properties	+234 902 135 8867
 Choice	+234 906 063 9087
+Chris Bello	+234 809 117 3779
 christopher onyedikachi	+234 903 276 9727
 CHUKS UGBELENTA	+234 817 235 3489
 clementsobande	+234 909 884 5179
@@ -219,14 +235,18 @@ Dabosco ventures&tech Ltd	+234 806 677 6229
 Dadah Juliet	+234 803 778 4564
 Daddy_yoo	+234 903 387 0411
 Damic Auto	+234 901 340 5465
+Damien M. Adewori Akpaoka	+234 902 972 5073
 Daniel Agbaragu	+234 811 308 2997
 DAPRINCE	+234 803 658 3192
 DARE FASHAKIN	+234 806 003 9838
 Darlington_Nwachukwu	+234 803 386 6907
+David Abayomi	+234 806 615 8098
 Dayo	+234 809 481 8640
 DE-PEN GLOBAL CONCEPTS	+234 812 976 0603
 Debbie Ede	+234 805 561 9799
+Dee Cobbler	+234 802 719 7556
 DEEDS PMC LIMITED. 0815-9	+234 813 338 4467
+Deji A	+234 803 848 7602
 deji Fashola	+234 803 306 6008
 deji Homes	+234 816 287 5685
 Dekingklass Int'l Nig Ltd	+234 803 649 0094
@@ -237,6 +257,7 @@ Derby@	+234 817 094 3922
 Deriches Property	+234 806 256 2063
 DERIN	+234 708 563 5523
 derockresources	+234 802 640 8057
+Destiny Kazaz	+234 803 435 7001
 Dfocus Consults	+234 803 490 8094
 Diamondstones_homes	+234 808 373 1029
 disnovaries consult	+234 903 377 5378
@@ -251,6 +272,7 @@ DOVIZIANO PROPERTIES	+234 701 074 5701
 DOWRICK EYO	+234 703 831 9676
 Doyinbest Properties	+234 909 584 0822
 Dpond Autos/Exclusive Realty	+234 803 385 3731
+Dr Adesina OlajideAdeyemi	+234 902 823 0913
 Dr Christian Olatunji	+234 806 080 5041
 Dr Dammy	+234 812 601 9558
 Dreamhomes realty	+234 706 268 3046
@@ -284,7 +306,10 @@ Emit Properties	+234 805 406 9420
 Emma Estate	+234 812 707 0012
 Emmalex Global	+234 813 439 3702
 Emmanuel Ghemig@	+234 806 002 1083
+Emmanuel Ige	+234 703 010 3534
+Emmanuel Opara	+234 803 718 3893
 emmanueltavaku92	+234 904 180 8002
+Enauf Homes	+234 813 364 5657
 enematt77@gmail.com	+234 802 659 4478
 enepg ZObacoutinho10	+234 816 629 6957
 ENG ADEUNLE ADESUYAN	+234 703 900 6962
@@ -311,7 +336,9 @@ ESV Mabel Kups	+234 803 778 1974
 ESV Mike Ibiwoye	+234 803 570 9884
 Esv(Bishop) Femi Akinlusi	+234 802 303 6610
 ETABUNOR JEFFERY MUDIAGA	+234 806 138 8838
+Etegbe Buhari	+234 701 640 3199
 Everglades Consult	+234 803 910 2908
+Everyvisa Immigration Services	+1 (647) 914-6116
 EXcel Consultants	+234 703 020 2412
 Excelbynature limited	+234 706 357 5471
 exceloapropertyandservices	+234 806 919 6773
@@ -393,7 +420,7 @@ Gotoguy Marketing	+234 808 326 0272
 Grace Personified	+234 706 422 2811
 GraceAltar Homes	+234 814 610 2992
 GRAHAM OKILO ANUCHA	+234 813 689 0067
-Grand Pillar International Limite	+234 909 464 4430
+Grand Pillar International Limited.	+234 909 464 4430
 GTelecomm	+234 703 965 6727
 Guaranty Property	+234 802 930 1330
 Guaranty Property	+234 813 135 0422
@@ -417,6 +444,7 @@ Higoworth	+234 808 590 0430
 Hilmond Homes	+234 701 720 0116
 Holuwaseye	+234 806 267 2932
 HOLY MARY	+234 909 937 2063
+Homesearch and Properties	+234 817 073 0095
 hon dan.	+234 816 386 8124
 Hon Engr Osita Arukweh	+234 803 527 6820
 Hon.Olusola	+234 706 659 2908
@@ -434,6 +462,7 @@ iBLINKZ CITY HOMES LTD	+234 805 972 3621
 Ibrahim Akinniyi	+234 803 094 3525
 Ibrahim Jamiu Ola	+234 915 077 6752
 Ibrahim olawumi elizabeth	+234 706 835 4246
+ibrahim taya road kano ng	+234 803 511 4311
 ibrahimrealtor50	+234 814 514 3431
 IBTEC HOMES AND PROPERTY	+234 803 462 8606
 Idris	+234 705 357 4662
@@ -443,6 +472,7 @@ Igwe Mbanabo	+234 812 222 0077
 IHAVEALLHUB	+234 808 196 3609
 IJOBA K1	+234 803 397 4464
 ijobabe15	+234 803 545 7278
+Ike	+234 703 306 4423
 Ikechukwu	+234 803 345 7915
 Inferno Business Group	+234 902 629 2873
 INFORMATION TECHNOL	+234 813 787 0297
@@ -450,6 +480,7 @@ Innocent chijioke	+234 803 408 3859
 INSTINCTS HOMES& PROPERT	+234 807 708 7063
 Invest with Valiant	+234 706 116 6000
 Investor	+234 816 881 0458
+Ireyimika Timothy	+234 808 987 4480
 ItsbeenGod	+234 810 037 4321
 IYA WURA AUTOS	+234 805 076 2649
 izu Luxury Cars	+234 906 169 8927
@@ -479,6 +510,7 @@ Jordan Jaycara	+234 706 106 5486
 Josade Properties Consultant	+234 703 324 6783
 Joseph Iriah	+234 817 307 0909
 Joy	+234 803 708 2552
+JUBRIL	+234 803 309 1447
 junnamani5@gmail.com	+234 811 554 6498
 K.I Michael	+234 803 751 2965
 k1aregbesolaneeds	+234 802 306 9741
@@ -528,11 +560,14 @@ lifeolove20	+234 703 606 3748
 LIGOSSYS Our	+234 816 304 9962
 LilGabbie	+234 816 565 9207
 Lizoye Properties	+234 806 951 7051
+LOGIC	+234 806 213 3682
 Love Luxry Time Global LTD	+234 701 886 6526
 Loveth Akhamie	+234 906 000 5066
 Lucky Peters	+234 802 948 1627
+lukmananjorin7	+234 803 370 4839
 M.E.L.A	+234 706 243 8123
 Maade_collections	+234 906 098 5809
+Madam Bee Of Bee Realty	+234 706 222 7745
 Magwool	+234 703 791 1808
 makindeiskilu5	+234 708 493 1774
 Mamman	+234 913 076 7678
@@ -563,10 +598,12 @@ mohamedishiaq	+234 913 064 7523
 monniemmy	+234 805 170 0065
 Morg Properties Ltd	+234 802 559 3287
 MORRENTIS PURE &MORE	+234 705 044 6663
+Moses Umeano	+234 803 343 7023
 mosesprincess11	+234 803 370 6565
 Moshood Properties Ltd	+234 905 502 3309
 Mostfavoured	+234 706 456 3951
 MR'T'	+234 803 355 1238
+Mr. Dudu	+234 706 901 6066
 Multimodal Interline Properties	+234 806 761 9919
 mumuniad@gmail.com	+234 816 358 4650
 Musty Jayray	+234 806 015 8581
@@ -586,6 +623,7 @@ Nirvana Crown Autos	+234 810 931 8296
 nkechigiftoo1	+234 816 089 1572
 nnyanti777	+234 802 696 6297
 Noble Win	+234 706 235 1164
+nooksandcrannies	+234 802 356 9489
 Nornubari Charity	+234 813 652 6340
 Novelty Plus	+234 805 043 7953
 Nta Nsikan	+234 703 039 6725
@@ -596,6 +634,7 @@ oamen joshua	+234 802 330 0111
 Obawolex Victor	+234 802 877 9368
 Obce gas ent Itd	+234 803 811 4254
 Obianiekwe	+234 814 050 4440
+Obinna Peter	+234 812 793 9757
 obinwachukwu associates	+234 803 393 1386
 Oceanview Designs	+234 901 324 6233
 Odo Oku	+234 818 100 9845
@@ -620,6 +659,7 @@ Olajide	+234 708 775 1131
 Olamide Ibrahim	+234 703 247 2324
 Olaniyi Ayoola Soremekun	+234 805 279 0325
 olanrewajuadenekanO	+234 806 268 8111
+Olasco Properties	+234 903 418 4122
 Olasupo Sulaimon	+234 813 268 7409
 olatunjiadeleke93	+234 802 827 8941
 Olawale	+234 805 647 5988
@@ -634,6 +674,8 @@ oluchinwajiaku	+234 905 061 6783
 Oludotun	+234 813 235 9673
 Olufemi	+234 703 543 7890
 Olugbengabolajikowe	+234 803 308 5599
+Olugbuyi55	+234 809 551 2636
+OLUMIDE KAC	+234 815 086 4512
 olusegunonabanjo23	+234 812 836 6548
 Oluseun	+234 708 481 6725
 Oluseyi	+234 802 328 3682
@@ -647,10 +689,12 @@ OLUWAY	+234 805 158 9100
 Oluway Properties And	+234 706 976 1684
 Omas	+234 903 965 8847
 omidiyamcheal Autoworld	+234 802 040 7739
+Omo Aare Autos	+234 813 946 9149
 Omo majemu	+234 802 314 8870
 Omo'ba Jadiara Global Service	+234 806 832 2318
 Omoniyi	+234 803 831 4570
 Omyema Okwukolo	+234 803 408 7871
+One Million Landlord	+234 813 499 6899
 oniezekiel999	+234 803 343 7470
 onitaoputa	+234 803 069 7749
 Ontale Properties	+234 805 249 9263
@@ -659,6 +703,7 @@ ONYEKAGIEIG	+234 706 162 8575
 Opytex Interior And Exterior	+234 805 819 2563
 Original	+234 803 133 7450
 Osas	+234 901 879 2029
+osasuyi	+234 703 431 4124
 Osaze	+234 903 742 7091
 osheviremine3	+234 703 130 7469
 Osita Agina	+234 703 790 6449
@@ -675,8 +720,10 @@ Oyins	+234 814 829 0449
 P) Adekunle	+234 802 895 8844
 p- Femzy properties	+234 805 060 9937
 PAB GENERAL PROPERTIES	+234 912 531 2334
+Pablo/Reality Home/Impeccable	+234 905 529 4872
 PalmRich Estate	+234 703 888 0176
 Palmy Properties Limited	+234 705 624 1181
+parpayle homes and property	+234 806 793 2518
 PASCAL (AMB)	+234 803 578 5067
 Pastor Nonso Nelson	+234 803 530 9323
 pastororukuaj	+234 803 564 4113
@@ -755,10 +802,12 @@ Rhemmzy	+234 808 728 2657
 RHEZOLLADHOMES&PROPERT	+234 803 974 6390
 Richard global resource manag	+234 803 257 4295
 Richie Homes and properties	+234 814 168 1592
+RICHMOND KARO(mr konibaje	+234 806 038 7283
 Ridevantage Autos	+234 810 698 8030
 Right route property consultant	+234 806 093 2333
 Rightway Resources -Bayo Teju	+234 807 623 4436
 RockyArt	+234 815 517 2192
+RODIVANHOMES	+234 809 222 8222
 ronkebanjo89	+234 813 316 7737
 Rosalan Realty	+234 802 399 2860
 rotimiawoniyi1	+234 818 577 7198
@@ -813,8 +862,10 @@ Sky Breakers	+234 806 356 3818
 SLA Global Resources	+234 813 052 9627
 slimjoe060	+234 901 291 2992
 SlyProperties	+234 815 067 6982
+smart	+234 811 873 1977
 Smile	+234 803 211 0252
 SODANGI AUTOMOBILES	+234 814 914 7788
+sodsan	+234 708 239 1697
 Sol-Eaze	+234 816 200 3068
 Sola Jesse	+234 803 534 2177
 Solomon Efe Akpoghene	+234 805 592 2920
@@ -825,6 +876,7 @@ specialgracy	+234 706 390 7162
 Spek Autos	+234 706 179 0881
 spinto	+234 816 605 9574
 Spoton Realty And Constructio...	+234 808 052 2756
+springventure776	+234 808 508 4567
 Standardbrass Properties and	+234 811 790 8075
 StandardBrass Properties Inv	+234 811 847 4051
 Stanley Onyezi	+234 806 695 3824
@@ -838,6 +890,7 @@ Stronghold Consult	+234 809 332 9219
 SUCCESS	+234 805 613 0494
 Sundaysegun353	+234 701 702 1370
 Sunlight	+234 703 051 4214
+Sunny His Highness	+234 802 429 9198
 Super tin	+234 803 331 5138
 SUPREME PROPERTIES 9a	+234 805 359 4089
 SURAJ_PROPERTIES_ABUJA	+234 803 090 4201
@@ -859,6 +912,7 @@ temidemi01@gmail.com	+234 802 334 6325
 Temisan	+234 706 504 2567
 TEMITOPE GLOBAL TEAM SER	+234 703 371 4272
 Temitopeglobalteamservices	+234 913 173 3619
+testimonyrealtors	+234 818 071 8822
 Thaby	+234 705 987 8595
 The Good Life	+234 813 477 1836
 The Longer live the Brighter	+234 803 767 6243
@@ -894,6 +948,7 @@ ucheson global services	+234 901 514 3522
 udehbenjamin6	+234 817 744 4771
 udehsunday763	+234 812 099 1894
 ugberich	+234 802 201 4906
+ugohchukwu david5	+234 803 561 4516
 uguruemmanuel48	+234 806 758 4123
 ukwaemmauel	+234 810 027 3014
 Ultimate Properties	+234 703 128 7200
@@ -910,6 +965,7 @@ valentine Noni	+234 903 910 4200
 ve. INTIMACY NATIONS INC.// ALT	+234 812 179 6122
 Victor NNA Esq	+234 803 258 8012
 VIMS Properties	+234 708 393 7006
+Vincent Nwadike	+234 803 334 3529
 Vision101	+234 818 956 0532
 w-. levelsonlibe	+234 813 108 8385
 W.S.Nation	+234 905 817 0949
@@ -918,6 +974,7 @@ Wale Oguntayo	+234 806 753 9572
 WaleEnergy	+234 803 811 7653
 Waleex0	+234 814 669 4740
 WALSTEINS ASSOCIATES	+234 807 050 8088
+Waluechi Properties Ltd	+234 802 314 0581
 Wasiu Oke	+234 803 334 0652
 wasiuakande3@gmail.com	+234 806 801 3989
 WAY CAMPUS/DE SAPEIDO	+234 803 352 3362
@@ -942,10 +999,12 @@ yekeenabibu7	+234 812 689 1235
 Yemi Aderibigbe	+234 803 327 4679
 Yinka	+234 808 080 0405
 Yoshshinai Real Estate Consult.	+234 806 229 0393
+Your Grace Oh God	+234 806 630 9624
 Yusuf AYEDUN	+234 802 363 9998
 Yusuf sah	+234 802 320 8157
 Yusuf Sule Sharika	+234 806 508 9006
 Yusuff Abbey Brother	+234 814 687 1015
+Zakkyawal	+234 806 042 7140
 ZANZICO	+234 803 832 3063
 Zayah Homes	+234 903 748 0835
 Zee One	+234 802 640 8948
@@ -955,3 +1014,4 @@ ZION MUST RULE PROPERTIES	+234 806 227 4898
 Zubby Prime Solutions	+234 706 620 2367
 ﻿#CODED🤪	+234 816 047 8945
 🙌🙌🙌 PREMIER 🙌🙌🙌	+234 802 456 3944
+🙏🙏🙏🙏🙏🙏🙏🙏🙏🙏	+234 803 355 5721

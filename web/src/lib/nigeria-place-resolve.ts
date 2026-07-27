@@ -74,6 +74,8 @@ export const NIGERIA_PLACE_CHAT_TYPOS: Record<string, string> = {
   jayi: 'jahi',
   jaiye: 'jahi',
   jhai: 'jahi',
+  // Extremely common chat misspelling of Gwarinpa (Abuja)
+  gwarimpa: 'gwarinpa',
 };
 
 export type ResolvedNigeriaPlace = {
@@ -122,8 +124,10 @@ function normalizeForTypoReplace(s: string): string {
 function applyTypoCorrections(textLower: string): string {
   let t = textLower;
   for (const [typo, fix] of Object.entries(NIGERIA_PLACE_CHAT_TYPOS)) {
-    const re = new RegExp(`\\b${escapePhraseForBoundary(typo)}\\b`, 'gi');
-    t = t.replace(re, fix);
+    const esc = escapePhraseForBoundary(typo);
+    // "gwarimpa1" → "gwarinpa 1" so word-boundary suburb match still works
+    t = t.replace(new RegExp(`\\b${esc}(?=\\d)`, 'gi'), `${fix} `);
+    t = t.replace(new RegExp(`\\b${esc}\\b`, 'gi'), fix);
   }
   return t;
 }
@@ -201,7 +205,7 @@ export function detectAllNigerianStatesInText(textLower: string): string[] {
     }
   }
 
-  if (/\b(fct|f\.c\.t\.?|federal\s+capital\s+territory)\b/i.test(textLower) && !seen.has('FCT')) {
+  if (/\b(fct|f\.c\.t\.?|federal\s+capital\s+territory|fcda)\b/i.test(textLower) && !seen.has('FCT')) {
     found.push('FCT');
   }
   if (/\babuja\b/i.test(textLower) && !seen.has('FCT')) {
@@ -263,7 +267,14 @@ export function resolveNigeriaPlaceFromText(
   rawText: string,
   opts?: { preferredState?: string }
 ): ResolvedNigeriaPlace | null {
-  const textLower = normalizeForTypoReplace(rawText.toLowerCase());
+  // Drop thin-rewrite boilerplate that embeds the (often wrong) structured city/state,
+  // so it cannot veto distinctive suburb matches from the seller's original copy.
+  const cleaned = String(rawText || '')
+    .replace(/\blisted for (?:sale|rent) on digit properties:[^\n.]*/gi, ' ')
+    .replace(/\bthe property is in\s+\*?\*?[a-z][a-z\s-]{1,40}\*?\*?\.?/gi, ' ')
+    .replace(/\ba\s+[a-z][a-z\s-]{2,40}\s+in\s+[a-z][a-z\s-]{2,40}\b/gi, ' ');
+
+  const textLower = normalizeForTypoReplace(cleaned.toLowerCase());
   if (!textLower) return null;
   const withTyposFixed = applyTypoCorrections(textLower);
 
