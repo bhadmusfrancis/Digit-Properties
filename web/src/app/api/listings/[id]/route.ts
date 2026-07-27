@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
-import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
 import ListingLike from '@/models/ListingLike';
 import User from '@/models/User';
@@ -29,6 +28,7 @@ import {
 } from '@/lib/listing-seo-prep';
 import { listingDocToShareFields } from '@/lib/listing-share-text';
 import { canUserEditListing } from '@/lib/listing-edit-window';
+import { findListingByPublicParam } from '@/lib/resolve-listing';
 import { revalidateAllSitemaps, revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 export async function GET(
@@ -37,18 +37,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    const found = await findListingByPublicParam(id);
+    if (found.type === 'gone') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    const listingId = String(found.listing._id);
+    const pre = found.listing;
 
-    await dbConnect();
     const session = await getSession(req);
     const forEdit = new URL(req.url).searchParams.get('forEdit') === '1';
-
-    const pre = await Listing.findById(id)
-      .select('status createdBy createdAt claimedAt')
-      .lean();
-    if (!pre) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     if (forEdit) {
       if (!session?.user?.id) {
@@ -86,8 +83,8 @@ export async function GET(
     }
 
     const listing = forEdit
-      ? await Listing.findById(id).populate('createdBy', USER_PUBLIC_BADGE_FIELDS).lean()
-      : await Listing.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true })
+      ? await Listing.findById(listingId).populate('createdBy', USER_PUBLIC_BADGE_FIELDS).lean()
+      : await Listing.findByIdAndUpdate(listingId, { $inc: { viewCount: 1 } }, { new: true })
           .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
           .lean();
 
@@ -130,12 +127,13 @@ export async function PATCH(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    const found = await findListingByPublicParam(id);
+    if (found.type === 'gone') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    const listingId = String(found.listing._id);
 
-    await dbConnect();
-    const listing = await Listing.findById(id);
+    const listing = await Listing.findById(listingId);
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const isAdmin = session.user.role === USER_ROLES.ADMIN;
@@ -536,12 +534,13 @@ export async function DELETE(
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    const found = await findListingByPublicParam(id);
+    if (found.type === 'gone') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    const listingId = String(found.listing._id);
 
-    await dbConnect();
-    const listing = await Listing.findById(id);
+    const listing = await Listing.findById(listingId);
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const isAdmin = session.user.role === USER_ROLES.ADMIN;
@@ -557,7 +556,7 @@ export async function DELETE(
       previousSlugs: listing.previousSlugs,
       location: listing.location,
     });
-    await Listing.findByIdAndDelete(id);
+    await Listing.findByIdAndDelete(listingId);
     revalidateAllSitemaps();
     return NextResponse.json({ success: true });
   } catch (e) {
