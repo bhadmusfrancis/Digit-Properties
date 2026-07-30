@@ -30,7 +30,10 @@ type Row = {
   _id: { toString(): string };
   title?: string;
   slug?: string;
+  previousSlugs?: string[];
   description?: string;
+  originalDescription?: string;
+  price?: number;
   location?: { city?: string; state?: string; suburb?: string };
   tags?: string[];
   images?: { url?: string; public_id?: string }[];
@@ -57,17 +60,37 @@ function tokenSimilarity(a: string, b: string): number {
   return union > 0 ? overlap / union : 0;
 }
 
+/** Prefer original chat/paste text so thin-rewrite boilerplate does not inflate similarity. */
+function dedupeText(row: Row): string {
+  const original = normalizeDescriptionForDedupe(row.originalDescription ?? '');
+  if (original.length >= 20) return original;
+  return normalizeDescriptionForDedupe(row.description ?? '');
+}
+
+/** Same asking price (±8%) — different prices usually mean different properties. */
+function pricesCompatible(a: Row, b: Row): boolean {
+  const pa = typeof a.price === 'number' && Number.isFinite(a.price) ? a.price : 0;
+  const pb = typeof b.price === 'number' && Number.isFinite(b.price) ? b.price : 0;
+  if (pa <= 0 || pb <= 0) return true; // unknown price: fall back to text/slug checks
+  const lo = Math.min(pa, pb);
+  const hi = Math.max(pa, pb);
+  return (hi - lo) / hi <= 0.08;
+}
+
 /**
  * Same property repost: matching title/location and overlapping listing text.
  * Slug-base alone is not enough — generic titles ("Land at Badagry, Lagos") share
  * slug bases via -1/-2 suffixes even when they are different properties.
+ * Rewritten thin descriptions share boilerplate, so prefer originalDescription
+ * and require compatible prices.
  */
 function isTitleLocationDuplicate(a: Row, b: Row): boolean {
   const keyA = listingTitleLocationDedupeKey(a.title ?? '', a.location);
   const keyB = listingTitleLocationDedupeKey(b.title ?? '', b.location);
   if (!keyA || !keyB || keyA !== keyB) return false;
-  const descA = normalizeDescriptionForDedupe(a.description ?? '');
-  const descB = normalizeDescriptionForDedupe(b.description ?? '');
+  if (!pricesCompatible(a, b)) return false;
+  const descA = dedupeText(a);
+  const descB = dedupeText(b);
   if (descA.length < 20 || descB.length < 20) {
     // Thin descriptions: only treat as dup when slug base also matches.
     return slugIndicatesRepost(a, b);
@@ -159,7 +182,9 @@ async function main() {
   await mongoose.connect(mongoUriForConnect(process.env.MONGODB_URI));
 
   const rows = (await Listing.find({})
-    .select('_id title slug description location tags images videos createdAt')
+    .select(
+      '_id title slug previousSlugs description originalDescription price location tags images videos createdAt'
+    )
     .lean()
     .exec()) as Row[];
 
@@ -334,6 +359,41 @@ async function main() {
     console.log('\nDry run only. Re-run with --apply to delete duplicates.');
     await mongoose.disconnect();
     return;
+  }
+
+  // Preserve loser URLs on the winner via previousSlugs (canonical redirect).
+  for (const group of finalGroups) {
+    let winner = group[0];
+    let bestScore = mediaScore(rowById.get(winner)!);
+    let bestCreated = new Date(rowById.get(winner)!.createdAt ?? 0).getTime();
+    for (let i = 1; i < group.length; i++) {
+      const gid = group[i];
+      const row = rowById.get(gid)!;
+      const sc = mediaScore(row);
+      const cr = new Date(row.createdAt ?? 0).getTime();
+      if (sc > bestScore || (sc === bestScore && cr < bestCreated)) {
+        winner = gid;
+        bestScore = sc;
+        bestCreated = cr;
+      }
+    }
+    const slugAliases = new Set<string>();
+    for (const gid of group) {
+      if (gid === winner) continue;
+      const loser = rowById.get(gid)!;
+      const slug = typeof loser.slug === 'string' ? loser.slug.trim() : '';
+      if (slug) slugAliases.add(slug);
+      for (const prev of loser.previousSlugs ?? []) {
+        const p = String(prev).trim();
+        if (p) slugAliases.add(p);
+      }
+    }
+    if (slugAliases.size > 0) {
+      await Listing.updateOne(
+        { _id: new mongoose.Types.ObjectId(winner) },
+        { $addToSet: { previousSlugs: { $each: [...slugAliases] } } }
+      );
+    }
   }
 
   const loserOids = [...toDelete].map((id) => new mongoose.Types.ObjectId(id));
