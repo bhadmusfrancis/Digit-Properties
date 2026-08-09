@@ -229,7 +229,11 @@ export const NIGERIA_STATE_CITY_SUBURBS: StateCitiesSuburbs = {
       'Ikota', 'VGC', 'Maroko', 'Ilasan', 'Lekki Epe Expressway', 'Orchid Road', 'Fola Osibo', 'Ologolo',
       'Ikate', 'Sangotedo', 'Ajah', 'Awoyaya', 'Lakowe', 'Abijo', 'Eleko', 'Ibeju Lekki',
     ],
-    Ajah: ['Ajah', 'Sangotedo', 'Awoyaya', 'Lekki', 'Badore', 'Ado', 'Langbasa', 'Ikate Elegushi'],
+    Ajah: [
+      'Ajah', 'Sangotedo', 'Awoyaya', 'Lekki', 'Badore', 'Ado', 'Langbasa', 'Ikate Elegushi',
+      // Distinct from Apata (Ibadan); often written without Lagos/Ajah in chat copy
+      'Ajayi Apata', 'Ajayi Apata Estate',
+    ],
     Surulere: [
       'Adeniran Ogunsanya', 'Bode Thomas', 'Ijeshatedo', 'Itire', 'Coker', 'Aguda', 'Ojuelegba',
       'Stadium', 'Lawanson', 'Ogunlana', 'Adelabu', 'Shitta', 'Orile Surulere', 'Animashaun', 'Adeniyi Jones',

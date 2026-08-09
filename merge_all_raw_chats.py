@@ -13,24 +13,19 @@ import re
 import sys
 from pathlib import Path
 
-from rapidfuzz import fuzz, process
-
 REPO = Path(__file__).resolve().parent
-BUILD_DIR = REPO / "WhatsApp Chat - WORLD MARKET"
 ALL_CONTACTS = REPO / "All_contacts.txt"
 OUT = REPO / "all_raw_chats.txt"
 
-if str(BUILD_DIR) not in sys.path:
-    sys.path.insert(0, str(BUILD_DIR))
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 
-from build_chat import (  # type: ignore
+from build_chat import (
     HEADER_RE,
-    MANUAL_CONTACT_NAME,
-    SUBSTRING_BLOCKLIST,
+    best_contact_phone,
     display_name_raw,
     load_contacts,
     normalize_name,
-    phone_from_sender_name,
 )
 
 PHONE_IN_HEADER_RE = re.compile(r"~\s*\([^)]+\):\s*")
@@ -38,19 +33,7 @@ PHONE_IN_HEADER_RE = re.compile(r"~\s*\([^)]+\):\s*")
 
 class ContactResolver:
     def __init__(self, local_contacts: list[tuple[str, str]], global_contacts: list[tuple[str, str]]):
-        self.local_contacts = local_contacts
-        self.global_contacts = global_contacts
         self.combined = self._merge_contacts(local_contacts, global_contacts)
-        self.exact: dict[str, str] = {}
-        self.choice_names: list[str] = []
-        self.choice_phones: list[str] = []
-        for name, phone in self.combined:
-            key = normalize_name(name)
-            if not key or key in self.exact:
-                continue
-            self.exact[key] = phone
-            self.choice_names.append(key)
-            self.choice_phones.append(phone)
         self.cache: dict[str, str] = {}
 
     @staticmethod
@@ -74,45 +57,9 @@ class ContactResolver:
         if key in self.cache:
             return self.cache[key]
 
-        phone = self._lookup_uncached(sender, label, key)
+        phone = best_contact_phone(sender, self.combined) or "unknown"
         self.cache[key] = phone
         return phone
-
-    def _lookup_uncached(self, sender: str, label: str, key: str) -> str:
-        if key in MANUAL_CONTACT_NAME:
-            target = MANUAL_CONTACT_NAME[key]
-            for cname, phone in self.combined:
-                if cname.strip() == target:
-                    return phone
-
-        sender_phone = phone_from_sender_name(sender)
-        if sender_phone:
-            return sender_phone
-
-        if key in self.exact:
-            return self.exact[key]
-
-        for cname, phone in self.combined:
-            cn = normalize_name(cname)
-            if not cn:
-                continue
-            if cn in SUBSTRING_BLOCKLIST:
-                continue
-            if len(cn) >= 8 and (cn in key or key in cn):
-                return phone
-
-        if self.choice_names:
-            match = process.extractOne(
-                key,
-                self.choice_names,
-                scorer=fuzz.WRatio,
-                score_cutoff=82,
-            )
-            if match:
-                idx = self.choice_names.index(match[0])
-                return self.choice_phones[idx]
-
-        return "unknown"
 
 
 def format_message_with_phone(buf: list[str], resolver: ContactResolver) -> str:
