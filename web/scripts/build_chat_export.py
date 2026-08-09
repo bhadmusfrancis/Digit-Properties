@@ -26,14 +26,13 @@ from datetime import datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
-BUILD_MODULE_DIR = REPO / "WhatsApp Chat - WORLD MARKET"
 ALL_CHATS = REPO / "All_chats.txt"
 ALL_CONTACTS = REPO / "All_contacts.txt"
 
-if str(BUILD_MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(BUILD_MODULE_DIR))
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 
-from build_chat import (  # type: ignore
+from build_chat import (
     DEFAULT_CUTOFF,
     HEADER_RE,
     dedupe_similar_posts,

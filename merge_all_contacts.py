@@ -21,17 +21,34 @@ def main() -> None:
             line = line.strip()
             if not line or "\t" not in line:
                 continue
-            name, phone = line.split("\t", 1)
-            name, phone = name.strip(), phone.strip()
+            parts = [p.strip() for p in line.split("\t")]
+            if len(parts) < 2:
+                continue
+            name, phone = parts[0].lstrip("\ufeff"), parts[1]
+            new_name = parts[2].lstrip("\ufeff") if len(parts) >= 3 and parts[2] else ""
             if not name or not phone:
                 continue
             key = phone_key(phone)
             prev = seen.get(key)
-            if prev is None or len(name) > len(prev[0]):
-                seen[key] = (name, phone)
+            # Prefer row that keeps a rename (old+new), else longer primary name
+            cand = (name, phone, new_name)
+            if prev is None:
+                seen[key] = cand
+            else:
+                prev_new = prev[2]
+                if new_name and not prev_new:
+                    seen[key] = cand
+                elif len(name) > len(prev[0]) and (bool(new_name) == bool(prev_new)):
+                    seen[key] = cand
     rows = sorted(seen.values(), key=lambda r: (r[0].lower(), r[1]))
+    out_lines: list[str] = []
+    for n, p, nn in rows:
+        if nn:
+            out_lines.append(f"{n}\t{p}\t{nn}")
+        else:
+            out_lines.append(f"{n}\t{p}")
     OUT.write_text(
-        "\n".join(f"{n}\t{p}" for n, p in rows) + "\n",
+        "\n".join(out_lines) + "\n",
         encoding="utf-8",
         newline="\n",
     )
