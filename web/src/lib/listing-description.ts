@@ -1,4 +1,4 @@
-import type { TitleInput } from '@/lib/listing-title';
+import { positiveCount, type TitleInput } from '@/lib/listing-title';
 import { formatPrice } from '@/lib/utils';
 import { formatListingTypeLabel } from '@/lib/constants';
 import { formatPropertyTypeLabel } from '@/lib/constants';
@@ -58,10 +58,14 @@ export function generateListingDescriptionHtml(input: DescriptionInput): string 
   parts.push(`<p><strong>Asking price</strong></p><p>${escapeHtml(priceLine)}</p>`);
 
   const detailBits: string[] = [];
-  if ((input.bedrooms ?? 0) > 0) detailBits.push(`${input.bedrooms} bedroom(s)`);
-  if ((input.bathrooms ?? 0) > 0) detailBits.push(`${input.bathrooms} bathroom(s)`);
-  if ((input.toilets ?? 0) > 0) detailBits.push(`${input.toilets} toilet(s)`);
-  if (input.area && input.area > 0) detailBits.push(`${input.area} sqm`);
+  const beds = positiveCount(input.bedrooms);
+  const baths = positiveCount(input.bathrooms);
+  const toilets = positiveCount(input.toilets);
+  const area = positiveCount(input.area);
+  if (beds > 0) detailBits.push(`${beds} bedroom(s)`);
+  if (baths > 0) detailBits.push(`${baths} bathroom(s)`);
+  if (toilets > 0) detailBits.push(`${toilets} toilet(s)`);
+  if (area > 0) detailBits.push(`${area} sqm`);
 
   if (detailBits.length) {
     parts.push(`<p><strong>Property details</strong></p><p>${escapeHtml(detailBits.join(' · '))}.</p>`);

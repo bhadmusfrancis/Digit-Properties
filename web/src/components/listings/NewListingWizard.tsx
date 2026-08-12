@@ -1121,22 +1121,19 @@ export function NewListingWizard() {
 
           {step === 3 && (
             <div className="space-y-8">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Title, description &amp; photos</h2>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Write a title and description, or use Generate description to draft one from your property details.
-                    Then add photos before you publish.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={generateDescription}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
-                  >
-                    Generate description
-                  </button>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Title, description &amp; photos</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Write a title and description, or use Generate description to draft one from your property details.
+                  Then add photos before you publish.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-100 bg-white/90 p-5 shadow-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="text-sm font-semibold text-gray-900">
+                    Property title <span className="text-red-500">*</span>
+                  </label>
                   <button
                     type="button"
                     onClick={() => {
@@ -1145,25 +1142,28 @@ export function NewListingWizard() {
                         shouldValidate: true,
                       });
                     }}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 sm:shrink-0"
                   >
                     Refresh title
                   </button>
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-white/90 p-5 shadow-sm">
-                <label className="text-sm font-semibold text-gray-900">
-                  Property title <span className="text-red-500">*</span>
-                </label>
                 <input {...register('title')} className="input mt-2" placeholder="Headline for search & sharing" />
                 {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
               </div>
 
               <div className="rounded-2xl border border-gray-100 bg-white/90 p-5 shadow-sm">
-                <label className="text-sm font-semibold text-gray-900">
-                  Description <span className="text-red-500">*</span>
-                </label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="text-sm font-semibold text-gray-900">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateDescription}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 sm:shrink-0"
+                  >
+                    Generate description
+                  </button>
+                </div>
                 <Controller
                   name="description"
                   control={control}

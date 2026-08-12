@@ -654,24 +654,15 @@ export function ListingForm({
                   : 'Write your own copy, or use Generate description to draft one from your property details.'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {descriptionFormat !== 'whatsapp' ? (
-                <button
-                  type="button"
-                  onClick={generateDescription}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
-                >
-                  Generate description
-                </button>
-              ) : null}
+            {descriptionFormat !== 'whatsapp' ? (
               <button
                 type="button"
-                onClick={generateTitle}
+                onClick={generateDescription}
                 className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
               >
-                Refresh title
+                Generate description
               </button>
-            </div>
+            ) : null}
           </div>
           <Controller
             name="description"
@@ -1040,11 +1031,20 @@ export function ListingForm({
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Title &amp; contact</h2>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Title (SEO) <span className="text-red-500">*</span>
-          </label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              Title (SEO) <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={generateTitle}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 sm:shrink-0"
+            >
+              Refresh title
+            </button>
+          </div>
           <p className="mt-1 text-xs text-gray-500">
-            Use Refresh title above to regenerate from your listing details, or edit manually.
+            Use Refresh title to regenerate from your listing details, or edit manually.
           </p>
           <input
             {...register('title')}
