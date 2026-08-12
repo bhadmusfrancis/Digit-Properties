@@ -35,6 +35,12 @@ function formatTitleLocation(loc: {
   return addr;
 }
 
+/** Empty / NaN / zero numeric inputs must not appear in titles (e.g. "NaN-Bedroom"). */
+function positiveCount(n: unknown): number {
+  const v = typeof n === 'number' ? n : typeof n === 'string' && n.trim() !== '' ? Number(n) : NaN;
+  return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+}
+
 function titlePropertyType(propertyType: string, bedrooms: number): string {
   const slug = (propertyType || 'property').toLowerCase();
   if (bedrooms > 0 && NON_BEDROOM_PROPERTY_TYPES.has(slug)) {
@@ -53,8 +59,8 @@ export function generateListingTitle(params: {
   bedrooms?: number;
   area?: number;
 }): string {
-  const beds = params.bedrooms ?? 0;
-  const area = params.area ?? 0;
+  const beds = positiveCount(params.bedrooms);
+  const area = positiveCount(params.area);
   const prop = titlePropertyType(params.propertyType, beds);
   const includeBeds = beds > 0;
   const typeStr =
@@ -65,7 +71,7 @@ export function generateListingTitle(params: {
         : 'for Sale';
   const loc = formatTitleLocation(params) || 'Nigeria';
   // Lead with area so otherwise-identical listings get distinct titles (avoids duplicate clustering).
-  const areaStr = area > 0 ? `${Math.round(area)} sqm ` : '';
+  const areaStr = area > 0 ? `${area} sqm ` : '';
   if (includeBeds) {
     return `${areaStr}${beds} Bed ${prop} at ${loc}`;
   }

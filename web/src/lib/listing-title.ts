@@ -29,6 +29,15 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
+/**
+ * Coerce optional numeric form values (empty inputs often arrive as NaN via valueAsNumber).
+ * Returns 0 for missing, non-finite, or non-positive values so they are omitted from titles.
+ */
+export function positiveCount(n: unknown): number {
+  const v = typeof n === 'number' ? n : typeof n === 'string' && n.trim() !== '' ? Number(n) : NaN;
+  return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+}
+
 /** Suburb, then city, then state; free-text address only when structured fields are empty. */
 function locationStr(input: TitleInput): string {
   return formatListingLocationDisplay({
@@ -46,7 +55,7 @@ function normalizedPropertyTypes(input: TitleInput): string[] {
       : input.propertyType
         ? [input.propertyType]
         : [];
-  const beds = input.bedrooms ?? 0;
+  const beds = positiveCount(input.bedrooms);
   const ordered = reorderPropertyTypesForBedrooms(types, beds);
   if (ordered.length) return ordered;
   return ['apartment'];
@@ -54,7 +63,7 @@ function normalizedPropertyTypes(input: TitleInput): string[] {
 
 /** Property slugs to show in a title; never pair bedroom counts with land or similar. */
 function titlePropertyTypes(input: TitleInput): string[] {
-  const beds = input.bedrooms ?? 0;
+  const beds = positiveCount(input.bedrooms);
   const types = normalizedPropertyTypes(input);
 
   if (beds <= 0) return types;
@@ -66,7 +75,7 @@ function titlePropertyTypes(input: TitleInput): string[] {
 
 /** Whether the title should include a bedroom count for this listing. */
 function shouldIncludeBedrooms(input: TitleInput): boolean {
-  const beds = input.bedrooms ?? 0;
+  const beds = positiveCount(input.bedrooms);
   if (beds <= 0) return false;
   return titlePropertyTypes(input).some((t) => !isNonBedroomPropertyType(t));
 }
@@ -83,15 +92,15 @@ function propertyTypesDisplay(input: TitleInput): string {
  * e.g. "3 Bed Apartment at Ikotun, Lagos" or "Apartment at Ikotun"
  */
 export function buildCanonicalListingTitle(input: TitleInput): string {
-  const beds = input.bedrooms ?? 0;
-  const area = input.area ?? 0;
+  const beds = positiveCount(input.bedrooms);
+  const area = positiveCount(input.area);
   const prop = propertyTypesDisplay(input);
   const loc = locationStr(input);
   const place = loc || 'Nigeria';
   // Lead with area/beds so otherwise-identical listings (e.g. several "Land at Ikoyi")
   // get distinct titles and don't get clustered as duplicates by search engines.
   const parts: string[] = [];
-  if (area > 0) parts.push(`${Math.round(area)} sqm`);
+  if (area > 0) parts.push(`${area} sqm`);
   if (shouldIncludeBedrooms(input)) parts.push(`${beds} Bed`);
   parts.push(prop);
   const title = `${parts.join(' ')} at ${place}`;
@@ -100,8 +109,8 @@ export function buildCanonicalListingTitle(input: TitleInput): string {
 }
 
 export function generateListingTitle(input: TitleInput): string {
-  const beds = input.bedrooms ?? 0;
-  const area = input.area ?? 0;
+  const beds = positiveCount(input.bedrooms);
+  const area = positiveCount(input.area);
   const prop = propertyTypesDisplay(input);
   const includeBeds = shouldIncludeBedrooms(input);
   const typeStr =
@@ -112,7 +121,7 @@ export function generateListingTitle(input: TitleInput): string {
         : 'for Sale';
   const loc = locationStr(input);
   // Lead with area so otherwise-identical listings get distinct titles (avoids duplicate clustering).
-  const areaStr = area > 0 ? `${Math.round(area)} sqm ` : '';
+  const areaStr = area > 0 ? `${area} sqm ` : '';
 
   const formats: Array<() => string> = [
     () =>
