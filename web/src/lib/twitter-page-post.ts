@@ -167,6 +167,12 @@ function twitterErrorMessage(data: unknown, status: number): string {
       title?: string;
       errors?: { message?: string }[];
     };
+    const parts = [rec.detail, rec.title, rec.errors?.[0]?.message]
+      .filter((v): v is string => typeof v === 'string' && Boolean(v.trim()))
+      .join(' ');
+    if (/credit/i.test(parts) || /deplet/i.test(parts)) {
+      return 'X API credits are depleted. Add credits in console.x.com → Billing, then try again.';
+    }
     if (typeof rec.detail === 'string' && rec.detail.trim()) return rec.detail.trim();
     if (rec.errors?.[0]?.message) return rec.errors[0].message;
     if (typeof rec.title === 'string' && rec.title.trim()) return rec.title.trim();
