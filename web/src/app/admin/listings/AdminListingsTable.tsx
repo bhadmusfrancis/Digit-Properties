@@ -35,6 +35,8 @@ type Listing = {
   boostPackage?: string;
   pendingApprovalReasons?: string[];
   createdBy: unknown;
+  facebookPostId?: string;
+  twitterPostId?: string;
 };
 
 export function AdminListingsTable({
@@ -44,6 +46,8 @@ export function AdminListingsTable({
   sortAsc,
   searchQuery = '',
   basePath,
+  facebookConfigured,
+  twitterConfigured,
 }: {
   listings: Listing[];
   users: User[];
@@ -51,6 +55,8 @@ export function AdminListingsTable({
   sortAsc: boolean;
   searchQuery?: string;
   basePath: string;
+  facebookConfigured: boolean;
+  twitterConfigured: boolean;
 }) {
   const router = useRouter();
 
@@ -184,6 +190,10 @@ export function AdminListingsTable({
                 featured={Boolean(l.featured)}
                 highlighted={Boolean(l.highlighted)}
                 boostPackage={l.boostPackage}
+                facebookPostId={l.facebookPostId}
+                twitterPostId={l.twitterPostId}
+                facebookConfigured={facebookConfigured}
+                twitterConfigured={twitterConfigured}
               />
             </div>
           </article>
@@ -290,6 +300,10 @@ export function AdminListingsTable({
                         featured={Boolean(l.featured)}
                         highlighted={Boolean(l.highlighted)}
                         boostPackage={l.boostPackage}
+                        facebookPostId={l.facebookPostId}
+                        twitterPostId={l.twitterPostId}
+                        facebookConfigured={facebookConfigured}
+                        twitterConfigured={twitterConfigured}
                       />
                     </div>
                   </td>

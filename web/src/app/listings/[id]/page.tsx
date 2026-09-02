@@ -40,6 +40,7 @@ import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verificati
 import { siteOrigin } from '@/lib/site-metadata';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildBreadcrumbJsonLd, buildListingJsonLd } from '@/lib/seo/structured-data';
+import { getSocialPostConfig } from '@/lib/listing-social-post';
 import {
   buildListingVideoSeoItems,
   collectListingGalleryVideos,
@@ -67,7 +68,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       return {};
     }
     if (resolved.gone) return {};
-    const { listing, publicSegment } = resolved;
+    const { listing, publicSegment, shouldRedirect, redirectTo } = resolved;
+    if (shouldRedirect && redirectTo) {
+      permanentRedirect(redirectTo);
+    }
     if (!listing || !publicSegment) return {};
 
     if (
@@ -190,6 +194,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   if (resolved.gone) notFound();
   const { listing: listingPre, publicSegment, shouldRedirect, redirectTo } = resolved;
   if (shouldRedirect && redirectTo) {
+    // Fallback if proxy.ts did not run (e.g. RSC). Document requests get HTTP 301 there.
     permanentRedirect(redirectTo);
   }
   if (!listingPre || !publicSegment) notFound();
@@ -378,6 +383,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       }) ||
       (createdByOid != null && botUserIds.some((id) => id.equals(createdByOid)));
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    const socialPostConfig = isAdmin ? getSocialPostConfig() : { facebook: false, twitter: false };
     const canEditListing = canUserEditListing({
       role: session?.user?.role,
       userId: session?.user?.id,
@@ -721,6 +727,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 agentName={listing.agentName}
                 agentPhone={listing.agentPhone}
                 agentEmail={listing.agentEmail}
+                facebookPostId={listing.facebookPostId}
+                twitterPostId={listing.twitterPostId}
+                facebookConfigured={socialPostConfig.facebook}
+                twitterConfigured={socialPostConfig.twitter}
               />
             )}
             {canEditListing && (
