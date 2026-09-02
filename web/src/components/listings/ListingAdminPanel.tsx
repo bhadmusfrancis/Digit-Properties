@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { getTelHref, getWhatsAppUrl } from '@/lib/utils';
+import { AdminSocialPostButtons } from '@/components/listings/AdminSocialPostButtons';
 
 type Props = {
   listingId: string;
@@ -14,6 +15,10 @@ type Props = {
   agentName?: string | null;
   agentPhone?: string | null;
   agentEmail?: string | null;
+  facebookPostId?: string | null;
+  twitterPostId?: string | null;
+  facebookConfigured: boolean;
+  twitterConfigured: boolean;
 };
 
 export function ListingAdminPanel({
@@ -25,6 +30,10 @@ export function ListingAdminPanel({
   agentName,
   agentPhone,
   agentEmail,
+  facebookPostId,
+  twitterPostId,
+  facebookConfigured,
+  twitterConfigured,
 }: Props) {
   const router = useRouter();
   const [marking, setMarking] = useState(false);
@@ -139,6 +148,15 @@ export function ListingAdminPanel({
       >
         {marketButtonLabel}
       </button>
+
+      <AdminSocialPostButtons
+        listingId={listingId}
+        facebookPostId={facebookPostId}
+        twitterPostId={twitterPostId}
+        facebookConfigured={facebookConfigured}
+        twitterConfigured={twitterConfigured}
+        variant="panel"
+      />
 
       <div className="mt-3 flex gap-2">
         <Link

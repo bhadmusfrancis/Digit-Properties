@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
 import { formatPrice } from '@/lib/utils';
 import { getListingPublicPath } from '@/lib/listing-path';
+import { AdminSocialPostButtons } from '@/components/listings/AdminSocialPostButtons';
 
 type User = { _id: string; name?: string; email?: string };
 type Props = {
@@ -20,9 +21,13 @@ type Props = {
   featured?: boolean;
   highlighted?: boolean;
   boostPackage?: string;
+  facebookPostId?: string;
+  twitterPostId?: string;
+  facebookConfigured: boolean;
+  twitterConfigured: boolean;
 };
 
-export function AdminListingActions({ listingId, listingSlug, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '' }: Props) {
+export function AdminListingActions({ listingId, listingSlug, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '', facebookPostId, twitterPostId, facebookConfigured, twitterConfigured }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
@@ -178,6 +183,14 @@ export function AdminListingActions({ listingId, listingSlug, status, listingTyp
         <Link href={getListingPublicPath({ _id: listingId, slug: listingSlug })} className="inline-flex min-h-[32px] items-center justify-center rounded border border-primary-200 bg-primary-50 px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-100 touch-manipulation">View</Link>
         <Link href={`${getListingPublicPath({ _id: listingId, slug: listingSlug })}/edit`} className="inline-flex min-h-[32px] items-center justify-center rounded border border-primary-200 bg-white px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-50 touch-manipulation">Edit</Link>
       </span>
+      <AdminSocialPostButtons
+        listingId={listingId}
+        facebookPostId={facebookPostId}
+        twitterPostId={twitterPostId}
+        facebookConfigured={facebookConfigured}
+        twitterConfigured={twitterConfigured}
+        variant="compact"
+      />
       {(status === 'draft' || status === 'pending_approval' || status === 'paused') && (
         <button
           type="button"

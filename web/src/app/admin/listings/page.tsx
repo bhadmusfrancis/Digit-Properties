@@ -8,6 +8,7 @@ import { countAdminListings, fetchAdminListingsPage } from '@/lib/listing-list-s
 import { CompactPagination } from '@/components/ui/CompactPagination';
 import { AdminListingsTable } from './AdminListingsTable';
 import { AdminListingsSearch } from './AdminListingsSearch';
+import { getSocialPostConfig } from '@/lib/listing-social-post';
 
 const PER_PAGE = 50;
 
@@ -108,8 +109,18 @@ export default async function AdminListingsPage({
         ? ((l as { pendingApprovalReasons: string[] }).pendingApprovalReasons).filter((r) => typeof r === 'string')
         : undefined,
       createdBy,
+      facebookPostId:
+        typeof (l as { facebookPostId?: unknown }).facebookPostId === 'string'
+          ? (l as { facebookPostId: string }).facebookPostId
+          : undefined,
+      twitterPostId:
+        typeof (l as { twitterPostId?: unknown }).twitterPostId === 'string'
+          ? (l as { twitterPostId: string }).twitterPostId
+          : undefined,
     };
   });
+
+  const socialPostConfig = getSocialPostConfig();
 
   return (
     <div>
@@ -163,6 +174,8 @@ export default async function AdminListingsPage({
           sortAsc={sortAsc}
           searchQuery={searchQuery}
           basePath="/admin/listings"
+          facebookConfigured={socialPostConfig.facebook}
+          twitterConfigured={socialPostConfig.twitter}
         />
       </div>
       {totalPages > 1 && (

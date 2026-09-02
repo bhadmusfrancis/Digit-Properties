@@ -59,6 +59,12 @@ export interface IListing {
   viewCount: number;
   soldAt?: Date;
   rentedAt?: Date;
+  /** Facebook Page post id after admin social publish. */
+  facebookPostId?: string;
+  facebookPostedAt?: Date;
+  /** X/Twitter status id after admin social publish. */
+  twitterPostId?: string;
+  twitterPostedAt?: Date;
   /** When ownership transferred to a user via claim (starts 24h owner edit window). */
   claimedAt?: Date;
   createdAt: Date;
@@ -126,6 +132,10 @@ const ListingSchema = new Schema<IListing>(
     viewCount: { type: Number, default: 0 },
     soldAt: Date,
     rentedAt: Date,
+    facebookPostId: String,
+    facebookPostedAt: Date,
+    twitterPostId: String,
+    twitterPostedAt: Date,
     claimedAt: Date,
   },
   { timestamps: true }
