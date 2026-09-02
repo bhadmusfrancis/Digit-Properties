@@ -72,19 +72,17 @@ export function ListingAdminPanel({
 
   const marketButtonLabel = (() => {
     if (marking) return 'Updating…';
-    if (isMarked) {
-      return isRentListing ? 'Marked Rented — set available' : 'Marked Sold — set available';
-    }
-    return isRentListing ? 'Mark as Rented' : 'Mark as Sold';
+    if (isMarked) return 'Set available';
+    return isRentListing ? 'Mark rented' : 'Mark sold';
   })();
 
   const marketButtonClass = isRentListing
     ? isMarked
-      ? 'border-indigo-700 bg-indigo-600 text-white hover:bg-indigo-700'
-      : 'border-indigo-600 bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+      ? 'border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+      : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-50'
     : isMarked
-      ? 'border-red-700 bg-red-600 text-white hover:bg-red-700'
-      : 'border-red-600 bg-red-50 text-red-800 hover:bg-red-100';
+      ? 'border-red-200 bg-red-50 text-red-800 hover:bg-red-100'
+      : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-50';
 
   return (
     <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/80 p-4">
@@ -146,7 +144,7 @@ export function ListingAdminPanel({
         type="button"
         onClick={toggleMarketStatus}
         disabled={marking}
-        className={`mt-4 inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:opacity-50 ${marketButtonClass}`}
+        className={`mt-4 inline-flex w-auto min-h-[32px] items-center justify-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${marketButtonClass}`}
         title={
           isMarked
             ? 'Remove sold/rented status and show as available again'

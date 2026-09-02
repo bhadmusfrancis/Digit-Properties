@@ -14,12 +14,14 @@ export function MyListingActions({
   soldAt,
   rentedAt,
   canEdit = true,
+  isBoosted = false,
 }: {
   listingId: string;
   listingType: string;
   soldAt?: string;
   rentedAt?: string;
   canEdit?: boolean;
+  isBoosted?: boolean;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -101,49 +103,47 @@ export function MyListingActions({
   }
 
   const marketButtonLabel = (() => {
-    if (marking === marketKind) return 'Updating…';
-    if (isMarked) {
-      return isRentListing ? 'Marked Rented — set available' : 'Marked Sold — set available';
-    }
-    return isRentListing ? 'Mark as Rented' : 'Mark as Sold';
+    if (marking === marketKind) return '…';
+    if (isMarked) return 'Available';
+    return isRentListing ? 'Mark rented' : 'Mark sold';
   })();
 
   const marketButtonClass = isRentListing
     ? isMarked
-      ? 'border-indigo-700 bg-indigo-600 text-white hover:bg-indigo-700'
-      : 'border-indigo-600 bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+      ? 'border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
     : isMarked
-      ? 'border-red-700 bg-red-600 text-white hover:bg-red-700'
-      : 'border-red-600 bg-red-50 text-red-800 hover:bg-red-100';
+      ? 'border-red-200 bg-red-50 text-red-800 hover:bg-red-100'
+      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50';
+
+  const secondaryBtn =
+    'inline-flex min-h-[32px] items-center gap-1 rounded-md border px-2 text-xs font-medium sm:min-h-[30px]';
 
   return (
-    <div className="flex w-full flex-col items-stretch gap-2 sm:items-end">
+    <div className="flex w-full flex-col items-stretch gap-1.5 sm:items-end">
       <button
         type="button"
-        onClick={() => toggleMarketStatus(marketKind)}
-        disabled={marking !== null}
-        className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:opacity-50 sm:min-w-[220px] sm:w-auto ${marketButtonClass}`}
-        title={
-          isMarked
-            ? 'Remove sold/rented status and show as available again'
-            : isRentListing
-              ? 'Quickly mark this rental as rented'
-              : 'Quickly mark this property as sold'
-        }
+        onClick={() => setBoostOpen(true)}
+        disabled={boosting}
+        className="inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-500 to-orange-500 px-3 py-2 text-white shadow-md shadow-amber-500/25 transition hover:from-amber-600 hover:via-amber-500 hover:to-orange-600 hover:shadow-lg hover:shadow-amber-500/35 disabled:opacity-50 sm:w-auto sm:min-w-[200px]"
+        title={isBoosted ? 'Extend this listing boost' : 'Boost this post to get more views'}
       >
-        <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          {isMarked ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          )}
+        <svg className="h-5 w-5 shrink-0 drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
-        {marketButtonLabel}
+        <span className="flex min-w-0 flex-col items-start leading-tight">
+          <span className="text-sm font-extrabold tracking-tight">
+            {boosting ? 'Opening…' : isBoosted ? 'Extend Boost' : 'Boost Post'}
+          </span>
+          <span className="text-[10px] font-medium text-amber-50/90">
+            {isBoosted ? 'Keep this listing on top' : 'Get more views & enquiries'}
+          </span>
+        </span>
       </button>
-      <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+      <span className="inline-flex flex-wrap items-center justify-end gap-1">
       <Link
         href={`/listings/${listingId}`}
-        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 sm:min-h-[34px]"
+        className={`${secondaryBtn} border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}
         title="View listing"
       >
         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -155,7 +155,7 @@ export function MyListingActions({
       {canEdit ? (
         <Link
           href={`/listings/${listingId}/edit`}
-          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 sm:min-h-[34px]"
+          className={`${secondaryBtn} border-gray-200 bg-white text-gray-700 hover:bg-gray-50`}
           title="Edit listing"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -166,32 +166,42 @@ export function MyListingActions({
         </Link>
       ) : (
         <span
-          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2.5 text-xs font-medium text-gray-400 sm:min-h-[34px]"
+          className={`${secondaryBtn} border-gray-200 bg-gray-50 text-gray-400`}
           title={LISTING_EDIT_LOCKED_TOOLTIP}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V5a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
-          Edit locked
+          Locked
         </span>
       )}
       <button
         type="button"
-        onClick={() => setBoostOpen(true)}
-        disabled={boosting}
-        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50 sm:min-h-[34px]"
-        title="Boost listing"
+        onClick={() => toggleMarketStatus(marketKind)}
+        disabled={marking !== null}
+        className={`${secondaryBtn} ${marketButtonClass} disabled:opacity-50`}
+        title={
+          isMarked
+            ? 'Remove sold/rented status and show as available again'
+            : isRentListing
+              ? 'Mark this rental as rented'
+              : 'Mark this property as sold'
+        }
       >
-        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          {isMarked ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          )}
         </svg>
-        {boosting ? '…' : 'Boost'}
+        {marketButtonLabel}
       </button>
       <button
         type="button"
         onClick={handleDelete}
         disabled={deleting}
-        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 sm:min-h-[34px]"
+        className={`${secondaryBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50`}
         title="Delete listing"
       >
         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -203,7 +213,7 @@ export function MyListingActions({
       {boostOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
-            <h3 className="text-lg font-semibold text-gray-900">Choose a boost package</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Boost this post</h3>
             <p className="mt-1 text-sm text-gray-600">
               Select a package and continue with Paystack. Visibility scores compare plans using placement, duration, and
               limits—not live analytics.
