@@ -172,6 +172,7 @@ export function MyListingsTable({
                 soldAt={l.soldAt}
                 rentedAt={l.rentedAt}
                 canEdit={canEdit(l.createdAt, l.claimedAt)}
+                isBoosted={Boolean(l.isBoosted)}
               />
             </div>
           </article>
@@ -279,6 +280,7 @@ export function MyListingsTable({
                   soldAt={l.soldAt}
                   rentedAt={l.rentedAt}
                   canEdit={canEdit(l.createdAt, l.claimedAt)}
+                  isBoosted={Boolean(l.isBoosted)}
                 />
               </td>
             </tr>
