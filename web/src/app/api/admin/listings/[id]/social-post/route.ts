@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/get-session';
-import { dbConnect } from '@/lib/db';
 import Listing from '@/models/Listing';
+import { findListingByPublicParam } from '@/lib/resolve-listing';
 import { USER_ROLES } from '@/lib/constants';
 import { postListingToFacebookPage } from '@/lib/facebook-page-post';
 import { postListingToTwitter } from '@/lib/twitter-page-post';
@@ -80,8 +80,11 @@ export async function POST(
       );
     }
 
-    await dbConnect();
-    const listing = await Listing.findById(id);
+    const found = await findListingByPublicParam(id);
+    if (found.type !== 'listing') {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+    }
+    const listing = await Listing.findById(found.listing._id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }

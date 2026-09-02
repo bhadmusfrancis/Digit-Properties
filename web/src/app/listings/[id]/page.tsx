@@ -689,7 +689,23 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
         <div className="min-w-0 lg:sticky lg:top-8 lg:self-start">
-          <div className="card min-w-0 overflow-hidden p-6">
+          {isAdmin && (
+            <ListingAdminPanel
+              listingId={listingId}
+              listingType={String(listing.listingType ?? '')}
+              listingTitle={listing.title}
+              soldAt={listing.soldAt}
+              rentedAt={listing.rentedAt}
+              agentName={listing.agentName}
+              agentPhone={listing.agentPhone}
+              agentEmail={listing.agentEmail}
+              facebookPostId={listing.facebookPostId}
+              twitterPostId={listing.twitterPostId}
+              facebookConfigured={socialPostConfig.facebook}
+              twitterConfigured={socialPostConfig.twitter}
+            />
+          )}
+          <div className={`card min-w-0 overflow-hidden p-6 ${isAdmin ? 'mt-4' : ''}`}>
             <h3 className="font-semibold text-gray-900">Location</h3>
             <p className="mt-2 text-gray-600">
               {listingLocationDisplay}
@@ -717,22 +733,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               viewCount={listing.viewCount ?? 0}
               likeCount={likeCount}
             />
-            {isAdmin && (
-              <ListingAdminPanel
-                listingId={listingId}
-                listingType={String(listing.listingType ?? '')}
-                listingTitle={listing.title}
-                soldAt={listing.soldAt}
-                rentedAt={listing.rentedAt}
-                agentName={listing.agentName}
-                agentPhone={listing.agentPhone}
-                agentEmail={listing.agentEmail}
-                facebookPostId={listing.facebookPostId}
-                twitterPostId={listing.twitterPostId}
-                facebookConfigured={socialPostConfig.facebook}
-                twitterConfigured={socialPostConfig.twitter}
-              />
-            )}
             {canEditListing && (
               <div className="mt-4 flex gap-3">
                 <Link href={`${listingPublicPath}/edit`} className="btn-primary flex-1 text-center">
