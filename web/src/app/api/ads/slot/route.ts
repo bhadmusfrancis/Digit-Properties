@@ -36,24 +36,22 @@ export async function GET(req: Request) {
     /** Network ads — kept separate so ~20 listings cannot drown out AdSense. */
     const networkPool: SlotItem[] = [];
 
-    if (placement === 'home_featured') {
-      const listings = await Listing.find({
-        status: LISTING_STATUS.ACTIVE,
-        $or: [{ featured: true }, { highlighted: true }],
-      })
-        .sort({ 'images.0.url': -1, createdAt: -1 })
-        .limit(20)
-        .select('title description price listingType rentPeriod propertyType location bedrooms bathrooms toilets area amenities images videos createdBy')
-        .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
-        .lean();
-      for (const l of listings) {
-        const row = l as { _id: mongoose.Types.ObjectId; createdBy?: unknown; [k: string]: unknown };
-        const { createdBy: cb, ...rest } = row;
-        contentPool.push({
-          type: 'listing',
-          listing: { ...rest, _id: row._id.toString(), createdBy: shapePublicCreatedBy(cb) ?? cb },
-        });
-      }
+    const listings = await Listing.find({
+      status: LISTING_STATUS.ACTIVE,
+      $or: [{ featured: true }, { highlighted: true }],
+    })
+      .sort({ 'images.0.url': -1, createdAt: -1 })
+      .limit(20)
+      .select('slug title description price listingType rentPeriod propertyType propertyTypes location bedrooms bathrooms toilets area amenities images videos createdBy')
+      .populate('createdBy', USER_PUBLIC_BADGE_FIELDS)
+      .lean();
+    for (const l of listings) {
+      const row = l as { _id: mongoose.Types.ObjectId; createdBy?: unknown; [k: string]: unknown };
+      const { createdBy: cb, ...rest } = row;
+      contentPool.push({
+        type: 'listing',
+        listing: { ...rest, _id: row._id.toString(), createdBy: shapePublicCreatedBy(cb) ?? cb },
+      });
     }
 
     const activeAds = await UserAd.find({
