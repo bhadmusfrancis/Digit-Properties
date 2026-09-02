@@ -90,6 +90,15 @@ export function ListingAdminPanel({
     <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/80 p-4">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-900">Admin</h3>
 
+      <AdminSocialPostButtons
+        listingId={listingId}
+        facebookPostId={facebookPostId}
+        twitterPostId={twitterPostId}
+        facebookConfigured={facebookConfigured}
+        twitterConfigured={twitterConfigured}
+        variant="panel"
+      />
+
       <div className="mt-3">
         <h4 className="text-sm font-medium text-gray-900">Listing contact</h4>
         {hasContact ? (
@@ -148,15 +157,6 @@ export function ListingAdminPanel({
       >
         {marketButtonLabel}
       </button>
-
-      <AdminSocialPostButtons
-        listingId={listingId}
-        facebookPostId={facebookPostId}
-        twitterPostId={twitterPostId}
-        facebookConfigured={facebookConfigured}
-        twitterConfigured={twitterConfigured}
-        variant="panel"
-      />
 
       <div className="mt-3 flex gap-2">
         <Link

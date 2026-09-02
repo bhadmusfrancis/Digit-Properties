@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { facebookPostUrl, twitterPostUrl, type SocialPlatform } from '@/lib/listing-social-post';
 
 type Props = {
@@ -57,15 +57,37 @@ export function AdminSocialPostButtons({
   const router = useRouter();
   const [facebookId, setFacebookId] = useState(facebookPostId || '');
   const [twitterId, setTwitterId] = useState(twitterPostId || '');
+  const [facebookOn, setFacebookOn] = useState(facebookConfigured);
+  const [twitterOn, setTwitterOn] = useState(twitterConfigured);
   const [busy, setBusy] = useState<SocialPlatform | null>(null);
 
+  useEffect(() => {
+    setFacebookId(facebookPostId || '');
+    setTwitterId(twitterPostId || '');
+  }, [facebookPostId, twitterPostId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/admin/listings/${listingId}/social-post`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { facebook?: boolean; twitter?: boolean } | null) => {
+        if (cancelled || !d) return;
+        if (typeof d.facebook === 'boolean') setFacebookOn(d.facebook);
+        if (typeof d.twitter === 'boolean') setTwitterOn(d.twitter);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [listingId]);
+
   const compact = variant === 'compact';
-  const anyConfigured = facebookConfigured || twitterConfigured;
+  const anyConfigured = facebookOn || twitterOn;
 
   async function post(platform: SocialPlatform) {
     if (busy) return;
-    if (platform === 'facebook' && !facebookConfigured) return;
-    if (platform === 'twitter' && !twitterConfigured) return;
+    if (platform === 'facebook' && !facebookOn) return;
+    if (platform === 'twitter' && !twitterOn) return;
     if (platform === 'both' && !anyConfigured) return;
 
     const facebookAgain = (platform === 'facebook' || platform === 'both') && Boolean(facebookId);
@@ -156,9 +178,9 @@ export function AdminSocialPostButtons({
       <button
         type="button"
         onClick={() => post('facebook')}
-        disabled={busy !== null || !facebookConfigured}
+        disabled={busy !== null || !facebookOn}
         title={
-          facebookConfigured
+          facebookOn
             ? 'Publish this listing and its photos/video to the Facebook Page'
             : 'Set FACEBOOK_PAGE_ID and FACEBOOK_PAGE_ACCESS_TOKEN in env'
         }
@@ -170,9 +192,9 @@ export function AdminSocialPostButtons({
       <button
         type="button"
         onClick={() => post('twitter')}
-        disabled={busy !== null || !twitterConfigured}
+        disabled={busy !== null || !twitterOn}
         title={
-          twitterConfigured
+          twitterOn
             ? 'Publish this listing and its photos/video to the X page'
             : 'Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, and TWITTER_ACCESS_TOKEN_SECRET in env'
         }
