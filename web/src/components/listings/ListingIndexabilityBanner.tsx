@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SystemNotice } from '@/components/ui/SystemNotice';
 import {
   MIN_INDEXABLE_DESCRIPTION_CHARS,
   getListingIndexabilityGap,
@@ -17,12 +18,8 @@ export function ListingIndexabilityBanner(props: Props) {
   if (gap.indexable) return null;
 
   return (
-    <div
-      className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950"
-      role="status"
-    >
-      <p className="font-semibold text-sky-900">Not visible in Google search yet</p>
-      <p className="mt-1 text-sky-900">
+    <SystemNotice kind="info" title="Not visible in Google search yet">
+      <p>
         Upload your own photos or a property video, or write at least {MIN_INDEXABLE_DESCRIPTION_CHARS}{' '}
         characters of unique description text. Listings with only the default placeholder image and short
         copy are kept out of search results to avoid duplicate-content issues.
@@ -33,6 +30,6 @@ export function ListingIndexabilityBanner(props: Props) {
       <Link href={editHref} className="mt-2 inline-block font-medium text-sky-800 underline hover:text-sky-950">
         Edit listing to improve visibility
       </Link>
-    </div>
+    </SystemNotice>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BOOST_PACKAGES, type BoostPackage } from '@/lib/boost-packages';
 import { formatPrice } from '@/lib/utils';
 import { resumePaystackInline } from '@/lib/paystack-inline';
+import { SystemNotice } from '@/components/ui/SystemNotice';
 
 export type PaywallReason =
   | 'images'
@@ -36,7 +37,7 @@ const REASON_COPY: Record<PaywallReason, { title: string; sub: string }> = {
   },
   general: {
     title: 'Boost this listing',
-    sub: 'Pick a package to gain more exposure, more media slots, and Featured / Highlighted placement.',
+    sub: 'Pick a package for more media slots, Featured / Highlighted placement, and social posting on Pro and Premium.',
   },
 };
 
@@ -381,6 +382,7 @@ export function BoostPaywallModal({
                   <li>{pkg.mediaUploads}</li>
                   <li>{pkg.categorySelection}</li>
                   <li>{pkg.displayPlacement}</li>
+                  <li>{pkg.socialPosting}</li>
                 </ul>
               </label>
             ))}
@@ -474,8 +476,16 @@ export function BoostPaywallModal({
             </div>
           </div>
 
-          {error && <p className="mt-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
-          {info && <p className="mt-3 rounded bg-green-50 p-2 text-sm text-green-700">{info}</p>}
+          {error && (
+            <SystemNotice kind="error" className="mt-3">
+              {error}
+            </SystemNotice>
+          )}
+          {info && (
+            <SystemNotice kind="success" className="mt-3">
+              {info}
+            </SystemNotice>
+          )}
         </div>
 
         <div className="border-t border-gray-100 bg-gray-50 p-3 text-right">

@@ -1,5 +1,6 @@
 import { LISTING_STATUS } from '@/lib/constants';
 import { getOwnerPendingApprovalMessage } from '@/lib/listing-status-display';
+import { SystemNotice } from '@/components/ui/SystemNotice';
 
 type Props = {
   status: string;
@@ -13,20 +14,15 @@ export function ListingOwnerStatusBanner({ status, pendingApprovalReasons }: Pro
   const reasons = pendingApprovalReasons?.filter(Boolean) ?? [];
 
   return (
-    <div
-      className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-      role="status"
-      aria-live="polite"
-    >
-      <p className="font-semibold text-amber-900">Pending approval</p>
-      <p className="mt-1 text-amber-900">{getOwnerPendingApprovalMessage(reasons)}</p>
+    <SystemNotice kind="warning" title="Pending approval">
+      <p>{getOwnerPendingApprovalMessage(reasons)}</p>
       {reasons.length > 1 ? (
-        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-amber-800">
+        <ul className="mt-2 list-disc space-y-0.5 pl-5">
           {reasons.map((r) => (
             <li key={r}>{r}</li>
           ))}
         </ul>
       ) : null}
-    </div>
+    </SystemNotice>
   );
 }

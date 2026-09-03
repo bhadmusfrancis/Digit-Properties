@@ -5,7 +5,7 @@ import Listing from '@/models/Listing';
 import Payment from '@/models/Payment';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
-import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { BOOST_PACKAGES, listingBoostApplyUpdate } from '@/lib/boost-packages';
 import { debitWallet, getWalletBalance } from '@/lib/wallet';
 import { PAYMENT_PURPOSE, WALLET_TX_REASONS } from '@/lib/constants';
 
@@ -87,22 +87,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Insufficient Ad credit (race).' }, { status: 400 });
       }
 
-      const now = new Date();
-      const currentEnd = listing.boostExpiresAt ? new Date(listing.boostExpiresAt) : null;
-      const base = currentEnd && currentEnd > now ? currentEnd : now;
-      const newExpiry = new Date(base);
-      newExpiry.setDate(newExpiry.getDate() + days);
-      await Listing.findByIdAndUpdate(listingId, {
-        boostPackage: packageId ?? 'starter',
-        boostExpiresAt: newExpiry,
-        featured: selectedPackage.featured,
-        highlighted: selectedPackage.highlighted,
-      });
+      const applied = listingBoostApplyUpdate(
+        (packageId ?? 'starter') as BoostPackageId,
+        listing.boostExpiresAt,
+        days
+      );
+      await Listing.findByIdAndUpdate(listingId, applied);
 
       return NextResponse.json({
         paidWithWallet: true,
         balance: debit.balanceAfter,
-        boostExpiresAt: newExpiry.toISOString(),
+        boostExpiresAt: applied.boostExpiresAt.toISOString(),
         reference: ref,
       });
     }

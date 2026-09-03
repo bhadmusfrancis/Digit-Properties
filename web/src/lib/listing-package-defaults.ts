@@ -27,6 +27,9 @@ export const BOOST_MEDIA_CAPS: Record<
   premium: { maxImages: 25, maxVideos: 5, maxCategories: 5 },
 };
 
+/** Absolute ceiling used by Zod / resolve helpers (Premium cap). */
+export const MAX_LISTING_CATEGORIES = BOOST_MEDIA_CAPS.premium.maxCategories;
+
 /** Map legacy subscription tier keys to a listing package tier. */
 export function resolveListingPackageTier(tier: string): ListingPackageTier | 'free' {
   const t = tier.trim().toLowerCase();

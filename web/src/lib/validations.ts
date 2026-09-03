@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PROPERTY_TYPES, NIGERIAN_STATES, LISTING_TYPE, RENT_PERIOD, reorderPropertyTypesForBedrooms } from './constants';
+import { MAX_LISTING_CATEGORIES } from './listing-package-defaults';
 import { stripHtml } from './utils';
 
 const propertyTypeSchema = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
@@ -12,7 +13,7 @@ export function resolveListingPropertyTypes(data: {
   const fromArr = data.propertyTypes?.filter(Boolean) ?? [];
   const fromSingle = data.propertyType ? [data.propertyType] : [];
   const raw = fromArr.length ? fromArr : fromSingle;
-  const uniq = [...new Set(raw)].slice(0, 3);
+  const uniq = [...new Set(raw)].slice(0, MAX_LISTING_CATEGORIES);
   if (!uniq.length) return null;
   const bedrooms = typeof data.bedrooms === 'number' ? data.bedrooms : 0;
   const propertyTypes = reorderPropertyTypesForBedrooms(uniq, bedrooms);
@@ -72,7 +73,7 @@ const listingBaseSchema = z.object({
     .refine((s) => stripHtml(s).length >= 20, { message: 'Description must be at least 20 characters' }),
   listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
   propertyType: propertyTypeSchema.optional(),
-  propertyTypes: z.array(propertyTypeSchema).max(3).optional(),
+  propertyTypes: z.array(propertyTypeSchema).max(MAX_LISTING_CATEGORIES).optional(),
   price: z.number().positive(),
   location: z.object({
     address: z.string().min(5),
@@ -111,10 +112,10 @@ export const listingSchema = listingBaseSchema
       });
       return;
     }
-    if (resolved.propertyTypes.length > 3) {
+    if (resolved.propertyTypes.length > MAX_LISTING_CATEGORIES) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'You can select up to 3 property types',
+        message: `You can select up to ${MAX_LISTING_CATEGORIES} property types`,
         path: ['propertyTypes'],
       });
     }
@@ -155,10 +156,10 @@ export const listingUpdateSchema = listingBaseSchema
           path: ['propertyTypes'],
         });
       }
-      if (data.propertyTypes.length > 3) {
+      if (data.propertyTypes.length > MAX_LISTING_CATEGORIES) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'You can select up to 3 property types',
+          message: `You can select up to ${MAX_LISTING_CATEGORIES} property types`,
           path: ['propertyTypes'],
         });
       }

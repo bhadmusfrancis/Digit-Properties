@@ -16,7 +16,7 @@ export interface IListing {
   description: string;
   listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE];
   propertyType: (typeof PROPERTY_TYPES)[number];
-  /** Up to 3 categories (primary is `propertyType`). */
+  /** Categories (primary is `propertyType`). Cap follows the active boost / subscription package. */
   propertyTypes?: (typeof PROPERTY_TYPES)[number][];
   price: number;
   location: ILocation;
@@ -46,6 +46,8 @@ export interface IListing {
   leaseDuration?: string;
   boostPackage?: 'starter' | 'pro' | 'premium';
   boostExpiresAt?: Date;
+  /** Set when the owner taps Boost Post Now — locks further edits until the boost expires or is extended. */
+  boostPostedAt?: Date;
   /** Shown in home carousel when true (respects subscription maxFeatured). */
   featured?: boolean;
   /** Highlighted in search when true (respects subscription maxHighlighted). */
@@ -124,6 +126,7 @@ const ListingSchema = new Schema<IListing>(
     leaseDuration: String,
     boostPackage: { type: String, enum: ['starter', 'pro', 'premium'] },
     boostExpiresAt: Date,
+    boostPostedAt: Date,
     featured: { type: Boolean, default: false },
     highlighted: { type: Boolean, default: false },
     slug: { type: String, trim: true, sparse: true, unique: true },

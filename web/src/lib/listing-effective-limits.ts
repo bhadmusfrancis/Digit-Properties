@@ -5,6 +5,7 @@ import { getSubscriptionLimits, type SubscriptionLimits } from '@/lib/subscripti
 export type ListingBoostState = {
   boostPackage?: BoostPackage['id'] | string | null;
   boostExpiresAt?: Date | string | null;
+  boostPostedAt?: Date | string | null;
 };
 
 export type EffectiveListingLimits = SubscriptionLimits & {

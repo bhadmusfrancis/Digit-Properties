@@ -6,12 +6,14 @@ export type AdPlacementKey = (typeof AD_PLACEMENTS)[number];
 export interface PlacementPricing {
   pricePerDay: number;
   pricePerHour: number;
+  pricePerWeek: number;
+  pricePerMonth: number;
   currency: string;
 }
 
 export interface IAdConfig {
   _id: mongoose.Types.ObjectId;
-  /** Placement pricing: key = placement id, value = { pricePerDay, pricePerHour, currency } */
+  /** Placement pricing: key = placement id, value = { pricePerDay, pricePerHour, pricePerWeek, pricePerMonth, currency } */
   placementPricing: Record<AdPlacementKey, PlacementPricing>;
   /** AdSense HTML/snippet per placement (optional). Key = placement id. */
   adsense: Record<AdPlacementKey, string>;
@@ -21,14 +23,20 @@ export interface IAdConfig {
 }
 
 const PlacementPricingSchema = new Schema(
-  { pricePerDay: Number, pricePerHour: Number, currency: { type: String, default: 'NGN' } },
+  {
+    pricePerDay: Number,
+    pricePerHour: Number,
+    pricePerWeek: Number,
+    pricePerMonth: Number,
+    currency: { type: String, default: 'NGN' },
+  },
   { _id: false }
 );
 
 function defaultPlacementPricing(): Record<string, PlacementPricing> {
   const o: Record<string, PlacementPricing> = {};
   for (const p of AD_PLACEMENTS) {
-    o[p] = { pricePerDay: 5000, pricePerHour: 500, currency: 'NGN' };
+    o[p] = { pricePerDay: 5000, pricePerHour: 500, pricePerWeek: 30000, pricePerMonth: 100000, currency: 'NGN' };
   }
   return o;
 }

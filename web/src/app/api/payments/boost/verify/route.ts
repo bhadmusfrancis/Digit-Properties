@@ -3,7 +3,7 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Payment from '@/models/Payment';
 import Listing from '@/models/Listing';
-import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { BOOST_PACKAGES, listingBoostApplyUpdate } from '@/lib/boost-packages';
 import { PAYMENT_PURPOSE } from '@/lib/constants';
 
 /**
@@ -79,17 +79,8 @@ export async function POST(req: Request) {
       const packageId = meta.boostPackage ?? 'starter';
       const boostPackage = BOOST_PACKAGES[packageId] ?? BOOST_PACKAGES.starter;
       const listing = await Listing.findById(listingIdString).select('boostExpiresAt').lean();
-      const now = new Date();
-      const currentEnd = listing?.boostExpiresAt ? new Date(listing.boostExpiresAt) : null;
-      const base = currentEnd && currentEnd > now ? currentEnd : now;
-      const newExpiry = new Date(base);
-      newExpiry.setDate(newExpiry.getDate() + days);
-      await Listing.findByIdAndUpdate(listingIdString, {
-        boostPackage: packageId,
-        boostExpiresAt: newExpiry,
-        featured: boostPackage.featured,
-        highlighted: boostPackage.highlighted,
-      });
+      const applied = listingBoostApplyUpdate(boostPackage.id, listing?.boostExpiresAt, days);
+      await Listing.findByIdAndUpdate(listingIdString, applied);
     }
 
     return replyWithListing();

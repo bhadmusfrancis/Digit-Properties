@@ -243,6 +243,12 @@ export async function POST(req: Request) {
     }
 
     const resolvedPtEarly = resolveListingPropertyTypes(parsed.data);
+    if ((resolvedPtEarly?.propertyTypes.length ?? 0) > (limits.maxCategories ?? 1)) {
+      return NextResponse.json(
+        { error: `You can select up to ${limits.maxCategories} categories. Boost this listing to add more.` },
+        { status: 400 }
+      );
+    }
     const seo = prepareListingFieldsForSeo({
       title: parsed.data.title,
       description: parsed.data.description,

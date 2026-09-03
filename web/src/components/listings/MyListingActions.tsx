@@ -4,7 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { BOOST_PACKAGES, BOOST_VISIBILITY_DISCLAIMER } from '@/lib/boost-packages';
-import { LISTING_EDIT_LOCKED_TOOLTIP } from '@/lib/listing-edit-window';
+import {
+  LISTING_BOOST_DELETE_LOCKED,
+  LISTING_BOOST_EDIT_LOCKED_TOOLTIP,
+  LISTING_EDIT_LOCKED_TOOLTIP,
+} from '@/lib/listing-edit-window';
+import { BoostPostNowButton } from '@/components/listings/BoostPostNowButton';
+import { useSystemToast } from '@/components/ui/SystemToast';
 
 type BoostPackageId = keyof typeof BOOST_PACKAGES;
 
@@ -14,16 +20,25 @@ export function MyListingActions({
   soldAt,
   rentedAt,
   canEdit = true,
+  canDelete = true,
   isBoosted = false,
+  boostPackage,
+  boostPostedAt,
+  editLockedByBoost = false,
 }: {
   listingId: string;
   listingType: string;
   soldAt?: string;
   rentedAt?: string;
   canEdit?: boolean;
+  canDelete?: boolean;
   isBoosted?: boolean;
+  boostPackage?: string;
+  boostPostedAt?: string;
+  editLockedByBoost?: boolean;
 }) {
   const router = useRouter();
+  const notify = useSystemToast();
   const [deleting, setDeleting] = useState(false);
   const [boosting, setBoosting] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
@@ -32,14 +47,24 @@ export function MyListingActions({
   const isRentListing = listingType === 'rent';
   const isMarked = isRentListing ? Boolean(rentedAt) : Boolean(soldAt);
   const marketKind = isRentListing ? 'rented' : 'sold';
+  const showBoostPostNow = isBoosted && !boostPostedAt;
 
   async function handleDelete() {
+    if (!canDelete) {
+      notify.warning('Cannot delete yet', LISTING_BOOST_DELETE_LOCKED);
+      return;
+    }
     if (!confirm('Delete this listing? This cannot be undone.')) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/listings/${listingId}`, { method: 'DELETE' });
-      if (res.ok) router.refresh();
-      else alert((await res.json()).error || 'Failed to delete');
+      if (res.ok) {
+        notify.success('Listing deleted');
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        notify.error('Could not delete listing', data.error || 'Please try again.');
+      }
     } finally {
       setDeleting(false);
     }
@@ -56,12 +81,13 @@ export function MyListingActions({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || 'Failed to start boost payment');
+        notify.error('Boost payment failed', data.error || 'Failed to start boost payment');
         return;
       }
       if (data.paidWithWallet) {
-        alert(
-          `Boost paid from Ad credit. New balance: ₦${Number(data.balance ?? 0).toLocaleString()}.`
+        notify.success(
+          'Boost paid',
+          `Add photos, videos, and categories, then tap Boost Post Now. New Ad credit balance: ₦${Number(data.balance ?? 0).toLocaleString()}.`
         );
         setBoostOpen(false);
         router.refresh();
@@ -72,7 +98,7 @@ export function MyListingActions({
         window.location.href = url as string;
         return;
       }
-      alert('Boost payment link not returned.');
+      notify.error('Boost payment failed', 'Boost payment link not returned.');
     } finally {
       setBoosting(false);
     }
@@ -93,7 +119,7 @@ export function MyListingActions({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || 'Failed to update listing status');
+        notify.error('Could not update status', data.error || 'Failed to update listing status');
         return;
       }
       router.refresh();
@@ -140,6 +166,9 @@ export function MyListingActions({
           </span>
         </span>
       </button>
+      {showBoostPostNow ? (
+        <BoostPostNowButton listingId={listingId} boostPackage={boostPackage} />
+      ) : null}
       <span className="inline-flex flex-wrap items-center justify-end gap-1">
       <Link
         href={`/listings/${listingId}`}
@@ -167,7 +196,7 @@ export function MyListingActions({
       ) : (
         <span
           className={`${secondaryBtn} border-gray-200 bg-gray-50 text-gray-400`}
-          title={LISTING_EDIT_LOCKED_TOOLTIP}
+          title={editLockedByBoost ? LISTING_BOOST_EDIT_LOCKED_TOOLTIP : LISTING_EDIT_LOCKED_TOOLTIP}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2V9a2 2 0 00-2-2h-1V5a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -200,9 +229,9 @@ export function MyListingActions({
       <button
         type="button"
         onClick={handleDelete}
-        disabled={deleting}
-        className={`${secondaryBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50`}
-        title="Delete listing"
+        disabled={deleting || !canDelete}
+        className={`${secondaryBtn} border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50`}
+        title={canDelete ? 'Delete listing' : LISTING_BOOST_DELETE_LOCKED}
       >
         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
@@ -275,6 +304,7 @@ export function MyListingActions({
                     <li>{pkg.displayPlacement}</li>
                     <li>{pkg.featured ? 'Includes Featured badge' : 'No Featured badge'}</li>
                     <li>{pkg.highlighted ? 'Includes Highlighted status' : 'No Highlighted status'}</li>
+                    <li>{pkg.socialPosting}</li>
                   </ul>
                 </label>
               ))}

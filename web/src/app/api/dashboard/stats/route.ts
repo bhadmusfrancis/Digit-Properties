@@ -27,15 +27,20 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const listingId = url.searchParams.get('listingId');
-    let listingBoost: { boostPackage?: string | null; boostExpiresAt?: Date | null } | null = null;
+    let listingBoost: {
+      boostPackage?: string | null;
+      boostExpiresAt?: Date | null;
+      boostPostedAt?: Date | null;
+    } | null = null;
     if (listingId && mongoose.Types.ObjectId.isValid(listingId)) {
       const listing = await Listing.findOne({ _id: listingId, createdBy: userId })
-        .select('boostPackage boostExpiresAt')
+        .select('boostPackage boostExpiresAt boostPostedAt')
         .lean();
       if (listing) {
         listingBoost = {
           boostPackage: listing.boostPackage ?? null,
           boostExpiresAt: listing.boostExpiresAt ?? null,
+          boostPostedAt: listing.boostPostedAt ?? null,
         };
       }
     }
@@ -65,6 +70,7 @@ export async function GET(req: Request) {
       boostActive: limits.boostActive,
       boostPackage: limits.boostPackage,
       boostExpiresAt: limits.boostExpiresAt,
+      boostPostedAt: listingBoost?.boostPostedAt ?? null,
       // Base (non-boosted) caps so the client can show how much extra a boost unlocks.
       baseMaxImages: baseLimits.maxImages,
       baseMaxVideos: baseLimits.maxVideos,
