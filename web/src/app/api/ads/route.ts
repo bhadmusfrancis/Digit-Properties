@@ -4,7 +4,16 @@ import { dbConnect } from '@/lib/db';
 import UserAd from '@/models/UserAd';
 import AdConfig from '@/models/AdConfig';
 import { USER_AD_STATUS } from '@/lib/constants';
-import { isValidAdPlacement, normalizeAdPlacement, placementPricingValue } from '@/lib/ad-placements';
+import {
+  adDurationMs,
+  computeAdAmount,
+  isValidAdPlacement,
+  normalizeAdConfigForClient,
+  normalizeAdPlacement,
+  parseAdPricingMode,
+  placementPricingValue,
+  type PlacementPricingRates,
+} from '@/lib/ad-placements';
 import mongoose from 'mongoose';
 
 export async function GET(req: Request) {
@@ -14,15 +23,18 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     await dbConnect();
-    const ads = await UserAd.find({ userId: session.user.id })
-      .sort({ createdAt: -1 })
-      .lean();
+    const [ads, adConfig] = await Promise.all([
+      UserAd.find({ userId: session.user.id }).sort({ createdAt: -1 }).lean(),
+      AdConfig.findOne().lean(),
+    ]);
+    const normalized = normalizeAdConfigForClient(adConfig || { placementPricing: {}, adsense: {}, adsterra: {} });
     return NextResponse.json({
       ads: ads.map((a) => ({
         ...a,
         _id: (a as { _id: mongoose.Types.ObjectId })._id.toString(),
         userId: (a as { userId: mongoose.Types.ObjectId }).userId?.toString(),
       })),
+      placementPricing: normalized.placementPricing,
     });
   } catch (e) {
     console.error(e);
@@ -43,8 +55,10 @@ export async function POST(req: Request) {
     const startDateStr = body.startDate as string | undefined;
     const endDateStr = body.endDate as string | undefined;
     const durationHours = body.durationHours as number | undefined;
+    const duration = typeof body.duration === 'number' ? body.duration : durationHours;
     const targetUrl = body.targetUrl as string | undefined;
     const useHourlyPricing = body.useHourlyPricing as boolean | undefined;
+    const pricingMode = parseAdPricingMode(body.pricingMode, useHourlyPricing);
 
     if (!rawPlacement || !isValidAdPlacement(rawPlacement)) {
       return NextResponse.json({ error: 'Invalid placement' }, { status: 400 });
@@ -59,14 +73,14 @@ export async function POST(req: Request) {
 
     let start: Date;
     let end: Date;
-    if (durationHours != null && durationHours > 0) {
+    if (duration != null && duration > 0) {
       start = startDateStr ? new Date(startDateStr) : new Date();
-      end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+      end = new Date(start.getTime() + adDurationMs(pricingMode, duration));
     } else if (startDateStr && endDateStr) {
       start = new Date(startDateStr);
       end = new Date(endDateStr);
     } else {
-      return NextResponse.json({ error: 'Provide startDate+endDate or startDate+durationHours' }, { status: 400 });
+      return NextResponse.json({ error: 'Provide startDate+endDate or startDate+duration' }, { status: 400 });
     }
     if (start >= end || start.getTime() < Date.now() - 60 * 60 * 1000) {
       return NextResponse.json({ error: 'Invalid date range or start must be in the future' }, { status: 400 });
@@ -75,18 +89,13 @@ export async function POST(req: Request) {
     await dbConnect();
 
     const config = await AdConfig.findOne().lean();
-    const pricingMap = config?.placementPricing as Record<string, { pricePerDay: number; pricePerHour: number; currency?: string }> | undefined;
+    const pricingMap = config?.placementPricing as Record<string, PlacementPricingRates> | undefined;
     const pricing = placementPricingValue(pricingMap, placement);
     if (!pricing) {
       return NextResponse.json({ error: 'Pricing not configured for this placement' }, { status: 400 });
     }
 
-    const ms = end.getTime() - start.getTime();
-    const hours = ms / (60 * 60 * 1000);
-    const days = ms / (24 * 60 * 60 * 1000);
-    const amount = useHourlyPricing
-      ? Math.ceil(hours) * pricing.pricePerHour
-      : Math.ceil(days) * pricing.pricePerDay;
+    const amount = computeAdAmount(pricing, pricingMode, start, end);
     if (amount <= 0) {
       return NextResponse.json({ error: 'Invalid duration' }, { status: 400 });
     }

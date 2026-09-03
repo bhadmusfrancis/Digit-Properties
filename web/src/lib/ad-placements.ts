@@ -44,7 +44,67 @@ export function placementConfigValue(
   return undefined;
 }
 
-type Pricing = { pricePerDay: number; pricePerHour: number; currency: string };
+export type AdPricingMode = 'hourly' | 'daily' | 'weekly' | 'monthly';
+
+export type PlacementPricingRates = {
+  pricePerDay: number;
+  pricePerHour: number;
+  pricePerWeek?: number;
+  pricePerMonth?: number;
+  currency: string;
+};
+
+type Pricing = PlacementPricingRates;
+
+const HOUR_MS = 60 * 60 * 1000;
+
+export function resolvePlacementRates(pricing: PlacementPricingRates): {
+  pricePerDay: number;
+  pricePerHour: number;
+  pricePerWeek: number;
+  pricePerMonth: number;
+  currency: string;
+} {
+  const day = Number(pricing.pricePerDay) || 0;
+  return {
+    pricePerDay: day,
+    pricePerHour: Number(pricing.pricePerHour) || 0,
+    pricePerWeek: pricing.pricePerWeek && pricing.pricePerWeek > 0 ? pricing.pricePerWeek : day * 7,
+    pricePerMonth: pricing.pricePerMonth && pricing.pricePerMonth > 0 ? pricing.pricePerMonth : day * 30,
+    currency: pricing.currency || 'NGN',
+  };
+}
+
+export function parseAdPricingMode(value: unknown, useHourlyPricing?: boolean): AdPricingMode {
+  if (value === 'hourly' || value === 'daily' || value === 'weekly' || value === 'monthly') return value;
+  return useHourlyPricing ? 'hourly' : 'daily';
+}
+
+export function adDurationMs(mode: AdPricingMode, units: number): number {
+  const n = Math.max(1, Math.ceil(units));
+  if (mode === 'hourly') return n * HOUR_MS;
+  if (mode === 'weekly') return n * 7 * 24 * HOUR_MS;
+  if (mode === 'monthly') return n * 30 * 24 * HOUR_MS;
+  return n * 24 * HOUR_MS;
+}
+
+export function computeAdAmount(
+  pricing: PlacementPricingRates,
+  mode: AdPricingMode,
+  start: Date,
+  end: Date
+): number {
+  const rates = resolvePlacementRates(pricing);
+  const ms = Math.max(0, end.getTime() - start.getTime());
+  const hours = ms / HOUR_MS;
+  const days = ms / (24 * HOUR_MS);
+  const weeks = ms / (7 * 24 * HOUR_MS);
+  const months = ms / (30 * 24 * HOUR_MS);
+  if (mode === 'hourly') return Math.ceil(hours) * rates.pricePerHour;
+  if (mode === 'weekly') return Math.ceil(weeks) * rates.pricePerWeek;
+  if (mode === 'monthly') return Math.ceil(months) * rates.pricePerMonth;
+  return Math.ceil(days) * rates.pricePerDay;
+}
 
 export function placementPricingValue<T>(
   record: Record<string, T | undefined> | undefined,
@@ -73,9 +133,29 @@ export function normalizeAdConfigForClient(config: {
     return out as R;
   };
 
+  const rawPricing = mergeRecord(config.placementPricing);
+  const placementPricing: Record<string, ReturnType<typeof resolvePlacementRates>> = {};
+  for (const key of Object.keys(rawPricing)) {
+    const value = rawPricing[key];
+    if (value && typeof value === 'object') {
+      placementPricing[key] = resolvePlacementRates(value as PlacementPricingRates);
+    }
+  }
+  for (const p of AD_PLACEMENTS) {
+    if (!placementPricing[p]) {
+      placementPricing[p] = resolvePlacementRates({
+        pricePerDay: 5000,
+        pricePerHour: 500,
+        pricePerWeek: 30000,
+        pricePerMonth: 100000,
+        currency: 'NGN',
+      });
+    }
+  }
+
   return {
     ...config,
-    placementPricing: mergeRecord(config.placementPricing),
+    placementPricing,
     adsense: mergeRecord(config.adsense),
     adsterra: mergeRecord(config.adsterra),
   };

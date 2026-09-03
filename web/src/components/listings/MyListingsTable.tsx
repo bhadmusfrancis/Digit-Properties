@@ -14,7 +14,7 @@ import { SortColumnHeader } from './SortColumnHeader';
 import { ListingSortMobileBar } from './ListingSortMobileBar';
 import { getListingDisplayImage, isDefaultListingImageUrl } from '@/lib/listing-default-image';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
-import { canNonAdminEditListing } from '@/lib/listing-edit-window';
+import { canNonAdminEditListing, isBoostCommitLocked } from '@/lib/listing-edit-window';
 import {
   formatOwnerListingStatus,
   isListingPendingApproval,
@@ -40,6 +40,8 @@ type ListingRow = {
   highlighted?: boolean;
   isBoosted?: boolean;
   boostPackage?: string;
+  boostExpiresAt?: string;
+  boostPostedAt?: string;
   soldAt?: string;
   rentedAt?: string;
   claimedAt?: string;
@@ -98,10 +100,18 @@ export function MyListingsTable({
     return d.toISOString().slice(0, 10);
   };
 
-  const canEdit = (createdAt?: string, claimedAt?: string) => {
+  const canEdit = (l: ListingRow) => {
     if (isAdmin || isBot) return true;
-    return canNonAdminEditListing({ createdAt, claimedAt });
+    return canNonAdminEditListing({
+      createdAt: l.createdAt,
+      claimedAt: l.claimedAt,
+      boostExpiresAt: l.boostExpiresAt,
+      boostPostedAt: l.boostPostedAt,
+    });
   };
+
+  const editLockedByBoost = (l: ListingRow) =>
+    isBoostCommitLocked({ boostExpiresAt: l.boostExpiresAt, boostPostedAt: l.boostPostedAt });
 
   const boostBadgeLabel = (l: ListingRow) => {
     if (!l.isBoosted) return null;
@@ -171,8 +181,12 @@ export function MyListingsTable({
                 listingType={l.listingType}
                 soldAt={l.soldAt}
                 rentedAt={l.rentedAt}
-                canEdit={canEdit(l.createdAt, l.claimedAt)}
+                canEdit={canEdit(l)}
+                canDelete={!l.isBoosted || isAdmin}
                 isBoosted={Boolean(l.isBoosted)}
+                boostPackage={l.boostPackage}
+                boostPostedAt={l.boostPostedAt}
+                editLockedByBoost={editLockedByBoost(l)}
               />
             </div>
           </article>
@@ -279,8 +293,12 @@ export function MyListingsTable({
                   listingType={l.listingType}
                   soldAt={l.soldAt}
                   rentedAt={l.rentedAt}
-                  canEdit={canEdit(l.createdAt, l.claimedAt)}
+                  canEdit={canEdit(l)}
+                  canDelete={!l.isBoosted || isAdmin}
                   isBoosted={Boolean(l.isBoosted)}
+                  boostPackage={l.boostPackage}
+                  boostPostedAt={l.boostPostedAt}
+                  editLockedByBoost={editLockedByBoost(l)}
                 />
               </td>
             </tr>

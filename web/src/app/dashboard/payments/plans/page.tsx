@@ -3,7 +3,7 @@ import { ListingPackages } from '@/components/listings/ListingPackages';
 
 export const metadata = {
   title: 'Listing Boost Packages | Digit Properties',
-  description: 'Starter, Pro, and Premium boost packages for more media, categories, and visibility on your listings.',
+  description: 'Starter, Pro, and Premium boost packages for more media, categories, visibility, and social posting on your listings.',
 };
 
 export default function SubscriptionPlansPage() {

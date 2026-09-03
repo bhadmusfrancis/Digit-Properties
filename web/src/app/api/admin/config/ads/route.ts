@@ -34,7 +34,10 @@ export async function PUT(req: Request) {
     }
     const body = await req.json();
     const { placementPricing, adsense, adsterra } = body as {
-      placementPricing?: Record<string, { pricePerDay: number; pricePerHour: number; currency?: string }>;
+      placementPricing?: Record<
+        string,
+        { pricePerDay: number; pricePerHour: number; pricePerWeek?: number; pricePerMonth?: number; currency?: string }
+      >;
       adsense?: Record<string, string>;
       adsterra?: Record<string, string>;
     };
@@ -45,10 +48,21 @@ export async function PUT(req: Request) {
       for (const p of AD_PLACEMENTS) {
         const v = placementPricing[p];
         if (v && typeof v.pricePerDay === 'number' && typeof v.pricePerHour === 'number') {
-          if (!config.placementPricing) config.placementPricing = {} as Record<string, { pricePerDay: number; pricePerHour: number; currency: string }>;
-          (config.placementPricing as Record<string, { pricePerDay: number; pricePerHour: number; currency: string }>)[p] = {
-            pricePerDay: v.pricePerDay,
+          if (!config.placementPricing) {
+            config.placementPricing = {} as Record<
+              string,
+              { pricePerDay: number; pricePerHour: number; pricePerWeek: number; pricePerMonth: number; currency: string }
+            >;
+          }
+          const day = v.pricePerDay;
+          (config.placementPricing as Record<
+            string,
+            { pricePerDay: number; pricePerHour: number; pricePerWeek: number; pricePerMonth: number; currency: string }
+          >)[p] = {
+            pricePerDay: day,
             pricePerHour: v.pricePerHour,
+            pricePerWeek: typeof v.pricePerWeek === 'number' ? v.pricePerWeek : day * 7,
+            pricePerMonth: typeof v.pricePerMonth === 'number' ? v.pricePerMonth : day * 30,
             currency: v.currency || 'NGN',
           };
         }

@@ -27,6 +27,10 @@ import { uploadListingMediaFile } from '@/lib/upload-listing-media';
 import { coerceListingCount, optionalListingAgentEmailSchema } from '@/lib/validations';
 import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { MAX_LISTING_CATEGORIES } from '@/lib/listing-package-defaults';
+import { LISTING_BOOST_PREP_NOTICE } from '@/lib/listing-edit-window';
+import { BoostPostNowButton } from '@/components/listings/BoostPostNowButton';
+import { SystemNotice } from '@/components/ui/SystemNotice';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
 
@@ -46,7 +50,7 @@ const schema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(20).max(20000),
   listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
-  propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(3, 'You can select up to 3'),
+  propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(MAX_LISTING_CATEGORIES, `You can select up to ${MAX_LISTING_CATEGORIES}`),
   price: z.number().positive(),
   address: z.string().min(5),
   city: z.string().min(2),
@@ -223,6 +227,8 @@ export function ListingForm({
   const maxCategories = typeof stats?.maxCategories === 'number' ? stats.maxCategories : 1;
   const baseMaxCategories = typeof stats?.baseMaxCategories === 'number' ? stats.baseMaxCategories : maxCategories;
   const boostActive = !!stats?.boostActive || !!boostBanner;
+  const boostPosted = Boolean(stats?.boostPostedAt);
+  const showBoostPostNow = Boolean(editId && boostActive && !boostPosted);
 
   const onPaywallSuccess = (info: PaywallSuccess) => {
     setBoostBanner(info);
@@ -814,10 +820,26 @@ export function ListingForm({
             Up to {maxImages} photos (first is used in search) and {maxVideos} video{maxVideos === 1 ? '' : 's'} (MP4/WebM/MOV, max 50MB). On mobile you can pick videos from your library or record.
           </p>
           {boostBanner && (
-            <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800">
-              Boost active — {BOOST_PACKAGES[boostBanner.boostPackage].name} package. {maxImages} photos / {maxVideos} videos available.
-            </p>
+            <SystemNotice kind="success" title={`Boost active — ${BOOST_PACKAGES[boostBanner.boostPackage].name}`} className="mt-2">
+              <p>
+                You now have {maxImages} photos, {maxVideos} videos, and {maxCategories} categories.
+                {showBoostPostNow ? ` ${LISTING_BOOST_PREP_NOTICE}` : ''}
+              </p>
+              {showBoostPostNow && editId ? (
+                <div className="mt-3">
+                  <BoostPostNowButton listingId={editId} boostPackage={boostBanner.boostPackage} />
+                </div>
+              ) : null}
+            </SystemNotice>
           )}
+          {showBoostPostNow && !boostBanner && editId ? (
+            <SystemNotice kind="info" title="Boost ready to publish" className="mt-2">
+              <p>{LISTING_BOOST_PREP_NOTICE}</p>
+              <div className="mt-3">
+                <BoostPostNowButton listingId={editId} boostPackage={stats?.boostPackage} />
+              </div>
+            </SystemNotice>
+          ) : null}
           <div className="mt-2 flex flex-wrap gap-2">
             <input
               type="file"

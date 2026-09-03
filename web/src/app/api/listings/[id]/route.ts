@@ -18,7 +18,7 @@ import { findUserListingDuplicate } from '@/lib/listing-dedupe';
 import { canViewListingOnSite } from '@/lib/listing-access';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import mongoose from 'mongoose';
-import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { BOOST_PACKAGES, listingBoostApplyUpdate } from '@/lib/boost-packages';
 import { ensureUniqueListingSlug } from '@/lib/listing-slug';
 import { getListingPublicPath } from '@/lib/listing-path';
 import {
@@ -27,7 +27,7 @@ import {
   normalizeListingMediaForSeo,
 } from '@/lib/listing-seo-prep';
 import { listingDocToShareFields } from '@/lib/listing-share-text';
-import { canUserEditListing } from '@/lib/listing-edit-window';
+import { canUserDeleteListing, canUserEditListing } from '@/lib/listing-edit-window';
 import { findListingByPublicParam } from '@/lib/resolve-listing';
 import { revalidateAllSitemaps, revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
@@ -68,9 +68,23 @@ export async function GET(
           listingCreatedBy: String(pre.createdBy),
           createdAt: (pre as { createdAt?: Date }).createdAt,
           claimedAt: (pre as { claimedAt?: Date }).claimedAt,
+          boostExpiresAt: (pre as { boostExpiresAt?: Date }).boostExpiresAt,
+          boostPostedAt: (pre as { boostPostedAt?: Date }).boostPostedAt,
         })
       ) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        const boostLocked = Boolean(
+          (pre as { boostPostedAt?: Date }).boostPostedAt &&
+            (pre as { boostExpiresAt?: Date }).boostExpiresAt &&
+            new Date((pre as { boostExpiresAt: Date }).boostExpiresAt) > new Date()
+        );
+        return NextResponse.json(
+          {
+            error: boostLocked
+              ? 'This listing is locked after Boost Post Now. Extend the boost to add more photos, videos, or categories.'
+              : 'Forbidden',
+          },
+          { status: 403 }
+        );
       }
     } else if (
       !canViewListingOnSite({
@@ -145,12 +159,17 @@ export async function PATCH(
         listingCreatedBy: listing.createdBy.toString(),
         createdAt: listing.createdAt,
         claimedAt: listing.claimedAt,
+        boostExpiresAt: listing.boostExpiresAt,
+        boostPostedAt: listing.boostPostedAt,
       })
     ) {
+      const boostLocked = Boolean(listing.boostPostedAt && listing.boostExpiresAt && new Date(listing.boostExpiresAt) > new Date());
       return NextResponse.json(
         {
           error: isOwner
-            ? 'Listings can only be edited within 24 hours of creation or claim for non-admin users.'
+            ? boostLocked
+              ? 'This listing is locked after Boost Post Now. Extend the boost to add more photos, videos, or categories.'
+              : 'Listings can only be edited within 24 hours of creation or claim for non-admin users.'
             : 'Forbidden',
         },
         { status: 403 }
@@ -292,6 +311,24 @@ export async function PATCH(
     if (resolvedPt) {
       listing.propertyType = resolvedPt.propertyType as typeof listing.propertyType;
       listing.propertyTypes = resolvedPt.propertyTypes as typeof listing.propertyTypes;
+      const userForCats = await User.findById(session.user.id).lean();
+      const catTier =
+        session.user.role === USER_ROLES.ADMIN
+          ? SUBSCRIPTION_TIERS.PREMIUM
+          : (userForCats?.subscriptionTier as string) ||
+            (session.user.role === USER_ROLES.GUEST ? SUBSCRIPTION_TIERS.GUEST : SUBSCRIPTION_TIERS.FREE);
+      const catLimits = applyBoostToLimits(await getSubscriptionLimits(catTier), {
+        boostPackage: listing.boostPackage,
+        boostExpiresAt: listing.boostExpiresAt,
+      });
+      if (resolvedPt.propertyTypes.length > (catLimits.maxCategories ?? 1)) {
+        return NextResponse.json(
+          {
+            error: `You can select up to ${catLimits.maxCategories} categories.${catLimits.boostActive ? '' : ' Boost this listing to add more.'}`,
+          },
+          { status: 400 }
+        );
+      }
     }
     const textForAmenityDetect = `${listing.title ?? ''}\n${listing.description ?? ''}\n${(incomingTags ?? listing.tags ?? []).join(', ')}`;
     const detectedAmenities = extractAmenitiesFromText(textForAmenityDetect, POPULAR_AMENITIES);
@@ -343,18 +380,16 @@ export async function PATCH(
         if (!selected) {
           return NextResponse.json({ error: 'Invalid boost package' }, { status: 400 });
         }
-        const now = new Date();
-        const currentEnd = listing.boostExpiresAt ? new Date(listing.boostExpiresAt) : null;
-        const base = currentEnd && currentEnd > now ? currentEnd : now;
-        const newExpiry = new Date(base);
-        newExpiry.setDate(newExpiry.getDate() + selected.days);
-        listing.boostPackage = key;
-        listing.boostExpiresAt = newExpiry;
-        listing.featured = selected.featured;
-        listing.highlighted = selected.highlighted;
+        const applied = listingBoostApplyUpdate(key, listing.boostExpiresAt, selected.days);
+        listing.boostPackage = applied.boostPackage;
+        listing.boostExpiresAt = applied.boostExpiresAt;
+        listing.featured = applied.featured;
+        listing.highlighted = applied.highlighted;
+        listing.boostPostedAt = undefined;
       } else if (body.boostPackage === null || body.boostPackage === '') {
         listing.boostPackage = undefined;
         listing.boostExpiresAt = undefined;
+        listing.boostPostedAt = undefined;
         listing.featured = false;
         listing.highlighted = false;
       }
@@ -547,6 +582,19 @@ export async function DELETE(
     const isOwner = listing.createdBy.toString() === session.user.id;
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (
+      !canUserDeleteListing({
+        role: session.user.role,
+        userId: session.user.id,
+        listingCreatedBy: listing.createdBy.toString(),
+        boostExpiresAt: listing.boostExpiresAt,
+      })
+    ) {
+      return NextResponse.json(
+        { error: 'Boosted listings cannot be deleted until the boost expires.' },
+        { status: 403 }
+      );
     }
 
     const { recordListingPathRedirects } = await import('@/lib/listing-path-redirect');

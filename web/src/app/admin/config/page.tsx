@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AD_PLACEMENTS } from '@/lib/constants';
-import { AD_PLACEMENT_LABELS } from '@/lib/ad-placements';
+import { AD_PLACEMENT_LABELS, resolvePlacementRates } from '@/lib/ad-placements';
+import { BOOST_PACKAGES, type BoostPackage } from '@/lib/boost-packages';
 
 type TierConfig = {
   tier: string;
@@ -18,7 +19,13 @@ type TierConfig = {
   priceMonthly: number;
 };
 
-type PlacementPricing = { pricePerDay: number; pricePerHour: number; currency: string };
+type PlacementPricing = {
+  pricePerDay: number;
+  pricePerHour: number;
+  pricePerWeek: number;
+  pricePerMonth: number;
+  currency: string;
+};
 type AdConfigState = {
   placementPricing: Record<string, PlacementPricing>;
   adsense: Record<string, string>;
@@ -74,11 +81,30 @@ export default function AdminConfigPage() {
       .then((d) => {
         const pricing: Record<string, PlacementPricing> = {};
         AD_PLACEMENTS.forEach((p) => {
-          pricing[p] = d.placementPricing?.[p] ?? { pricePerDay: 5000, pricePerHour: 500, currency: 'NGN' };
+          pricing[p] = resolvePlacementRates(
+            d.placementPricing?.[p] ?? {
+              pricePerDay: 5000,
+              pricePerHour: 500,
+              pricePerWeek: 30000,
+              pricePerMonth: 100000,
+              currency: 'NGN',
+            }
+          );
         });
         setAdConfig({ placementPricing: pricing, adsense: d.adsense || {}, adsterra: d.adsterra || {} });
       })
-      .catch(() => setAdConfig({ placementPricing: Object.fromEntries(AD_PLACEMENTS.map((p) => [p, { pricePerDay: 5000, pricePerHour: 500, currency: 'NGN' }])), adsense: {}, adsterra: {} }))
+      .catch(() =>
+        setAdConfig({
+          placementPricing: Object.fromEntries(
+            AD_PLACEMENTS.map((p) => [
+              p,
+              { pricePerDay: 5000, pricePerHour: 500, pricePerWeek: 30000, pricePerMonth: 100000, currency: 'NGN' },
+            ])
+          ),
+          adsense: {},
+          adsterra: {},
+        })
+      )
       .finally(() => setAdConfigLoading(false));
   }, []);
 
@@ -110,7 +136,7 @@ export default function AdminConfigPage() {
     <div>
       <h2 className="text-lg font-semibold text-gray-900">Listing boost packages</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Configure Starter, Pro, and Premium boost packages: price per boost, duration, media limits, and Featured / Highlighted access. Shown on listing plans and used when users boost a property.
+        Configure Starter, Pro, and Premium boost packages: price per boost, duration, media limits, and Featured / Highlighted access. Pro includes Facebook posting; Premium includes Facebook and X. Shown on listing plans and used when users boost a property.
       </p>
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
         <h3 className="font-medium text-gray-900">Listing moderation</h3>
@@ -274,6 +300,24 @@ export default function AdminConfigPage() {
                 </label>
               </div>
             </div>
+            {(() => {
+              const pkg = BOOST_PACKAGES[c.tier as BoostPackage['id']];
+              if (!pkg) return null;
+              return (
+                <div className="mt-4 rounded-lg border border-sky-100 bg-sky-50/70 px-3 py-2 text-sm text-sky-950">
+                  <p className="font-medium">Social posting</p>
+                  <p className="mt-0.5 text-sky-800">
+                    {pkg.socialFacebook && pkg.socialTwitter
+                      ? 'Facebook and X posting included after Boost Post Now.'
+                      : pkg.socialFacebook
+                        ? 'Facebook Page posting included after Boost Post Now.'
+                        : pkg.socialTwitter
+                          ? 'X posting included after Boost Post Now.'
+                          : 'On-site boost only. No Facebook or X posting.'}
+                  </p>
+                </div>
+              );
+            })()}
             {saving === c.tier && (
               <p className="mt-2 text-sm text-gray-500">Saving...</p>
             )}
@@ -283,7 +327,7 @@ export default function AdminConfigPage() {
       <div className="mt-10 border-t border-gray-200 pt-10">
         <h2 className="text-lg font-semibold text-gray-900">Ad placement pricing, AdSense &amp; Adsterra</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Price per day/hour for each placement. Paste AdSense and/or Adsterra Native Banner code (HTML snippet) per slot to show ads when no user ad is selected. Use Adsterra as an optional alternative to AdSense.
+          Price per hour, day, week, and month for each placement. Paste AdSense and/or Adsterra Native Banner code (HTML snippet) per slot to show ads when no user ad is selected. Use Adsterra as an optional alternative to AdSense.
         </p>
         {adConfigLoading ? (
           <p className="mt-4 text-gray-500">Loading ad config…</p>
@@ -303,7 +347,7 @@ export default function AdminConfigPage() {
                         ...c!,
                         placementPricing: {
                           ...c!.placementPricing,
-                          [p]: { ...(c!.placementPricing[p] || { currency: 'NGN' }), pricePerDay: parseInt(e.target.value, 10) || 0 },
+                          [p]: { ...(c!.placementPricing[p] || { pricePerDay: 0, pricePerHour: 0, pricePerWeek: 0, pricePerMonth: 0, currency: 'NGN' }), pricePerDay: parseInt(e.target.value, 10) || 0 },
                         },
                       }))}
                       className="input mt-1 w-full"
@@ -319,7 +363,39 @@ export default function AdminConfigPage() {
                         ...c!,
                         placementPricing: {
                           ...c!.placementPricing,
-                          [p]: { ...(c!.placementPricing[p] || { currency: 'NGN' }), pricePerHour: parseInt(e.target.value, 10) || 0 },
+                          [p]: { ...(c!.placementPricing[p] || { pricePerDay: 0, pricePerHour: 0, pricePerWeek: 0, pricePerMonth: 0, currency: 'NGN' }), pricePerHour: parseInt(e.target.value, 10) || 0 },
+                        },
+                      }))}
+                      className="input mt-1 w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500">Price per week (NGN)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={adConfig.placementPricing?.[p]?.pricePerWeek ?? 0}
+                      onChange={(e) => setAdConfig((c) => ({
+                        ...c!,
+                        placementPricing: {
+                          ...c!.placementPricing,
+                          [p]: { ...(c!.placementPricing[p] || { pricePerDay: 0, pricePerHour: 0, pricePerWeek: 0, pricePerMonth: 0, currency: 'NGN' }), pricePerWeek: parseInt(e.target.value, 10) || 0 },
+                        },
+                      }))}
+                      className="input mt-1 w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500">Price per month (NGN)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={adConfig.placementPricing?.[p]?.pricePerMonth ?? 0}
+                      onChange={(e) => setAdConfig((c) => ({
+                        ...c!,
+                        placementPricing: {
+                          ...c!.placementPricing,
+                          [p]: { ...(c!.placementPricing[p] || { pricePerDay: 0, pricePerHour: 0, pricePerWeek: 0, pricePerMonth: 0, currency: 'NGN' }), pricePerMonth: parseInt(e.target.value, 10) || 0 },
                         },
                       }))}
                       className="input mt-1 w-full"

@@ -31,6 +31,10 @@ import { stripHtml } from '@/lib/utils';
 import { coerceListingCount, optionalListingAgentEmailSchema } from '@/lib/validations';
 import { BoostPaywallModal, type PaywallReason, type PaywallSuccess } from '@/components/listings/BoostPaywallModal';
 import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { MAX_LISTING_CATEGORIES } from '@/lib/listing-package-defaults';
+import { LISTING_BOOST_PREP_NOTICE } from '@/lib/listing-edit-window';
+import { BoostPostNowButton } from '@/components/listings/BoostPostNowButton';
+import { SystemNotice } from '@/components/ui/SystemNotice';
 
 const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[]]);
 
@@ -38,7 +42,7 @@ const propertyTypeEnum = z.enum(PROPERTY_TYPES as unknown as [string, ...string[
 const wizardStep1Schema = z
   .object({
     listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
-    propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(3, 'You can select up to 3'),
+    propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(MAX_LISTING_CATEGORIES, `You can select up to ${MAX_LISTING_CATEGORIES}`),
     price: z.preprocess(
       (v) =>
         v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
@@ -110,7 +114,7 @@ const wizardSchema = z
       .max(20000)
       .refine((s) => stripHtml(s).length >= 20, { message: 'Description must be at least 20 characters' }),
     listingType: z.enum(Object.values(LISTING_TYPE) as [string, ...string[]]),
-    propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(3, 'You can select up to 3'),
+    propertyTypes: z.array(propertyTypeEnum).min(1, 'Select at least one property type').max(MAX_LISTING_CATEGORIES, `You can select up to ${MAX_LISTING_CATEGORIES}`),
     price: z.preprocess(
       (v) =>
         v === '' || v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
@@ -325,6 +329,8 @@ export function NewListingWizard() {
   const baseMaxVideos = typeof stats?.baseMaxVideos === 'number' ? stats.baseMaxVideos : maxVideos;
   const baseMaxCategories = typeof stats?.baseMaxCategories === 'number' ? stats.baseMaxCategories : maxCategories;
   const boostActive = !!stats?.boostActive || !!boostBanner;
+  const boostPosted = Boolean(stats?.boostPostedAt);
+  const showBoostPostNow = Boolean(draftId && boostActive && !boostPosted);
 
   const methods = useForm<WizardFormData>({
     resolver: zodResolver(wizardSchema),
@@ -1199,10 +1205,26 @@ export function NewListingWizard() {
                   )}
                 </div>
                 {boostBanner && (
-                  <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                    Boost active — {BOOST_PACKAGES[boostBanner.boostPackage].name} package. You now have {maxImages} photos and {maxVideos} video slots.
-                  </div>
+                  <SystemNotice kind="success" title={`Boost active — ${BOOST_PACKAGES[boostBanner.boostPackage].name}`} className="mt-3">
+                    <p>
+                      You now have {maxImages} photos, {maxVideos} videos, and {maxCategories} categories.
+                      {showBoostPostNow ? ` ${LISTING_BOOST_PREP_NOTICE}` : ''}
+                    </p>
+                    {showBoostPostNow && draftId ? (
+                      <div className="mt-3">
+                        <BoostPostNowButton listingId={draftId} boostPackage={boostBanner.boostPackage} />
+                      </div>
+                    ) : null}
+                  </SystemNotice>
                 )}
+                {showBoostPostNow && !boostBanner && draftId ? (
+                  <SystemNotice kind="info" title="Boost ready to publish" className="mt-3">
+                    <p>{LISTING_BOOST_PREP_NOTICE}</p>
+                    <div className="mt-3">
+                      <BoostPostNowButton listingId={draftId} boostPackage={stats?.boostPackage} />
+                    </div>
+                  </SystemNotice>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <input
                     type="file"

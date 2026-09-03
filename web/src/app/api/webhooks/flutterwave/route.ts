@@ -3,7 +3,7 @@ import { dbConnect } from '@/lib/db';
 import Payment from '@/models/Payment';
 import Listing from '@/models/Listing';
 import User from '@/models/User';
-import { BOOST_PACKAGES } from '@/lib/boost-packages';
+import { BOOST_PACKAGES, listingBoostApplyUpdate } from '@/lib/boost-packages';
 import { notifyPaymentSuccess } from '@/lib/payment-emails';
 
 function verifyWebhook(secret: string): boolean {
@@ -76,17 +76,8 @@ export async function POST(req: Request) {
       const packageId = (payment.metadata as { boostPackage?: keyof typeof BOOST_PACKAGES })?.boostPackage ?? 'starter';
       const boostPackage = BOOST_PACKAGES[packageId] ?? BOOST_PACKAGES.starter;
       const listing = await Listing.findById(payment.listingId).select('boostExpiresAt').lean();
-      const now = new Date();
-      const currentEnd = listing?.boostExpiresAt ? new Date(listing.boostExpiresAt) : null;
-      const base = currentEnd && currentEnd > now ? currentEnd : now;
-      const newExpiry = new Date(base);
-      newExpiry.setDate(newExpiry.getDate() + days);
-      await Listing.findByIdAndUpdate(payment.listingId, {
-        boostPackage: packageId,
-        boostExpiresAt: newExpiry,
-        featured: boostPackage.featured,
-        highlighted: boostPackage.highlighted,
-      });
+      const applied = listingBoostApplyUpdate(boostPackage.id, listing?.boostExpiresAt, days);
+      await Listing.findByIdAndUpdate(payment.listingId, applied);
     }
 
     if (payment.purpose === 'subscription_tier' && payment.userId) {

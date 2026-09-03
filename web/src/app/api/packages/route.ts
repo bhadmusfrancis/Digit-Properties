@@ -19,6 +19,9 @@ export type PackageDisplay = {
   maxCategories: number;
   canFeatured: boolean;
   canHighlighted: boolean;
+  socialFacebook: boolean;
+  socialTwitter: boolean;
+  socialPosting: string;
   isStarter: boolean;
 };
 
@@ -49,6 +52,9 @@ function buildPackagesFromConfigs(
       maxCategories: found?.maxCategories ?? def.maxCategories,
       canFeatured: found?.canFeatured ?? def.canFeatured,
       canHighlighted: found?.canHighlighted ?? def.canHighlighted,
+      socialFacebook: pkg.socialFacebook,
+      socialTwitter: pkg.socialTwitter,
+      socialPosting: pkg.socialPosting,
       isStarter: tier === 'starter',
     };
   });

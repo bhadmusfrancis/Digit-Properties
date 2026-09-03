@@ -14,6 +14,9 @@ export type PackageDisplay = {
   maxCategories: number;
   canFeatured: boolean;
   canHighlighted: boolean;
+  socialFacebook?: boolean;
+  socialTwitter?: boolean;
+  socialPosting?: string;
   isStarter: boolean;
 };
 
@@ -64,7 +67,7 @@ export function ListingPackages() {
           Listing boost packages
         </h2>
         <p className="mt-2 text-base text-gray-600 max-w-xl mx-auto">
-          Boost a listing to unlock more photos, videos, categories, and visibility. Pick a package when you publish or from My Properties.
+          Boost a listing to unlock more photos, videos, categories, and visibility. Pro posts to Facebook; Premium posts to Facebook and X. Pick a package when you publish or from My Properties.
         </p>
       </div>
 
@@ -147,6 +150,24 @@ export function ListingPackages() {
                   <li className="flex items-start gap-2 text-gray-500">
                     <span className="shrink-0" aria-hidden>—</span>
                     <span>Standard search placement</span>
+                  </li>
+                )}
+                {pkg.socialFacebook || pkg.socialTwitter ? (
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 text-sky-600 shrink-0" aria-hidden>#</span>
+                    <span>
+                      {pkg.socialPosting ||
+                        (pkg.socialFacebook && pkg.socialTwitter
+                          ? 'Facebook and X posting'
+                          : pkg.socialFacebook
+                            ? 'Facebook Page posting'
+                            : 'X posting')}
+                    </span>
+                  </li>
+                ) : (
+                  <li className="flex items-start gap-2 text-gray-500">
+                    <span className="shrink-0" aria-hidden>—</span>
+                    <span>On-site boost only</span>
                   </li>
                 )}
               </ul>

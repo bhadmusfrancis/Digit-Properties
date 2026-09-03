@@ -6,6 +6,10 @@ import { useSearchParams } from 'next/navigation';
 import { AD_PLACEMENTS, AD_MEDIA_RECOMMENDED } from '@/lib/constants';
 import { AD_PLACEMENT_LABELS, getAdPlacementLabel } from '@/lib/ad-placements';
 import { formatPrice } from '@/lib/utils';
+import type { AdPricingMode, PlacementPricingRates } from '@/lib/ad-placements';
+import { resolvePlacementRates } from '@/lib/ad-placements';
+import { SystemNotice } from '@/components/ui/SystemNotice';
+import { useSystemToast } from '@/components/ui/SystemToast';
 
 const PLACEMENT_LABELS = AD_PLACEMENT_LABELS;
 
@@ -23,8 +27,16 @@ type AdItem = {
   createdAt: string;
 };
 
+const DURATION_LABEL: Record<AdPricingMode, string> = {
+  hourly: 'Duration (hours)',
+  daily: 'Duration (days)',
+  weekly: 'Duration (weeks)',
+  monthly: 'Duration (months)',
+};
+
 export default function DashboardAdsPage() {
   const searchParams = useSearchParams();
+  const notify = useSystemToast();
   const success = searchParams.get('success') === 'true';
   const [ads, setAds] = useState<AdItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,13 +48,14 @@ export default function DashboardAdsPage() {
     media: null as { public_id: string; url: string; type: 'image' | 'video' } | null,
     startDate: '',
     startTime: '09:00',
-    durationHours: 24,
+    duration: 1,
     targetUrl: '',
-    useHourlyPricing: false,
+    pricingMode: 'daily' as AdPricingMode,
   });
   const [uploading, setUploading] = useState(false);
   const [createdAd, setCreatedAd] = useState<{ adId: string; amount: number; currency: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [placementPricing, setPlacementPricing] = useState<Record<string, PlacementPricingRates>>({});
 
   useEffect(() => {
     if (success) {
@@ -57,6 +70,9 @@ export default function DashboardAdsPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.ads) setAds(data.ads);
+        if (data.placementPricing && typeof data.placementPricing === 'object') {
+          setPlacementPricing(data.placementPricing);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -108,9 +124,9 @@ export default function DashboardAdsPage() {
         placement: form.placement,
         media: form.media,
         startDate: start.toISOString(),
-        durationHours: form.durationHours,
+        duration: form.duration,
         targetUrl: form.targetUrl.trim(),
-        useHourlyPricing: form.useHourlyPricing,
+        pricingMode: form.pricingMode,
       }),
     })
       .then((r) => r.json())
@@ -135,6 +151,7 @@ export default function DashboardAdsPage() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         if (data.paidWithWallet) {
+          notify.success('Ad paid with Ad credit', 'Your ad is pending admin approval.');
           fetchAds();
           setCreatedAd(null);
           return;
@@ -155,29 +172,38 @@ export default function DashboardAdsPage() {
     expired: 'Expired',
   };
 
+  const selectedRates = resolvePlacementRates(
+    placementPricing[form.placement] || {
+      pricePerDay: 5000,
+      pricePerHour: 500,
+      pricePerWeek: 30000,
+      pricePerMonth: 100000,
+      currency: 'NGN',
+    }
+  );
+
   return (
     <div className="min-w-0">
       <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Advertise</h1>
       <p className="mt-1 text-gray-600">
-        Run your ad on the homepage, listing search, or listing detail pages. Upload creative, choose placement and schedule, then pay. Ads require admin approval after payment.
+        Run your ad on the homepage, listing search, or listing detail pages. Upload creative, choose placement and schedule, then pay by the hour, day, week, or month. Ads require admin approval after payment.
       </p>
 
       {success && (
-        <div className="mt-4 rounded-lg bg-green-50 p-4 text-green-800">
-          Payment received. Your ad is pending admin approval and will go live in the selected period.
-        </div>
+        <SystemNotice kind="success" title="Payment received" className="mt-4">
+          Your ad is pending admin approval and will go live in the selected period.
+        </SystemNotice>
       )}
 
       {error && (
-        <div className="mt-4 rounded-lg bg-red-50 p-4 text-red-800">
+        <SystemNotice kind="error" title="Something went wrong" className="mt-4">
           {error}
-        </div>
+        </SystemNotice>
       )}
 
       {createdAd && (
-        <div className="mt-4 rounded-lg border border-primary-200 bg-primary-50 p-4">
-          <p className="font-medium text-primary-900">Ad created. Pay to submit for approval.</p>
-          <p className="mt-1 text-primary-700">
+        <SystemNotice kind="info" title="Ad created. Pay to submit for approval." className="mt-4">
+          <p>
             Amount: {formatPrice(createdAd.amount)} ({createdAd.currency})
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -206,7 +232,7 @@ export default function DashboardAdsPage() {
               Pay with Flutterwave
             </button>
           </div>
-        </div>
+        </SystemNotice>
       )}
 
       <div className="mt-6 flex flex-wrap gap-3">
@@ -268,24 +294,64 @@ export default function DashboardAdsPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Duration (hours)</label>
+            <label className="block text-sm font-medium text-gray-700">Billing period</label>
+            <select
+              value={form.pricingMode}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  pricingMode: e.target.value as AdPricingMode,
+                  duration: e.target.value === 'hourly' ? 24 : 1,
+                }))
+              }
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+            >
+              <option value="hourly">Hourly</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Advert bookings are charged once for the selected period (hour, day, week, or month). This is separate from listing boosts.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {([
+                ['hourly', 'Per hour', selectedRates.pricePerHour],
+                ['daily', 'Per day', selectedRates.pricePerDay],
+                ['weekly', 'Per week', selectedRates.pricePerWeek],
+                ['monthly', 'Per month', selectedRates.pricePerMonth],
+              ] as const).map(([mode, label, amount]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      pricingMode: mode,
+                      duration: mode === 'hourly' ? 24 : 1,
+                    }))
+                  }
+                  className={`rounded-lg border px-2.5 py-2 text-left ${
+                    form.pricingMode === mode
+                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-200'
+                      : 'border-gray-200 bg-gray-50 hover:border-primary-300'
+                  }`}
+                >
+                  <p className="text-[11px] font-medium text-gray-500">{label}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-900">{formatPrice(amount)}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{DURATION_LABEL[form.pricingMode]}</label>
             <input
               type="number"
               min={1}
-              value={form.durationHours}
-              onChange={(e) => setForm((f) => ({ ...f, durationHours: parseInt(e.target.value, 10) || 24 }))}
+              value={form.duration}
+              onChange={(e) => setForm((f) => ({ ...f, duration: parseInt(e.target.value, 10) || 1 }))}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
             />
-          </div>
-          <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.useHourlyPricing}
-                onChange={(e) => setForm((f) => ({ ...f, useHourlyPricing: e.target.checked }))}
-              />
-              <span className="text-sm font-medium text-gray-700">Use hourly pricing (otherwise daily)</span>
-            </label>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Redirect URL</label>

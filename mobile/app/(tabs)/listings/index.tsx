@@ -71,7 +71,11 @@ export default function MyListingsTabScreen() {
       .finally(() => setTogglingId(null));
   };
 
-  const deleteListing = (id: string, title: string) => {
+  const deleteListing = (id: string, title: string, isBoosted?: boolean) => {
+    if (isBoosted) {
+      Alert.alert('Cannot delete yet', 'Boosted listings cannot be deleted until the boost expires.');
+      return;
+    }
     Alert.alert('Delete listing', `Delete "${title}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -182,7 +186,7 @@ export default function MyListingsTabScreen() {
                     <Pressable onPress={() => router.push({ pathname: '/listings/[id]/edit', params: { id: item._id } })}>
                       <Text style={styles.actionText}>Edit</Text>
                     </Pressable>
-                    <Pressable onPress={() => deleteListing(item._id, item.title)}>
+                    <Pressable onPress={() => deleteListing(item._id, item.title, item.isBoosted)}>
                       <Text style={[styles.actionText, styles.actionDanger]}>Delete</Text>
                     </Pressable>
                   </View>

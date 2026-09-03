@@ -390,6 +390,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       listingCreatedBy: createdById,
       createdAt: listing.createdAt as Date,
       claimedAt: (listing as { claimedAt?: Date }).claimedAt,
+      boostExpiresAt: listing.boostExpiresAt,
+      boostPostedAt: (listing as { boostPostedAt?: Date }).boostPostedAt,
     });
 
     const baseUrl = siteOrigin();
