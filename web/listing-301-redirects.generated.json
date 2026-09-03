@@ -1,0 +1,3952 @@
+[
+  {
+    "source": "/listings/1-bed-mini-flat-at-ilasan-lekki-lagos-lekki-1",
+    "destination": "/listings/1-bed-mini-flat-at-ilasan-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-mini-flat-at-ilasan-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/1-bed-mini-flat-at-ilasan-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/100-sqm-warehouse-at-ibadan-lagos-ibadan",
+    "destination": "/listings/100-sqm-warehouse-at-mowe-ogun-mowe",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/100-sqm-warehouse-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/100-sqm-warehouse-at-mowe-ogun-mowe/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-banana-island-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/1000-sqm-land-at-banana-island-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-banana-island-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/1000-sqm-land-at-banana-island-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-idado-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/1000-sqm-land-at-idado-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-idado-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/1000-sqm-land-at-idado-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-lekki-epe-expressway-lekki-lagos-lekki-1",
+    "destination": "/listings/1000-sqm-land-at-lekki-epe-expressway-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-lekki-epe-expressway-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/1000-sqm-land-at-lekki-epe-expressway-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1012-sqm-office-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/1012-sqm-office-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1012-sqm-office-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/1012-sqm-office-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1012-sqm-warehouse-at-ibadan-lagos-ibadan",
+    "destination": "/listings/1012-sqm-warehouse-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1012-sqm-warehouse-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/1012-sqm-warehouse-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1041-sqm-land-at-lalupon-ibadan-oyo-ibadan",
+    "destination": "/listings/1041-sqm-land-at-keffi-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1041-sqm-land-at-lalupon-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/1041-sqm-land-at-keffi-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1109-sqm-3-bed-apartment-at-awolowo-ibadan-oyo-ibadan",
+    "destination": "/listings/1109-sqm-3-bed-apartment-at-southwest-ikoyi-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1109-sqm-3-bed-apartment-at-awolowo-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/1109-sqm-3-bed-apartment-at-southwest-ikoyi-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1220-sqm-commercial-at-victoria-island-lagos-victoria-island-2",
+    "destination": "/listings/1220-sqm-commercial-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1220-sqm-commercial-at-victoria-island-lagos-victoria-island-2/:path*",
+    "destination": "/listings/1220-sqm-commercial-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/12324-sqm-land-at-banana-island-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/12324-sqm-land-at-banana-island-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/12324-sqm-land-at-banana-island-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/12324-sqm-land-at-banana-island-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1263-sqm-apartment-at-lekki-phase-1-lekki-lagos-lekki",
+    "destination": "/listings/1263-sqm-apartment-at-lekki-phase-1-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1263-sqm-apartment-at-lekki-phase-1-lekki-lagos-lekki/:path*",
+    "destination": "/listings/1263-sqm-apartment-at-lekki-phase-1-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/12675-sqm-3-bed-house-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/12675-sqm-3-bed-house-at-sheraton-hotel-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/12675-sqm-3-bed-house-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/12675-sqm-3-bed-house-at-sheraton-hotel-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1293-sqm-land-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/1293-sqm-land-at-awolowo-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1293-sqm-land-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/1293-sqm-land-at-awolowo-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1293-sqm-land-at-awolowo-road-ibadan-oyo-ibadan-1",
+    "destination": "/listings/1293-sqm-land-at-awolowo-road-ikoyi-lagos-ikoyi-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1293-sqm-land-at-awolowo-road-ibadan-oyo-ibadan-1/:path*",
+    "destination": "/listings/1293-sqm-land-at-awolowo-road-ikoyi-lagos-ikoyi-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1293-sqm-land-at-awolowo-road-ibadan-oyo-ibadan-2",
+    "destination": "/listings/1293-sqm-land-at-awolowo-road-ikoyi-lagos-ikoyi-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1293-sqm-land-at-awolowo-road-ibadan-oyo-ibadan-2/:path*",
+    "destination": "/listings/1293-sqm-land-at-awolowo-road-ikoyi-lagos-ikoyi-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1296-sqm-apartment-at-ilasan-lekki-lagos-lekki-1",
+    "destination": "/listings/1296-sqm-apartment-at-ilasan-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1296-sqm-apartment-at-ilasan-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/1296-sqm-apartment-at-ilasan-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1323-sqm-apartment-at-awolowo-ibadan-oyo-ibadan",
+    "destination": "/listings/1323-sqm-apartment-at-ademola-street-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1323-sqm-apartment-at-awolowo-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/1323-sqm-apartment-at-ademola-street-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1330-sqm-townhouse-at-waterfront-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/1330-sqm-townhouse-at-waterfront-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1330-sqm-townhouse-at-waterfront-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/1330-sqm-townhouse-at-waterfront-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1350-sqm-land-at-anthony-ikeja-lagos-ikeja-1",
+    "destination": "/listings/1350-sqm-land-at-anthony-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1350-sqm-land-at-anthony-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/1350-sqm-land-at-anthony-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1400-sqm-commercial-at-lagos-lagos",
+    "destination": "/listings/1400-sqm-commercial-at-gwarinpa-abuja-fct-abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1400-sqm-commercial-at-lagos-lagos/:path*",
+    "destination": "/listings/1400-sqm-commercial-at-gwarinpa-abuja-fct-abuja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/15000-sqm-commercial-at-ibadan-lagos-ibadan",
+    "destination": "/listings/15000-sqm-commercial-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/15000-sqm-commercial-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/15000-sqm-commercial-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1517-sqm-3-bed-apartment-at-ikeja-lagos-ikeja-1",
+    "destination": "/listings/1517-sqm-3-bed-apartment-at-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1517-sqm-3-bed-apartment-at-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/1517-sqm-3-bed-apartment-at-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1600-sqm-hotel-at-victoria-island-lagos-victoria-island",
+    "destination": "/listings/1600-sqm-land-at-victoria-island-lagos-victoria-island-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1600-sqm-hotel-at-victoria-island-lagos-victoria-island/:path*",
+    "destination": "/listings/1600-sqm-land-at-victoria-island-lagos-victoria-island-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1600-sqm-land-at-victoria-island-lagos-victoria-island-5",
+    "destination": "/listings/1600-sqm-land-at-victoria-island-lagos-victoria-island-3",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1600-sqm-land-at-victoria-island-lagos-victoria-island-5/:path*",
+    "destination": "/listings/1600-sqm-land-at-victoria-island-lagos-victoria-island-3/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1700-sqm-land-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/1700-sqm-land-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1700-sqm-land-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/1700-sqm-land-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/17490-sqm-commercial-at-bode-thomas-surulere-lagos-surulere-1",
+    "destination": "/listings/17490-sqm-commercial-at-bode-thomas-surulere-lagos-surulere",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/17490-sqm-commercial-at-bode-thomas-surulere-lagos-surulere-1/:path*",
+    "destination": "/listings/17490-sqm-commercial-at-bode-thomas-surulere-lagos-surulere/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1800-sqm-hotel-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/1800-sqm-hotel-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1800-sqm-hotel-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/1800-sqm-hotel-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1900-sqm-apartment-at-victoria-island-lagos-victoria-island",
+    "destination": "/listings/1900-sqm-land-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1900-sqm-apartment-at-victoria-island-lagos-victoria-island/:path*",
+    "destination": "/listings/1900-sqm-land-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1932-sqm-land-at-glover-road-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/1932-sqm-land-at-glover-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1932-sqm-land-at-glover-road-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/1932-sqm-land-at-glover-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-adeniyi-jones-ikeja-lagos-ikeja-1",
+    "destination": "/listings/2-bed-apartment-at-adeniyi-jones-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-adeniyi-jones-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/2-bed-apartment-at-adeniyi-jones-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-igando-alimosho-lagos-alimosho-5",
+    "destination": "/listings/2-bed-apartment-at-igando-alimosho-lagos-alimosho-3",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-igando-alimosho-lagos-alimosho-5/:path*",
+    "destination": "/listings/2-bed-apartment-at-igando-alimosho-lagos-alimosho-3/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-bungalow-at-mowe-ogun-mowe",
+    "destination": "/listings/2-bed-bungalow-at-mowe-ogun-mowe-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-bungalow-at-mowe-ogun-mowe/:path*",
+    "destination": "/listings/2-bed-bungalow-at-mowe-ogun-mowe-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2000-sqm-5-bed-terrace-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/2000-sqm-5-bed-terrace-at-old-ikoyi-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2000-sqm-5-bed-terrace-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/2000-sqm-5-bed-terrace-at-old-ikoyi-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2340-sqm-land-at-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/2340-sqm-land-at-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2340-sqm-land-at-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/2340-sqm-land-at-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2911-sqm-semi-detached-at-chevron-lekki-lagos-lekki-1",
+    "destination": "/listings/2911-sqm-semi-detached-at-chevron-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2911-sqm-semi-detached-at-chevron-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/2911-sqm-semi-detached-at-chevron-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-gra-ikeja-ikeja-lagos-ikeja",
+    "destination": "/listings/3-bed-apartment-at-gra-ikeja-ikeja-lagos-ikeja-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-gra-ikeja-ikeja-lagos-ikeja/:path*",
+    "destination": "/listings/3-bed-apartment-at-gra-ikeja-ikeja-lagos-ikeja-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-4",
+    "destination": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-3",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-4/:path*",
+    "destination": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-3/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-6",
+    "destination": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-5",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-6/:path*",
+    "destination": "/listings/3-bed-apartment-at-igando-alimosho-lagos-alimosho-5/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-3",
+    "destination": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-7",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-3/:path*",
+    "destination": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-7/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-8",
+    "destination": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-7",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-8/:path*",
+    "destination": "/listings/3-bed-apartment-at-ikotun-alimosho-lagos-alimosho-7/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-3",
+    "destination": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-3/:path*",
+    "destination": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-5",
+    "destination": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-4",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-5/:path*",
+    "destination": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-4/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-8",
+    "destination": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-7",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-8/:path*",
+    "destination": "/listings/3-bed-apartment-at-lekki-phase-1-lekki-lagos-lekki-7/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-oniru-victoria-island-lagos-victoria-island-2",
+    "destination": "/listings/3-bed-apartment-at-oniru-victoria-island-lagos-victoria-island-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-oniru-victoria-island-lagos-victoria-island-2/:path*",
+    "destination": "/listings/3-bed-apartment-at-oniru-victoria-island-lagos-victoria-island-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo/:path*",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo-1",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo-1/:path*",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo-2",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo-2/:path*",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo-3",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-housing-estate-uyo-akwa-ibom-uyo-3/:path*",
+    "destination": "/listings/3-bed-apartment-house-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-lagos-lagos-11",
+    "destination": "/listings/3-bed-bungalow-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-lagos-lagos-11/:path*",
+    "destination": "/listings/3-bed-bungalow-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-lagos-lagos-10",
+    "destination": "/listings/3-bed-bungalow-at-ibadan-oyo-ibadan-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-lagos-lagos-10/:path*",
+    "destination": "/listings/3-bed-bungalow-at-ibadan-oyo-ibadan-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-ikorodu-lagos-ikorodu-1",
+    "destination": "/listings/3-bed-bungalow-at-ikorodu-lagos-ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-ikorodu-lagos-ikorodu-1/:path*",
+    "destination": "/listings/3-bed-bungalow-at-ikorodu-lagos-ikorodu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-ibadan-lagos-ibadan",
+    "destination": "/listings/3-bed-bungalow-at-mowe-ogun-mowe-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/3-bed-bungalow-at-mowe-ogun-mowe-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-ibadan-lagos-ibadan-1",
+    "destination": "/listings/3-bed-bungalow-at-mowe-ogun-mowe-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-ibadan-lagos-ibadan-1/:path*",
+    "destination": "/listings/3-bed-bungalow-at-mowe-ogun-mowe-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-duplex-at-apata-ibadan-oyo-ibadan",
+    "destination": "/listings/3-bed-duplex-at-ajayi-apata-ajah-lagos-ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-duplex-at-apata-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/3-bed-duplex-at-ajayi-apata-ajah-lagos-ajah/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-house-at-ikota-lekki-lagos-lekki",
+    "destination": "/listings/3-bed-house-at-ikota-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-house-at-ikota-lekki-lagos-lekki/:path*",
+    "destination": "/listings/3-bed-house-at-ikota-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-semi-detached-at-lekki-ajah-lagos-ajah-1",
+    "destination": "/listings/3-bed-semi-detached-at-lekki-ajah-lagos-ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-semi-detached-at-lekki-ajah-lagos-ajah-1/:path*",
+    "destination": "/listings/3-bed-semi-detached-at-lekki-ajah-lagos-ajah/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-ibadan-lagos-ibadan",
+    "destination": "/listings/3-bed-terrace-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/3-bed-terrace-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-ikota-lekki-lagos-lekki",
+    "destination": "/listings/3-bed-terrace-at-ikota-lekki-lagos-lekki-3",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-ikota-lekki-lagos-lekki/:path*",
+    "destination": "/listings/3-bed-terrace-at-ikota-lekki-lagos-lekki-3/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/c-of-o-almost-out-newspaper-publication-done-in-2021-already-has-a-file-number-for-verification-ikorodu",
+    "destination": "/listings/3-bedroom-apartment-for-sale-at-ikorodu-lagos-ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/c-of-o-almost-out-newspaper-publication-done-in-2021-already-has-a-file-number-for-verification-ikorodu/:path*",
+    "destination": "/listings/3-bedroom-apartment-for-sale-at-ikorodu-lagos-ikorodu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-agreement-and-survey-plan-ibadan",
+    "destination": "/listings/3-bedroom-bungalow-for-sale-at-elebu-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-agreement-and-survey-plan-ibadan/:path*",
+    "destination": "/listings/3-bedroom-bungalow-for-sale-at-elebu-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-land-at-chevron-lekki-lagos-lekki-2",
+    "destination": "/listings/300-sqm-land-at-chevron-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-land-at-chevron-lekki-lagos-lekki-2/:path*",
+    "destination": "/listings/300-sqm-land-at-chevron-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-land-at-ibadan-lagos-ibadan",
+    "destination": "/listings/300-sqm-land-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-land-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/300-sqm-land-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-land-at-refinery-eleme-rivers-eleme-1",
+    "destination": "/listings/300-sqm-land-at-refinery-eleme-rivers-eleme",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-land-at-refinery-eleme-rivers-eleme-1/:path*",
+    "destination": "/listings/300-sqm-land-at-refinery-eleme-rivers-eleme/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-semi-detached-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/300-sqm-semi-detached-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-semi-detached-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/300-sqm-semi-detached-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3000-sqm-apartment-at-victoria-island-lagos-victoria-island-2",
+    "destination": "/listings/3000-sqm-apartment-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3000-sqm-apartment-at-victoria-island-lagos-victoria-island-2/:path*",
+    "destination": "/listings/3000-sqm-apartment-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3000-sqm-land-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/3000-sqm-land-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3000-sqm-land-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/3000-sqm-land-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3100-sqm-warehouse-at-mushin-lagos-mushin-2",
+    "destination": "/listings/3100-sqm-warehouse-at-mushin-lagos-mushin-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3100-sqm-warehouse-at-mushin-lagos-mushin-2/:path*",
+    "destination": "/listings/3100-sqm-warehouse-at-mushin-lagos-mushin-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/355-sqm-land-at-lagos-lagos-1",
+    "destination": "/listings/355-sqm-land-at-lagos-lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/355-sqm-land-at-lagos-lagos-1/:path*",
+    "destination": "/listings/355-sqm-land-at-lagos-lagos/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3787-sqm-maisonette-at-allen-avenue-ikeja-lagos-ikeja-1",
+    "destination": "/listings/3787-sqm-maisonette-at-allen-avenue-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3787-sqm-maisonette-at-allen-avenue-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/3787-sqm-maisonette-at-allen-avenue-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/380-sqm-duplex-at-fct-fct-1",
+    "destination": "/listings/380-sqm-duplex-at-fct-fct",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/380-sqm-duplex-at-fct-fct-1/:path*",
+    "destination": "/listings/380-sqm-duplex-at-fct-fct/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-apartment-at-glover-road-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/4-bed-apartment-at-glover-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-apartment-at-glover-road-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/4-bed-apartment-at-glover-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-apartment-at-isheri-oshun-lagos-isheri-oshun-1",
+    "destination": "/listings/4-bed-apartment-at-isheri-oshun-lagos-isheri-oshun",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-apartment-at-isheri-oshun-lagos-isheri-oshun-1/:path*",
+    "destination": "/listings/4-bed-apartment-at-isheri-oshun-lagos-isheri-oshun/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-adeniyi-jones-ikeja-lagos-ikeja-3",
+    "destination": "/listings/4-bed-duplex-at-adeniyi-jones-ikeja-lagos-ikeja-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-adeniyi-jones-ikeja-lagos-ikeja-3/:path*",
+    "destination": "/listings/4-bed-duplex-at-adeniyi-jones-ikeja-lagos-ikeja-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-4",
+    "destination": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-4/:path*",
+    "destination": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-5",
+    "destination": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-5/:path*",
+    "destination": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-3",
+    "destination": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-3/:path*",
+    "destination": "/listings/4-bed-duplex-at-gbagada-lagos-gbagada-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-house-at-ikotun-alimosho-lagos-alimosho-1",
+    "destination": "/listings/4-bed-house-at-ikotun-alimosho-lagos-alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-house-at-ikotun-alimosho-lagos-alimosho-1/:path*",
+    "destination": "/listings/4-bed-house-at-ikotun-alimosho-lagos-alimosho/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-house-at-oniru-estate-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/4-bed-house-at-oniru-estate-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-house-at-oniru-estate-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/4-bed-house-at-oniru-estate-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semi-detached-at-adeniyi-jones-ikeja-lagos-ikeja-2",
+    "destination": "/listings/4-bed-semi-detached-at-adeniyi-jones-ikeja-lagos-ikeja-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semi-detached-at-adeniyi-jones-ikeja-lagos-ikeja-2/:path*",
+    "destination": "/listings/4-bed-semi-detached-at-adeniyi-jones-ikeja-lagos-ikeja-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-2",
+    "destination": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-2/:path*",
+    "destination": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-5",
+    "destination": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-4",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-5/:path*",
+    "destination": "/listings/4-bed-semi-detached-at-lekki-phase-1-lekki-lagos-lekki-4/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-ikate-elegushi-ajah-lagos-ajah-4",
+    "destination": "/listings/4-bed-terrace-at-ikate-elegushi-ajah-lagos-ajah-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-ikate-elegushi-ajah-lagos-ajah-4/:path*",
+    "destination": "/listings/4-bed-terrace-at-ikate-elegushi-ajah-lagos-ajah-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-ilasan-lekki-lagos-lekki-1",
+    "destination": "/listings/4-bed-terrace-at-ilasan-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-ilasan-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/4-bed-terrace-at-ilasan-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/4-bed-terrace-at-southwest-ikoyi-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/4-bed-terrace-at-southwest-ikoyi-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/its-for-letting-victoria-island",
+    "destination": "/listings/4-bedroom-apartment-townhouse-for-rent-at-oniru-estate-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/its-for-letting-victoria-island/:path*",
+    "destination": "/listings/4-bedroom-apartment-townhouse-for-rent-at-oniru-estate-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4300-sqm-land-at-bourdillon-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/4300-sqm-land-at-bourdillon-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4300-sqm-land-at-bourdillon-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/4300-sqm-land-at-bourdillon-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lagos-lagos-5",
+    "destination": "/listings/446-sqm-land-at-lagos-lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lagos-lagos-5/:path*",
+    "destination": "/listings/446-sqm-land-at-lagos-lagos/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/450-sqm-land-at-ologuneru-ibadan-oyo-ibadan-1",
+    "destination": "/listings/450-sqm-land-at-ologuneru-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/450-sqm-land-at-ologuneru-ibadan-oyo-ibadan-1/:path*",
+    "destination": "/listings/450-sqm-land-at-ologuneru-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4700-sqm-warehouse-at-awolowo-way-ikeja-lagos-ikeja-2",
+    "destination": "/listings/4700-sqm-warehouse-at-awolowo-way-ikeja-lagos-ikeja-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4700-sqm-warehouse-at-awolowo-way-ikeja-lagos-ikeja-2/:path*",
+    "destination": "/listings/4700-sqm-warehouse-at-awolowo-way-ikeja-lagos-ikeja-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-orchid-road-lekki-lagos-lekki",
+    "destination": "/listings/5-bed-duplex-at-orchid-road-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-orchid-road-lekki-lagos-lekki/:path*",
+    "destination": "/listings/5-bed-duplex-at-orchid-road-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/5-bed-house-at-awolowo-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/5-bed-house-at-awolowo-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-lekki-phase-1-lekki-lagos-lekki-3",
+    "destination": "/listings/5-bed-house-at-lekki-phase-1-lekki-lagos-lekki-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-lekki-phase-1-lekki-lagos-lekki-3/:path*",
+    "destination": "/listings/5-bed-house-at-lekki-phase-1-lekki-lagos-lekki-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-orchid-road-lekki-lagos-lekki-1",
+    "destination": "/listings/5-bed-house-at-orchid-road-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-orchid-road-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/5-bed-house-at-orchid-road-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-parkview-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/5-bed-house-at-parkview-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-parkview-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/5-bed-house-at-parkview-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-house-at-bourdillon-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/500-sqm-house-at-bourdillon-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-house-at-bourdillon-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/500-sqm-house-at-bourdillon-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-land-at-gra-ikeja-ikeja-lagos-ikeja-1",
+    "destination": "/listings/500-sqm-land-at-gra-ikeja-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-land-at-gra-ikeja-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/500-sqm-land-at-gra-ikeja-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-warehouse-at-ibadan-lagos-ibadan",
+    "destination": "/listings/500-sqm-warehouse-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-warehouse-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/500-sqm-warehouse-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/502-sqm-warehouse-at-ibadan-lagos-ibadan",
+    "destination": "/listings/502-sqm-warehouse-at-ibadan-oyo-ibadan-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/502-sqm-warehouse-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/502-sqm-warehouse-at-ibadan-oyo-ibadan-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-ikoyi-lagos-ikoyi-2",
+    "destination": "/listings/6-bed-duplex-at-ikoyi-lagos-ikoyi-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-ikoyi-lagos-ikoyi-2/:path*",
+    "destination": "/listings/6-bed-duplex-at-ikoyi-lagos-ikoyi-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-ipaja-alimosho-lagos-alimosho-1",
+    "destination": "/listings/6-bed-duplex-at-ipaja-alimosho-lagos-alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-ipaja-alimosho-lagos-alimosho-1/:path*",
+    "destination": "/listings/6-bed-duplex-at-ipaja-alimosho-lagos-alimosho/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/6-bed-duplex-at-tanke-ilorin-kwara-ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/6-bed-duplex-at-tanke-ilorin-kwara-ilorin/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-house-at-victoria-island-lagos-victoria-island-2",
+    "destination": "/listings/6-bed-house-at-victoria-island-lagos-victoria-island-5",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-house-at-victoria-island-lagos-victoria-island-2/:path*",
+    "destination": "/listings/6-bed-house-at-victoria-island-lagos-victoria-island-5/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/612-sqm-house-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/612-sqm-house-at-awolowo-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/612-sqm-house-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/612-sqm-house-at-awolowo-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/650-sqm-3-bed-maisonette-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/650-sqm-3-bed-maisonette-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/650-sqm-3-bed-maisonette-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/650-sqm-3-bed-maisonette-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/good-titles-lekki",
+    "destination": "/listings/667-sqm-house-at-osapa-lekki-lagos-joint-venture-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/good-titles-lekki/:path*",
+    "destination": "/listings/667-sqm-house-at-osapa-lekki-lagos-joint-venture-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja-1",
+    "destination": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja-2",
+    "destination": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja-2/:path*",
+    "destination": "/listings/7-bed-duplex-at-ajao-estate-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo/:path*",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo-1",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo-1/:path*",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo-2",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo-2/:path*",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo-3",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-land-at-housing-estate-uyo-akwa-ibom-uyo-3/:path*",
+    "destination": "/listings/700-sqm-land-at-ikolaba-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/good-title-ajah",
+    "destination": "/listings/7500-sqm-land-joint-venture-ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/good-title-ajah/:path*",
+    "destination": "/listings/7500-sqm-land-joint-venture-ajah/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/800-sqm-duplex-at-ibadan-oyo-ibadan",
+    "destination": "/listings/800-sqm-duplex-at-ibadan-close-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/800-sqm-duplex-at-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/800-sqm-duplex-at-ibadan-close-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/850-sqm-semi-detached-at-victoria-island-lagos-victoria-island-1",
+    "destination": "/listings/850-sqm-semi-detached-at-victoria-island-lagos-victoria-island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/850-sqm-semi-detached-at-victoria-island-lagos-victoria-island-1/:path*",
+    "destination": "/listings/850-sqm-semi-detached-at-victoria-island-lagos-victoria-island/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-maitama-abuja-fct-abuja",
+    "destination": "/listings/850-square-meters-at-maitama-abuja-fct-abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-maitama-abuja-fct-abuja/:path*",
+    "destination": "/listings/850-square-meters-at-maitama-abuja-fct-abuja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/866-sqm-5-bed-duplex-at-lekki-phase-1-lekki-lagos-lekki-1",
+    "destination": "/listings/866-sqm-5-bed-duplex-at-lekki-phase-1-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/866-sqm-5-bed-duplex-at-lekki-phase-1-lekki-lagos-lekki-1/:path*",
+    "destination": "/listings/866-sqm-5-bed-duplex-at-lekki-phase-1-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/900-sqm-2-bed-apartment-at-lekki-epe-expressway-lekki-lagos-lekki",
+    "destination": "/listings/900-sqm-land-at-osapa-london-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/900-sqm-2-bed-apartment-at-lekki-epe-expressway-lekki-lagos-lekki/:path*",
+    "destination": "/listings/900-sqm-land-at-osapa-london-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ayobo-alimosho-lagos-alimosho-2",
+    "destination": "/listings/apartment-at-ayobo-alimosho-lagos-alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ayobo-alimosho-lagos-alimosho-2/:path*",
+    "destination": "/listings/apartment-at-ayobo-alimosho-lagos-alimosho/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lagos-lagos-9",
+    "destination": "/listings/apartment-at-lagos-lagos-7",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lagos-lagos-9/:path*",
+    "destination": "/listings/apartment-at-lagos-lagos-7/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-phase-1-lekki-lagos-lekki-6",
+    "destination": "/listings/apartment-at-lekki-phase-1-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-phase-1-lekki-lagos-lekki-6/:path*",
+    "destination": "/listings/apartment-at-lekki-phase-1-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ojodu-ikeja-lagos-ikeja-1",
+    "destination": "/listings/apartment-at-ojodu-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ojodu-ikeja-lagos-ikeja-1/:path*",
+    "destination": "/listings/apartment-at-ojodu-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-oregun-ikeja-lagos-ikeja-2",
+    "destination": "/listings/apartment-at-oregun-ikeja-lagos-ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-oregun-ikeja-lagos-ikeja-2/:path*",
+    "destination": "/listings/apartment-at-oregun-ikeja-lagos-ikeja/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-parkview-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/apartment-at-parkview-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-parkview-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/apartment-at-parkview-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-refinery-eleme-rivers-eleme-1",
+    "destination": "/listings/apartment-at-refinery-eleme-rivers-eleme",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-refinery-eleme-rivers-eleme-1/:path*",
+    "destination": "/listings/apartment-at-refinery-eleme-rivers-eleme/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-egbeda-alimosho-lagos-alimosho-1",
+    "destination": "/listings/commercial-at-egbeda-alimosho-lagos-alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-egbeda-alimosho-lagos-alimosho-1/:path*",
+    "destination": "/listings/commercial-at-egbeda-alimosho-lagos-alimosho/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-ibadan-lagos-ibadan",
+    "destination": "/listings/commercial-at-ibadan-oyo-ibadan-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/commercial-at-ibadan-oyo-ibadan-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-victoria-island-lagos-victoria-island-2",
+    "destination": "/listings/commercial-at-victoria-island-lagos-victoria-island-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-victoria-island-lagos-victoria-island-2/:path*",
+    "destination": "/listings/commercial-at-victoria-island-lagos-victoria-island-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-lagos-lagos-6",
+    "destination": "/listings/duplex-at-lagos-lagos-7",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-lagos-lagos-6/:path*",
+    "destination": "/listings/duplex-at-lagos-lagos-7/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-awolowo-ibadan-oyo-ibadan",
+    "destination": "/listings/duplex-at-tanke-ilorin-kwara-ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-awolowo-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/duplex-at-tanke-ilorin-kwara-ilorin/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-ibadan-lagos-ibadan",
+    "destination": "/listings/duplex-at-wawa-mowe-ogun-mowe",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/duplex-at-wawa-mowe-ogun-mowe/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo/:path*",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo-1",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo-1/:path*",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo-2",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo-2/:path*",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo-3",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-housing-estate-uyo-akwa-ibom-uyo-3/:path*",
+    "destination": "/listings/factory-at-adewole-ilorin-kwara-ilorin/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/filling-station-at-ibadan-lagos-ibadan",
+    "destination": "/listings/filling-station-at-ibadan-oyo-ibadan-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/filling-station-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/filling-station-at-ibadan-oyo-ibadan-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/filling-station-at-igando-alimosho-lagos-alimosho-3",
+    "destination": "/listings/filling-station-at-igando-alimosho-lagos-alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/filling-station-at-igando-alimosho-lagos-alimosho-3/:path*",
+    "destination": "/listings/filling-station-at-igando-alimosho-lagos-alimosho/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-odogunyan-ikorodu-lagos-ikorodu-1",
+    "destination": "/listings/filling-station-at-odogunyan-ikorodu-lagos-ikorodu-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-odogunyan-ikorodu-lagos-ikorodu-1/:path*",
+    "destination": "/listings/filling-station-at-odogunyan-ikorodu-lagos-ikorodu-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-victoria-island-lagos-victoria-island-4",
+    "destination": "/listings/house-at-victoria-island-lagos-victoria-island-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-victoria-island-lagos-victoria-island-4/:path*",
+    "destination": "/listings/house-at-victoria-island-lagos-victoria-island-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/industrial-at-ibadan-lagos-ibadan",
+    "destination": "/listings/industrial-at-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/industrial-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/industrial-at-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ayetoro-ogun-ayetoro",
+    "destination": "/listings/land-at-ayetoro-ogun-ayetoro-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ayetoro-ogun-ayetoro/:path*",
+    "destination": "/listings/land-at-ayetoro-ogun-ayetoro-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ayetoro-ogun-ayetoro-2",
+    "destination": "/listings/land-at-ayetoro-ogun-ayetoro-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ayetoro-ogun-ayetoro-2/:path*",
+    "destination": "/listings/land-at-ayetoro-ogun-ayetoro-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-bashorun-ibadan-oyo-ibadan",
+    "destination": "/listings/land-at-bashorun-ibadan-oyo-ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-bashorun-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/land-at-bashorun-ibadan-oyo-ibadan/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-egbeda-alimosho-lagos-alimosho-3",
+    "destination": "/listings/land-at-egbeda-alimosho-lagos-alimosho-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-egbeda-alimosho-lagos-alimosho-3/:path*",
+    "destination": "/listings/land-at-egbeda-alimosho-lagos-alimosho-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-garki-abuja-fct-abuja",
+    "destination": "/listings/land-at-garki-abuja-fct-abuja-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-garki-abuja-fct-abuja/:path*",
+    "destination": "/listings/land-at-garki-abuja-fct-abuja-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-lagos-ibadan",
+    "destination": "/listings/land-at-ibadan-oyo-ibadan-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-lagos-ibadan/:path*",
+    "destination": "/listings/land-at-ibadan-oyo-ibadan-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-lagos-ibadan-1",
+    "destination": "/listings/land-at-ibadan-oyo-ibadan-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-lagos-ibadan-1/:path*",
+    "destination": "/listings/land-at-ibadan-oyo-ibadan-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-lagos-22",
+    "destination": "/listings/land-at-ibadan-oyo-ibadan-6",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-lagos-22/:path*",
+    "destination": "/listings/land-at-ibadan-oyo-ibadan-6/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-alimosho-lagos-alimosho-20",
+    "destination": "/listings/land-at-igando-alimosho-lagos-alimosho-10",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-alimosho-lagos-alimosho-20/:path*",
+    "destination": "/listings/land-at-igando-alimosho-lagos-alimosho-10/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-alimosho-lagos-alimosho-18",
+    "destination": "/listings/land-at-igando-alimosho-lagos-alimosho-17",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-alimosho-lagos-alimosho-18/:path*",
+    "destination": "/listings/land-at-igando-alimosho-lagos-alimosho-17/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-alimosho-lagos-alimosho-16",
+    "destination": "/listings/land-at-igando-alimosho-lagos-alimosho-8",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-alimosho-lagos-alimosho-16/:path*",
+    "destination": "/listings/land-at-igando-alimosho-lagos-alimosho-8/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo/:path*",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo-1",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo-1/:path*",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo-2",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo-2/:path*",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo-3",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-housing-estate-uyo-akwa-ibom-uyo-3/:path*",
+    "destination": "/listings/land-at-igbogbo-ikorodu-lagos-ikorodu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikorodu-lagos-ikorodu-2",
+    "destination": "/listings/land-at-ikorodu-lagos-ikorodu-7",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikorodu-lagos-ikorodu-2/:path*",
+    "destination": "/listings/land-at-ikorodu-lagos-ikorodu-7/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikoyi-lagos-ikoyi-5",
+    "destination": "/listings/land-at-ikoyi-lagos-ikoyi-3",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikoyi-lagos-ikoyi-5/:path*",
+    "destination": "/listings/land-at-ikoyi-lagos-ikoyi-3/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-epe-expressway-lekki-lagos-lekki-5",
+    "destination": "/listings/land-at-lekki-epe-expressway-lekki-lagos-lekki-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-epe-expressway-lekki-lagos-lekki-5/:path*",
+    "destination": "/listings/land-at-lekki-epe-expressway-lekki-lagos-lekki-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-sagamu-ogun-sagamu-1",
+    "destination": "/listings/land-at-sagamu-ogun-sagamu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-sagamu-ogun-sagamu-1/:path*",
+    "destination": "/listings/land-at-sagamu-ogun-sagamu/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-sangotedo-lekki-lagos-lekki",
+    "destination": "/listings/land-at-sangotedo-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-sangotedo-lekki-lagos-lekki/:path*",
+    "destination": "/listings/land-at-sangotedo-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-sangotedo-lekki-lagos-lekki-6",
+    "destination": "/listings/land-at-sangotedo-lekki-lagos-lekki-1",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-sangotedo-lekki-lagos-lekki-6/:path*",
+    "destination": "/listings/land-at-sangotedo-lekki-lagos-lekki-1/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-victoria-island-lagos-victoria-island-5",
+    "destination": "/listings/land-at-victoria-island-lagos-victoria-island-4",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-victoria-island-lagos-victoria-island-5/:path*",
+    "destination": "/listings/land-at-victoria-island-lagos-victoria-island-4/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-lagos-ibadan-2",
+    "destination": "/listings/land-at-wawa-mowe-ogun-mowe",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-lagos-ibadan-2/:path*",
+    "destination": "/listings/land-at-wawa-mowe-ogun-mowe/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-yaba-lagos-yaba-3",
+    "destination": "/listings/land-at-yaba-lagos-yaba-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-yaba-lagos-yaba-3/:path*",
+    "destination": "/listings/land-at-yaba-lagos-yaba-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-ajah-lagos-ajah-1",
+    "destination": "/listings/mini-flat-at-ajah-lagos-ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-ajah-lagos-ajah-1/:path*",
+    "destination": "/listings/mini-flat-at-ajah-lagos-ajah/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-alakuko-agege-lagos-agege-2",
+    "destination": "/listings/mini-flat-at-alakuko-agege-lagos-agege",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-alakuko-agege-lagos-agege-2/:path*",
+    "destination": "/listings/mini-flat-at-alakuko-agege-lagos-agege/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-alakuko-agege-lagos-agege-5",
+    "destination": "/listings/mini-flat-at-alakuko-agege-lagos-agege-4",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-alakuko-agege-lagos-agege-5/:path*",
+    "destination": "/listings/mini-flat-at-alakuko-agege-lagos-agege-4/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-command-alimosho-lagos-alimosho-3",
+    "destination": "/listings/mini-flat-at-command-alimosho-lagos-alimosho-2",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-at-command-alimosho-lagos-alimosho-3/:path*",
+    "destination": "/listings/mini-flat-at-command-alimosho-lagos-alimosho-2/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/studio-at-orchid-road-lekki-lagos-lekki-2",
+    "destination": "/listings/studio-at-orchid-road-lekki-lagos-lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/studio-at-orchid-road-lekki-lagos-lekki-2/:path*",
+    "destination": "/listings/studio-at-orchid-road-lekki-lagos-lekki/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-awolowo-road-ibadan-oyo-ibadan",
+    "destination": "/listings/terrace-at-awolowo-road-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-awolowo-road-ibadan-oyo-ibadan/:path*",
+    "destination": "/listings/terrace-at-awolowo-road-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-ikoyi-lagos-ikoyi-1",
+    "destination": "/listings/terrace-at-ikoyi-lagos-ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-ikoyi-lagos-ikoyi-1/:path*",
+    "destination": "/listings/terrace-at-ikoyi-lagos-ikoyi/:path*",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69923fd5cda272e1a3886407",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6997d31e31b4aeab42cd5a0b",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/699d7aa8957508d87fe3a13f",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/699d7aa8957508d87fe3a147",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69923fd5cda272e1a3886421",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69d4c4873883e9ff5abd1173",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca95dc86803aa78fcf78f1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/filling-station-at-ikorodu-lagos-ikorodu-2",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-house-at-sagamu-road-ikorodu-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-commercial-at-ring-road-ibadan-oyo-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-oluyole-estate-ibadan-oyo-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-ikotun-alimosho-lagos-alimosho",
+    "destination": "/listings/in/lagos/alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/bungalow-at-abeokuta-ogun-abeokuta-1",
+    "destination": "/listings/in/ogun/abeokuta",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-ajah-lekki-lagos-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikota-lekki-lagos-lekki-2",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-abuja-fct-abuja-2",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-ibeju-lekki-lekki-lagos-lekki-3",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/event-center-at-abeokuta-ogun-abeokuta",
+    "destination": "/listings/in/ogun/abeokuta",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikota-lekki-lagos-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-alimosho-lagos-alimosho",
+    "destination": "/listings/in/lagos/alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-house-at-orchid-road-lekki-lagos-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ojodu-berger-ikeja-lagos-ikeja-1",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-world-bank-owerri-imo-owerri",
+    "destination": "/listings/in/imo/owerri",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-ikorodu-lagos-ikorodu-1",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-warehouse-at-surulere-lagos-surulere",
+    "destination": "/listings/in/lagos/surulere",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-industrial-at-admiralty-way-lekki-lagos-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-mini-flat-at-ojota-lagos-ojota",
+    "destination": "/listings/in/lagos/ojota",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/20-sqm-commercial-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-commercial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-miniflat-at-yaba-surulere",
+    "destination": "/listings/in/lagos/surulere",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1080-sqm-land-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-commercial-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-9",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/600-sqm-land-at-lagos-lagos-4",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-land-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-house-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-yaba-yaba",
+    "destination": "/listings/in/lagos/yaba",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3394-sqm-commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/634-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikotun-ikotun-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4019-sqm-mixeduse-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/923-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-epe",
+    "destination": "/listings/in/lagos/epe",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1004-sqm-office-at-oyo-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/27-sqm-industrial-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-bungalow-at-lagos-ikorodu-1",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/549-sqm-land-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/803-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-lekki-5",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-8",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-apartment-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/10000-sqm-land-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/135-sqm-commercial-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/hotel-at-gbagada-gbagada",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/semidetached-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mini-flat-for-rent-alakuko-lagos-alakuko",
+    "destination": "/listings/in/lagos/alakuko",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-ikorodu-2",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-epe-epe-1",
+    "destination": "/listings/in/lagos/epe",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-7",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2500-sqm-land-at-katampe-katampe",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3350-sqm-4-bed-commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-apartment-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/350-sqm-duplex-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-terrace-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-14",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-4",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/648-sqm-3-bed-house-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/876-sqm-commercial-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/farm-at-ado-odo-ado-odo",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-ikotun-ikotun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/industrial-at-apapa-apapa",
+    "destination": "/listings/in/lagos/apapa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-for-sale-at-salvation-army-road-links-reservation-ibadan-north-west-oyo-234102-nigeria-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1900-sqm-bungalow-at-ogun-ogun-1",
+    "destination": "/listings/in/ogun",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-commercial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/800-sqm-6-bed-duplex-at-lagos-ilorin",
+    "destination": "/listings/in/kwara/ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-kwara-offa",
+    "destination": "/listings/in/kwara/offa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-lekki-lekki-2",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2276-sqm-commercial-at-lekki-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/370-sqm-4-bed-duplex-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-surulere-surulere",
+    "destination": "/listings/in/lagos/surulere",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-isheri-oshun-isheri-oshun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-2",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/600-sqm-3-bed-land-at-isheri-oshun-isheri-oshun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikotun-ikotun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/646-sqm-4-bed-miniflat-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/511-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikeja-ikeja-1",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3350-sqm-4-bed-commercial-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/warehouse-at-lagos-sagamu-1",
+    "destination": "/listings/in/ogun/sagamu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1752-sqm-5-bed-house-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-10",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-land-at-isheri-oshun-isheri-oshun-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-semidetached-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-semidetached-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-land-for-sale-eleko-lekki-lagos-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-lagos-agege",
+    "destination": "/listings/in/lagos/agege",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-land-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-ikeja-ikeja-1",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-ikota-ikota-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/490-sqm-5-bed-commercial-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/863-sqm-3-bed-land-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-semidetached-at-kwara-ilorin",
+    "destination": "/listings/in/kwara/ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1100-sqm-warehouse-at-lagos-oshodi",
+    "destination": "/listings/in/lagos/oshodi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/400-sqm-commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4000-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikoyi-ikoyi-3",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ishaga-ishaga",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-sagamu-sagamu",
+    "destination": "/listings/in/ogun/sagamu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/mixeduse-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/30000-sqm-mixeduse-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/258-sqm-land-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-for-sale-old-ikoyi-ikoyi-lagos-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5600-sqm-warehouse-at-lagos-apapa-1",
+    "destination": "/listings/in/lagos/apapa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bedroom-duplex-for-sale-at-orchid-road-ikota-eti-osa-lagos-101001-nigeria-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-duplex-at-garki-garki",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-kaura-kaura",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-apartment-at-agbara-agbara",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-terrace-at-ikoyi-ikoyi-2",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/hotel-at-garki-garki",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ogun-abeokuta",
+    "destination": "/listings/in/ogun/abeokuta",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-lekki-7",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-igbesa-igbesa",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-island-lagos-island-1",
+    "destination": "/listings/in/lagos/island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/warehouse-at-lagos-sagamu",
+    "destination": "/listings/in/ogun/sagamu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-lekki-lekki-3",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-ikotun-ikotun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1150-sqm-commercial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-yaba-yaba",
+    "destination": "/listings/in/lagos/yaba",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-industrial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1100-sqm-commercial-at-enugu-enugu",
+    "destination": "/listings/in/enugu/enugu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1543-sqm-2-bed-apartment-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-ogun-ogun",
+    "destination": "/listings/in/ogun",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-bungalow-at-lagos-offa",
+    "destination": "/listings/in/kwara/offa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-lekki-lekki-6",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/shop-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2600-sqm-industrial-at-ikeja-ikeja-1",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-warehouse-at-ikeja-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/semidetached-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1350-sqm-commercial-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/450-sqm-3-bed-bungalow-at-isheri-oshun-isheri-oshun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-for-sale-tanke-leaders-street-tanke-ilorin-ilorin-kwara-ilorin",
+    "destination": "/listings/in/kwara/ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-semidetached-at-ikeja-ikeja-1",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikota-ikota-2",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6685-sqm-industrial-at-apapa-apapa",
+    "destination": "/listings/in/lagos/apapa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-5",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-abuja-abuja-1",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/warehouse-at-port-harcourt-port-harcourt",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/27-sqm-industrial-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-ikeja-ikeja-2",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1600-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-isheri-oshun-isheri-oshun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-office-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/500-sqm-commercial-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-abia-abia",
+    "destination": "/listings/in/abia",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-lekki-lekki-4",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-for-rent-oko-oba",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ajah-ajah-3",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikeja-ikeja-6",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikeja-ikeja-7",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3500-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/400-sqm-duplex-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/616-sqm-8-bed-penthouse-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-land-at-surulere-surulere",
+    "destination": "/listings/in/lagos/surulere",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-semidetached-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-penthouse-at-cowrie-creek-estate-ikate-lagos-for-sale-ikate",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/semidetached-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-commercial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-surulere-surulere",
+    "destination": "/listings/in/lagos/surulere",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1752-sqm-5-bed-house-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bedroom-duplex-for-sale-at-ikate-lekki-lagos-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/10000-sqm-industrial-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-maitama-maitama-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-land-at-lagos-lagos-2",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2000-sqm-commercial-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-lekki-11",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-lagos-ikorodu-1",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1200-sqm-commercial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bedroom-bungalow-for-sale-at-fodacis-ring-road-ibadan-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-maryland-maryland",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/91-sqm-eventcenter-at-lekki-badagry",
+    "destination": "/listings/in/lagos/badagry",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-lekki-9",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1600-sqm-commercial-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/16000-sqm-commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikeja-ikeja-3",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-industrial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-semidetached-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3500-sqm-land-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-lekki-10",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-akute-akute",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1500-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-ajah-ajah-1",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikoyi-ikoyi-2",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-badagry",
+    "destination": "/listings/in/lagos/badagry",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/660-sqm-land-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-land-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/10000-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-commercial-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-abuja-abuja-1",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-at-gbagada-gbagada",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/21-sqm-shop-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-maisonette-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-abuja-abuja-1",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-duplex-for-sale-eti-osa-sangotedo-lagos-sangotedo",
+    "destination": "/listings/in/lagos/sangotedo",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-lekki-lekki-4",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/575-sqm-land-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/two-units-3-bed-at-sharp-corner-oluyole-estate-oyo-for-sale-oluyole-estate",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-apartment-at-garki-garki",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4730-sqm-commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-penthouse-at-megamound-avenue-lekki-county-homes-ikota-eti-osa-lagos-nigeria-for-sale-ikota",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-apartment-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1525-sqm-5-bed-land-at-ilupeju-ilupeju",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2000-sqm-3-bed-studio-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-bungalow-at-lagos-oshodi",
+    "destination": "/listings/in/lagos/oshodi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-lekki-lekki-2",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-ikota-ikota",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4172-sqm-land-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-commercial-at-wuse-wuse",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-isheri-oshun-isheri-oshun",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lagos-ikorodu-1",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-igando-igando",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-apartment-at-ogijo-ogijo",
+    "destination": "/listings/in/ogun/ogijo",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-abuja-abuja-1",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4397-sqm-office-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-terrace-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bedroom-duplex-house-for-sale-at-orchid-road-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/987-sqm-land-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-8",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-office-at-katampe-katampe",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-victoria-island-victoria-island-3",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/hotel-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2100-sqm-commercial-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-duplex-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/330-sqm-land-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-isheri-oshun-isheri-oshun-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1588-sqm-land-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2825-sqm-commercial-at-oshodi-oshodi",
+    "destination": "/listings/in/lagos/oshodi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/950-sqm-commercial-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ikoyi-ikoyi-1",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-9",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-at-ikoyi-ikoyi-2",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-land-at-port-harcourt-port-harcourt",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2400-sqm-land-at-sangotedo-sangotedo",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikoyi-ikoyi-2",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-wuse-wuse-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-lagos-agege",
+    "destination": "/listings/in/lagos/agege",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-house-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7-bed-duplex-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7060-sqm-commercial-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7060-sqm-commercial-at-victoria-island-victoria-island-2",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/810000-sqm-land-at-kuje-kuje",
+    "destination": "/listings/in/fct/kuje",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-industrial-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-house-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-lagos-dutse",
+    "destination": "/listings/in/jigawa/dutse",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/625-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/20000-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-abuja-abuja-5",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/960-sqm-land-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/15000-sqm-industrial-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/312-sqm-2-bed-commercial-at-ketu-ketu",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2415-sqm-warehouse-at-lagos-oshodi-1",
+    "destination": "/listings/in/lagos/oshodi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-commercial-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-semidetached-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ajah-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/semidetached-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-land-for-sale-at-oke-ado-ibadan-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-commercial-at-lekki-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/216-sqm-land-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-port-harcourt-port-harcourt",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-festac-festac",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6000-sqm-penthouse-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/25-sqm-house-at-lagos-alimosho",
+    "destination": "/listings/in/lagos/alimosho",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bedroom-duplex-for-sale-at-chevron-northern-foreshore-estate-lagos-northern-foreshore-estate",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4850-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-apartment-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-sangotedo-sangotedo",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/258-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/8-bed-house-at-wuse-wuse",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-penthouse-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-7",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/300-sqm-5-bed-duplex-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/810-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3000-sqm-3-bed-hotel-at-lekki-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-and-2-bed-apartment-terrace-at-off-admiralty-way-lekki-phase-i-lagos-lekki-phase-i",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/terrace-duplex-at-ikate-lekki-lagos-for-sale-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-island-lagos-island",
+    "destination": "/listings/in/lagos/island",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7000-sqm-warehouse-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-sangotedo-sangotedo",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/duplex-house-for-sale-royal-pine-off-orchid-road-lekki-lagos-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/industrial-at-ogun-ayetoro",
+    "destination": "/listings/in/ogun/ayetoro",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-elebu-ibadan-oyo-for-rent-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-office-at-asokoro-asokoro",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/warehouse-at-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1300-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-badagry-badagry-1",
+    "destination": "/listings/in/lagos/badagry",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-5-bed-semidetached-at-lekki-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-semidetached-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/house-at-badagry-badagry",
+    "destination": "/listings/in/lagos/badagry",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-maisonette-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-ikota-ikota-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6000-sqm-eventcenter-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/8500-sqm-office-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-ikeja-ikeja-4",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-maisonette-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2600-sqm-warehouse-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-17",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-commercial-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/7744-sqm-land-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4200-sqm-apartment-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-abuja-abuja-2",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/648-sqm-3-bed-house-at-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1000-sqm-5-bed-commercial-at-lekki-lekki-1",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-epe-epe",
+    "destination": "/listings/in/lagos/epe",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-terrace-at-lekki-lekki-2",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/miniflat-at-lekki-lekki-3",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-apartment-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/factory-at-kwara-kwara",
+    "destination": "/listings/in/kwara",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/hotel-at-ijanikin-ijanikin",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1200-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bedroom-duplex-for-sale-at-ogombo-ajah-lagos-ajah",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/2-bed-land-at-ogun-ilorin",
+    "destination": "/listings/in/kwara/ilorin",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/630-sqm-2-bed-land-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/hotel-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-bungalow-at-sango-ota-sango-ota",
+    "destination": "/listings/in/ogun/ota",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-house-at-lekki-conservation-center-ikota-eti-osa-lagos-nigeria-ikota",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/penthouse-house-at-ikate-lekki-lagos-for-sale-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/container-terminal-for-sale-at-amuwo-odofin-lagos-amuwo-odofin",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lekki-lekki-12",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-miniflat-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-ikeja-ikeja",
+    "destination": "/listings/in/lagos/ikeja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-victoria-island-victoria-island-1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6000-sqm-land-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-lagos-ikorodu",
+    "destination": "/listings/in/lagos/ikorodu",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-terrace-at-lekki-lekki-5",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6-bed-duplex-at-abuja-abuja",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-abuja-abuja-2",
+    "destination": "/listings/in/fct/abuja",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-ibadan-ibadan",
+    "destination": "/listings/in/oyo/ibadan",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-agbara-agbara",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1-bed-apartment-at-yaba-yaba",
+    "destination": "/listings/in/lagos/yaba",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/3-bed-house-at-maryland-maryland",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-semidetached-at-ajah-ajah-1",
+    "destination": "/listings/in/lagos/ajah",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/1400-sqm-land-at-ikoyi-ikoyi",
+    "destination": "/listings/in/lagos/ikoyi",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/office-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/industrial-at-badagry-badagry-1",
+    "destination": "/listings/in/lagos/badagry",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/commercial-at-badagry-badagry",
+    "destination": "/listings/in/lagos/badagry",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/land-at-victoria-island-victoria-island",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/bungalow-at-lagos-lagos-1",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-lagos-lagos-3",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/5-bed-duplex-at-lekki-lekki",
+    "destination": "/listings/in/lagos/lekki",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/700-sqm-warehouse-at-lagos-lagos",
+    "destination": "/listings/in/lagos",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8bd9f11cc3b4e222a1e9",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c4403ea9d263fe9bf96ea",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a10630189406c6e6155db4a",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8db9f11cc3b4e222a2e7",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c4673ea9d263fe9bf97b2",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca9f21d0ef48b6aa738915",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c4621ea9d263fe9bf979e",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8eb2f11cc3b4e222a3cf",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c3f3aea9d263fe9bf9632",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c4401ea9d263fe9bf96e6",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8ddef11cc3b4e222a2f9",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca98f486803aa78fcf7952",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8f3e86803aa78fcf77fa",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c4623ea9d263fe9bf97a2",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8eacf11cc3b4e222a3bd",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8bfcf11cc3b4e222a21d",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8f4d86803aa78fcf780f",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8ea1f11cc3b4e222a3b1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca9b0786803aa78fcf79ef",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c461eea9d263fe9bf9796",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c45dfea9d263fe9bf977a",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c461cea9d263fe9bf9792",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c4936ac96a557b7d245f2",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a0c44a2ea9d263fe9bf9726",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8f6086803aa78fcf781d",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8d30f11cc3b4e222a2c3",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69d7cf86fd53cbcc49340033",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ec9d656e811dd78a8056a5",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8efa86803aa78fcf77e1",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca9dbb86803aa78fcf7a1b",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69c007197f56c6aaa1fee32c",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8bb2f11cc3b4e222a1d6",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8cd0f11cc3b4e222a2ac",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8b3df11cc3b4e222a18f",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca8e99f11cc3b4e222a384",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca9f4486803aa78fcf7a73",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca947e86803aa78fcf78c4",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca971986803aa78fcf7901",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69c0072a7f56c6aaa1fee363",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca934f86803aa78fcf78af",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69dccc4ce70047bf0799ebf8",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca92fe86803aa78fcf78a3",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69ca9a2c86803aa78fcf79a4",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/69c007917f56c6aaa1fee3e5",
+    "destination": "/listings",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a479b0c02e9196be4bc0cab",
+    "destination": "/listings/in/lagos/langbasa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/apartment-at-langbasa-ajah-lagos-ajah",
+    "destination": "/listings/in/lagos/langbasa",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a57b82dda52a434d50c1288",
+    "destination": "/listings/in/lagos/igando",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/4-bed-duplex-at-igando-alimosho-lagos-alimosho-1",
+    "destination": "/listings/in/lagos/igando",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a1af5c0af1d2d41df22507f",
+    "destination": "/listings/in/lagos/ikotun",
+    "statusCode": 301
+  },
+  {
+    "source": "/listings/6a6256151a7bd3fddc1dff7d",
+    "destination": "/listings/in/lagos/ahmadu-bello-way",
+    "statusCode": 301
+  }
+]
