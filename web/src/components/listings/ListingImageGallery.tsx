@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import Image from 'next/image';
 import { getCloudinaryVideoThumbnailUrl } from '@/lib/listing-default-image';
 import {
@@ -35,6 +36,83 @@ const ZOOM_LEVELS = [1, 1.5, 2, 2.5, 3];
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 
+type VideoPlaybackSnapshot = {
+  currentTime: number;
+  playing: boolean;
+  muted: boolean;
+  playbackRate: number;
+};
+
+function captureVideoPlayback(el: HTMLVideoElement | null): VideoPlaybackSnapshot | null {
+  if (!el) return null;
+  return {
+    currentTime: Number.isFinite(el.currentTime) ? el.currentTime : 0,
+    playing: !el.paused && !el.ended,
+    muted: el.muted,
+    playbackRate: el.playbackRate || 1,
+  };
+}
+
+function applyVideoPlayback(
+  el: HTMLVideoElement | null,
+  snapshot: VideoPlaybackSnapshot | null
+) {
+  if (!el || !snapshot) return;
+
+  const finish = () => {
+    el.muted = snapshot.muted;
+    el.playbackRate = snapshot.playbackRate;
+    if (snapshot.playing) {
+      void el.play().catch(() => {});
+    } else {
+      el.pause();
+    }
+  };
+
+  const apply = () => {
+    const seekTo = snapshot.currentTime;
+    if (!Number.isFinite(seekTo) || Math.abs((el.currentTime || 0) - seekTo) < 0.05) {
+      finish();
+      return;
+    }
+    const onSeeked = () => {
+      el.removeEventListener('seeked', onSeeked);
+      finish();
+    };
+    el.addEventListener('seeked', onSeeked);
+    try {
+      el.currentTime = seekTo;
+    } catch {
+      el.removeEventListener('seeked', onSeeked);
+      finish();
+    }
+  };
+
+  if (el.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    apply();
+    return;
+  }
+
+  let unlockPaused = false;
+  el.addEventListener(
+    'loadedmetadata',
+    () => {
+      unlockPaused = true;
+      apply();
+    },
+    { once: true }
+  );
+  // Unlock autoplay from the opening/closing user gesture while metadata loads
+  if (snapshot.playing) {
+    void el
+      .play()
+      .then(() => {
+        if (!unlockPaused) el.pause();
+      })
+      .catch(() => {});
+  }
+}
+
 function ListingGalleryVideo({
   videoRef,
   src,
@@ -54,23 +132,21 @@ function ListingGalleryVideo({
   const iconBox = size === 'lg' ? 'h-20 w-20' : 'h-16 w-16';
   const icon = size === 'lg' ? 'h-10 w-10' : 'h-8 w-8';
 
-  useEffect(() => {
-    setPlaying(false);
-  }, [src]);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = videoRef.current;
-    if (!el) return;
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    const onEnded = () => setPlaying(false);
-    el.addEventListener('play', onPlay);
-    el.addEventListener('pause', onPause);
-    el.addEventListener('ended', onEnded);
+    if (!el) {
+      setPlaying(false);
+      return;
+    }
+    const syncPlaying = () => setPlaying(!el.paused && !el.ended);
+    syncPlaying();
+    el.addEventListener('play', syncPlaying);
+    el.addEventListener('pause', syncPlaying);
+    el.addEventListener('ended', syncPlaying);
     return () => {
-      el.removeEventListener('play', onPlay);
-      el.removeEventListener('pause', onPause);
-      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('play', syncPlaying);
+      el.removeEventListener('pause', syncPlaying);
+      el.removeEventListener('ended', syncPlaying);
     };
   }, [videoRef, src]);
 
@@ -144,6 +220,7 @@ export function ListingImageGallery({
   const [downloading, setDownloading] = useState(false);
   const inlineVideoRef = useRef<HTMLVideoElement>(null);
   const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
+  const pendingFullscreenSnapshotRef = useRef<VideoPlaybackSnapshot | null>(null);
   const list = images?.filter((img) => img?.url) ?? [];
   const current = list[index] ?? list[0];
   const total = list.length;
@@ -160,11 +237,27 @@ export function ListingImageGallery({
     setZoomIndex(0);
   }, [total]);
 
-  const openFullscreen = useCallback(() => setFullscreenOpen(true), []);
+  const openFullscreen = useCallback(() => {
+    const snapshot =
+      current?.type === 'video' ? captureVideoPlayback(inlineVideoRef.current) : null;
+    pendingFullscreenSnapshotRef.current = snapshot;
+    inlineVideoRef.current?.pause();
+    flushSync(() => {
+      setFullscreenOpen(true);
+    });
+    applyVideoPlayback(fullscreenVideoRef.current, snapshot);
+  }, [current?.type]);
+
   const closeFullscreen = useCallback(() => {
-    setFullscreenOpen(false);
-    setZoomIndex(0);
-  }, []);
+    const snapshot =
+      current?.type === 'video' ? captureVideoPlayback(fullscreenVideoRef.current) : null;
+    fullscreenVideoRef.current?.pause();
+    flushSync(() => {
+      setFullscreenOpen(false);
+      setZoomIndex(0);
+    });
+    applyVideoPlayback(inlineVideoRef.current, snapshot);
+  }, [current?.type]);
 
   const zoomIn = useCallback(() => {
     setZoomIndex((i) => Math.min(i + 1, ZOOM_LEVELS.length - 1));
@@ -228,6 +321,13 @@ export function ListingImageGallery({
     return () => {
       document.body.style.overflow = '';
     };
+  }, [fullscreenOpen]);
+
+  useLayoutEffect(() => {
+    if (!fullscreenOpen) return;
+    const snapshot = pendingFullscreenSnapshotRef.current;
+    if (!snapshot) return;
+    applyVideoPlayback(fullscreenVideoRef.current, snapshot);
   }, [fullscreenOpen]);
 
   useEffect(() => {
