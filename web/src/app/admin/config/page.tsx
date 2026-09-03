@@ -46,6 +46,7 @@ export default function AdminConfigPage() {
   const [adConfig, setAdConfig] = useState<AdConfigState | null>(null);
   const [adConfigLoading, setAdConfigLoading] = useState(true);
   const [adConfigSaving, setAdConfigSaving] = useState(false);
+  const [adConfigError, setAdConfigError] = useState<string | null>(null);
   const [listingMod, setListingMod] = useState<ListingModerationState | null>(null);
   const [listingModLoading, setListingModLoading] = useState(true);
   const [listingModSaving, setListingModSaving] = useState(false);
@@ -438,17 +439,31 @@ export default function AdminConfigPage() {
                 </div>
               </div>
             ))}
+            {adConfigError ? <p className="text-sm text-red-600">{adConfigError}</p> : null}
             <button
               type="button"
               onClick={() => {
                 setAdConfigSaving(true);
+                setAdConfigError(null);
                 fetch('/api/admin/config/ads', {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(adConfig),
                 })
-                  .then((r) => r.ok && r.json())
-                  .then((d) => d && setAdConfig({ placementPricing: d.placementPricing || {}, adsense: d.adsense || {}, adsterra: d.adsterra || {} }))
+                  .then(async (r) => {
+                    const d = await r.json().catch(() => null);
+                    if (!r.ok || !d?.placementPricing) {
+                      throw new Error(typeof d?.error === 'string' ? d.error : 'Failed to save ad config');
+                    }
+                    setAdConfig({
+                      placementPricing: d.placementPricing,
+                      adsense: d.adsense || {},
+                      adsterra: d.adsterra || {},
+                    });
+                  })
+                  .catch((err: unknown) => {
+                    setAdConfigError(err instanceof Error ? err.message : 'Failed to save ad config');
+                  })
                   .finally(() => setAdConfigSaving(false));
               }}
               disabled={adConfigSaving}
