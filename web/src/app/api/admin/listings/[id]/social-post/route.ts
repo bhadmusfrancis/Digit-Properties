@@ -6,7 +6,7 @@ import { USER_ROLES } from '@/lib/constants';
 import { getSocialPostConfig, type SocialPlatform } from '@/lib/listing-social-post';
 import { publishListingToSocial } from '@/lib/publish-listing-social';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 export const runtime = 'nodejs';
 
 function parsePlatform(value: unknown): SocialPlatform | null {
@@ -84,6 +84,7 @@ export async function POST(
           error: 'Already posted. Confirm to post again.',
           alreadyPosted: true,
           facebook: published.facebook,
+          instagram: published.instagram,
           twitter: published.twitter,
         },
         { status: 409 }
@@ -97,8 +98,13 @@ export async function POST(
     if (published.allAttemptedFailed) {
       return NextResponse.json(
         {
-          error: published.facebook?.error || published.twitter?.error || 'Social post failed',
+          error:
+            published.facebook?.error ||
+            published.instagram?.error ||
+            published.twitter?.error ||
+            'Social post failed',
           facebook: published.facebook,
+          instagram: published.instagram,
           twitter: published.twitter,
         },
         { status: 502 }
@@ -107,6 +113,7 @@ export async function POST(
 
     return NextResponse.json({
       facebook: published.facebook,
+      instagram: published.instagram,
       twitter: published.twitter,
     });
   } catch (e) {

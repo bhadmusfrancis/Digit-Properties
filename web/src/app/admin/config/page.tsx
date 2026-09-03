@@ -137,7 +137,7 @@ export default function AdminConfigPage() {
     <div>
       <h2 className="text-lg font-semibold text-gray-900">Listing boost packages</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Configure Starter, Pro, and Premium boost packages: price per boost, duration, media limits, and Featured / Highlighted access. Pro includes Facebook posting; Premium includes Facebook and X. Shown on listing plans and used when users boost a property.
+        Configure Starter, Pro, and Premium boost packages: price per boost, duration, media limits, and Featured / Highlighted access. Pro includes Facebook and Instagram posting; Premium includes Facebook, Instagram, and X. Shown on listing plans and used when users boost a property.
       </p>
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
         <h3 className="font-medium text-gray-900">Listing moderation</h3>
@@ -309,12 +309,12 @@ export default function AdminConfigPage() {
                   <p className="font-medium">Social posting</p>
                   <p className="mt-0.5 text-sky-800">
                     {pkg.socialFacebook && pkg.socialTwitter
-                      ? 'Facebook and X posting included after Boost Post Now.'
+                      ? 'Facebook, Instagram, and X posting included after Boost Post Now.'
                       : pkg.socialFacebook
-                        ? 'Facebook Page posting included after Boost Post Now.'
+                        ? 'Facebook and Instagram posting included after Boost Post Now.'
                         : pkg.socialTwitter
                           ? 'X posting included after Boost Post Now.'
-                          : 'On-site boost only. No Facebook or X posting.'}
+                          : 'On-site boost only. No Facebook, Instagram, or X posting.'}
                   </p>
                 </div>
               );

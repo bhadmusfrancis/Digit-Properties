@@ -22,12 +22,14 @@ type Props = {
   highlighted?: boolean;
   boostPackage?: string;
   facebookPostId?: string;
+  instagramPostId?: string;
+  instagramPermalink?: string;
   twitterPostId?: string;
   facebookConfigured: boolean;
   twitterConfigured: boolean;
 };
 
-export function AdminListingActions({ listingId, listingSlug, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '', facebookPostId, twitterPostId, facebookConfigured, twitterConfigured }: Props) {
+export function AdminListingActions({ listingId, listingSlug, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '', facebookPostId, instagramPostId, instagramPermalink, twitterPostId, facebookConfigured, twitterConfigured }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
@@ -186,6 +188,8 @@ export function AdminListingActions({ listingId, listingSlug, status, listingTyp
       <AdminSocialPostButtons
         listingId={listingId}
         facebookPostId={facebookPostId}
+        instagramPostId={instagramPostId}
+        instagramPermalink={instagramPermalink}
         twitterPostId={twitterPostId}
         facebookConfigured={facebookConfigured}
         twitterConfigured={twitterConfigured}

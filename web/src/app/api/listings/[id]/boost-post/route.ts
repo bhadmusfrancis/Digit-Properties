@@ -8,7 +8,7 @@ import { getSocialPostConfig } from '@/lib/listing-social-post';
 import { publishListingToSocial } from '@/lib/publish-listing-social';
 import { USER_ROLES } from '@/lib/constants';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 export const runtime = 'nodejs';
 
 export async function POST(
@@ -66,8 +66,13 @@ export async function POST(
       if (result.allAttemptedFailed) {
         return NextResponse.json(
           {
-            error: result.facebook?.error || result.twitter?.error || 'Social post failed',
+            error:
+              result.facebook?.error ||
+              result.instagram?.error ||
+              result.twitter?.error ||
+              'Social post failed',
             facebook: result.facebook,
+            instagram: result.instagram,
             twitter: result.twitter,
           },
           { status: 502 }
@@ -91,6 +96,7 @@ export async function POST(
         boostPostedAt: listing.boostPostedAt,
         packageId: pkg.id,
         facebook: result.facebook,
+        instagram: result.instagram,
         twitter: result.twitter,
         warning: skippedUnconfigured
           ? 'Listing locked. One or more social platforms are not configured on the server.'

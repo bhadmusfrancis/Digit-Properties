@@ -7,10 +7,10 @@ import { useSystemToast } from '@/components/ui/SystemToast';
 
 function socialWarning(pkg: BoostPackage): string {
   if (pkg.socialFacebook && pkg.socialTwitter) {
-    return 'It will also publish this listing to Facebook and X.';
+    return 'It will also publish this listing to Facebook, Instagram, and X.';
   }
   if (pkg.socialFacebook) {
-    return 'It will also publish this listing to the Digit Properties Facebook Page.';
+    return 'It will also publish this listing to the Digit Properties Facebook Page and Instagram.';
   }
   if (pkg.socialTwitter) {
     return 'It will also publish this listing to X.';
@@ -43,7 +43,11 @@ export function BoostPostNowButton({
         notify.error('Could not boost post', typeof data.error === 'string' ? data.error : 'Please try again.');
         return;
       }
-      const platforms = [data.facebook?.ok && 'Facebook', data.twitter?.ok && 'X'].filter(Boolean);
+      const platforms = [
+        data.facebook?.ok && 'Facebook',
+        data.instagram?.ok && 'Instagram',
+        data.twitter?.ok && 'X',
+      ].filter(Boolean);
       notify.success(
         'Boost posted',
         platforms.length
