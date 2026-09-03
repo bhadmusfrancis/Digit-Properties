@@ -3,7 +3,7 @@ import { dbConnect } from '@/lib/db';
 import { LISTING_STATUS } from '@/lib/constants';
 import { getListingSlugSegment } from '@/lib/listing-path';
 import { plainTextExcerpt } from '@/lib/utils';
-import { isListingIndexable } from '@/lib/seo/listing-indexability';
+import { isListingIndexable, listingHasOwnMedia } from '@/lib/seo/listing-indexability';
 import { collectListingPhotoUrls, toAbsoluteImageUrlForSeo } from '@/lib/seo/listing-images';
 import {
   buildListingVideoSeoItems,
@@ -53,6 +53,9 @@ export function buildImageSitemapUrlEntries(listings: ListingSitemapRow[], base:
   const urlEntries: string[] = [];
 
   for (const doc of listings) {
+    if (!listingHasOwnMedia({ images: doc.images, videos: doc.videos, description: doc.description })) {
+      continue;
+    }
     const photos = collectListingPhotoUrls(doc.images, { max: 24 });
     if (!photos.length) continue;
 
@@ -109,11 +112,10 @@ export function buildVideoSitemapUrlEntries(listings: ListingSitemapRow[], base:
       videos: galleryVideos,
     });
 
-    for (const v of seoVideos) {
-      const watchUrl = `${base}${v.watchPagePath}`;
-      urlEntries.push(`  <url>
-    <loc>${escapeSitemapXml(watchUrl)}</loc>
-    <video:video>
+    const pageUrl = `${base}${pagePath}`;
+    const videoBlocks = seoVideos
+      .map(
+        (v) => `    <video:video>
       <video:thumbnail_loc>${escapeSitemapXml(v.thumbnailUrl)}</video:thumbnail_loc>
       <video:title>${escapeSitemapXml(v.name)}</video:title>
       <video:description>${escapeSitemapXml(v.description)}</video:description>
@@ -122,15 +124,17 @@ export function buildVideoSitemapUrlEntries(listings: ListingSitemapRow[], base:
       <video:family_friendly>yes</video:family_friendly>
       <video:requires_subscription>no</video:requires_subscription>
       <video:live>no</video:live>
-    </video:video>
-  </url>`);
-    }
+    </video:video>`
+      )
+      .join('\n');
+
+    urlEntries.push(`  <url>\n    <loc>${escapeSitemapXml(pageUrl)}</loc>\n${videoBlocks}\n  </url>`);
   }
 
   return urlEntries;
 }
 
-/** Listing detail + video watch pages for the main sitemap. */
+/** Indexable listing detail URLs for the main sitemap (watch pages canonicalise to these). */
 export function buildListingDetailSitemapRoutes(
   listings: ListingSitemapRow[],
   base: string,
@@ -160,26 +164,6 @@ export function buildListingDetailSitemapRoutes(
       changeFrequency: 'weekly',
       priority: 0.7,
     });
-
-    const galleryVideos = collectListingGalleryVideos(row.images, row.videos);
-    if (!galleryVideos.length) continue;
-
-    const seoVideos = buildListingVideoSeoItems({
-      title: String(row.title ?? 'Property listing'),
-      description: plainTextExcerpt(String(row.description ?? ''), 2048, String(row.title ?? '')),
-      pagePath: listingPath,
-      uploadDate: updated.toISOString(),
-      videos: galleryVideos,
-    });
-
-    for (const v of seoVideos) {
-      routes.push({
-        url: `${base}${v.watchPagePath}`,
-        lastModified: updated,
-        changeFrequency: 'weekly',
-        priority: 0.65,
-      });
-    }
   }
 
   return routes;

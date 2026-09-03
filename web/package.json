@@ -6,6 +6,8 @@
     "dev": "next dev --webpack",
     "dev:turbopack": "next dev",
     "dev:webpack": "next dev --webpack",
+    "export:listing-301s": "tsx scripts/export-listing-301-redirects.ts",
+    "prebuild": "tsx scripts/export-listing-301-redirects.ts || node -e \"console.warn('listing 301 export skipped; using last generated file')\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
