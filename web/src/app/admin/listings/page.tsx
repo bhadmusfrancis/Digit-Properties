@@ -113,6 +113,14 @@ export default async function AdminListingsPage({
         typeof (l as { facebookPostId?: unknown }).facebookPostId === 'string'
           ? (l as { facebookPostId: string }).facebookPostId
           : undefined,
+      instagramPostId:
+        typeof (l as { instagramPostId?: unknown }).instagramPostId === 'string'
+          ? (l as { instagramPostId: string }).instagramPostId
+          : undefined,
+      instagramPermalink:
+        typeof (l as { instagramPermalink?: unknown }).instagramPermalink === 'string'
+          ? (l as { instagramPermalink: string }).instagramPermalink
+          : undefined,
       twitterPostId:
         typeof (l as { twitterPostId?: unknown }).twitterPostId === 'string'
           ? (l as { twitterPostId: string }).twitterPostId

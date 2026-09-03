@@ -2,11 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { facebookPostUrl, twitterPostUrl, type SocialPlatform } from '@/lib/listing-social-post';
+import {
+  facebookPostUrl,
+  instagramPostUrl,
+  twitterPostUrl,
+  type SocialPlatform,
+} from '@/lib/listing-social-post';
 
 type Props = {
   listingId: string;
   facebookPostId?: string | null;
+  instagramPostId?: string | null;
+  instagramPermalink?: string | null;
   twitterPostId?: string | null;
   facebookConfigured: boolean;
   twitterConfigured: boolean;
@@ -42,6 +49,7 @@ function summarizeResult(label: string, result?: PlatformResult): string | null 
   if (!result) return null;
   if (result.ok) return `${label}: posted.`;
   if (result.skipped && result.alreadyPosted) return `${label}: already posted (skipped).`;
+  if (result.skipped && result.error) return `${label}: ${result.error}`;
   if (result.error) return `${label}: ${result.error}`;
   return null;
 }
@@ -49,6 +57,8 @@ function summarizeResult(label: string, result?: PlatformResult): string | null 
 export function AdminSocialPostButtons({
   listingId,
   facebookPostId,
+  instagramPostId,
+  instagramPermalink,
   twitterPostId,
   facebookConfigured,
   twitterConfigured,
@@ -56,6 +66,8 @@ export function AdminSocialPostButtons({
 }: Props) {
   const router = useRouter();
   const [facebookId, setFacebookId] = useState(facebookPostId || '');
+  const [instagramId, setInstagramId] = useState(instagramPostId || '');
+  const [instagramUrl, setInstagramUrl] = useState(instagramPermalink || '');
   const [twitterId, setTwitterId] = useState(twitterPostId || '');
   const [facebookOn, setFacebookOn] = useState(facebookConfigured);
   const [twitterOn, setTwitterOn] = useState(twitterConfigured);
@@ -63,8 +75,10 @@ export function AdminSocialPostButtons({
 
   useEffect(() => {
     setFacebookId(facebookPostId || '');
+    setInstagramId(instagramPostId || '');
+    setInstagramUrl(instagramPermalink || '');
     setTwitterId(twitterPostId || '');
-  }, [facebookPostId, twitterPostId]);
+  }, [facebookPostId, instagramPostId, instagramPermalink, twitterPostId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +97,7 @@ export function AdminSocialPostButtons({
 
   const compact = variant === 'compact';
   const anyConfigured = facebookOn || twitterOn;
+  const facebookAndInstagramPosted = Boolean(facebookId) && Boolean(instagramId);
 
   async function post(platform: SocialPlatform) {
     if (busy) return;
@@ -90,11 +105,12 @@ export function AdminSocialPostButtons({
     if (platform === 'twitter' && !twitterOn) return;
     if (platform === 'both' && !anyConfigured) return;
 
-    const facebookAgain = (platform === 'facebook' || platform === 'both') && Boolean(facebookId);
+    const facebookAgain =
+      (platform === 'facebook' || platform === 'both') && facebookAndInstagramPosted;
     const twitterAgain = (platform === 'twitter' || platform === 'both') && Boolean(twitterId);
     if (facebookAgain || twitterAgain) {
       const parts: string[] = [];
-      if (facebookAgain) parts.push('Facebook');
+      if (facebookAgain) parts.push('Facebook and Instagram');
       if (twitterAgain) parts.push('X');
       const ok = window.confirm(`Already posted to ${parts.join(' and ')}. Post again?`);
       if (!ok) return;
@@ -111,6 +127,7 @@ export function AdminSocialPostButtons({
         error?: string;
         alreadyPosted?: boolean;
         facebook?: PlatformResult;
+        instagram?: PlatformResult;
         twitter?: PlatformResult;
       };
 
@@ -137,13 +154,23 @@ export function AdminSocialPostButtons({
 
   function applyResult(
     res: Response,
-    data: { error?: string; facebook?: PlatformResult; twitter?: PlatformResult }
+    data: {
+      error?: string;
+      facebook?: PlatformResult;
+      instagram?: PlatformResult;
+      twitter?: PlatformResult;
+    }
   ) {
     if (data.facebook?.ok && data.facebook.postId) setFacebookId(data.facebook.postId);
+    if (data.instagram?.ok && data.instagram.postId) {
+      setInstagramId(data.instagram.postId);
+      if (data.instagram.url) setInstagramUrl(data.instagram.url);
+    }
     if (data.twitter?.ok && data.twitter.postId) setTwitterId(data.twitter.postId);
 
     const lines = [
       summarizeResult('Facebook', data.facebook),
+      summarizeResult('Instagram', data.instagram),
       summarizeResult('X', data.twitter),
     ].filter(Boolean) as string[];
     if (!res.ok && lines.length === 0) {
@@ -152,18 +179,27 @@ export function AdminSocialPostButtons({
     }
     if (lines.length) alert(lines.join('\n'));
     else if (!res.ok) alert(typeof data.error === 'string' ? data.error : 'Failed to post listing');
-    if (data.facebook?.ok || data.twitter?.ok) router.refresh();
+    if (data.facebook?.ok || data.instagram?.ok || data.twitter?.ok) router.refresh();
   }
 
   const facebookHref = facebookId ? facebookPostUrl(facebookId) : null;
+  const instagramHref = instagramId ? instagramPostUrl(instagramUrl) : null;
   const twitterHref = twitterId ? twitterPostUrl(twitterId) : null;
   const facebookLabel = compact
-    ? facebookId
-      ? 'FB posted'
-      : 'FB'
-    : facebookId
-      ? 'Posted to Facebook'
-      : 'Post to Facebook';
+    ? facebookId && instagramId
+      ? 'FB+IG posted'
+      : facebookId
+        ? 'FB posted'
+        : instagramId
+          ? 'IG posted'
+          : 'FB+IG'
+    : facebookId && instagramId
+      ? 'Posted to Facebook & Instagram'
+      : facebookId
+        ? 'Posted to Facebook'
+        : instagramId
+          ? 'Posted to Instagram'
+          : 'Post to Facebook & Instagram';
   const twitterLabel = compact ? (twitterId ? 'X posted' : 'X') : twitterId ? 'Posted to X' : 'Post to X';
 
   const btn = compact
@@ -181,8 +217,8 @@ export function AdminSocialPostButtons({
         disabled={busy !== null || !facebookOn}
         title={
           facebookOn
-            ? 'Publish this listing and its photos/video to the Facebook Page'
-            : 'Set FACEBOOK_PAGE_ID and FACEBOOK_PAGE_ACCESS_TOKEN in env'
+            ? 'Publish this listing and its photos/video to the Facebook Page and Instagram'
+            : 'Set FACEBOOK_PAGE_ID and FACEBOOK_PAGE_ACCESS_TOKEN in env. Link the Page to an Instagram professional account.'
         }
         className={`${btn} border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100`}
       >
@@ -208,20 +244,26 @@ export function AdminSocialPostButtons({
           type="button"
           onClick={() => post('both')}
           disabled={busy !== null || !anyConfigured}
-          title="Publish to Facebook Page and X"
+          title="Publish to Facebook Page, Instagram, and X"
           className={`${btn} border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100`}
         >
-          {busy === 'both' ? 'Posting…' : 'Post to Facebook & X'}
+          {busy === 'both' ? 'Posting…' : 'Post to Facebook, Instagram & X'}
         </button>
       ) : null}
-      {!compact && (facebookHref || twitterHref) ? (
+      {!compact && (facebookHref || instagramHref || twitterHref) ? (
         <p className="text-xs text-gray-600">
           {facebookHref ? (
             <a href={facebookHref} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">
               View Facebook post
             </a>
           ) : null}
-          {facebookHref && twitterHref ? ' · ' : null}
+          {facebookHref && instagramHref ? ' · ' : null}
+          {instagramHref ? (
+            <a href={instagramHref} target="_blank" rel="noopener noreferrer" className="text-pink-700 hover:underline">
+              View Instagram post
+            </a>
+          ) : null}
+          {(facebookHref || instagramHref) && twitterHref ? ' · ' : null}
           {twitterHref ? (
             <a href={twitterHref} target="_blank" rel="noopener noreferrer" className="text-slate-800 hover:underline">
               View X post

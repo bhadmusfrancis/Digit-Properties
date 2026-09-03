@@ -702,6 +702,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               agentPhone={listing.agentPhone}
               agentEmail={listing.agentEmail}
               facebookPostId={listing.facebookPostId}
+              instagramPostId={listing.instagramPostId}
+              instagramPermalink={listing.instagramPermalink}
               twitterPostId={listing.twitterPostId}
               facebookConfigured={socialPostConfig.facebook}
               twitterConfigured={socialPostConfig.twitter}

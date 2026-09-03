@@ -5,7 +5,7 @@ export type BoostPackage = {
   days: number;
   featured: boolean;
   highlighted: boolean;
-  /** Post the listing to the Digit Properties Facebook Page after Boost Post Now. */
+  /** Post the listing to the Digit Properties Facebook Page and Instagram after Boost Post Now. */
   socialFacebook: boolean;
   /** Post the listing to X after Boost Post Now. */
   socialTwitter: boolean;
@@ -63,7 +63,7 @@ export const BOOST_PACKAGES: Record<BoostPackage['id'], BoostPackage> = {
     mediaUploads: 'Up to 15 images + 3 videos',
     categorySelection: 'Up to 3 categories',
     displayPlacement: 'Highlighted in search results',
-    socialPosting: 'Facebook Page posting',
+    socialPosting: 'Facebook and Instagram posting',
     visibilityIndex: 72,
     visibilityVsStarterMultiplier: 1.8,
     visibilityTier: 'High',
@@ -80,7 +80,7 @@ export const BOOST_PACKAGES: Record<BoostPackage['id'], BoostPackage> = {
     mediaUploads: 'Up to 25 images + 5 videos',
     categorySelection: 'Up to 5 categories',
     displayPlacement: 'Homepage featured + highlighted search',
-    socialPosting: 'Facebook and X posting',
+    socialPosting: 'Facebook, Instagram, and X posting',
     visibilityIndex: 100,
     visibilityVsStarterMultiplier: 2.5,
     visibilityTier: 'Maximum',

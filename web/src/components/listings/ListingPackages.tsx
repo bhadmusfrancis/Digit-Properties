@@ -67,7 +67,7 @@ export function ListingPackages() {
           Listing boost packages
         </h2>
         <p className="mt-2 text-base text-gray-600 max-w-xl mx-auto">
-          Boost a listing to unlock more photos, videos, categories, and visibility. Pro posts to Facebook; Premium posts to Facebook and X. Pick a package when you publish or from My Properties.
+          Boost a listing to unlock more photos, videos, categories, and visibility. Pro posts to Facebook and Instagram; Premium posts to Facebook, Instagram, and X. Pick a package when you publish or from My Properties.
         </p>
       </div>
 
@@ -158,9 +158,9 @@ export function ListingPackages() {
                     <span>
                       {pkg.socialPosting ||
                         (pkg.socialFacebook && pkg.socialTwitter
-                          ? 'Facebook and X posting'
+                          ? 'Facebook, Instagram, and X posting'
                           : pkg.socialFacebook
-                            ? 'Facebook Page posting'
+                            ? 'Facebook and Instagram posting'
                             : 'X posting')}
                     </span>
                   </li>

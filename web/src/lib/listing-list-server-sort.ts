@@ -157,7 +157,7 @@ export async function fetchMyListingsPage(
 }
 
 const listingFieldsAdmin =
-  'slug title price status listingType rentPeriod propertyType location images videos featured highlighted soldAt rentedAt createdBy createdAt facebookPostId twitterPostId';
+  'slug title price status listingType rentPeriod propertyType location images videos featured highlighted soldAt rentedAt createdBy createdAt facebookPostId instagramPostId instagramPermalink twitterPostId';
 
 export async function countAdminListings(searchQuery?: string) {
   const match = await buildAdminListingSearchMatch(searchQuery);

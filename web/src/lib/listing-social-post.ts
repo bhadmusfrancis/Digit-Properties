@@ -27,6 +27,8 @@ export type ListingSocialMedia = {
 };
 
 const FACEBOOK_PHOTO_LIMIT = 10;
+const INSTAGRAM_PHOTO_LIMIT = 10;
+const INSTAGRAM_CAPTION_LIMIT = 2200;
 const TWITTER_PHOTO_LIMIT = 4;
 const TWITTER_URL_LENGTH = 23;
 
@@ -86,6 +88,12 @@ export function facebookPostUrl(postId: string): string {
   return `https://www.facebook.com/${id}`;
 }
 
+export function instagramPostUrl(permalink?: string | null): string {
+  const url = typeof permalink === 'string' ? permalink.trim() : '';
+  if (url.startsWith('http')) return url;
+  return 'https://www.instagram.com/';
+}
+
 export function twitterPostUrl(postId: string): string {
   const id = postId.trim();
   if (!id) return SOCIAL_LINKS.TWITTER;
@@ -101,6 +109,12 @@ export function buildFacebookCaption(fields: ListingShareFields, listingUrl: str
   return [title, details, excerptUse, `View listing: ${listingUrl}`, '#DigitProperties']
     .filter(Boolean)
     .join('\n\n');
+}
+
+export function buildInstagramCaption(fields: ListingShareFields, listingUrl: string): string {
+  const caption = buildFacebookCaption(fields, listingUrl);
+  if (caption.length <= INSTAGRAM_CAPTION_LIMIT) return caption;
+  return `${caption.slice(0, Math.max(0, INSTAGRAM_CAPTION_LIMIT - 1))}…`;
 }
 
 export function buildTwitterText(fields: ListingShareFields, listingUrl: string): string {
@@ -126,6 +140,15 @@ export function facebookMediaPlan(media: ListingSocialMedia): {
   return { photos: [] };
 }
 
+export function instagramMediaPlan(media: ListingSocialMedia): {
+  photos: string[];
+  video?: string;
+} {
+  if (media.photos.length) return { photos: media.photos.slice(0, INSTAGRAM_PHOTO_LIMIT) };
+  if (media.videos.length) return { photos: [], video: media.videos[0] };
+  return { photos: [] };
+}
+
 export function twitterMediaPlan(media: ListingSocialMedia): {
   photos: string[];
   video?: string;
@@ -144,4 +167,21 @@ export function withCloudinaryTwitterImage(url: string): string {
   if (!url.includes('res.cloudinary.com') || !url.includes('/image/upload/')) return url;
   if (/\/image\/upload\/[^/]*w_\d+/.test(url)) return url;
   return url.replace('/image/upload/', '/image/upload/w_1600,c_limit,q_auto:good,f_jpg/');
+}
+
+/** JPEG within Instagram feed limits; `square` retries when Meta rejects the aspect ratio. */
+export function withCloudinaryInstagramImage(url: string, crop: 'limit' | 'square' = 'limit'): string {
+  if (!url.includes('res.cloudinary.com') || !url.includes('/image/upload/')) return url;
+  const transform =
+    crop === 'square'
+      ? 'c_fill,g_auto,ar_1:1,w_1080,q_auto:good,f_jpg'
+      : 'c_limit,w_1080,h_1350,q_auto:good,f_jpg';
+  if (url.includes(transform)) return url;
+  return url.replace('/image/upload/', `/image/upload/${transform}/`);
+}
+
+export function withCloudinaryInstagramVideo(url: string): string {
+  if (!url.includes('res.cloudinary.com') || !url.includes('/video/upload/')) return url;
+  if (url.includes('/video/upload/f_mp4')) return url;
+  return url.replace('/video/upload/', '/video/upload/f_mp4,q_auto/');
 }

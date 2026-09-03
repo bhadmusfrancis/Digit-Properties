@@ -64,6 +64,10 @@ export interface IListing {
   /** Facebook Page post id after admin social publish. */
   facebookPostId?: string;
   facebookPostedAt?: Date;
+  /** Instagram post id after Facebook Page social publish. */
+  instagramPostId?: string;
+  instagramPostedAt?: Date;
+  instagramPermalink?: string;
   /** X/Twitter status id after admin social publish. */
   twitterPostId?: string;
   twitterPostedAt?: Date;
@@ -137,6 +141,9 @@ const ListingSchema = new Schema<IListing>(
     rentedAt: Date,
     facebookPostId: String,
     facebookPostedAt: Date,
+    instagramPostId: String,
+    instagramPostedAt: Date,
+    instagramPermalink: String,
     twitterPostId: String,
     twitterPostedAt: Date,
     claimedAt: Date,

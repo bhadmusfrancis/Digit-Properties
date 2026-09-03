@@ -36,6 +36,8 @@ type Listing = {
   pendingApprovalReasons?: string[];
   createdBy: unknown;
   facebookPostId?: string;
+  instagramPostId?: string;
+  instagramPermalink?: string;
   twitterPostId?: string;
 };
 
@@ -191,6 +193,8 @@ export function AdminListingsTable({
                 highlighted={Boolean(l.highlighted)}
                 boostPackage={l.boostPackage}
                 facebookPostId={l.facebookPostId}
+                instagramPostId={l.instagramPostId}
+                instagramPermalink={l.instagramPermalink}
                 twitterPostId={l.twitterPostId}
                 facebookConfigured={facebookConfigured}
                 twitterConfigured={twitterConfigured}
@@ -301,6 +305,8 @@ export function AdminListingsTable({
                         highlighted={Boolean(l.highlighted)}
                         boostPackage={l.boostPackage}
                         facebookPostId={l.facebookPostId}
+                        instagramPostId={l.instagramPostId}
+                        instagramPermalink={l.instagramPermalink}
                         twitterPostId={l.twitterPostId}
                         facebookConfigured={facebookConfigured}
                         twitterConfigured={twitterConfigured}

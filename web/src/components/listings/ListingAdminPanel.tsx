@@ -16,6 +16,8 @@ type Props = {
   agentPhone?: string | null;
   agentEmail?: string | null;
   facebookPostId?: string | null;
+  instagramPostId?: string | null;
+  instagramPermalink?: string | null;
   twitterPostId?: string | null;
   facebookConfigured: boolean;
   twitterConfigured: boolean;
@@ -31,6 +33,8 @@ export function ListingAdminPanel({
   agentPhone,
   agentEmail,
   facebookPostId,
+  instagramPostId,
+  instagramPermalink,
   twitterPostId,
   facebookConfigured,
   twitterConfigured,
@@ -91,6 +95,8 @@ export function ListingAdminPanel({
       <AdminSocialPostButtons
         listingId={listingId}
         facebookPostId={facebookPostId}
+        instagramPostId={instagramPostId}
+        instagramPermalink={instagramPermalink}
         twitterPostId={twitterPostId}
         facebookConfigured={facebookConfigured}
         twitterConfigured={twitterConfigured}

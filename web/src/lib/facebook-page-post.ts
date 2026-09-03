@@ -49,7 +49,7 @@ async function graphPost(
  * Unpublished photo albums must use a Page token, not a user/system-user token.
  * Exchange the stored token for the Page's own access_token.
  */
-async function resolvePageAccessToken(): Promise<string> {
+export async function resolvePageAccessToken(): Promise<string> {
   const id = pageId();
   const stored = storedToken();
   const res = await fetch(
