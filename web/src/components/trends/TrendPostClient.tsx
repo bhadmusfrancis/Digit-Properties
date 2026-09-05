@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { TrendImage } from '@/components/trends/TrendImage';
 import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
+import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
+import { ListPropertyCta } from '@/components/listings/ListPropertyCta';
 import { getTrendAuthorBio } from '@/lib/trend-authors';
 
 export type TrendPost = {
@@ -18,6 +20,7 @@ export type TrendPost = {
   author?: string;
   publishedAt?: string;
   createdAt?: string;
+  sourceUrls?: string[];
 };
 
 type TrendPostClientProps = {
@@ -145,16 +148,41 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
+            {Array.isArray(post.sourceUrls) && post.sourceUrls.length > 0 && (
+              <div className="mt-10 rounded-xl border border-slate-200 bg-white px-6 py-5">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Sources</h2>
+                <ul className="mt-3 space-y-2">
+                  {post.sourceUrls.map((url: string) => (
+                    <li key={url}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-sm font-medium text-primary-600 hover:underline"
+                      >
+                        {url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {post.author && (
               <footer className="mt-10 rounded-xl border border-slate-200 bg-slate-50 px-6 py-5">
                 <p className="text-sm font-semibold text-slate-900">{post.author}</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">{getTrendAuthorBio(post.author)}</p>
               </footer>
             )}
+
+            <div className="mt-10">
+              <ListPropertyCta />
+            </div>
           </article>
 
           <aside className="lg:pt-12">
             <div className="sticky top-8 space-y-8">
+              <FeaturedSlot placement="trends" hideWhenEmpty />
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">More from Trends</h2>
                 <ul className="mt-4 space-y-4">

@@ -47,6 +47,7 @@ export default function ListingDetailScreen() {
   const [likeCount, setLikeCount] = useState(0);
   const [contact, setContact] = useState<{ agentName?: string; agentPhone?: string; agentEmail?: string } | null>(null);
   const [contactGate, setContactGate] = useState<'ok' | 'verify' | 'hidden'>('ok');
+  const [contactIntent, setContactIntent] = useState<'call' | 'whatsapp' | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -112,12 +113,28 @@ export default function ListingDetailScreen() {
   };
 
   const openCall = () => {
+    if (!token) {
+      setContactIntent('call');
+      return;
+    }
+    if (contactGate === 'verify') {
+      setContactIntent('call');
+      return;
+    }
     const href = toTelHref(contactPhone);
     if (!href) return;
     Linking.openURL(href);
   };
 
   const openWhatsApp = () => {
+    if (!token) {
+      setContactIntent('whatsapp');
+      return;
+    }
+    if (contactGate === 'verify') {
+      setContactIntent('whatsapp');
+      return;
+    }
     if (!contactPhone) return;
     Linking.openURL(toWhatsAppUrl(contactPhone, `Hi, I'm interested in: ${title}`));
   };
@@ -263,47 +280,85 @@ export default function ListingDetailScreen() {
             </View>
           </View>
         ) : null}
+
+        <Pressable
+          style={styles.listCta}
+          onPress={() => router.push('/listings/new')}
+          accessibilityRole="button"
+          accessibilityLabel="Sell or rent your property for free"
+        >
+          <Text style={styles.listCtaKicker}>FREE TO LIST</Text>
+          <Text style={styles.listCtaTitle}>
+            {listingType === 'rent'
+              ? 'Rent or lease your property for FREE!'
+              : listingType === 'sale'
+                ? 'Sell your property for FREE!'
+                : 'Sell or Rent your Property for FREE!'}
+          </Text>
+          <Text style={styles.listCtaBody}>
+            Have a house, land, or apartment? List it in minutes — no listing fees.
+          </Text>
+          <View style={styles.listCtaBtn}>
+            <Text style={styles.listCtaBtnText}>List your property free →</Text>
+          </View>
+        </Pressable>
       </ScrollView>
 
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        {!token ? (
-          <Pressable style={[styles.primaryBtn, { flex: 1 }]} onPress={() => router.push('/auth/signin')}>
-            <Text style={styles.primaryBtnText}>Sign in to contact</Text>
-          </Pressable>
-        ) : contactGate === 'verify' ? (
-          <Pressable style={[styles.primaryBtn, { flex: 1 }]} onPress={() => router.push('/(tabs)/dashboard/profile')}>
-            <Text style={styles.primaryBtnText}>Verify email to contact</Text>
-          </Pressable>
-        ) : (
-          <View style={{ flex: 1, gap: 8 }}>
-            {contactName || contactPhone ? (
-              <View>
-                <Text style={styles.ctaHint}>Listed by</Text>
-                <Text style={styles.ctaName} numberOfLines={1}>
-                  {contactName || 'Lister'}
+        <View style={{ flex: 1, gap: 8 }}>
+          {token && (contactName || contactPhone) ? (
+            <View>
+              <Text style={styles.ctaHint}>Listed by</Text>
+              <Text style={styles.ctaName} numberOfLines={1}>
+                {contactName || 'Lister'}
+              </Text>
+            </View>
+          ) : null}
+          {!token && contactIntent ? (
+            <View style={styles.gateBox}>
+              <Text style={styles.gateText}>
+                {contactIntent === 'call'
+                  ? 'Sign in with a verified email to call the lister.'
+                  : 'Sign in with a verified email to send a WhatsApp message.'}
+              </Text>
+              <Pressable style={styles.primaryBtn} onPress={() => router.push('/auth/signin')}>
+                <Text style={styles.primaryBtnText}>
+                  {contactIntent === 'call' ? 'Sign in to call' : 'Sign in to WhatsApp'}
                 </Text>
-              </View>
-            ) : null}
-            <View style={styles.ctaRow}>
-              {!isOwner && contactPhone ? (
-                <>
-                  <Pressable style={[styles.call, { flex: 1 }]} onPress={openCall}>
-                    <Ionicons name="call" size={18} color="#fff" />
-                    <Text style={styles.waText}>Call now</Text>
-                  </Pressable>
-                  <Pressable style={[styles.wa, { flex: 1 }]} onPress={openWhatsApp}>
-                    <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                    <Text style={styles.waText}>WhatsApp</Text>
-                  </Pressable>
-                </>
-              ) : null}
-              <Pressable style={[styles.msg, { flex: 1 }]} onPress={openMessages}>
-                <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
-                <Text style={styles.waText}>{isOwner ? 'Messages' : 'Message'}</Text>
               </Pressable>
             </View>
+          ) : null}
+          {token && contactGate === 'verify' && contactIntent ? (
+            <View style={styles.gateBox}>
+              <Text style={styles.gateText}>
+                {contactIntent === 'call'
+                  ? 'Confirm your email address to call the lister.'
+                  : 'Confirm your email address to send a WhatsApp message.'}
+              </Text>
+              <Pressable style={styles.primaryBtn} onPress={() => router.push('/(tabs)/dashboard/profile')}>
+                <Text style={styles.primaryBtnText}>Verify email</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          <View style={styles.ctaRow}>
+            {!isOwner && (!token || contactGate === 'verify' || !!contactPhone) ? (
+              <>
+                <Pressable style={[styles.call, { flex: 1 }]} onPress={openCall}>
+                  <Ionicons name="call" size={18} color="#fff" />
+                  <Text style={styles.waText}>Call now</Text>
+                </Pressable>
+                <Pressable style={[styles.wa, { flex: 1 }]} onPress={openWhatsApp}>
+                  <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+                  <Text style={styles.waText}>WhatsApp</Text>
+                </Pressable>
+              </>
+            ) : null}
+            <Pressable style={[styles.msg, { flex: 1 }]} onPress={openMessages}>
+              <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+              <Text style={styles.waText}>{isOwner ? 'Messages' : 'Message'}</Text>
+            </Pressable>
           </View>
-        )}
+        </View>
       </View>
     </View>
   );
@@ -408,6 +463,15 @@ const styles = StyleSheet.create({
   ctaHint: { fontSize: 11, color: colors.faint, fontWeight: '600' },
   ctaName: { fontSize: 15, fontWeight: '700', color: colors.ink },
   ctaRow: { flexDirection: 'row', gap: 8 },
+  gateBox: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    gap: 10,
+  },
+  gateText: { fontSize: 13, color: colors.body, lineHeight: 18 },
   call: {
     backgroundColor: colors.primary,
     flexDirection: 'row',
@@ -447,4 +511,39 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   waText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  listCta: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: radius.lg,
+    padding: 18,
+    backgroundColor: '#059669',
+  },
+  listCtaKicker: {
+    color: '#d1fae5',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  listCtaTitle: {
+    marginTop: 6,
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 26,
+  },
+  listCtaBody: {
+    marginTop: 8,
+    color: '#ecfdf5',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  listCtaBtn: {
+    marginTop: 14,
+    backgroundColor: '#fff',
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  listCtaBtnText: { color: '#065f46', fontWeight: '800', fontSize: 15 },
 });

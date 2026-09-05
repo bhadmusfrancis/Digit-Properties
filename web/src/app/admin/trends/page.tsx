@@ -23,6 +23,8 @@ export default function AdminTrendsPage() {
   const [category, setCategory] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generateMsg, setGenerateMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -39,6 +41,39 @@ export default function AdminTrendsPage() {
       .finally(() => setLoading(false));
   }, [category, statusFilter]);
 
+  async function generateDaily() {
+    if (generating) return;
+    setGenerating(true);
+    setGenerateMsg(null);
+    try {
+      const res = await fetch('/api/admin/trends/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setGenerateMsg(data.error || 'Generation failed');
+        return;
+      }
+      const n = typeof data.created === 'number' ? data.created : 0;
+      setGenerateMsg(
+        n > 0
+          ? `Published ${n} post${n === 1 ? '' : 's'} for ${data.batchDate}.`
+          : `Today already has ${data.skipped ?? 0} post(s). Use Add post to write one manually.`
+      );
+      if (n > 0) {
+        const refresh = await fetch('/api/admin/trends?limit=20').then((r) => r.json());
+        if (refresh.posts) setPosts(refresh.posts);
+        if (refresh.pagination) setPagination(refresh.pagination);
+      }
+    } catch {
+      setGenerateMsg('Generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function deletePost(id: string) {
     if (!confirm('Delete this trend post?')) return;
     setDeleting(id);
@@ -54,11 +89,25 @@ export default function AdminTrendsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Trends (News &amp; Journals)</h2>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={generateDaily}
+            disabled={generating}
+            className="btn-secondary text-sm min-h-[44px] inline-flex items-center justify-center touch-manipulation disabled:opacity-50"
+          >
+            {generating ? 'Generating today’s posts…' : 'Generate today’s 5 posts'}
+          </button>
           <Link href="/admin/trends/new" className="btn-primary text-sm min-h-[44px] inline-flex items-center justify-center touch-manipulation">
             Add post
           </Link>
         </div>
       </div>
+      {generateMsg && (
+        <p className="mt-3 text-sm text-gray-600">{generateMsg}</p>
+      )}
+      <p className="mt-2 text-sm text-gray-500">
+        Daily generation researches official agency, market, and social pages, writes five category posts, and attaches a source or generated image.
+      </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <select
           value={category}

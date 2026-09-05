@@ -225,7 +225,7 @@ export const WALLET_TOPUP_LIMITS = {
 } as const;
 
 /** Ad placement slots (homepage, listing search, individual listing page). */
-export const AD_PLACEMENTS = ['home_featured', 'search', 'listing_detail'] as const;
+export const AD_PLACEMENTS = ['home_featured', 'search', 'listing_detail', 'trends'] as const;
 
 /** User ad lifecycle status. */
 export const USER_AD_STATUS = {
