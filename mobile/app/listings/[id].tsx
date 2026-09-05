@@ -47,7 +47,7 @@ export default function ListingDetailScreen() {
   const [likeCount, setLikeCount] = useState(0);
   const [contact, setContact] = useState<{ agentName?: string; agentPhone?: string; agentEmail?: string } | null>(null);
   const [contactGate, setContactGate] = useState<'ok' | 'verify' | 'hidden'>('ok');
-  const [contactIntent, setContactIntent] = useState<'call' | 'whatsapp' | null>(null);
+  const [contactIntent, setContactIntent] = useState<'call' | 'whatsapp' | 'message' | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -141,7 +141,11 @@ export default function ListingDetailScreen() {
 
   const openMessages = () => {
     if (!token) {
-      router.push('/auth/signin');
+      setContactIntent('message');
+      return;
+    }
+    if (contactGate === 'verify') {
+      setContactIntent('message');
       return;
     }
     router.push(`/messages/listing/${id}`);
@@ -319,11 +323,17 @@ export default function ListingDetailScreen() {
               <Text style={styles.gateText}>
                 {contactIntent === 'call'
                   ? 'Sign in with a verified email to call the lister.'
-                  : 'Sign in with a verified email to send a WhatsApp message.'}
+                  : contactIntent === 'whatsapp'
+                    ? 'Sign in with a verified email to send a WhatsApp message.'
+                    : 'Sign in with a verified email to message the lister.'}
               </Text>
               <Pressable style={styles.primaryBtn} onPress={() => router.push('/auth/signin')}>
                 <Text style={styles.primaryBtnText}>
-                  {contactIntent === 'call' ? 'Sign in to call' : 'Sign in to WhatsApp'}
+                  {contactIntent === 'call'
+                    ? 'Sign in to call'
+                    : contactIntent === 'whatsapp'
+                      ? 'Sign in to WhatsApp'
+                      : 'Sign in to message'}
                 </Text>
               </Pressable>
             </View>
@@ -333,7 +343,9 @@ export default function ListingDetailScreen() {
               <Text style={styles.gateText}>
                 {contactIntent === 'call'
                   ? 'Confirm your email address to call the lister.'
-                  : 'Confirm your email address to send a WhatsApp message.'}
+                  : contactIntent === 'whatsapp'
+                    ? 'Confirm your email address to send a WhatsApp message.'
+                    : 'Confirm your email address to message the lister.'}
               </Text>
               <Pressable style={styles.primaryBtn} onPress={() => router.push('/(tabs)/dashboard/profile')}>
                 <Text style={styles.primaryBtnText}>Verify email</Text>

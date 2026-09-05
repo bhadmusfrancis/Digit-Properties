@@ -25,19 +25,29 @@ function timeLabel(iso?: string) {
 
 function SignInPrompt({ callbackUrl }: { callbackUrl: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <h4 className="font-medium text-gray-900">Message about this listing</h4>
-      <p className="mt-1 text-sm text-gray-600">
+    <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
+      <p className="text-sm text-gray-600">
         Sign in with a verified email to chat with the lister about this property.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="btn-primary">
-          Sign in
+          Sign in to message
         </Link>
         <Link href={`/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="btn-secondary">
           Create account
         </Link>
       </div>
+    </div>
+  );
+}
+
+function VerifyEmailPrompt() {
+  return (
+    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <p className="text-sm text-amber-900">Confirm your email address to message the lister about this property.</p>
+      <Link href="/dashboard/profile" className="btn-secondary mt-3 inline-flex">
+        Go to profile
+      </Link>
     </div>
   );
 }
@@ -132,6 +142,7 @@ export function ListingMessagePanel({
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
   const [ownerThreadId, setOwnerThreadId] = useState<string | null>(null);
+  const [messageIntent, setMessageIntent] = useState(false);
 
   const enabled = status === 'authenticated' && !!listingId && session?.user?.emailVerified !== false;
 
@@ -197,19 +208,27 @@ export function ListingMessagePanel({
   }
 
   if (status !== 'authenticated') {
-    return <SignInPrompt callbackUrl={listingPublicPath} />;
+    return (
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <h4 className="font-medium text-gray-900">Message about this listing</h4>
+        <p className="mt-1 text-sm text-gray-600">Chat with the lister without leaving Digit Properties.</p>
+        <button type="button" onClick={() => setMessageIntent(true)} className="btn-primary mt-3 w-full">
+          Message
+        </button>
+        {messageIntent ? <SignInPrompt callbackUrl={listingPublicPath} /> : null}
+      </div>
+    );
   }
 
   if (session.user.emailVerified === false) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-        <h4 className="font-medium text-amber-950">Verify your email</h4>
-        <p className="mt-1 text-sm text-amber-900">
-          Confirm your email address to message the lister about this property.
-        </p>
-        <Link href="/dashboard/profile" className="btn-secondary mt-3 inline-flex">
-          Go to profile
-        </Link>
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <h4 className="font-medium text-gray-900">Message about this listing</h4>
+        <p className="mt-1 text-sm text-gray-600">Chat with the lister without leaving Digit Properties.</p>
+        <button type="button" onClick={() => setMessageIntent(true)} className="btn-primary mt-3 w-full">
+          Message
+        </button>
+        {messageIntent ? <VerifyEmailPrompt /> : null}
       </div>
     );
   }
