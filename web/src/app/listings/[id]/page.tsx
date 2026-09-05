@@ -688,9 +688,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   )}
                 />
               </div>
-              <div className="mt-6">
-                <ListPropertyCta listingType={String(listing.listingType ?? '')} variant="compact" />
-              </div>
             </div>
           </div>
         </div>
@@ -765,10 +762,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             <ListPropertyCta listingType={String(listing.listingType ?? '')} variant="sidebar" />
           </div>
         </div>
-      </div>
-
-      <div className="mt-10">
-        <ListPropertyCta listingType={String(listing.listingType ?? '')} />
       </div>
 
       <FeaturedSlot placement="listing_detail" hideWhenEmpty />
