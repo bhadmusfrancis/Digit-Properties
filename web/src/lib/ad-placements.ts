@@ -122,6 +122,7 @@ export function normalizeAdConfigForClient(config: {
   placementPricing?: Record<string, Pricing>;
   adsense?: Record<string, string>;
   adsterra?: Record<string, string>;
+  adsenseEnabled?: boolean;
   [key: string]: unknown;
 }) {
   const mergeRecord = <R extends Record<string, unknown>>(record: R | undefined): R => {
@@ -155,6 +156,7 @@ export function normalizeAdConfigForClient(config: {
 
   return {
     ...config,
+    adsenseEnabled: config.adsenseEnabled !== false,
     placementPricing,
     adsense: mergeRecord(config.adsense),
     adsterra: mergeRecord(config.adsterra),

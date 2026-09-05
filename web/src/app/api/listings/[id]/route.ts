@@ -30,6 +30,7 @@ import { listingDocToShareFields } from '@/lib/listing-share-text';
 import { canUserDeleteListing, canUserEditListing } from '@/lib/listing-edit-window';
 import { findListingByPublicParam } from '@/lib/resolve-listing';
 import { revalidateAllSitemaps, revalidateListingSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
+import { omitPublicListingContact } from '@/lib/omit-public-listing-contact';
 
 export async function GET(
   req: Request,
@@ -118,8 +119,11 @@ export async function GET(
         })).filter((v) => v.url || v.public_id)
       : [];
     const { createdBy, ...listingRest } = listing as typeof listing & { createdBy?: unknown };
+    const publicRest = forEdit
+      ? listingRest
+      : omitPublicListingContact(listingRest as Record<string, unknown>);
     return NextResponse.json({
-      ...listingRest,
+      ...publicRest,
       createdBy: shapePublicCreatedBy(createdBy) ?? createdBy,
       images,
       videos,

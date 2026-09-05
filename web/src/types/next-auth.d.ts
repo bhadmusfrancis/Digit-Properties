@@ -9,6 +9,8 @@ declare module 'next-auth' {
       name: string;
       image?: string | null;
       role: (typeof USER_ROLES)[keyof typeof USER_ROLES];
+      emailVerified?: boolean;
+      needsLegalAcceptance?: boolean;
     };
   }
 }
@@ -17,5 +19,6 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: string;
+    emailVerified?: boolean;
   }
 }

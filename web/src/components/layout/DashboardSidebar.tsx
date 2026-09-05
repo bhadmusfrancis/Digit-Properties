@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 const links = [
   { href: '/dashboard', label: 'Overview', icon: 'overview' },
   { href: '/dashboard/listings', label: 'My Properties', icon: 'home' },
   { href: '/dashboard/saved', label: 'Favorites', icon: 'heart' },
   { href: '/dashboard/offers', label: 'Offers', icon: 'offers' },
+  { href: '/dashboard/messages', label: 'Messages', icon: 'messages' },
   { href: '/dashboard/alerts', label: 'Property Alerts', icon: 'bell' },
   { href: '/dashboard/claims', label: 'My Claims', icon: 'claim' },
   { href: '/dashboard/payments', label: 'Payments', icon: 'card', matchWallet: true },
@@ -42,6 +44,12 @@ function NavIcon({ name, isActive }: { name: string; isActive: boolean }) {
       return (
         <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h8M8 14h5M6 4h12a2 2 0 012 2v9a2 2 0 01-2 2h-4l-4 3v-3H6a2 2 0 01-2-2V6a2 2 0 012-2z" />
+        </svg>
+      );
+    case 'messages':
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
       );
     case 'bell':
@@ -94,6 +102,16 @@ function NavIcon({ name, isActive }: { name: string; isActive: boolean }) {
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { data: unreadData } = useQuery({
+    queryKey: ['messages-unread'],
+    refetchInterval: 20000,
+    queryFn: async () => {
+      const r = await fetch('/api/messages/unread-count');
+      if (!r.ok) return { unread: 0 };
+      return r.json() as Promise<{ unread: number }>;
+    },
+  });
+  const unread = unreadData?.unread ?? 0;
 
   return (
     <>
@@ -146,7 +164,12 @@ export function DashboardSidebar() {
                   }`}
                 >
                   <NavIcon name={icon} isActive={isActive} />
-                  {label}
+                  <span className="flex-1">{label}</span>
+                  {href === '/dashboard/messages' && unread > 0 ? (
+                    <span className="rounded-full bg-primary-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {unread > 99 ? '99+' : unread}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}
