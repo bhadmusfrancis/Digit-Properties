@@ -10,6 +10,7 @@ import { ListingAdminPanel } from '@/components/listings/ListingAdminPanel';
 import { ListingMarketStatusSticker } from '@/components/listings/ListingMarketStatusSticker';
 import { SimilarListingsInfinite } from '@/components/listings/SimilarListingsInfinite';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
+import { ListPropertyCta } from '@/components/listings/ListPropertyCta';
 import { ListingTitleWithVerifiedBadge } from '@/components/listings/ListingTitleWithVerifiedBadge';
 import { ListingTrustCaveat } from '@/components/listings/ListingTrustCaveat';
 import { ListingOwnerStatusBanner } from '@/components/listings/ListingOwnerStatusBanner';
@@ -687,6 +688,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   )}
                 />
               </div>
+              <div className="mt-6">
+                <ListPropertyCta listingType={String(listing.listingType ?? '')} variant="compact" />
+              </div>
             </div>
           </div>
         </div>
@@ -757,7 +761,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               Back to listings
             </Link>
           </div>
+          <div className="mt-4">
+            <ListPropertyCta listingType={String(listing.listingType ?? '')} variant="sidebar" />
+          </div>
         </div>
+      </div>
+
+      <div className="mt-10">
+        <ListPropertyCta listingType={String(listing.listingType ?? '')} />
       </div>
 
       <FeaturedSlot placement="listing_detail" hideWhenEmpty />

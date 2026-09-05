@@ -69,6 +69,7 @@ export default async function TrendPostPage({ params }: { params: Promise<{ slug
     author: post.author,
     publishedAt: post.publishedAt?.toISOString(),
     createdAt: post.createdAt?.toISOString(),
+    sourceUrls: Array.isArray(post.sourceUrls) ? post.sourceUrls : undefined,
   };
 
   const shareUrl = `${baseUrl()}/trends/${slug}`;

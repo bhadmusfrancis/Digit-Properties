@@ -186,7 +186,7 @@ export default function DashboardAdsPage() {
     <div className="min-w-0">
       <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Advertise</h1>
       <p className="mt-1 text-gray-600">
-        Run your ad on the homepage, listing search, or listing detail pages. Upload creative, choose placement and schedule, then pay by the hour, day, week, or month. Ads require admin approval after payment.
+        Run your ad on the homepage, listing search, listing detail, or trends pages. Upload creative, choose placement and schedule, then pay by the hour, day, week, or month. Ads require admin approval after payment.
       </p>
 
       {success && (

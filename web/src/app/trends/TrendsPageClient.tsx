@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { TREND_CATEGORIES } from '@/lib/constants';
 import { Suspense } from 'react';
 import { TrendImage } from '@/components/trends/TrendImage';
+import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
+import { ListPropertyCta } from '@/components/listings/ListPropertyCta';
 
 type TrendPost = { _id: string; slug: string; title: string; excerpt: string; category: string; imageUrl?: string; createdAt: string; publishedAt?: string };
 
@@ -66,6 +68,7 @@ function TrendsContent({ initialPosts = [], initialPagination }: TrendsContentPr
       </section>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 xl:max-w-[1400px]">
+        <FeaturedSlot placement="trends" hideWhenEmpty />
         {isLoading && posts.length === 0 ? (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -126,6 +129,10 @@ function TrendsContent({ initialPosts = [], initialPagination }: TrendsContentPr
             ))}
           </div>
         )}
+
+        <div className="mt-12">
+          <ListPropertyCta />
+        </div>
 
         {pagination.pages > 1 && (
           <nav className="mt-12 flex justify-center gap-2" aria-label="Pagination">

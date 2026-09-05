@@ -13,7 +13,7 @@ type TrendPost = {
   publishedAt?: string;
 };
 
-const CATEGORIES = ['Market Trends', 'Policy & Regulation', 'Lagos Focus', 'Abuja & FCT', 'Events & Exhibitions', 'Industry Reports', 'Investment & Finance', 'Housing & Affordability', 'Land & Titling'];
+const CATEGORIES = ['Market Trends', 'Policy & Regulation', 'Lagos Focus', 'Abuja & FCT', 'Port Harcourt & Niger Delta', 'Events & Exhibitions', 'Industry Reports', 'Investment & Finance', 'Housing & Affordability', 'Land & Titling'];
 
 export default function TrendsScreen() {
   const router = useRouter();

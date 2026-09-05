@@ -10,6 +10,7 @@ export const AD_PLACEMENT_LABELS: Record<
   home_featured: 'Homepage featured',
   search: 'Listing Search Page',
   listing_detail: 'Listing detail page',
+  trends: 'Trends pages',
   listings: 'Listing Search Page',
 };
 
@@ -40,6 +41,9 @@ export function placementConfigValue(
   if (normalized === 'search') {
     const legacy = record[AD_PLACEMENT_LEGACY_LISTINGS]?.trim();
     if (legacy) return legacy;
+  }
+  if (normalized === 'trends') {
+    return record.home_featured?.trim() || record.listing_detail?.trim() || undefined;
   }
   return undefined;
 }

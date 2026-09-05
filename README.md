@@ -4,7 +4,7 @@ Production-ready real estate platform for **Nigeria**. Buy, Sell, and Rent/Lease
 
 - **Website:** [digitproperties.com](https://digitproperties.com)
 - **Web app:** Next.js 14, TypeScript, Tailwind, MongoDB, Cloudinary
-- **Mobile app:** React Native / Expo
+- **Mobile app:** React Native / Expo — Play Store & App Store ready (`cd mobile`, see [mobile/README.md](./mobile/README.md))
 
 ## Quick Start
 
@@ -45,7 +45,8 @@ npx expo start
 - **Ratings:** After Sold/Rented, counterparty can rate the lister
 - **Alerts:** Saved searches with push/email notifications
 - **Boost listing:** Pay via Paystack/Flutterwave for "Sponsored" badge
-- **Banner ads:** Admin-assigned slots
+- **Banner ads:** Homepage, search, listing detail, and trends placements (user ads, AdSense, Adsterra)
+- **Trends:** Five researched, category-specific posts generated daily from official Nigerian real-estate sources
 - **Payments:** Flutterwave + Paystack with webhooks and idempotency
 - **SEO:** Meta tags, Open Graph, JSON-LD, sitemaps
 
@@ -70,7 +71,7 @@ ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=YourPassword123 npm run seed
 ## Deployment
 
 - **Web:** See [HOSTING_AND_DOMAIN_SETUP.md](./HOSTING_AND_DOMAIN_SETUP.md) for deploying to Vercel and connecting digitproperties.com (Namecheap). Production env vars: `web/.env.production.example`
-- **Mobile:** Build with EAS: `eas build --platform all`
+- **Mobile:** EAS production profile builds an Android App Bundle (Play) and iOS IPA (App Store). See [mobile/README.md](./mobile/README.md). `eas build --platform all --profile production`
 
 ### Vercel image optimization (usage monitoring)
 

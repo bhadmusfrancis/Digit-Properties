@@ -7,7 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
 import { listingImageProps } from '@/lib/next-image';
-import { formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
+import { AD_PLACEMENTS, formatListingTypeLabel, formatPropertyTypesLine } from '@/lib/constants';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { getListingPublicPath } from '@/lib/listing-path';
 import { HtmlAdEmbed } from '@/components/listings/HtmlAdEmbed';
@@ -48,8 +48,7 @@ type SlotResponse = {
   adsterraCode: string | null;
 };
 
-const PLACEMENTS = ['home_featured', 'search', 'listing_detail'] as const;
-type Placement = (typeof PLACEMENTS)[number];
+type Placement = (typeof AD_PLACEMENTS)[number];
 
 async function fetchSlot(placement: Placement): Promise<SlotResponse> {
   const res = await fetch(`/api/ads/slot?placement=${placement}&_t=${Date.now()}`, { cache: 'no-store' });

@@ -12,6 +12,9 @@ export interface ITrend {
   author?: string;
   status: (typeof TREND_STATUS)[keyof typeof TREND_STATUS];
   publishedAt?: Date;
+  /** UTC date-only for the daily generation batch. */
+  batchDate?: Date;
+  sourceUrls?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,12 +30,15 @@ const TrendSchema = new Schema<ITrend>(
     author: String,
     status: { type: String, enum: Object.values(TREND_STATUS), default: TREND_STATUS.DRAFT },
     publishedAt: Date,
+    batchDate: Date,
+    sourceUrls: { type: [String], default: undefined },
   },
   { timestamps: true }
 );
 
 TrendSchema.index({ status: 1, publishedAt: -1 });
 TrendSchema.index({ category: 1, status: 1 });
+TrendSchema.index({ batchDate: 1, status: 1 });
 
 const Trend: Model<ITrend> = mongoose.models.Trend ?? mongoose.model<ITrend>('Trend', TrendSchema);
 export default Trend;
