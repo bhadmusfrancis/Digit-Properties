@@ -177,13 +177,14 @@ export const authOptions: AuthOptionsWithTrustHost = {
         if (token.id) {
           try {
             await dbConnect();
-            const u = await User.findById(token.id).select('image livenessVerifiedAt termsAcceptedAt privacyAcceptedAt').lean();
+            const u = await User.findById(token.id).select('image livenessVerifiedAt termsAcceptedAt privacyAcceptedAt verifiedAt').lean();
             const image = u && (u as { livenessVerifiedAt?: Date }).livenessVerifiedAt && (u as { image?: string }).image
               ? (u as { image: string }).image
               : GUEST_AVATAR_PATH;
             (session.user as { image: string | null }).image = image;
-            const terms = u as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date } | null;
+            const terms = u as { termsAcceptedAt?: Date; privacyAcceptedAt?: Date; verifiedAt?: Date } | null;
             (session.user as { needsLegalAcceptance?: boolean }).needsLegalAcceptance = !terms?.termsAcceptedAt || !terms?.privacyAcceptedAt;
+            (session.user as { emailVerified?: boolean }).emailVerified = !!terms?.verifiedAt;
           } catch (e) {
             console.error('[nextauth] session db:', e);
             (session.user as { image: string | null }).image = GUEST_AVATAR_PATH;

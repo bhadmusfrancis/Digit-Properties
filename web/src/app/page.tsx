@@ -89,7 +89,7 @@ export default async function HomePage() {
               </div>
               <h3 className="mt-4 font-semibold text-gray-900">Connect</h3>
               <p className="mt-2 text-gray-600">
-                View the number, call, or start a WhatsApp chat with the seller or agent—no account required.
+                Sign in with a verified email to call, message on WhatsApp, or chat in-app with the seller or agent.
               </p>
             </div>
             <div>

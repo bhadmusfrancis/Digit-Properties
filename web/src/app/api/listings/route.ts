@@ -28,6 +28,7 @@ import {
   LISTING_MARKET_AVAILABLE_FIELD,
 } from '@/lib/listing-proximity-sort';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
+import { omitPublicListingContact } from '@/lib/omit-public-listing-contact';
 
 const CAN_CREATE = [USER_ROLES.ADMIN, USER_ROLES.BOT, USER_ROLES.GUEST, USER_ROLES.VERIFIED_INDIVIDUAL, USER_ROLES.REGISTERED_AGENT, USER_ROLES.REGISTERED_DEVELOPER];
 
@@ -181,11 +182,12 @@ export async function GET(req: Request) {
     return NextResponse.json({
       listings: listings.map((l) => {
         const shaped = shapePublicCreatedBy(l.createdBy);
-        return {
+        const row = {
           ...l,
           createdBy: shaped ?? l.createdBy,
           isBoosted: l.boostExpiresAt && new Date(l.boostExpiresAt) > new Date(),
         };
+        return mine ? row : omitPublicListingContact(row as Record<string, unknown>);
       }),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });

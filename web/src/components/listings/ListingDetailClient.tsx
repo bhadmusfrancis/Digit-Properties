@@ -8,6 +8,7 @@ import { getWhatsAppUrl, getTelHref } from '@/lib/utils';
 import { isBotListingAuthor } from '@/lib/claimable-listing';
 import { LISTING_CLAIM_EDIT_NOTICE } from '@/lib/listing-edit-window';
 import type { PublicCreatedBy } from '@/lib/verification';
+import { ListingMessagePanel } from '@/components/listings/ListingMessagePanel';
 
 type ClaimListing = { _id: string; title: string; price: number; listingType?: string; location?: { city?: string; state?: string } };
 
@@ -68,6 +69,9 @@ export function ListingDetailClient({
     hasListingContact?: boolean;
   };
 
+  const emailVerified = session?.user?.emailVerified !== false;
+  const canLoadContact = status === 'authenticated' && emailVerified && !!listingId;
+
   const {
     data: contact,
     isPending: contactLoading,
@@ -79,11 +83,17 @@ export function ListingDetailClient({
       const r = await fetch(`/api/listings/${listingId}/contact`);
       const data = await r.json();
       if (!r.ok) {
-        throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to load contact');
+        const err = new Error(typeof data?.error === 'string' ? data.error : 'Failed to load contact') as Error & {
+          code?: string;
+          status?: number;
+        };
+        err.code = data?.code;
+        err.status = r.status;
+        throw err;
       }
       return data as ContactPayload;
     },
-    enabled: !!listingId,
+    enabled: canLoadContact,
   });
 
   const { data: likeData } = useQuery({
@@ -240,10 +250,32 @@ export function ListingDetailClient({
           {liked ? 'Unlike' : 'Like'} Property
         </button>
       )}
-      {contactLoading && (
+      {status === 'unauthenticated' && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h4 className="font-medium text-gray-900">Contact the lister</h4>
+          <p className="mt-1 text-sm text-gray-600">
+            Sign in with a verified email to call, send a WhatsApp message, or chat in-app.
+          </p>
+          <a href={signInUrl} className="btn-primary mt-3 flex w-full items-center justify-center">
+            Sign in to contact
+          </a>
+        </div>
+      )}
+      {status === 'authenticated' && !emailVerified && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <h4 className="font-medium text-amber-950">Verify your email</h4>
+          <p className="mt-1 text-sm text-amber-900">
+            Confirm your email address to use Call now and WhatsApp.
+          </p>
+          <a href="/dashboard/profile" className="btn-secondary mt-3 inline-flex">
+            Go to profile
+          </a>
+        </div>
+      )}
+      {canLoadContact && contactLoading && (
         <div className="h-24 animate-pulse rounded-lg bg-gray-200" aria-hidden />
       )}
-      {contactError && (
+      {canLoadContact && contactError && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {(contactErr as Error)?.message ?? 'Could not load contact details.'}
         </p>
@@ -252,7 +284,7 @@ export function ListingDetailClient({
         <div className="rounded-lg bg-gray-50 p-4">
           <h4 className="font-medium text-gray-900">Contact details</h4>
           {contact.agentName && <p className="mt-1">{contact.agentName}</p>}
-          {contact.agentPhone && (
+          {contact.agentPhone && !isOwner && (
             <>
               <a
                 href={getTelHref(contact.agentPhone)}
@@ -283,6 +315,11 @@ export function ListingDetailClient({
           )}
         </div>
       )}
+      <ListingMessagePanel
+        listingId={listingId}
+        listingPublicPath={listingPublicPath}
+        isOwner={isOwner}
+      />
 
       {!isOwner && (
         <button

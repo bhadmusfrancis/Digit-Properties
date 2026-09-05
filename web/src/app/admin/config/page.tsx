@@ -30,6 +30,7 @@ type AdConfigState = {
   placementPricing: Record<string, PlacementPricing>;
   adsense: Record<string, string>;
   adsterra: Record<string, string>;
+  adsenseEnabled: boolean;
 };
 
 type ListingModerationState = {
@@ -92,7 +93,12 @@ export default function AdminConfigPage() {
             }
           );
         });
-        setAdConfig({ placementPricing: pricing, adsense: d.adsense || {}, adsterra: d.adsterra || {} });
+        setAdConfig({
+          placementPricing: pricing,
+          adsense: d.adsense || {},
+          adsterra: d.adsterra || {},
+          adsenseEnabled: d.adsenseEnabled !== false,
+        });
       })
       .catch(() =>
         setAdConfig({
@@ -104,6 +110,7 @@ export default function AdminConfigPage() {
           ),
           adsense: {},
           adsterra: {},
+          adsenseEnabled: true,
         })
       )
       .finally(() => setAdConfigLoading(false));
@@ -334,6 +341,24 @@ export default function AdminConfigPage() {
           <p className="mt-4 text-gray-500">Loading ad config…</p>
         ) : adConfig ? (
           <div className="mt-6 space-y-6">
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <h3 className="font-medium text-gray-900">AdSense</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Turn the sitewide AdSense script and all placement snippets on or off. Snippets are kept when off so you can
+                re-enable them later.
+              </p>
+              <label className="mt-4 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={adConfig.adsenseEnabled}
+                  onChange={(e) => setAdConfig((c) => (c ? { ...c, adsenseEnabled: e.target.checked } : c))}
+                  className="h-4 w-4 rounded border-gray-300 text-primary-600"
+                />
+                <span className="text-sm font-medium text-gray-800">
+                  {adConfig.adsenseEnabled ? 'AdSense is ON' : 'AdSense is OFF'}
+                </span>
+              </label>
+            </div>
             {AD_PLACEMENTS.map((p) => (
               <div key={p} className="rounded-lg border border-gray-200 bg-white p-6">
                 <h3 className="font-medium text-gray-900">{PLACEMENT_LABELS[p] ?? p}</h3>
@@ -459,6 +484,7 @@ export default function AdminConfigPage() {
                       placementPricing: d.placementPricing,
                       adsense: d.adsense || {},
                       adsterra: d.adsterra || {},
+                      adsenseEnabled: d.adsenseEnabled !== false,
                     });
                   })
                   .catch((err: unknown) => {

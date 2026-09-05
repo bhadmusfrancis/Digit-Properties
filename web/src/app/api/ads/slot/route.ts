@@ -74,8 +74,9 @@ export async function GET(req: Request) {
     }
 
     const config = await AdConfig.findOne().lean();
+    const adsenseEnabled = config?.adsenseEnabled !== false;
     const adsense = config?.adsense as Record<string, string> | undefined;
-    const adsenseCode = placementConfigValue(adsense, placement);
+    const adsenseCode = adsenseEnabled ? placementConfigValue(adsense, placement) : undefined;
     if (adsenseCode) {
       networkPool.push({ type: 'adsense', code: adsenseCode });
     }

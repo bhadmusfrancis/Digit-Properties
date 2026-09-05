@@ -415,6 +415,39 @@ export async function sendContactFormEmail(
   return { ok: result.ok };
 }
 
+export async function sendListingMessageEmail(params: {
+  to: string;
+  recipientName: string;
+  senderName: string;
+  listingTitle: string;
+  listingId: string;
+  listingSlug?: string | null;
+  preview: string;
+  conversationId: string;
+}): Promise<{ ok: boolean }> {
+  const link = listingEmailVars({
+    id: params.listingId,
+    slug: params.listingSlug,
+    title: params.listingTitle,
+  });
+  const inboxUrl = `${APP_URL}/dashboard/messages/${params.conversationId}`;
+  const preview = params.preview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const body = `
+    <p>Hi ${params.recipientName || 'there'},</p>
+    <p><strong>${params.senderName || 'A user'}</strong> sent you a message about <strong>${link.listingTitle}</strong>.</p>
+    <blockquote style="margin: 16px 0; padding: 12px 16px; background: #f3f4f6; border-left: 3px solid #0d9488;">
+      ${preview}
+    </blockquote>
+    <p><a href="${inboxUrl}" style="color: #0d9488;">Open conversation</a></p>
+    ${listingLinkParagraph(link.listingUrl, { viewLabel: 'View listing' })}`;
+  const result = await sendEmail({
+    to: params.to,
+    subject: `[${APP_NAME}] New message about ${params.listingTitle}`,
+    html: wrapBody('New listing message', body),
+  });
+  return { ok: result.ok };
+}
+
 export async function sendProfessionalOfferNewEmail(params: {
   to: string;
   recipientName: string;

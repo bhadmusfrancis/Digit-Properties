@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { siteMetadataBase, siteOrigin } from '@/lib/site-metadata';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/GoogleTagManager';
 import { GoogleAdSense } from '@/components/GoogleAdSense';
+import { getAdsenseEnabled } from '@/lib/adsense-enabled';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/seo/structured-data';
 import { TWITTER_HANDLE } from '@/lib/constants';
@@ -44,14 +45,15 @@ export const metadata: Metadata = {
   ...(fbAppId ? { facebook: { appId: fbAppId } } : {}),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const adsenseEnabled = await getAdsenseEnabled();
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
         <JsonLd data={[buildOrganizationJsonLd(), buildWebSiteJsonLd()]} />
         <GoogleTagManager />
         <GoogleTagManagerNoScript />
-        <GoogleAdSense />
+        {adsenseEnabled ? <GoogleAdSense /> : null}
         <Providers>
           <div className="flex min-h-screen flex-col">
             <Header />

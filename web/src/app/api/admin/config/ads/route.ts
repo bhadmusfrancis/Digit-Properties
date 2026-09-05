@@ -18,7 +18,9 @@ export async function GET(req: Request) {
       config = await AdConfig.findOne().lean();
     }
     return NextResponse.json(
-      normalizeAdConfigForClient(config || { placementPricing: {}, adsense: {}, adsterra: {} })
+      normalizeAdConfigForClient(
+        config || { placementPricing: {}, adsense: {}, adsterra: {}, adsenseEnabled: true }
+      )
     );
   } catch (e) {
     console.error(e);
@@ -33,13 +35,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json();
-    const { placementPricing, adsense, adsterra } = body as {
+    const { placementPricing, adsense, adsterra, adsenseEnabled } = body as {
       placementPricing?: Record<
         string,
         { pricePerDay: number; pricePerHour: number; pricePerWeek?: number; pricePerMonth?: number; currency?: string }
       >;
       adsense?: Record<string, string>;
       adsterra?: Record<string, string>;
+      adsenseEnabled?: boolean;
     };
     await dbConnect();
     let config = await AdConfig.findOne().lean();
@@ -91,11 +94,19 @@ export async function PUT(req: Request) {
     const update: Record<string, unknown> = { placementPricing: nextPricing };
     if (adsense && typeof adsense === 'object') update.adsense = adsense;
     if (adsterra && typeof adsterra === 'object') update.adsterra = adsterra;
+    if (typeof adsenseEnabled === 'boolean') update.adsenseEnabled = adsenseEnabled;
 
     // Mixed nested fields are not change-tracked by Mongoose; $set persists the whole object.
     const saved = await AdConfig.findByIdAndUpdate(config._id, { $set: update }, { new: true }).lean();
     return NextResponse.json(
-      normalizeAdConfigForClient(saved || { placementPricing: nextPricing, adsense: adsense || {}, adsterra: adsterra || {} })
+      normalizeAdConfigForClient(
+        saved || {
+          placementPricing: nextPricing,
+          adsense: adsense || {},
+          adsterra: adsterra || {},
+          adsenseEnabled: typeof adsenseEnabled === 'boolean' ? adsenseEnabled : true,
+        }
+      )
     );
   } catch (e) {
     console.error(e);

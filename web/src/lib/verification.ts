@@ -32,7 +32,7 @@ export type PublicCreatedBy = {
 
 /**
  * Base verification = email + phone + ID + liveness.
- * Required for contact visibility on listings (see listing contact API).
+ * Used for public trust badges. Call / WhatsApp / listing chat require a verified email only.
  */
 export function hasBaseVerification(user: UserVerificationSnapshot): boolean {
   if (user.role === USER_ROLES.ADMIN) return true;

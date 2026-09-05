@@ -106,7 +106,7 @@ export type ListingFormProps = {
   };
   /** When set, parent can read current form values and images (e.g. for multi-listing import next/prev). */
   getFormRef?: React.MutableRefObject<ListingFormRef | null>;
-  /** Use WhatsApp-style plain markup (*bold*, _italic_) instead of HTML rich text. */
+  /** Use plain markup (*bold*, _italic_) instead of HTML rich text. */
   descriptionFormat?: 'rich' | 'whatsapp';
 };
 
@@ -656,7 +656,7 @@ export function ListingForm({
               </label>
               <p className="mt-1 text-xs text-gray-500">
                 {descriptionFormat === 'whatsapp'
-                  ? 'Edit the imported description. Use *bold*, _italic_, or ~strikethrough~ like WhatsApp.'
+                  ? 'Edit the description. Use *bold*, _italic_, or ~strikethrough~ for emphasis.'
                   : 'Write your own copy, or use Generate description to draft one from your property details.'}
               </p>
             </div>

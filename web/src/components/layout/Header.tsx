@@ -80,6 +80,13 @@ export function Header() {
                       My Properties
                     </Link>
                     <Link
+                      href="/dashboard/messages"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Messages
+                    </Link>
+                    <Link
                       href="/dashboard/alerts"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setUserMenuOpen(false)}
@@ -151,6 +158,9 @@ export function Header() {
               <>
                 <Link href="/dashboard" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
                   Dashboard
+                </Link>
+                <Link href="/dashboard/messages" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-gray-800 hover:bg-white hover:shadow-sm touch-manipulation" onClick={() => setMobileOpen(false)}>
+                  Messages
                 </Link>
                 {session.user?.role === 'admin' && (
                   <Link href="/admin" className="min-h-[48px] flex items-center rounded-lg px-3 font-semibold text-primary-700 hover:bg-primary-50 touch-manipulation" onClick={() => setMobileOpen(false)}>

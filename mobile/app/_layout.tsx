@@ -1,31 +1,45 @@
-import { LogBox } from 'react-native';
+import 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
-
-// Expo dev client sometimes fails to activate keep-awake (e.g. on some emulators); ignore so the app doesn't show an error.
-LogBox.ignoreLogs(['Unable to activate keep awake', 'Unable to deactivate keep awake']);
+import { SavedProvider } from '../contexts/SavedContext';
+import { colors } from '../lib/theme';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="listings/index" />
-          <Stack.Screen name="listings/new" />
-          <Stack.Screen name="listings/[id]" />
-          <Stack.Screen name="listings/[id]/edit" />
-          <Stack.Screen name="auth/signin" options={{ title: 'Sign in' }} />
-          <Stack.Screen name="auth/signup" options={{ title: 'Sign up' }} />
-          <Stack.Screen name="dashboard/claims" />
-          <Stack.Screen name="admin/users" />
-          <Stack.Screen name="admin/users/[id]/edit" />
-          <Stack.Screen name="admin/listings" />
-          <Stack.Screen name="admin/claims" />
-          <Stack.Screen name="trends/index" options={{ title: 'Trends' }} />
-          <Stack.Screen name="trends/[slug]" options={{ title: 'Post' }} />
-        </Stack>
+        <SavedProvider>
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.bg },
+              animation: 'slide_from_right',
+            }}
+          >
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="listings/index" />
+            <Stack.Screen name="listings/new" />
+            <Stack.Screen name="listings/[id]" />
+            <Stack.Screen name="listings/[id]/edit" />
+            <Stack.Screen name="messages/index" />
+            <Stack.Screen name="messages/[conversationId]" />
+            <Stack.Screen name="messages/listing/[listingId]" />
+            <Stack.Screen name="auth/signin" options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="auth/signup" options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="auth/verify-required" />
+            <Stack.Screen name="dashboard/claims" />
+            <Stack.Screen name="admin/users" />
+            <Stack.Screen name="admin/users/[id]/edit" />
+            <Stack.Screen name="admin/listings" />
+            <Stack.Screen name="admin/claims" />
+            <Stack.Screen name="trends/index" />
+            <Stack.Screen name="trends/[slug]" />
+            <Stack.Screen name="settings/delete-account" />
+          </Stack>
+        </SavedProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
