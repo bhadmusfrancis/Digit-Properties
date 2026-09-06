@@ -182,6 +182,8 @@ function plainTextToHtml(raw: string): string {
 
 function tidyExistingHtml(html: string): string {
   return stripInlineImages(html)
+    .replace(/<\/?(?:title|excerpt)\b[^>]*>/gi, '')
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '')
     .replace(/<p>\s*(?:&nbsp;|\s|<br\s*\/?\s*>)*\s*<\/p>/gi, '')
     .replace(/(?:<br\s*\/?\s*>\s*){2,}/gi, '</p><p>')
     .replace(/\n{3,}/g, '\n\n')
@@ -203,6 +205,8 @@ export function formatTrendArticleHtml(raw: string): string {
   text = text
     .replace(/^\s*TITLE:\s*[^\n]*\n?/i, '')
     .replace(/^\s*EXCERPT:\s*[^\n]*\n?/i, '')
+    .replace(/<\/?(?:title|excerpt)\b[^>]*>/gi, '')
+    .replace(/<h[12]>\s*(?:TITLE|EXCERPT)\s*:?\s*[^<]*<\/h[12]>/gi, '')
     .trim();
 
   if (!hasBlockHtml(text)) {

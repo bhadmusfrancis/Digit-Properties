@@ -154,27 +154,27 @@ async function writeWithOpenAI(opts: {
       : '';
 
   const system = `You are a senior Nigerian real-estate editor writing for Digit Properties (digitproperties.com).
-Write a unique, professional, publication-quality article. Output valid HTML only (no markdown): use <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <blockquote>, and <a href="..." target="_blank" rel="noopener noreferrer">.
-Do NOT use <img>, <figure>, or <figcaption> — the site shows a single hero image separately.
-Do NOT mention calendar dates, weekdays, “today”, “this morning”, or dated edition language in the title, excerpt, or body. Keep the piece evergreen.
+Return a single JSON object only (no markdown fences) with keys: title, excerpt, content.
+- title: specific, non-clickbait headline (max 120 chars). No dates or weekdays.
+- excerpt: under 220 characters. No dates or weekdays.
+- content: publication-quality HTML body using only <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <blockquote>, and <a href="..." target="_blank" rel="noopener noreferrer">.
+Do NOT use <img>, <figure>, <figcaption>, <title>, <h1>, or markdown.
+Do NOT mention calendar dates, weekdays, “today”, or dated edition language. Keep the piece evergreen.
 Tone: informed, specific, Nigeria-first. Never generic "real estate is booming" filler.
 Vary openings, headings, and vocabulary so posts in the same week do not feel templated.
-Minimum 550 words. Include a Sources section with the provided URLs.
+Minimum 550 words in content. Include a Sources section with the provided URLs as HTML links.
 End with a short, natural note that owners can list a property for free at /listings/new (relative link).
 Do not invent statistics, named officials, or unpublished circulars. If research is thin, say so and stay qualitative.`;
 
-  const user = `Write a ${opts.category} article.${siblingNote}
+  const user = `Write a ${opts.category} article as JSON.${siblingNote}
 
 Research brief:
 ${opts.researchBrief}
 
 Requirements:
-- First line: TITLE: a specific, non-clickbait headline (no dates)
-- Second line: EXCERPT: under 220 characters (no dates)
-- Then the HTML body
 - Topic must stay inside "${opts.category}"
-- Beautiful formatting: short lead paragraph, 3–5 h2 sections, one list, one blockquote
-- Cite at least two source links from the brief
+- Beautiful formatting: short lead <p>, 3–5 <h2> sections, one <ul>, one <blockquote>
+- Cite at least two source links from the brief inside the HTML
 - Practical takeaways for buyers, tenants, or owners in Nigeria
 - No images in the HTML body`;
 
@@ -191,6 +191,7 @@ Requirements:
         top_p: 0.95,
         frequency_penalty: 0.55,
         presence_penalty: 0.35,
+        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
@@ -205,28 +206,23 @@ Requirements:
     const raw = data.choices?.[0]?.message?.content?.trim();
     if (!raw) return null;
 
-    const lines = raw.split('\n');
-    let title = `${opts.category} market briefing`;
-    let excerpt = `Nigerian real estate notes on ${opts.category.toLowerCase()}.`;
-    let bodyStart = 0;
-    for (let i = 0; i < Math.min(8, lines.length); i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      if (/^TITLE:/i.test(line)) {
-        title = line.replace(/^TITLE:\s*/i, '').trim().slice(0, 140);
-        bodyStart = i + 1;
-        continue;
-      }
-      if (/^EXCERPT:/i.test(line)) {
-        excerpt = line.replace(/^EXCERPT:\s*/i, '').trim().slice(0, 240);
-        bodyStart = i + 1;
-        continue;
-      }
-      // Stop scanning once body content begins.
-      if (bodyStart > 0 && !/^(TITLE|EXCERPT):/i.test(line)) break;
+    let parsed: { title?: string; excerpt?: string; content?: string };
+    try {
+      parsed = JSON.parse(raw) as { title?: string; excerpt?: string; content?: string };
+    } catch {
+      console.warn('[trends/writer] invalid JSON from model');
+      return null;
     }
 
-    const content = stripInlineImages(normalizeBodyHtml(lines.slice(bodyStart).join('\n')));
+    const title = String(parsed.title || `${opts.category} market briefing`)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 140);
+    const excerpt = String(parsed.excerpt || `Nigerian real estate notes on ${opts.category.toLowerCase()}.`)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 240);
+    const content = stripInlineImages(normalizeBodyHtml(String(parsed.content || '')));
     if (!content || content.replace(/<[^>]+>/g, '').trim().length < 120) {
       return null;
     }
