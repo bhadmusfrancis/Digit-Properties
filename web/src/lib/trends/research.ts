@@ -6,6 +6,7 @@ export interface ResearchSnippet {
   kind: TrendSource['kind'];
   title?: string;
   description?: string;
+  /** OG/Twitter image URL — used only as thematic cue for AI generation, never rehosted as the hero. */
   imageUrl?: string;
   ok: boolean;
 }
@@ -122,7 +123,6 @@ export function formatResearchBrief(snippets: ResearchSnippet[]): string {
       const parts = [`- ${s.name} (${s.url})`];
       if (s.title) parts.push(`  Title: ${s.title}`);
       if (s.description) parts.push(`  Summary: ${s.description}`);
-      if (s.imageUrl) parts.push(`  Image: ${s.imageUrl}`);
       return parts.join('\n');
     })
     .join('\n');
