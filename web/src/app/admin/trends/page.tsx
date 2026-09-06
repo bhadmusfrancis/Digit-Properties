@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
 
@@ -23,23 +23,55 @@ export default function AdminTrendsPage() {
   const [category, setCategory] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateMsg, setGenerateMsg] = useState<string | null>(null);
+  const [autoPublish, setAutoPublish] = useState<boolean | null>(null);
+  const [autoPublishSaving, setAutoPublishSaving] = useState(false);
 
-  useEffect(() => {
+  const refreshPosts = useCallback(async () => {
     const params = new URLSearchParams();
     if (category) params.set('category', category);
     if (statusFilter) params.set('status', statusFilter);
     params.set('limit', '20');
-    fetch(`/api/admin/trends?${params.toString()}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.posts) setPosts(d.posts);
-        if (d.pagination) setPagination(d.pagination);
-      })
+    const d = await fetch(`/api/admin/trends?${params.toString()}`).then((r) => r.json());
+    if (d.posts) setPosts(d.posts);
+    if (d.pagination) setPagination(d.pagination);
+  }, [category, statusFilter]);
+
+  useEffect(() => {
+    setLoading(true);
+    refreshPosts()
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [category, statusFilter]);
+  }, [refreshPosts]);
+
+  useEffect(() => {
+    fetch('/api/admin/config/trends')
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d?.autoPublish === 'boolean') setAutoPublish(d.autoPublish);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function saveAutoPublish(next: boolean) {
+    setAutoPublishSaving(true);
+    setAutoPublish(next);
+    try {
+      const res = await fetch('/api/admin/config/trends', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoPublish: next }),
+      });
+      const data = await res.json();
+      if (typeof data?.autoPublish === 'boolean') setAutoPublish(data.autoPublish);
+    } catch {
+      setAutoPublish((prev) => (prev === null ? true : !next));
+    } finally {
+      setAutoPublishSaving(false);
+    }
+  }
 
   async function generateDaily() {
     if (generating) return;
@@ -57,20 +89,34 @@ export default function AdminTrendsPage() {
         return;
       }
       const n = typeof data.created === 'number' ? data.created : 0;
+      const published = data.autoPublish !== false;
       setGenerateMsg(
         n > 0
-          ? `Published ${n} post${n === 1 ? '' : 's'} for ${data.batchDate}.`
+          ? `${published ? 'Published' : 'Created as drafts'} ${n} post${n === 1 ? '' : 's'} for ${data.batchDate}.`
           : `Today already has ${data.skipped ?? 0} post(s). Use Add post to write one manually.`
       );
-      if (n > 0) {
-        const refresh = await fetch('/api/admin/trends?limit=20').then((r) => r.json());
-        if (refresh.posts) setPosts(refresh.posts);
-        if (refresh.pagination) setPagination(refresh.pagination);
-      }
+      if (n > 0) await refreshPosts();
     } catch {
       setGenerateMsg('Generation failed');
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function setPostStatus(id: string, status: string) {
+    setToggling(id);
+    try {
+      const res = await fetch(`/api/admin/trends/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPosts((prev) => prev.map((p) => (p._id === id ? { ...p, status: updated.status, publishedAt: updated.publishedAt } : p)));
+      }
+    } finally {
+      setToggling(null);
     }
   }
 
@@ -105,8 +151,27 @@ export default function AdminTrendsPage() {
       {generateMsg && (
         <p className="mt-3 text-sm text-gray-600">{generateMsg}</p>
       )}
-      <p className="mt-2 text-sm text-gray-500">
-        Daily generation researches official agency, market, and social pages, writes five category posts, and attaches a source or generated image.
+
+      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={autoPublish ?? true}
+            onChange={(e) => saveAutoPublish(e.target.checked)}
+            disabled={autoPublishSaving || autoPublish === null}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600"
+          />
+          <span>
+            <span className="font-medium text-gray-800">Auto-publish new trends</span>
+            <span className="mt-0.5 block text-sm text-gray-500">
+              When on, daily generation and cron publish posts immediately for everyone. When off, new posts stay drafts until you publish them. You can un-publish any live post anytime.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <p className="mt-3 text-sm text-gray-500">
+        Daily generation researches official agency and market pages, writes five category posts, and attaches one hero image (preferring major source imagery).
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <select
@@ -171,6 +236,25 @@ export default function AdminTrendsPage() {
                   <td className="px-2 py-3 text-right sm:px-4" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/trends/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
                     <Link href={`/admin/trends/${p._id}/edit`} className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
+                    {p.status === TREND_STATUS.PUBLISHED ? (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPostStatus(p._id, TREND_STATUS.DRAFT); }}
+                        disabled={toggling === p._id}
+                        className="min-h-[44px] py-2 px-2 -m-1 rounded text-amber-700 hover:underline text-sm disabled:opacity-50 touch-manipulation"
+                      >
+                        {toggling === p._id ? '…' : 'Unpublish'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPostStatus(p._id, TREND_STATUS.PUBLISHED); }}
+                        disabled={toggling === p._id}
+                        className="min-h-[44px] py-2 px-2 -m-1 rounded text-green-700 hover:underline text-sm disabled:opacity-50 touch-manipulation"
+                      >
+                        {toggling === p._id ? '…' : 'Publish'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); deletePost(p._id); }}
@@ -186,6 +270,11 @@ export default function AdminTrendsPage() {
           </table>
           {posts.length === 0 && (
             <div className="py-12 text-center text-gray-500">No trend posts yet. Add one to get started.</div>
+          )}
+          {pagination.pages > 1 && (
+            <p className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
+              Page {pagination.page} of {pagination.pages}
+            </p>
           )}
         </div>
       )}

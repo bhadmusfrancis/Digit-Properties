@@ -22,6 +22,10 @@ export function ul(items: string[]): string {
   return `<ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
 }
 
+export function blockquote(html: string): string {
+  return `<blockquote><p>${html}</p></blockquote>`;
+}
+
 export function extLink(url: string, label: string): string {
   return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`;
 }
@@ -36,6 +40,15 @@ export function normalizeBodyHtml(raw: string): string {
     html = html.replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/, '');
   }
   return html.trim();
+}
+
+/** Remove inline figures/images so the hero image is the only visual. */
+export function stripInlineImages(html: string): string {
+  return html
+    .replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, '')
+    .replace(/<img\b[^>]*>/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export { esc };

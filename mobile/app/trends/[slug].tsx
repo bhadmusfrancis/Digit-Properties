@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getApiUrl } from '../../lib/api';
+import { TrendHtmlBody } from '../../components/TrendHtmlBody';
 
 type Post = {
   _id: string;
@@ -13,6 +14,7 @@ type Post = {
   imageUrl?: string;
   author?: string;
   publishedAt?: string;
+  sourceUrls?: string[];
 };
 
 export default function TrendPostScreen() {
@@ -63,11 +65,21 @@ export default function TrendPostScreen() {
           {post.publishedAt && new Date(post.publishedAt).toLocaleDateString('en-NG', { dateStyle: 'long' })}
         </Text>
       )}
-      {post.imageUrl && (
+      {post.imageUrl ? (
         <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
-      )}
+      ) : null}
       {post.excerpt ? <Text style={styles.excerpt}>{post.excerpt}</Text> : null}
-      <Text style={styles.body}>{post.content}</Text>
+      <TrendHtmlBody html={post.content} />
+      {Array.isArray(post.sourceUrls) && post.sourceUrls.length > 0 ? (
+        <View style={styles.sources}>
+          <Text style={styles.sourcesTitle}>Sources</Text>
+          {post.sourceUrls.map((url) => (
+            <Text key={url} style={styles.sourceUrl} numberOfLines={2}>
+              {url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+            </Text>
+          ))}
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -78,13 +90,40 @@ const styles = StyleSheet.create({
   backBtn: { marginTop: 16 },
   backBtnText: { fontSize: 16, color: '#0d9488', fontWeight: '600' },
   scroll: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: 48 },
   backLink: { marginBottom: 12 },
   backLinkText: { fontSize: 14, color: '#0d9488', fontWeight: '500' },
-  category: { fontSize: 13, fontWeight: '600', color: '#0d9488' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#0f172a', marginTop: 8 },
-  meta: { fontSize: 14, color: '#64748b', marginTop: 8 },
-  image: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12, marginTop: 16, backgroundColor: '#f1f5f9' },
-  excerpt: { fontSize: 17, color: '#475569', lineHeight: 26, marginTop: 16 },
-  body: { fontSize: 16, color: '#334155', lineHeight: 26, marginTop: 16 },
+  category: {
+    alignSelf: 'flex-start',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f766e',
+    backgroundColor: '#ccfbf1',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#0f172a', marginTop: 12, lineHeight: 34 },
+  meta: { fontSize: 14, color: '#64748b', marginTop: 10 },
+  image: { width: '100%', aspectRatio: 16 / 9, borderRadius: 14, marginTop: 18, backgroundColor: '#f1f5f9' },
+  excerpt: {
+    fontSize: 17,
+    color: '#475569',
+    lineHeight: 26,
+    marginTop: 18,
+    paddingLeft: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5eead4',
+  },
+  sources: {
+    marginTop: 28,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e2e8f0',
+  },
+  sourcesTitle: { fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6 },
+  sourceUrl: { marginTop: 8, fontSize: 13, color: '#0d9488', fontWeight: '500' },
 });

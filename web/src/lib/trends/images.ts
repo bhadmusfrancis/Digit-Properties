@@ -80,13 +80,28 @@ async function generateEditorialImage(input: {
   }
 }
 
+const KIND_PRIORITY: Record<string, number> = {
+  website: 0,
+  report: 1,
+  twitter: 2,
+  facebook: 3,
+  instagram: 4,
+};
+
+/** Prefer imagery from major websites/reports over social feeds. */
+function snippetsByMajorSource(snippets: ResearchSnippet[]): ResearchSnippet[] {
+  return [...snippets].sort(
+    (a, b) => (KIND_PRIORITY[a.kind] ?? 9) - (KIND_PRIORITY[b.kind] ?? 9)
+  );
+}
+
 export async function resolveTrendImage(opts: {
   title: string;
   excerpt: string;
   category: TrendCategory;
   snippets: ResearchSnippet[];
 }): Promise<{ imageUrl?: string; fromSource: boolean }> {
-  for (const snippet of opts.snippets) {
+  for (const snippet of snippetsByMajorSource(opts.snippets)) {
     if (!isUsableImageUrl(snippet.imageUrl)) continue;
     const uploaded = await uploadRemote(snippet.imageUrl);
     if (uploaded) return { imageUrl: uploaded, fromSource: true };
@@ -101,5 +116,5 @@ export async function resolveTrendImage(opts: {
 }
 
 export function firstSourceImage(snippets: ResearchSnippet[]): string | undefined {
-  return snippets.find((s) => isUsableImageUrl(s.imageUrl))?.imageUrl;
+  return snippetsByMajorSource(snippets).find((s) => isUsableImageUrl(s.imageUrl))?.imageUrl;
 }

@@ -45,4 +45,21 @@
   .rich-html-content iframe {
     @apply my-4 max-w-full;
   }
+
+  /** Editorial styling for Trends article bodies */
+  .trend-prose blockquote {
+    @apply my-8 border-l-4 border-primary-400 bg-primary-50/60 py-4 pl-5 pr-4 text-slate-700 italic rounded-r-lg;
+  }
+  .trend-prose blockquote p {
+    @apply mb-0 text-[1.05rem] leading-relaxed;
+  }
+  .trend-prose h2 {
+    @apply scroll-mt-24;
+  }
+  .trend-prose ul {
+    @apply list-disc marker:text-primary-500;
+  }
+  .trend-prose li::marker {
+    color: rgb(14 165 233);
+  }
 }
