@@ -9,7 +9,7 @@
 import { existsSync, writeFileSync } from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
-import { mongoUriForConnect } from './lib/mongo-uri';
+import { mongoUriForConnect, normalizeMongoUri } from './lib/mongo-uri';
 
 const RESERVED = new Set(['in', 'new']);
 const OUT_FILE = path.resolve(process.cwd(), 'listing-301-redirects.generated.json');
@@ -34,8 +34,9 @@ function listingPath(segment: string): string {
 async function main() {
   const envPath = path.resolve(process.cwd(), '.env.local');
   if (existsSync(envPath)) config({ path: envPath });
-  if (!process.env.MONGODB_URI) {
-    console.error('MONGODB_URI missing');
+  const mongoUri = normalizeMongoUri(process.env.MONGODB_URI);
+  if (!mongoUri) {
+    console.error('MONGODB_URI missing or invalid (must start with mongodb:// or mongodb+srv://)');
     process.exit(1);
   }
 
@@ -43,7 +44,7 @@ async function main() {
   const Listing = (await import('../src/models/Listing')).default;
   const ListingPathRedirect = (await import('../src/models/ListingPathRedirect')).default;
 
-  await mongoose.connect(mongoUriForConnect(process.env.MONGODB_URI));
+  await mongoose.connect(mongoUriForConnect(mongoUri));
 
   const [movedListings, allSlugs, tombstones] = await Promise.all([
     Listing.find({

@@ -8,6 +8,27 @@ const ATLAS_SHARD_HOSTS = [
 const ATLAS_REPLICA_SET = 'atlas-1115qy-shard-0';
 
 /**
+ * Trim and strip wrapping quotes (common when pasting into Vercel env UI).
+ * Returns null when the value is missing or not a Mongo connection string.
+ */
+export function normalizeMongoUri(uri: string | undefined | null): string | null {
+  if (!uri) return null;
+  let s = uri.trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  if (!s.startsWith('mongodb://') && !s.startsWith('mongodb+srv://')) return null;
+  return s;
+}
+
+export function hasUsableMongoUri(): boolean {
+  return normalizeMongoUri(process.env.MONGODB_URI) != null;
+}
+
+/**
  * Convert mongodb+srv to a direct mongodb:// URI when SRV DNS fails
  * (common on Windows hotspot/corporate DNS).
  */

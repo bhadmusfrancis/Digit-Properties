@@ -1,1 +1,1 @@
-export { mongoUriForConnect } from '../../src/lib/mongo-uri';
+export { mongoUriForConnect, normalizeMongoUri, hasUsableMongoUri } from '../../src/lib/mongo-uri';

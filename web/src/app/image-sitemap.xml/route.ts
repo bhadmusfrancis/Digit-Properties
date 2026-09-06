@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { siteOrigin } from '@/lib/site-metadata';
 import { dbConnect } from '@/lib/db';
+import { hasUsableMongoUri } from '@/lib/mongo-uri';
 import { TREND_STATUS } from '@/lib/constants';
 import Trend from '@/models/Trend';
 import {
@@ -39,7 +40,7 @@ export async function GET() {
   const base = siteOrigin();
   let urlEntries: string[] = [];
 
-  if (process.env.MONGODB_URI?.trim()) {
+  if (hasUsableMongoUri()) {
     try {
       const [listings, trends] = await Promise.all([
         fetchActiveListingsForSitemap(),

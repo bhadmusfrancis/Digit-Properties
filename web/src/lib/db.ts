@@ -1,12 +1,6 @@
 import dns from 'dns';
 import mongoose from 'mongoose';
-import { mongoUriForConnect } from '@/lib/mongo-uri';
-
-const RAW_MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!RAW_MONGODB_URI) {
-  throw new Error('MONGODB_URI is required. Set it in your environment variables.');
-}
+import { mongoUriForConnect, normalizeMongoUri } from '@/lib/mongo-uri';
 
 // Hotspot/corporate DNS often fails Atlas SRV (_mongodb._tcp) lookups on Windows.
 dns.setDefaultResultOrder('ipv4first');
@@ -27,12 +21,23 @@ if (process.env.NODE_ENV !== 'production') {
   global.mongoose = cached;
 }
 
+function requireMongoUri(): string {
+  const uri = normalizeMongoUri(process.env.MONGODB_URI);
+  if (!uri) {
+    throw new Error(
+      'MONGODB_URI is required and must start with mongodb:// or mongodb+srv:// (no wrapping quotes).'
+    );
+  }
+  return uri;
+}
+
 async function attemptConnect(): Promise<typeof mongoose> {
-  const directOverride = process.env.MONGODB_URI_DIRECT?.trim();
+  const rawUri = requireMongoUri();
+  const directOverride = normalizeMongoUri(process.env.MONGODB_URI_DIRECT);
   const candidates = [
     directOverride,
-    mongoUriForConnect(RAW_MONGODB_URI),
-    RAW_MONGODB_URI,
+    mongoUriForConnect(rawUri),
+    rawUri,
   ].filter((u, i, arr): u is string => !!u && arr.indexOf(u) === i);
 
   let lastError: unknown;

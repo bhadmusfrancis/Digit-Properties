@@ -1,5 +1,6 @@
 import type { PipelineStage } from 'mongoose';
 import { dbConnect } from '@/lib/db';
+import { hasUsableMongoUri } from '@/lib/mongo-uri';
 import Listing from '@/models/Listing';
 import Trend from '@/models/Trend';
 import { LISTING_STATUS, TREND_STATUS } from '@/lib/constants';
@@ -80,7 +81,7 @@ function mapListingRow(l: {
 }
 
 export async function fetchHomeFeaturedListings(limit = 8): Promise<HomeListingRow[]> {
-  if (!process.env.MONGODB_URI?.trim()) return [];
+  if (!hasUsableMongoUri()) return [];
   await dbConnect();
   const rows = await Listing.find({
     status: LISTING_STATUS.ACTIVE,
@@ -108,7 +109,7 @@ export async function fetchHomeFeaturedListings(limit = 8): Promise<HomeListingR
 }
 
 export async function fetchHomeTrendingListings(limit = 8): Promise<HomeListingRow[]> {
-  if (!process.env.MONGODB_URI?.trim()) return [];
+  if (!hasUsableMongoUri()) return [];
   await dbConnect();
   const aggPipeline: PipelineStage[] = [
     { $match: { status: LISTING_STATUS.ACTIVE } },
@@ -146,7 +147,7 @@ export type HomeTrendPost = {
 };
 
 export async function fetchHomeTrendPosts(limit = 4): Promise<HomeTrendPost[]> {
-  if (!process.env.MONGODB_URI?.trim()) return [];
+  if (!hasUsableMongoUri()) return [];
   await dbConnect();
   const posts = await Trend.find({ status: TREND_STATUS.PUBLISHED })
     .sort({ publishedAt: -1, createdAt: -1 })

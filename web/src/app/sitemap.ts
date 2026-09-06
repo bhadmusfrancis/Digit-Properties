@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { dbConnect } from '@/lib/db';
+import { hasUsableMongoUri } from '@/lib/mongo-uri';
 import { siteOrigin } from '@/lib/site-metadata';
 import { LISTING_STATUS, TREND_STATUS } from '@/lib/constants';
 import Listing from '@/models/Listing';
@@ -90,7 +91,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
   ];
 
-  if (!process.env.MONGODB_URI?.trim()) {
+  if (!hasUsableMongoUri()) {
     return staticRoutes;
   }
 
