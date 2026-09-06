@@ -67,6 +67,19 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
   const created: GenerateTrendsResult['posts'] = [];
   const siblingCategories = [...alreadyCategories];
 
+  const recentWindowStart = new Date(batchDate);
+  recentWindowStart.setUTCDate(recentWindowStart.getUTCDate() - 14);
+  const recentPosts = await Trend.find({
+    status: { $in: [TREND_STATUS.PUBLISHED, TREND_STATUS.DRAFT] },
+    $or: [{ batchDate: { $gte: recentWindowStart } }, { createdAt: { $gte: recentWindowStart } }],
+  })
+    .select('title excerpt')
+    .sort({ publishedAt: -1, createdAt: -1 })
+    .limit(40)
+    .lean();
+  const recentTitles = recentPosts.map((p) => String(p.title || '')).filter(Boolean);
+  const recentExcerpts = recentPosts.map((p) => String(p.excerpt || '')).filter(Boolean);
+
   for (const category of categories) {
     const sources = pickSourcesForCategory(category, 4);
     const snippets = await researchSources(sources);
@@ -77,6 +90,8 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
       researchBrief,
       batchDate,
       siblingCategories,
+      recentTitles,
+      recentExcerpts,
     });
 
     const image = await resolveTrendImage({
@@ -118,6 +133,8 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
       status: publishStatus,
     });
     siblingCategories.push(category);
+    recentTitles.unshift(article.title);
+    recentExcerpts.unshift(article.excerpt);
   }
 
   return {
