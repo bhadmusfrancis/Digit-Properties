@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
-import { TrendImageUpload } from '@/components/trends/TrendImageUpload';
+import { TrendImageUpload, type TrendImageAttributionFields } from '@/components/trends/TrendImageUpload';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { AdminTrendSocialPostButtons } from '@/components/trends/AdminTrendSocialPostButtons';
 
@@ -18,6 +18,13 @@ export default function AdminTrendEditPage() {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<(typeof TREND_CATEGORIES)[number]>(TREND_CATEGORIES[0]);
   const [imageUrl, setImageUrl] = useState('');
+  const [attribution, setAttribution] = useState<TrendImageAttributionFields>({
+    imageCredit: '',
+    imageSourceName: '',
+    imageSourceUrl: '',
+    imageLicense: '',
+    imageRightsConfirmed: false,
+  });
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<(typeof TREND_STATUS)[keyof typeof TREND_STATUS]>(TREND_STATUS.DRAFT);
   const [facebookPostId, setFacebookPostId] = useState('');
@@ -45,6 +52,15 @@ export default function AdminTrendEditPage() {
         setContent(data.content ?? '');
         setCategory(data.category ?? TREND_CATEGORIES[0]);
         setImageUrl(data.imageUrl ?? '');
+        const license = data.imageLicense ?? '';
+        setAttribution({
+          imageCredit: data.imageCredit ?? '',
+          imageSourceName: data.imageSourceName ?? '',
+          imageSourceUrl: data.imageSourceUrl ?? '',
+          imageLicense: license,
+          // Clear licenses are fine; uploaded / third-party must be re-attested on save.
+          imageRightsConfirmed: license === 'ai_generated' || license === 'unsplash',
+        });
         setAuthor(data.author ?? '');
         setStatus(data.status ?? TREND_STATUS.DRAFT);
         setFacebookPostId(data.facebookPostId ?? '');
@@ -63,6 +79,20 @@ export default function AdminTrendEditPage() {
       setError('Content is required.');
       return;
     }
+    if (imageUrl && !attribution.imageCredit.trim()) {
+      setError('Photo credit is required when a featured image is set.');
+      return;
+    }
+    if (
+      imageUrl &&
+      (attribution.imageLicense === 'uploaded' ||
+        attribution.imageLicense === 'licensed_third_party' ||
+        attribution.imageLicense === 'source_editorial') &&
+      !attribution.imageRightsConfirmed
+    ) {
+      setError('Confirm image publishing rights before saving.');
+      return;
+    }
     setError('');
     setSaving(true);
     try {
@@ -76,6 +106,11 @@ export default function AdminTrendEditPage() {
           content,
           category,
           imageUrl: imageUrl || undefined,
+          imageCredit: attribution.imageCredit || undefined,
+          imageSourceName: attribution.imageSourceName || undefined,
+          imageSourceUrl: attribution.imageSourceUrl || undefined,
+          imageLicense: attribution.imageLicense || undefined,
+          imageRightsConfirmed: attribution.imageRightsConfirmed,
           author: author || undefined,
           status,
         }),
@@ -159,6 +194,8 @@ export default function AdminTrendEditPage() {
           <TrendImageUpload
             imageUrl={imageUrl}
             onImageUrlChange={setImageUrl}
+            attribution={attribution}
+            onAttributionChange={setAttribution}
             disabled={saving}
             generationInput={{ title, excerpt, content, category }}
           />

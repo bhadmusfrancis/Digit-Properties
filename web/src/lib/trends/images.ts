@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
 import cloudinary from '@/lib/cloudinary';
 import type { TrendCategory } from '@/lib/trends/sources';
-import type { ResearchSnippet } from '@/lib/trends/research';
+import { buildCopyrightSafeTrendImagePrompt } from '@/lib/trends/copyright';
 
-export type TrendImageLicense = 'source_editorial' | 'unsplash' | 'ai_generated' | 'uploaded';
+export type TrendImageLicense = 'unsplash' | 'ai_generated' | 'uploaded' | 'licensed_third_party' | 'source_editorial';
 
 export type TrendImageAttribution = {
   imageUrl?: string;
@@ -71,13 +71,6 @@ const CATEGORY_STOCK: Record<
   },
 };
 
-function isUsableImageUrl(url?: string): url is string {
-  if (!url) return false;
-  if (!/^https?:\/\//i.test(url)) return false;
-  if (url.includes('placeholder') || url.includes('default-avatar')) return false;
-  return true;
-}
-
 async function uploadRemote(url: string): Promise<string | undefined> {
   try {
     const upload = await cloudinary.uploader.upload(url, {
@@ -99,14 +92,11 @@ async function generateEditorialImage(input: {
   if (!process.env.OPENAI_API_KEY) return undefined;
   try {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const prompt = [
-      'Create a premium editorial hero image for a Nigerian real estate publication.',
-      'Style: photorealistic, clean, modern, natural lighting, high detail, landscape banner.',
-      'Avoid text overlays, logos, watermarks, UI, collages, or split screens.',
-      `Category: ${input.category}.`,
-      `Post title: ${input.title}.`,
-      `Excerpt: ${input.excerpt.slice(0, 280)}.`,
-    ].join('\n');
+    const prompt = buildCopyrightSafeTrendImagePrompt({
+      title: input.title,
+      excerpt: input.excerpt,
+      category: input.category,
+    });
     const result = await client.images.generate({
       model: 'gpt-image-1',
       prompt,
@@ -125,47 +115,20 @@ async function generateEditorialImage(input: {
   }
 }
 
-const KIND_PRIORITY: Record<string, number> = {
-  website: 0,
-  report: 1,
-  twitter: 2,
-  facebook: 3,
-  instagram: 4,
-};
-
-function snippetsByMajorSource(snippets: ResearchSnippet[]): ResearchSnippet[] {
-  return [...snippets].sort(
-    (a, b) => (KIND_PRIORITY[a.kind] ?? 9) - (KIND_PRIORITY[b.kind] ?? 9)
-  );
-}
-
 /**
- * Resolve hero image with provenance for lawful editorial use:
- * - Source OG images: attributed + linked (Nigeria Copyright Act fair dealing for news/review)
- * - Unsplash stock: Unsplash License with photographer credit
- * - AI: Digit Properties / model terms — original generated asset
+ * Resolve hero image using only copyright-clear sources:
+ * 1. Original AI-generated image (copyright-safe prompt)
+ * 2. Category Unsplash stock (Unsplash License + photographer credit)
+ *
+ * Third-party news/OG images are never rehosted — attribution alone is not a license.
  */
 export async function resolveTrendImage(opts: {
   title: string;
   excerpt: string;
   category: TrendCategory;
-  snippets: ResearchSnippet[];
+  /** Kept for call-site compatibility; source OG images are intentionally unused. */
+  snippets?: unknown;
 }): Promise<TrendImageAttribution> {
-  for (const snippet of snippetsByMajorSource(opts.snippets)) {
-    if (!isUsableImageUrl(snippet.imageUrl)) continue;
-    const uploaded = await uploadRemote(snippet.imageUrl);
-    if (uploaded) {
-      return {
-        imageUrl: uploaded,
-        fromSource: true,
-        imageSourceName: snippet.name,
-        imageSourceUrl: snippet.url,
-        imageCredit: `Image via ${snippet.name}`,
-        imageLicense: 'source_editorial',
-      };
-    }
-  }
-
   const generated = await generateEditorialImage(opts);
   if (generated) {
     return {
@@ -187,10 +150,6 @@ export async function resolveTrendImage(opts: {
     imageCredit: `${stock.credit} · Unsplash License`,
     imageLicense: 'unsplash',
   };
-}
-
-export function firstSourceImage(snippets: ResearchSnippet[]): string | undefined {
-  return snippetsByMajorSource(snippets).find((s) => isUsableImageUrl(s.imageUrl))?.imageUrl;
 }
 
 /** Short credit line for captions / footer. */

@@ -12,6 +12,9 @@ type Post = {
   content: string;
   category: string;
   imageUrl?: string;
+  imageCredit?: string;
+  imageSourceName?: string;
+  imageSourceUrl?: string;
   author?: string;
   publishedAt?: string;
   sourceUrls?: string[];
@@ -66,7 +69,15 @@ export default function TrendPostScreen() {
         </Text>
       )}
       {post.imageUrl ? (
-        <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
+        <View>
+          <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
+          {(post.imageCredit || post.imageSourceName) ? (
+            <Text style={styles.imageCredit}>
+              {post.imageCredit || `Image via ${post.imageSourceName}`}
+              {post.imageSourceUrl ? ` · ${post.imageSourceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}` : ''}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
       {post.excerpt ? <Text style={styles.excerpt}>{post.excerpt}</Text> : null}
       <TrendHtmlBody html={post.content} />
@@ -107,6 +118,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: 'bold', color: '#0f172a', marginTop: 12, lineHeight: 34 },
   meta: { fontSize: 14, color: '#64748b', marginTop: 10 },
   image: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12, marginTop: 16, backgroundColor: '#f1f5f9' },
+  imageCredit: { marginTop: 8, fontSize: 12, color: '#64748b', lineHeight: 17 },
   excerpt: {
     fontSize: 16,
     color: '#475569',

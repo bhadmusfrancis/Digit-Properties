@@ -29,6 +29,9 @@ export default function AdminTrendNewScreen() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('news');
   const [author, setAuthor] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageCredit, setImageCredit] = useState('');
+  const [imageSourceName, setImageSourceName] = useState('');
+  const [imageSourceUrl, setImageSourceUrl] = useState('');
   const [status, setStatus] = useState<(typeof STATUSES)[number]>('draft');
   const [saving, setSaving] = useState(false);
   const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
@@ -64,6 +67,10 @@ export default function AdminTrendNewScreen() {
       Alert.alert('Missing content', 'Content is required.');
       return;
     }
+    if (imageUrl.trim() && !imageCredit.trim()) {
+      Alert.alert('Missing photo credit', 'Add a photo credit when a featured image URL is set.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -80,6 +87,11 @@ export default function AdminTrendNewScreen() {
           content: content.trim(),
           category,
           imageUrl: imageUrl.trim() || undefined,
+          imageCredit: imageCredit.trim() || undefined,
+          imageSourceName: imageSourceName.trim() || undefined,
+          imageSourceUrl: imageSourceUrl.trim() || undefined,
+          imageLicense: imageUrl.trim() ? 'uploaded' : undefined,
+          imageRightsConfirmed: Boolean(imageUrl.trim()),
           author: author.trim() || undefined,
           status,
         }),
@@ -179,6 +191,37 @@ export default function AdminTrendNewScreen() {
           <TextInput
             value={imageUrl}
             onChangeText={setImageUrl}
+            placeholder="https://..."
+            style={styles.input}
+            editable={!saving}
+            autoCapitalize="none"
+          />
+        </Field>
+
+        <Field label="Photo credit * (required if image URL set)">
+          <TextInput
+            value={imageCredit}
+            onChangeText={setImageCredit}
+            placeholder="e.g. Image via World Bank Nigeria"
+            style={styles.input}
+            editable={!saving}
+          />
+        </Field>
+
+        <Field label="Image source name">
+          <TextInput
+            value={imageSourceName}
+            onChangeText={setImageSourceName}
+            placeholder="World Bank, Unsplash…"
+            style={styles.input}
+            editable={!saving}
+          />
+        </Field>
+
+        <Field label="Image source URL">
+          <TextInput
+            value={imageSourceUrl}
+            onChangeText={setImageSourceUrl}
             placeholder="https://..."
             style={styles.input}
             editable={!saving}
