@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { canonicalAlternates } from '@/lib/seo/canonical';
 import { dbConnect } from '@/lib/db';
+import { hasUsableMongoUri } from '@/lib/mongo-uri';
 import Trend from '@/models/Trend';
 import { TREND_STATUS } from '@/lib/constants';
 import { TrendsPageClient } from './TrendsPageClient';
@@ -24,7 +25,7 @@ export default async function TrendsPage() {
   }> = [];
   let initialPagination = { page: 1, pages: 1 };
 
-  if (process.env.MONGODB_URI?.trim()) {
+  if (hasUsableMongoUri()) {
     try {
       await dbConnect();
       const limit = 12;

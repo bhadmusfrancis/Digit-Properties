@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { siteOrigin } from '@/lib/site-metadata';
+import { hasUsableMongoUri } from '@/lib/mongo-uri';
 import {
   buildVideoSitemapUrlEntries,
   fetchActiveListingsForSitemap,
@@ -11,7 +12,7 @@ export async function GET() {
   const base = siteOrigin();
   let urlEntries: string[] = [];
 
-  if (process.env.MONGODB_URI?.trim()) {
+  if (hasUsableMongoUri()) {
     try {
       const listings = await fetchActiveListingsForSitemap();
       urlEntries = buildVideoSitemapUrlEntries(listings, base);
