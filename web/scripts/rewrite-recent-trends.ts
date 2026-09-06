@@ -14,9 +14,10 @@ async function main() {
   const { default: Trend } = await import('../src/models/Trend');
   const { pickSourcesForCategory } = await import('../src/lib/trends/sources');
   const { formatResearchBrief, researchSources } = await import('../src/lib/trends/research');
-  const { writeTrendArticle } = await import('../src/lib/trends/writer');
+  const { writeTrendArticle, sanitizeTrendCopy } = await import('../src/lib/trends/writer');
   const { formatTrendArticleHtml, stripInlineImages } = await import('../src/lib/trends/html');
   const { TREND_CATEGORIES } = await import('../src/lib/constants');
+  const { revalidateTrendSeoSurfaces } = await import('../src/lib/seo/revalidate-sitemaps');
   type TrendCategory = (typeof TREND_CATEGORIES)[number];
 
   await dbConnect();
@@ -49,6 +50,16 @@ async function main() {
   console.log(`Found ${posts.length} post(s).`);
   if (posts.length === 0) process.exit(0);
 
+  const recentPosts = await Trend.find({
+    createdAt: { $gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+  })
+    .select('title excerpt')
+    .sort({ publishedAt: -1 })
+    .limit(40)
+    .lean();
+  const recentTitles = recentPosts.map((p) => String(p.title || '')).filter(Boolean);
+  const recentExcerpts = recentPosts.map((p) => String(p.excerpt || '')).filter(Boolean);
+
   const rewritten: string[] = [];
   const siblingByDay = new Map<string, string[]>();
 
@@ -61,6 +72,7 @@ async function main() {
     const siblings = siblingByDay.get(day) ?? [];
 
     console.log(`\n→ [${category}] ${post.slug}`);
+    console.log(`  old title: ${post.title}`);
 
     try {
       const sources = pickSourcesForCategory(category, 4);
@@ -72,33 +84,33 @@ async function main() {
         researchBrief,
         batchDate,
         siblingCategories: siblings,
+        recentTitles,
+        recentExcerpts,
       });
 
       const content = stripInlineImages(formatTrendArticleHtml(article.content));
-      const title = article.title
-        .replace(/\s*[—–-]\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b.*$/i, '')
-        .trim();
-      const excerpt = article.excerpt
-        .replace(/\bfor\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b[^.]*/gi, '')
-        .replace(/\b\d{1,2}\s+\w+\s+\d{4}\b/g, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
+      const title = sanitizeTrendCopy(article.title, 140);
+      const excerpt = sanitizeTrendCopy(article.excerpt || '', 240);
 
       if (dryRun) {
         console.log(`  would update title: ${title}`);
-        console.log(`  content preview: ${content.slice(0, 180).replace(/\s+/g, ' ')}…`);
+        console.log(`  would update excerpt: ${excerpt}`);
       } else {
-        post.title = title.slice(0, 140);
-        post.excerpt = (excerpt || article.excerpt).slice(0, 240);
+        post.title = title;
+        post.excerpt = excerpt;
         post.content = content;
         post.sourceUrls = article.sourceUrls;
         if (!post.batchDate) post.batchDate = batchDate;
         await post.save();
+        revalidateTrendSeoSurfaces({ slug: post.slug });
         console.log(`  saved: ${post.title}`);
+        console.log(`  excerpt: ${post.excerpt}`);
       }
 
       siblings.push(category);
       siblingByDay.set(day, siblings);
+      recentTitles.unshift(title);
+      recentExcerpts.unshift(excerpt);
       rewritten.push(post.slug);
     } catch (e) {
       console.error(`  failed: ${(e as Error).message}`);
