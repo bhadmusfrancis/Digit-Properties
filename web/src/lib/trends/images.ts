@@ -111,13 +111,30 @@ async function uploadRemote(url: string): Promise<string | undefined> {
 
 /**
  * Distill a news/OG image into abstract thematic cues (never a recreate brief).
- * The source image is not stored or published.
+ * The source image is not published as the hero.
  */
+async function visionFriendlyUrl(url: string): Promise<string> {
+  // OpenAI vision rejects AVIF; re-encode via Cloudinary for cue extraction only.
+  if (!/\.avif(\?|$)/i.test(url) && !/[?&]format=avif\b/i.test(url)) return url;
+  try {
+    const upload = await cloudinary.uploader.upload(url, {
+      folder: 'trends/cue-refs',
+      format: 'jpg',
+      resource_type: 'image',
+      timeout: 20_000,
+    });
+    return upload.secure_url;
+  } catch {
+    return url;
+  }
+}
+
 async function visualCuesFromSourceImage(
   client: OpenAI,
   imageUrl: string
 ): Promise<string | undefined> {
   try {
+    const visionUrl = await visionFriendlyUrl(imageUrl);
     const result = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 220,
@@ -131,7 +148,7 @@ async function visualCuesFromSourceImage(
               type: 'text',
               text: 'Extract abstract thematic cues from this reference image for an original editorial illustration.',
             },
-            { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+            { type: 'image_url', image_url: { url: visionUrl, detail: 'low' } },
           ],
         },
       ],
