@@ -5,6 +5,8 @@ import type { ResearchSnippet } from '@/lib/trends/research';
 import {
   SOURCE_IMAGE_CUE_VISION_PROMPT,
   buildCopyrightSafeTrendImagePrompt,
+  isPublicInstitutionSnippet,
+  snippetsByMajorSource,
 } from '@/lib/trends/copyright';
 
 export type TrendImageLicense = 'unsplash' | 'ai_generated' | 'uploaded' | 'licensed_third_party' | 'source_editorial';
@@ -75,25 +77,11 @@ const CATEGORY_STOCK: Record<
   },
 };
 
-const KIND_PRIORITY: Record<string, number> = {
-  website: 0,
-  report: 1,
-  twitter: 2,
-  facebook: 3,
-  instagram: 4,
-};
-
 function isUsableImageUrl(url?: string): url is string {
   if (!url) return false;
   if (!/^https?:\/\//i.test(url)) return false;
   if (url.includes('placeholder') || url.includes('default-avatar')) return false;
   return true;
-}
-
-function snippetsByMajorSource(snippets: ResearchSnippet[]): ResearchSnippet[] {
-  return [...snippets].sort(
-    (a, b) => (KIND_PRIORITY[a.kind] ?? 9) - (KIND_PRIORITY[b.kind] ?? 9)
-  );
 }
 
 async function uploadRemote(url: string): Promise<string | undefined> {
@@ -109,12 +97,7 @@ async function uploadRemote(url: string): Promise<string | undefined> {
   }
 }
 
-/**
- * Distill a news/OG image into abstract thematic cues (never a recreate brief).
- * The source image is not published as the hero.
- */
 async function visionFriendlyUrl(url: string): Promise<string> {
-  // OpenAI vision rejects AVIF; re-encode via Cloudinary for cue extraction only.
   if (!/\.avif(\?|$)/i.test(url) && !/[?&]format=avif\b/i.test(url)) return url;
   try {
     const upload = await cloudinary.uploader.upload(url, {
@@ -146,7 +129,7 @@ async function visualCuesFromSourceImage(
           content: [
             {
               type: 'text',
-              text: 'Extract abstract thematic cues from this reference image for an original editorial illustration.',
+              text: 'Extract thematic cues from this reference image for an original editorial illustration.',
             },
             { type: 'image_url', image_url: { url: visionUrl, detail: 'low' } },
           ],
@@ -175,6 +158,8 @@ async function generateEditorialImage(input: {
   excerpt: string;
   category: TrendCategory;
   visualCues?: string;
+  allowPublicInstitutionVisuals?: boolean;
+  publicInstitutionName?: string;
 }): Promise<string | undefined> {
   if (!process.env.OPENAI_API_KEY) return undefined;
   try {
@@ -184,6 +169,8 @@ async function generateEditorialImage(input: {
       excerpt: input.excerpt,
       category: input.category,
       visualCues: input.visualCues,
+      allowPublicInstitutionVisuals: input.allowPublicInstitutionVisuals,
+      publicInstitutionName: input.publicInstitutionName,
     });
     const result = await client.images.generate({
       model: 'gpt-image-1',
@@ -204,10 +191,11 @@ async function generateEditorialImage(input: {
 }
 
 /**
- * Resolve hero image using only copyright-clear outputs:
- * 1. Prefer news/OG images as *thematic cues* → original AI hero (never rehost OG)
- * 2. Else AI from article title/excerpt only
- * 3. Else category Unsplash stock (Unsplash License + photographer credit)
+ * Resolve hero image, prioritizing the major content source:
+ * 1. Public-institution OG/official image from the richest source (rehost + credit)
+ * 2. Other public-institution sources with images (by content richness)
+ * 3. Original AI hero, cued by the major source (may depict that public institution)
+ * 4. Category Unsplash stock
  */
 export async function resolveTrendImage(opts: {
   title: string;
@@ -216,35 +204,54 @@ export async function resolveTrendImage(opts: {
   snippets?: ResearchSnippet[];
 }): Promise<TrendImageAttribution> {
   const snippets = Array.isArray(opts.snippets) ? opts.snippets : [];
-  let visualCues: string | undefined;
+  const ranked = snippetsByMajorSource(snippets);
+  const major = ranked[0];
 
+  // 1–2: Prefer official / public-institution imagery from the major (then other) sources.
+  const publicWithImages = ranked.filter(
+    (s) => isPublicInstitutionSnippet(s) && isUsableImageUrl(s.imageUrl)
+  );
+  for (const snippet of publicWithImages) {
+    const uploaded = await uploadRemote(snippet.imageUrl!);
+    if (!uploaded) continue;
+    return {
+      imageUrl: uploaded,
+      fromSource: true,
+      imageSourceName: snippet.name,
+      imageSourceUrl: snippet.url,
+      imageCredit: `Image via ${snippet.name}`,
+      imageLicense: 'source_editorial',
+    };
+  }
+
+  // 3: AI generation cued by major source (and public-institution allowance when applicable).
+  let visualCues: string | undefined;
   const client = process.env.OPENAI_API_KEY
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     : null;
 
-  for (const snippet of snippetsByMajorSource(snippets)) {
-    if (!isUsableImageUrl(snippet.imageUrl)) continue;
-    if (client) {
+  const cueCandidates = [
+    major,
+    ...ranked.filter((s) => s !== major && isUsableImageUrl(s.imageUrl)),
+    ...ranked.filter((s) => s !== major && s.ok),
+  ].filter(Boolean) as ResearchSnippet[];
+
+  for (const snippet of cueCandidates) {
+    if (isUsableImageUrl(snippet.imageUrl) && client) {
       visualCues = await visualCuesFromSourceImage(client, snippet.imageUrl);
     }
-    if (!visualCues) {
-      visualCues = textualCuesFromSnippet(snippet);
-    }
+    if (!visualCues) visualCues = textualCuesFromSnippet(snippet);
     if (visualCues) break;
   }
 
-  if (!visualCues) {
-    const textOnly = snippetsByMajorSource(snippets).find(
-      (s) => s.ok && (s.title || s.description)
-    );
-    if (textOnly) visualCues = textualCuesFromSnippet(textOnly);
-  }
-
+  const publicMajor = major && isPublicInstitutionSnippet(major) ? major : publicWithImages[0];
   const generated = await generateEditorialImage({
     title: opts.title,
     excerpt: opts.excerpt,
     category: opts.category,
     visualCues,
+    allowPublicInstitutionVisuals: Boolean(publicMajor),
+    publicInstitutionName: publicMajor?.name,
   });
   if (generated) {
     return {

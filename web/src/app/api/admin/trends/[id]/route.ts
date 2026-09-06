@@ -6,6 +6,7 @@ import Trend from '@/models/Trend';
 import { USER_ROLES, TREND_STATUS, TREND_CATEGORIES } from '@/lib/constants';
 import { TREND_IMAGE_LICENSES, validateTrendImageAttribution } from '@/lib/trends/copyright';
 import type { TrendImageLicense } from '@/models/Trend';
+import { revalidateTrendSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 function slugify(s: string): string {
   return s
@@ -98,8 +99,7 @@ export async function PUT(
       imageSourceUrl: post.imageSourceUrl,
       imageLicense: post.imageLicense,
       imageRightsConfirmed:
-        Boolean(body.imageRightsConfirmed) ||
-        post.imageLicense === 'source_editorial' ||
+        body.imageRightsConfirmed === true ||
         post.imageLicense === 'unsplash' ||
         post.imageLicense === 'ai_generated',
     });
@@ -115,6 +115,11 @@ export async function PUT(
     }
 
     await post.save();
+    if (post.status === TREND_STATUS.PUBLISHED) {
+      revalidateTrendSeoSurfaces({ slug: post.slug });
+    } else {
+      revalidateTrendSeoSurfaces();
+    }
     const out = post.toObject();
     return NextResponse.json({
       ...out,
