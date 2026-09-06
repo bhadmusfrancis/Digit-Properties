@@ -68,7 +68,7 @@ function TrendsContent({ initialPosts = [], initialPagination }: TrendsContentPr
       </section>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 xl:max-w-[1400px]">
-        <FeaturedSlot placement="trends" hideWhenEmpty />
+        <FeaturedSlot placement="trends" hideWhenEmpty className="mb-10" />
         {isLoading && posts.length === 0 ? (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (

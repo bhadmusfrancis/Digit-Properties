@@ -209,17 +209,27 @@ Requirements:
     let title = `${opts.category} market briefing`;
     let excerpt = `Nigerian real estate notes on ${opts.category.toLowerCase()}.`;
     let bodyStart = 0;
-    for (let i = 0; i < Math.min(4, lines.length); i++) {
-      if (/^TITLE:/i.test(lines[i])) {
-        title = lines[i].replace(/^TITLE:\s*/i, '').trim().slice(0, 140);
+    for (let i = 0; i < Math.min(8, lines.length); i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      if (/^TITLE:/i.test(line)) {
+        title = line.replace(/^TITLE:\s*/i, '').trim().slice(0, 140);
         bodyStart = i + 1;
-      } else if (/^EXCERPT:/i.test(lines[i])) {
-        excerpt = lines[i].replace(/^EXCERPT:\s*/i, '').trim().slice(0, 240);
-        bodyStart = i + 1;
+        continue;
       }
+      if (/^EXCERPT:/i.test(line)) {
+        excerpt = line.replace(/^EXCERPT:\s*/i, '').trim().slice(0, 240);
+        bodyStart = i + 1;
+        continue;
+      }
+      // Stop scanning once body content begins.
+      if (bodyStart > 0 && !/^(TITLE|EXCERPT):/i.test(line)) break;
     }
 
     const content = stripInlineImages(normalizeBodyHtml(lines.slice(bodyStart).join('\n')));
+    if (!content || content.replace(/<[^>]+>/g, '').trim().length < 120) {
+      return null;
+    }
 
     const sourceUrls = [
       ...opts.snippets.map((s) => s.url),
