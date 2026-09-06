@@ -47,19 +47,30 @@
   }
 
   /** Editorial styling for Trends article bodies */
+  .trend-prose.rich-html-content p:empty,
+  .trend-prose.rich-html-content p:has(> br:only-child) {
+    display: none;
+    min-height: 0;
+  }
+  .trend-prose > :first-child {
+    margin-top: 0 !important;
+  }
+  .trend-prose > :last-child {
+    margin-bottom: 0 !important;
+  }
   .trend-prose blockquote {
-    @apply my-8 border-l-4 border-primary-400 bg-primary-50/60 py-4 pl-5 pr-4 text-slate-700 italic rounded-r-lg;
+    @apply border-l-4 border-primary-400 bg-primary-50/50 py-3 pl-4 pr-3 text-slate-700 italic rounded-r-md not-italic;
   }
   .trend-prose blockquote p {
-    @apply mb-0 text-[1.05rem] leading-relaxed;
+    @apply mb-0 text-[1.02rem] leading-relaxed italic text-slate-700;
+  }
+  .trend-prose blockquote cite {
+    @apply not-italic text-slate-500 text-[0.95em];
   }
   .trend-prose h2 {
     @apply scroll-mt-24;
   }
   .trend-prose ul {
     @apply list-disc marker:text-primary-500;
-  }
-  .trend-prose li::marker {
-    color: rgb(14 165 233);
   }
 }

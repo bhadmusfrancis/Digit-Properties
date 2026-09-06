@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { Linking, StyleSheet, Text, View, type TextStyle, type StyleProp } from 'react-native';
 
 type Block =
-  | { type: 'p' | 'h2' | 'h3' | 'li' | 'quote'; runs: Run[] }
-  | { type: 'gap' };
+  | { type: 'p' | 'h2' | 'h3' | 'li' | 'quote'; runs: Run[] };
 
 type Run = { text: string; bold?: boolean; italic?: boolean; href?: string };
 
@@ -79,7 +78,8 @@ function htmlToBlocks(html: string): Block[] {
     } else if (tag === 'h3') {
       blocks.push({ type: 'h3', runs: parseRuns(inner) });
     } else {
-      blocks.push({ type: 'p', runs: parseRuns(inner) });
+      const text = stripTags(inner);
+      if (text) blocks.push({ type: 'p', runs: parseRuns(inner) });
     }
     last = m.index + m[0].length;
   }
@@ -111,26 +111,39 @@ function Runs({ runs, baseStyle }: { runs: Run[]; baseStyle?: StyleProp<TextStyl
 export function TrendHtmlBody({ html }: { html: string }) {
   const blocks = useMemo(() => htmlToBlocks(html || ''), [html]);
 
-  if (!html?.trim()) return null;
+  if (!html?.trim() || blocks.length === 0) return null;
 
   return (
     <View style={styles.wrap}>
       {blocks.map((b, i) => {
         if (b.type === 'h2') {
           return (
-            <View key={i} style={styles.h2Wrap}>
+            <View key={i} style={[styles.h2Wrap, i === 0 && styles.firstBlock]}>
               <Runs runs={b.runs} baseStyle={styles.h2} />
             </View>
           );
         }
         if (b.type === 'h3') {
-          return <Runs key={i} runs={b.runs} baseStyle={styles.h3} />;
+          return (
+            <View key={i} style={styles.h3Wrap}>
+              <Runs runs={b.runs} baseStyle={styles.h3} />
+            </View>
+          );
         }
         if (b.type === 'li') {
+          const prev = blocks[i - 1];
+          const next = blocks[i + 1];
+          const first = prev?.type !== 'li';
+          const last = next?.type !== 'li';
           return (
-            <View key={i} style={styles.liRow}>
+            <View
+              key={i}
+              style={[styles.liRow, first && styles.liFirst, last && styles.liLast]}
+            >
               <Text style={styles.bullet}>•</Text>
-              <Runs runs={b.runs} baseStyle={styles.li} />
+              <View style={styles.liText}>
+                <Runs runs={b.runs} baseStyle={styles.li} />
+              </View>
             </View>
           );
         }
@@ -141,33 +154,45 @@ export function TrendHtmlBody({ html }: { html: string }) {
             </View>
           );
         }
-        return <Runs key={i} runs={b.runs} baseStyle={styles.p} />;
+        return (
+          <View key={i} style={styles.pWrap}>
+            <Runs runs={b.runs} baseStyle={styles.p} />
+          </View>
+        );
       })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 8, gap: 12 },
+  wrap: { marginTop: 16 },
+  firstBlock: { marginTop: 0 },
+  pWrap: { marginBottom: 14 },
   p: { fontSize: 16, lineHeight: 26, color: '#334155' },
   h2Wrap: {
-    marginTop: 12,
+    marginTop: 22,
+    marginBottom: 10,
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e2e8f0',
   },
   h2: { fontSize: 20, fontWeight: '700', color: '#0f172a', lineHeight: 28 },
-  h3: { fontSize: 17, fontWeight: '600', color: '#1e293b', lineHeight: 24, marginTop: 4 },
-  liRow: { flexDirection: 'row', gap: 8, paddingLeft: 4 },
-  bullet: { color: '#0d9488', fontSize: 16, lineHeight: 26, fontWeight: '700' },
-  li: { flex: 1, fontSize: 16, lineHeight: 26, color: '#334155' },
+  h3Wrap: { marginTop: 16, marginBottom: 8 },
+  h3: { fontSize: 17, fontWeight: '600', color: '#1e293b', lineHeight: 24 },
+  liRow: { flexDirection: 'row', gap: 10, paddingLeft: 2, marginBottom: 8 },
+  liFirst: { marginTop: 4 },
+  liLast: { marginBottom: 14 },
+  bullet: { color: '#0d9488', fontSize: 16, lineHeight: 26, fontWeight: '700', width: 14 },
+  liText: { flex: 1 },
+  li: { fontSize: 16, lineHeight: 26, color: '#334155' },
   quote: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#5eead4',
+    borderLeftWidth: 3,
+    borderLeftColor: '#2dd4bf',
     backgroundColor: '#f0fdfa',
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 8,
+    marginVertical: 12,
   },
   quoteText: { fontSize: 16, lineHeight: 25, color: '#334155', fontStyle: 'italic' },
   bold: { fontWeight: '700', color: '#0f172a' },

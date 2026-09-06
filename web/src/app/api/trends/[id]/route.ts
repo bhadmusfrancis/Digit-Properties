@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/db';
 import Trend from '@/models/Trend';
 import { TREND_STATUS } from '@/lib/constants';
+import { formatTrendArticleHtml, stripInlineImages } from '@/lib/trends/html';
 
 /** Public: get single published trend by id or slug. */
 export async function GET(
@@ -21,8 +22,12 @@ export async function GET(
     const post = await Trend.findOne(filter).lean();
     if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+    const formatted = formatTrendArticleHtml(post.content || '');
+    const content = post.imageUrl ? stripInlineImages(formatted) : formatted;
+
     return NextResponse.json({
       ...post,
+      content,
       _id: String(post._id),
       publishedAt: post.publishedAt?.toISOString(),
       createdAt: post.createdAt?.toISOString(),

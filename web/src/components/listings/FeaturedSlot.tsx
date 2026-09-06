@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
+import type { ReactNode } from 'react';
 import { formatPrice } from '@/lib/utils';
 import { formatListingLocationDisplay } from '@/lib/listing-location';
 import { getListingDisplayImage, listingHasVideoMedia } from '@/lib/listing-default-image';
@@ -57,9 +58,22 @@ async function fetchSlot(placement: Placement): Promise<SlotResponse> {
   return data as SlotResponse;
 }
 
-type FeaturedSlotProps = { placement?: Placement; hideWhenEmpty?: boolean };
+type FeaturedSlotProps = {
+  placement?: Placement;
+  hideWhenEmpty?: boolean;
+  /** Extra classes on the outer wrapper (default includes mt-6). */
+  className?: string;
+};
 
-export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = false }: FeaturedSlotProps) {
+function slotWrap(className: string | undefined, children: ReactNode) {
+  return <div className={className ?? 'mt-6'}>{children}</div>;
+}
+
+export function FeaturedSlot({
+  placement = 'home_featured',
+  hideWhenEmpty = false,
+  className,
+}: FeaturedSlotProps) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['ads', 'slot', placement],
     queryFn: () => fetchSlot(placement),
@@ -69,19 +83,18 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
 
   if (isLoading) {
     if (hideWhenEmpty) return null;
-    return (
-      <div className="mt-6">
-        <div className="card w-full animate-pulse overflow-hidden md:flex">
-          <div className="aspect-[4/3] w-full bg-gray-200 md:min-h-[280px] md:w-[42%] lg:min-h-[320px]" />
-          <div className="flex flex-1 flex-col justify-center space-y-3 p-4 md:p-6">
-            <div className="h-6 w-4/5 rounded bg-gray-200 md:h-7" />
-            <div className="h-5 w-1/3 rounded bg-gray-200" />
-            <div className="h-4 w-2/3 rounded bg-gray-200" />
-            <div className="mt-2 flex gap-4">
-              <div className="h-4 w-16 rounded bg-gray-200" />
-              <div className="h-4 w-16 rounded bg-gray-200" />
-              <div className="h-4 w-20 rounded bg-gray-200" />
-            </div>
+    return slotWrap(
+      className,
+      <div className="card w-full animate-pulse overflow-hidden md:flex">
+        <div className="aspect-[4/3] w-full bg-gray-200 md:min-h-[280px] md:w-[42%] lg:min-h-[320px]" />
+        <div className="flex flex-1 flex-col justify-center space-y-3 p-4 md:p-6">
+          <div className="h-6 w-4/5 rounded bg-gray-200 md:h-7" />
+          <div className="h-5 w-1/3 rounded bg-gray-200" />
+          <div className="h-4 w-2/3 rounded bg-gray-200" />
+          <div className="mt-2 flex gap-4">
+            <div className="h-4 w-16 rounded bg-gray-200" />
+            <div className="h-4 w-16 rounded bg-gray-200" />
+            <div className="h-4 w-20 rounded bg-gray-200" />
           </div>
         </div>
       </div>
@@ -91,7 +104,7 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
   if (isError) {
     if (hideWhenEmpty) return null;
     return (
-      <div className="mt-6 rounded-xl border-2 border-dashed border-red-200 bg-red-50 py-12 text-center">
+      <div className={`${className ?? 'mt-6'} rounded-xl border-2 border-dashed border-red-200 bg-red-50 py-12 text-center`}>
         <p className="text-red-600">Failed to load featured: {(error as Error)?.message}</p>
       </div>
     );
@@ -100,7 +113,7 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
   if (!data?.type) {
     if (hideWhenEmpty) return null;
     return (
-      <div className="mt-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 py-16 text-center">
+      <div className={`${className ?? 'mt-6'} rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 py-16 text-center`}>
         <p className="text-gray-500">No featured content right now.</p>
         <Link href="/listings" className="mt-4 inline-block text-primary-600 font-medium hover:underline">
           Browse listings
@@ -116,9 +129,9 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
       : '';
     const locationLine = formatListingLocationDisplay(listing.location);
 
-    return (
-      <div className="mt-6">
-        <Link
+    return slotWrap(
+      className,
+      <Link
           href={getListingPublicPath(listing)}
           className="card group block w-full overflow-hidden transition hover:shadow-xl md:flex md:flex-row"
         >
@@ -206,16 +219,15 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
             </div>
           </div>
         </Link>
-      </div>
     );
   }
 
   if (data.type === 'ad' && data.ad) {
     const ad = data.ad;
     const isVideo = ad.media?.type === 'video';
-    return (
-      <div className="mt-6 flex justify-center">
-        <Link
+    return slotWrap(
+      className ? `${className} flex justify-center` : 'mt-6 flex justify-center',
+      <Link
           href={ad.targetUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
@@ -243,35 +255,32 @@ export function FeaturedSlot({ placement = 'home_featured', hideWhenEmpty = fals
             <SponsoredLabel overlay className="absolute left-2 top-2" />
           </div>
         </Link>
-      </div>
     );
   }
 
   if (data.type === 'adsense' && data.adsenseCode) {
-    return (
-      <div className="mt-6 flex justify-center">
-        <div className="relative w-full max-w-lg">
+    return slotWrap(
+      className ? `${className} flex justify-center` : 'mt-6 flex justify-center',
+      <div className="relative w-full max-w-lg">
           <SponsoredLabel className="absolute right-3 top-2 z-10" />
           <HtmlAdEmbed
             html={data.adsenseCode}
             className="min-h-[120px] w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
           />
         </div>
-      </div>
     );
   }
 
   if (data.type === 'adsterra' && data.adsterraCode) {
-    return (
-      <div className="mt-6 flex justify-center">
-        <div className="relative w-full max-w-lg">
+    return slotWrap(
+      className ? `${className} flex justify-center` : 'mt-6 flex justify-center',
+      <div className="relative w-full max-w-lg">
           <SponsoredLabel className="absolute right-3 top-2 z-10" />
           <HtmlAdEmbed
             html={data.adsterraCode}
             className="min-h-[120px] w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
           />
         </div>
-      </div>
     );
   }
 
