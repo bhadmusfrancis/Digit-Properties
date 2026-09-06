@@ -7,6 +7,7 @@ import { formatResearchBrief, researchSources } from '@/lib/trends/research';
 import { pickDailyCategories } from '@/lib/trends/rotation';
 import { resolveTrendImage } from '@/lib/trends/images';
 import { writeTrendArticle } from '@/lib/trends/writer';
+import { revalidateTrendSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 export const TREND_AUTHOR = 'Digit Properties Editorial';
 
@@ -106,6 +107,7 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
         batchDate,
         sourceUrls: article.sourceUrls,
       });
+      if (autoPublish) revalidateTrendSeoSurfaces({ slug });
     }
 
     created.push({

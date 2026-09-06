@@ -5,6 +5,7 @@ import Trend from '@/models/Trend';
 import { USER_ROLES, TREND_STATUS, TREND_CATEGORIES } from '@/lib/constants';
 import { TREND_IMAGE_LICENSES, validateTrendImageAttribution } from '@/lib/trends/copyright';
 import type { TrendImageLicense } from '@/models/Trend';
+import { revalidateTrendSeoSurfaces } from '@/lib/seo/revalidate-sitemaps';
 
 function slugify(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -104,6 +105,9 @@ export async function POST(req: Request) {
       publishedAt: finalStatus === TREND_STATUS.PUBLISHED ? new Date() : undefined,
     });
     const post = doc.toObject();
+    if (finalStatus === TREND_STATUS.PUBLISHED) {
+      revalidateTrendSeoSurfaces({ slug: uniqueSlug });
+    }
     return NextResponse.json({
       ...post,
       _id: String(post._id),

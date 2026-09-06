@@ -14,12 +14,29 @@ async function main() {
 
   const { dbConnect } = await import('../src/lib/db');
   const { default: Trend } = await import('../src/models/Trend');
-  const { pickSourcesForCategory } = await import('../src/lib/trends/sources');
+  const { pickSourcesForCategory, TREND_SOURCES } = await import('../src/lib/trends/sources');
   type TrendSource = import('../src/lib/trends/sources').TrendSource;
   const { researchSources } = await import('../src/lib/trends/research');
   const { resolveTrendImage } = await import('../src/lib/trends/images');
   const { TREND_CATEGORIES } = await import('../src/lib/constants');
   type TrendCategory = (typeof TREND_CATEGORIES)[number];
+
+  function sourceFromUrl(url: string, category: TrendCategory, index: number): TrendSource {
+    const known = TREND_SOURCES.find((s) => {
+      try {
+        return new URL(s.url).hostname.replace(/^www\./i, '') === new URL(url).hostname.replace(/^www\./i, '');
+      } catch {
+        return s.url === url;
+      }
+    });
+    if (known) return { ...known, url };
+    return {
+      name: `Source ${index + 1}`,
+      url,
+      kind: 'website',
+      categories: [category],
+    };
+  }
 
   await dbConnect();
 
@@ -73,12 +90,7 @@ async function main() {
     try {
       let sources: TrendSource[];
       if (Array.isArray(post.sourceUrls) && post.sourceUrls.length > 0) {
-        sources = post.sourceUrls.map((url, i) => ({
-          name: `Source ${i + 1}`,
-          url,
-          kind: 'website' as const,
-          categories: [category],
-        }));
+        sources = post.sourceUrls.map((url, i) => sourceFromUrl(url, category, i));
       } else {
         sources = pickSourcesForCategory(category, 4);
       }
@@ -101,7 +113,7 @@ async function main() {
       }
 
       console.log(
-        `  new: ${image.imageLicense} · ${image.imageCredit} · ${image.imageUrl.slice(0, 70)}…`
+        `  new: ${image.imageLicense}${image.fromSource ? ' (major/public source)' : ''} · ${image.imageCredit} · ${image.imageUrl.slice(0, 70)}…`
       );
 
       if (dryRun) {

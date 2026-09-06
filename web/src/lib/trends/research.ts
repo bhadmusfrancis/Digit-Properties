@@ -6,7 +6,7 @@ export interface ResearchSnippet {
   kind: TrendSource['kind'];
   title?: string;
   description?: string;
-  /** OG/Twitter image URL — used only as thematic cue for AI generation, never rehosted as the hero. */
+  /** OG/Twitter image URL — preferred for public-institution heroes; otherwise used as AI cues. */
   imageUrl?: string;
   ok: boolean;
 }

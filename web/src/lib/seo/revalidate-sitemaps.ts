@@ -26,3 +26,14 @@ export function revalidateListingSeoSurfaces(input: { publicPath: string; videoC
     console.error('[revalidate-sitemaps] listing pages', e);
   }
 }
+
+/** Refresh sitemaps and public Trends pages after create or update. */
+export function revalidateTrendSeoSurfaces(input?: { slug?: string }): void {
+  revalidateAllSitemaps();
+  try {
+    revalidatePath('/trends');
+    if (input?.slug) revalidatePath(`/trends/${input.slug}`);
+  } catch (e) {
+    console.error('[revalidate-sitemaps] trends pages', e);
+  }
+}

@@ -104,7 +104,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select('_id slug updatedAt images videos description')
         .lean(),
       Trend.find({ status: TREND_STATUS.PUBLISHED })
-        .select('slug updatedAt publishedAt')
+        .select('slug title updatedAt publishedAt imageUrl imageCredit')
         .lean(),
       buildLocationSitemapEntries(base, now),
       Listing.distinct('createdBy', { status: LISTING_STATUS.ACTIVE }),
@@ -117,16 +117,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
 
     const trendRoutes: MetadataRoute.Sitemap = trends.map((row) => {
-      const updated = row.updatedAt
-        ? new Date(row.updatedAt as Date)
-        : row.publishedAt
-          ? new Date(row.publishedAt as Date)
-          : now;
+      const updatedAt = row.updatedAt ? new Date(row.updatedAt as Date).getTime() : 0;
+      const publishedAt = row.publishedAt ? new Date(row.publishedAt as Date).getTime() : 0;
+      const latestMs = Math.max(updatedAt, publishedAt, 0);
+      const updated = latestMs > 0 ? new Date(latestMs) : now;
+      const ageDays = (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24);
+      const imageUrl = typeof row.imageUrl === 'string' && row.imageUrl.startsWith('http') ? row.imageUrl : undefined;
       return {
         url: `${base}/trends/${String(row.slug)}`,
         lastModified: updated,
-        changeFrequency: 'weekly' as const,
-        priority: 0.6,
+        changeFrequency: (ageDays <= 14 ? 'daily' : 'weekly') as 'daily' | 'weekly',
+        priority: ageDays <= 7 ? 0.75 : 0.65,
+        ...(imageUrl ? { images: [imageUrl] } : {}),
       };
     });
 

@@ -1,11 +1,39 @@
 import { NextResponse } from 'next/server';
 import { siteOrigin } from '@/lib/site-metadata';
+import { dbConnect } from '@/lib/db';
+import { TREND_STATUS } from '@/lib/constants';
+import Trend from '@/models/Trend';
 import {
   buildImageSitemapUrlEntries,
+  escapeSitemapXml,
   fetchActiveListingsForSitemap,
 } from '@/lib/seo/listing-sitemap-data';
+import { toAbsoluteImageUrlForSeo } from '@/lib/seo/listing-images';
 
 export const revalidate = 3600;
+
+function buildTrendImageSitemapEntries(
+  trends: { slug?: string; title?: string; imageUrl?: string; imageCredit?: string }[],
+  base: string
+): string[] {
+  const entries: string[] = [];
+  for (const trend of trends) {
+    const slug = typeof trend.slug === 'string' ? trend.slug.trim() : '';
+    const rawImage = typeof trend.imageUrl === 'string' ? trend.imageUrl.trim() : '';
+    if (!slug || !rawImage) continue;
+    const loc = toAbsoluteImageUrlForSeo(rawImage);
+    if (!loc) continue;
+    const pageUrl = `${base}/trends/${slug}`;
+    const title = escapeSitemapXml(String(trend.title ?? 'Digit Properties Trends').slice(0, 200));
+    const caption = escapeSitemapXml(
+      String(trend.imageCredit || trend.title || 'Trends article image').slice(0, 200)
+    );
+    entries.push(
+      `  <url>\n    <loc>${escapeSitemapXml(pageUrl)}</loc>\n    <image:image>\n      <image:loc>${escapeSitemapXml(loc)}</image:loc>\n      <image:title>${title}</image:title>\n      <image:caption>${caption}</image:caption>\n    </image:image>\n  </url>`
+    );
+  }
+  return entries;
+}
 
 export async function GET() {
   const base = siteOrigin();
@@ -13,8 +41,23 @@ export async function GET() {
 
   if (process.env.MONGODB_URI?.trim()) {
     try {
-      const listings = await fetchActiveListingsForSitemap();
-      urlEntries = buildImageSitemapUrlEntries(listings, base);
+      const [listings, trends] = await Promise.all([
+        fetchActiveListingsForSitemap(),
+        (async () => {
+          await dbConnect();
+          return Trend.find({
+            status: TREND_STATUS.PUBLISHED,
+            imageUrl: { $exists: true, $nin: [null, ''] },
+            slug: { $exists: true, $nin: [null, ''] },
+          })
+            .select('slug title imageUrl imageCredit')
+            .lean();
+        })(),
+      ]);
+      urlEntries = [
+        ...buildImageSitemapUrlEntries(listings, base),
+        ...buildTrendImageSitemapEntries(trends as { slug?: string; title?: string; imageUrl?: string; imageCredit?: string }[], base),
+      ];
     } catch (e) {
       console.error('[image-sitemap]', e);
     }
