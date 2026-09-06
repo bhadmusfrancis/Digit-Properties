@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../lib/api';
 import {
-  signInWithGoogle,
-  signInWithFacebook,
+  signInWithOAuthBridge,
   signInWithApple,
   isGoogleConfigured,
   isFacebookConfigured,
@@ -22,7 +21,12 @@ export function SocialAuthButtons({ onError, disabled }: Props) {
   const { setAuth } = useAuth();
   const [loading, setLoading] = useState<'google' | 'facebook' | 'apple' | null>(null);
 
-  const sendToBackend = async (body: Record<string, unknown>) => {
+  const finishWithSession = async (token: string, user: { id: string; email: string; name: string; role: string }) => {
+    await setAuth(token, user);
+    router.replace('/');
+  };
+
+  const sendAppleToBackend = async (body: Record<string, unknown>) => {
     const res = await fetch(getApiUrl('auth/mobile-social'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -33,8 +37,7 @@ export function SocialAuthButtons({ onError, disabled }: Props) {
       throw new Error((data as { error?: string }).error || 'Sign in failed');
     }
     if (data.token && data.user) {
-      await setAuth(data.token, data.user);
-      router.replace('/');
+      await finishWithSession(data.token, data.user);
     } else {
       throw new Error('Invalid response');
     }
@@ -45,12 +48,9 @@ export function SocialAuthButtons({ onError, disabled }: Props) {
     setLoading('google');
     onError('');
     try {
-      const payload = await signInWithGoogle();
-      if (!payload || payload.provider !== 'google') {
-        onError('Google Sign-In is not available in this build (e.g. Expo Go). Use a dev build for native sign-in.');
-        return;
-      }
-      await sendToBackend({ provider: 'google', idToken: payload.idToken });
+      const session = await signInWithOAuthBridge('google');
+      if (!session) return;
+      await finishWithSession(session.token, session.user);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Google sign-in failed');
     } finally {
@@ -63,9 +63,9 @@ export function SocialAuthButtons({ onError, disabled }: Props) {
     setLoading('facebook');
     onError('');
     try {
-      const payload = await signInWithFacebook();
-      if (!payload || payload.provider !== 'facebook') return;
-      await sendToBackend({ provider: 'facebook', accessToken: payload.accessToken });
+      const session = await signInWithOAuthBridge('facebook');
+      if (!session) return;
+      await finishWithSession(session.token, session.user);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Facebook sign-in failed');
     } finally {
@@ -80,7 +80,7 @@ export function SocialAuthButtons({ onError, disabled }: Props) {
     try {
       const payload = await signInWithApple();
       if (!payload || payload.provider !== 'apple') return;
-      await sendToBackend({
+      await sendAppleToBackend({
         provider: 'apple',
         identityToken: payload.identityToken,
         email: payload.email,

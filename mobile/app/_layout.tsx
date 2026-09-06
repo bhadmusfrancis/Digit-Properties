@@ -5,8 +5,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../contexts/AuthContext';
 import { SavedProvider } from '../contexts/SavedContext';
 import { colors } from '../lib/theme';
+import { useApplyOtaUpdate } from '../lib/apply-ota-update';
 
 export default function RootLayout() {
+  useApplyOtaUpdate();
   return (
     <SafeAreaProvider>
       <AuthProvider>
