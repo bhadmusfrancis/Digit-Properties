@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
 import { TrendImageUpload } from '@/components/trends/TrendImageUpload';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import { AdminTrendSocialPostButtons } from '@/components/trends/AdminTrendSocialPostButtons';
 
 export default function AdminTrendEditPage() {
   const router = useRouter();
@@ -19,6 +20,10 @@ export default function AdminTrendEditPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<(typeof TREND_STATUS)[keyof typeof TREND_STATUS]>(TREND_STATUS.DRAFT);
+  const [facebookPostId, setFacebookPostId] = useState('');
+  const [instagramPostId, setInstagramPostId] = useState('');
+  const [instagramPermalink, setInstagramPermalink] = useState('');
+  const [twitterPostId, setTwitterPostId] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +47,10 @@ export default function AdminTrendEditPage() {
         setImageUrl(data.imageUrl ?? '');
         setAuthor(data.author ?? '');
         setStatus(data.status ?? TREND_STATUS.DRAFT);
+        setFacebookPostId(data.facebookPostId ?? '');
+        setInstagramPostId(data.instagramPostId ?? '');
+        setInstagramPermalink(data.instagramPermalink ?? '');
+        setTwitterPostId(data.twitterPostId ?? '');
       })
       .catch(() => setError('Failed to load'))
       .finally(() => setLoading(false));
@@ -166,6 +175,15 @@ export default function AdminTrendEditPage() {
             <option value={TREND_STATUS.DRAFT}>Draft</option>
             <option value={TREND_STATUS.PUBLISHED}>Published</option>
           </select>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <AdminTrendSocialPostButtons
+            trendId={id}
+            facebookPostId={facebookPostId}
+            instagramPostId={instagramPostId}
+            instagramPermalink={instagramPermalink}
+            twitterPostId={twitterPostId}
+          />
         </div>
         <div className="flex flex-wrap gap-3 border-t border-gray-200 pt-4">
           <button type="submit" disabled={saving} className="btn-primary min-h-[44px] touch-manipulation">{saving ? 'Saving…' : 'Save changes'}</button>

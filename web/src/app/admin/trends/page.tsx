@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
+import { AdminTrendSocialPostButtons } from '@/components/trends/AdminTrendSocialPostButtons';
 
 type Post = {
   _id: string;
@@ -14,6 +15,10 @@ type Post = {
   imageUrl?: string;
   publishedAt?: string;
   updatedAt: string;
+  facebookPostId?: string;
+  instagramPostId?: string;
+  instagramPermalink?: string;
+  twitterPostId?: string;
 };
 
 export default function AdminTrendsPage() {
@@ -234,35 +239,47 @@ export default function AdminTrendsPage() {
                     {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-NG') : '—'}
                   </td>
                   <td className="px-2 py-3 text-right sm:px-4" onClick={(e) => e.stopPropagation()}>
-                    <Link href={`/trends/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
-                    <Link href={`/admin/trends/${p._id}/edit`} className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
-                    {p.status === TREND_STATUS.PUBLISHED ? (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setPostStatus(p._id, TREND_STATUS.DRAFT); }}
-                        disabled={toggling === p._id}
-                        className="min-h-[44px] py-2 px-2 -m-1 rounded text-amber-700 hover:underline text-sm disabled:opacity-50 touch-manipulation"
-                      >
-                        {toggling === p._id ? '…' : 'Unpublish'}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setPostStatus(p._id, TREND_STATUS.PUBLISHED); }}
-                        disabled={toggling === p._id}
-                        className="min-h-[44px] py-2 px-2 -m-1 rounded text-green-700 hover:underline text-sm disabled:opacity-50 touch-manipulation"
-                      >
-                        {toggling === p._id ? '…' : 'Publish'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); deletePost(p._id); }}
-                      disabled={deleting === p._id}
-                      className="min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-red-600 hover:underline text-sm disabled:opacity-50 touch-manipulation"
-                    >
-                      {deleting === p._id ? '…' : 'Delete'}
-                    </button>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-wrap justify-end gap-1">
+                        <Link href={`/trends/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">View</Link>
+                        <Link href={`/admin/trends/${p._id}/edit`} className="inline-block min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-primary-600 hover:underline text-sm touch-manipulation">Edit</Link>
+                        {p.status === TREND_STATUS.PUBLISHED ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPostStatus(p._id, TREND_STATUS.DRAFT); }}
+                            disabled={toggling === p._id}
+                            className="min-h-[44px] py-2 px-2 -m-1 rounded text-amber-700 hover:underline text-sm disabled:opacity-50 touch-manipulation"
+                          >
+                            {toggling === p._id ? '…' : 'Unpublish'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPostStatus(p._id, TREND_STATUS.PUBLISHED); }}
+                            disabled={toggling === p._id}
+                            className="min-h-[44px] py-2 px-2 -m-1 rounded text-green-700 hover:underline text-sm disabled:opacity-50 touch-manipulation"
+                          >
+                            {toggling === p._id ? '…' : 'Publish'}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deletePost(p._id); }}
+                          disabled={deleting === p._id}
+                          className="min-h-[44px] min-w-[44px] py-2 px-2 -m-1 rounded text-red-600 hover:underline text-sm disabled:opacity-50 touch-manipulation"
+                        >
+                          {deleting === p._id ? '…' : 'Delete'}
+                        </button>
+                      </div>
+                      <AdminTrendSocialPostButtons
+                        trendId={p._id}
+                        facebookPostId={p.facebookPostId}
+                        instagramPostId={p.instagramPostId}
+                        instagramPermalink={p.instagramPermalink}
+                        twitterPostId={p.twitterPostId}
+                        variant="compact"
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
