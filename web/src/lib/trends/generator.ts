@@ -1,10 +1,11 @@
 import Trend from '@/models/Trend';
 import { TREND_STATUS } from '@/lib/constants';
 import { slugify, uniqueSlug } from '@/lib/slugify';
+import { getTrendConfig } from '@/lib/trend-config';
 import { DAILY_TREND_COUNT, pickSourcesForCategory, type TrendCategory } from '@/lib/trends/sources';
 import { formatResearchBrief, researchSources } from '@/lib/trends/research';
 import { pickDailyCategories } from '@/lib/trends/rotation';
-import { firstSourceImage, resolveTrendImage } from '@/lib/trends/images';
+import { resolveTrendImage } from '@/lib/trends/images';
 import { writeTrendArticle } from '@/lib/trends/writer';
 
 export const TREND_AUTHOR = 'Digit Properties Editorial';
@@ -13,7 +14,8 @@ export interface GenerateTrendsResult {
   batchDate: string;
   created: number;
   skipped: number;
-  posts: { title: string; slug: string; category: string; imageFromSource: boolean }[];
+  autoPublish: boolean;
+  posts: { title: string; slug: string; category: string; imageFromSource: boolean; status: string }[];
 }
 
 export interface GenerateTrendsOptions {
@@ -30,12 +32,11 @@ function toDateOnly(d: Date): Date {
 export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Promise<GenerateTrendsResult> {
   const batchDate = toDateOnly(opts.batchDate ?? new Date());
   const count = opts.count ?? DAILY_TREND_COUNT;
+  const { autoPublish } = await getTrendConfig();
+  const publishStatus = autoPublish ? TREND_STATUS.PUBLISHED : TREND_STATUS.DRAFT;
 
-  const existing = await Trend.find({
-    batchDate,
-    status: TREND_STATUS.PUBLISHED,
-  })
-    .select('title slug category imageUrl')
+  const existing = await Trend.find({ batchDate })
+    .select('title slug category imageUrl status')
     .lean();
 
   if (existing.length >= count && !opts.force) {
@@ -43,11 +44,13 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
       batchDate: batchDate.toISOString().slice(0, 10),
       created: 0,
       skipped: existing.length,
+      autoPublish,
       posts: existing.map((p) => ({
         title: p.title,
         slug: p.slug,
         category: p.category,
         imageFromSource: false,
+        status: p.status,
       })),
     };
   }
@@ -67,14 +70,12 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
     const sources = pickSourcesForCategory(category, 4);
     const snippets = await researchSources(sources);
     const researchBrief = formatResearchBrief(snippets);
-    const sourceImage = firstSourceImage(snippets);
     const article = await writeTrendArticle({
       category,
       snippets,
       researchBrief,
       batchDate,
       siblingCategories,
-      inBodyImage: sourceImage ? { url: sourceImage, caption: `${category} — source imagery` } : undefined,
     });
 
     const image = await resolveTrendImage({
@@ -96,8 +97,8 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
         category,
         imageUrl: image.imageUrl,
         author: TREND_AUTHOR,
-        status: TREND_STATUS.PUBLISHED,
-        publishedAt: new Date(),
+        status: publishStatus,
+        publishedAt: autoPublish ? new Date() : undefined,
         batchDate,
         sourceUrls: article.sourceUrls,
       });
@@ -108,6 +109,7 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
       slug,
       category,
       imageFromSource: image.fromSource,
+      status: publishStatus,
     });
     siblingCategories.push(category);
   }
@@ -116,6 +118,7 @@ export async function generateDailyTrends(opts: GenerateTrendsOptions = {}): Pro
     batchDate: batchDate.toISOString().slice(0, 10),
     created: created.length,
     skipped: opts.force ? 0 : existing.length,
+    autoPublish,
     posts: created,
   };
 }

@@ -16,9 +16,13 @@ async function main() {
   await dbConnect();
   console.log(`Generating daily trends${dryRun ? ' (dry run)' : ''}${force ? ' (force)' : ''}…`);
   const result = await generateDailyTrends({ force, dryRun });
-  console.log(`batch=${result.batchDate} created=${result.created} skipped=${result.skipped}`);
+  console.log(
+    `batch=${result.batchDate} created=${result.created} skipped=${result.skipped} autoPublish=${result.autoPublish}`
+  );
   for (const post of result.posts) {
-    console.log(`  • [${post.category}] ${post.title} → /trends/${post.slug}${post.imageFromSource ? ' (source image)' : ''}`);
+    console.log(
+      `  • [${post.category}] ${post.title} → /trends/${post.slug} (${post.status}${post.imageFromSource ? ', source image' : ''})`
+    );
   }
   process.exit(0);
 }

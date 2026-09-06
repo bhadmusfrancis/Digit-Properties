@@ -56,7 +56,9 @@ export default function TrendsScreen() {
                 <Text style={styles.category}>{p.category}</Text>
                 <Text style={styles.cardTitle} numberOfLines={2}>{p.title}</Text>
                 <Text style={styles.cardExcerpt} numberOfLines={2}>{p.excerpt}</Text>
-                {p.publishedAt && <Text style={styles.date}>{new Date(p.publishedAt).toLocaleDateString('en-NG')}</Text>}
+                {p.publishedAt ? (
+                  <Text style={styles.date}>{new Date(p.publishedAt).toLocaleDateString('en-NG', { dateStyle: 'medium' })}</Text>
+                ) : null}
               </View>
             </Pressable>
           ))}

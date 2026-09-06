@@ -1,6 +1,6 @@
 import type { TrendCategory } from '@/lib/trends/sources';
 import type { ResearchSnippet } from '@/lib/trends/research';
-import { esc, extLink, figure, h2, h3, normalizeBodyHtml, p, ul } from '@/lib/trends/html';
+import { esc, extLink, h2, h3, normalizeBodyHtml, p, stripInlineImages, ul, blockquote } from '@/lib/trends/html';
 
 export interface GeneratedTrendArticle {
   title: string;
@@ -75,26 +75,16 @@ function hashSeed(s: string): number {
   return h >>> 0;
 }
 
-function dateLabel(d: Date): string {
-  return d.toLocaleDateString('en-NG', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 function buildFallbackArticle(
   category: TrendCategory,
   snippets: ResearchSnippet[],
-  batchDate: Date,
-  inBodyImage?: { url: string; caption: string }
+  batchDate: Date
 ): GeneratedTrendArticle {
   const seed = hashSeed(`${category}|${batchDate.toISOString().slice(0, 10)}`);
   const angle = pick(ANGLES[category], seed);
   const ok = snippets.filter((s) => s.ok && (s.title || s.description));
   const title = `${category}: ${angle.charAt(0).toUpperCase()}${angle.slice(1)}`;
-  const excerpt = `A Digit Properties briefing on ${angle} — compiled from official agencies, professional bodies, and market sources for ${dateLabel(batchDate)}.`;
+  const excerpt = `A Digit Properties briefing on ${angle} — drawn from official agencies, professional bodies, and market sources.`;
 
   const sourceLines = snippets.map((s) => {
     const note = s.ok && s.description ? ` — ${esc(s.description.slice(0, 180))}` : '';
@@ -111,7 +101,6 @@ function buildFallbackArticle(
     p(
       `<strong>${esc(excerpt)}</strong> This note is written for buyers, tenants, and owners who need a usable read — not a press release.`
     ),
-    inBodyImage ? figure(inBodyImage.url, inBodyImage.caption, title) : '',
     h2('What the sources are signalling'),
     p(
       ok.length
@@ -129,6 +118,7 @@ function buildFallbackArticle(
     p(
       `For ${esc(category.toLowerCase())}, the practical question is not “is the market up or down?” — it is whether a specific plot, flat, or house can close with clean papers, a realistic price, and a counterpart who can complete. ${esc(angle.charAt(0).toUpperCase() + angle.slice(1))} should be read through that lens.`
     ),
+    blockquote('Always verify titles, consents, and agency notices before you pay.'),
     ul(takeaways.map(esc)),
     h2('If you have a property to sell or lease'),
     p(
@@ -136,7 +126,6 @@ function buildFallbackArticle(
     ),
     h2('Sources'),
     ul(sourceLines),
-    p(`<small>Editorial briefing for ${esc(dateLabel(batchDate))}. Always verify titles, consents, and agency notices before you pay.</small>`),
   ]
     .filter(Boolean)
     .join('\n');
@@ -144,7 +133,7 @@ function buildFallbackArticle(
   return {
     title: title.slice(0, 140),
     excerpt: excerpt.slice(0, 240),
-    content,
+    content: stripInlineImages(content),
     sourceUrls: [...new Set(snippets.map((s) => s.url))],
   };
 }
@@ -155,39 +144,39 @@ async function writeWithOpenAI(opts: {
   snippets: ResearchSnippet[];
   batchDate: Date;
   siblingCategories: string[];
-  inBodyImage?: { url: string; caption: string };
 }): Promise<GeneratedTrendArticle | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
-  const dateStr = dateLabel(opts.batchDate);
   const siblingNote =
     opts.siblingCategories.length > 0
       ? `\nOther categories already covered today — use a clearly different voice and headings: ${opts.siblingCategories.join(', ')}.`
       : '';
 
   const system = `You are a senior Nigerian real-estate editor writing for Digit Properties (digitproperties.com).
-Write a unique, professional, publication-quality article. Output valid HTML only (no markdown): use <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <blockquote>, <figure>, <figcaption>, <img>, and <a href="..." target="_blank" rel="noopener noreferrer">.
+Write a unique, professional, publication-quality article. Output valid HTML only (no markdown): use <p>, <h2>, <h3>, <ul>, <li>, <strong>, <em>, <blockquote>, and <a href="..." target="_blank" rel="noopener noreferrer">.
+Do NOT use <img>, <figure>, or <figcaption> — the site shows a single hero image separately.
+Do NOT mention calendar dates, weekdays, “today”, “this morning”, or dated edition language in the title, excerpt, or body. Keep the piece evergreen.
 Tone: informed, specific, Nigeria-first. Never generic "real estate is booming" filler.
 Vary openings, headings, and vocabulary so posts in the same week do not feel templated.
 Minimum 550 words. Include a Sources section with the provided URLs.
 End with a short, natural note that owners can list a property for free at /listings/new (relative link).
 Do not invent statistics, named officials, or unpublished circulars. If research is thin, say so and stay qualitative.`;
 
-  const user = `Write today's ${opts.category} article for ${dateStr}.${siblingNote}
+  const user = `Write a ${opts.category} article.${siblingNote}
 
 Research brief:
 ${opts.researchBrief}
 
 Requirements:
-- First line: TITLE: a specific, non-clickbait headline
-- Second line: EXCERPT: under 220 characters
+- First line: TITLE: a specific, non-clickbait headline (no dates)
+- Second line: EXCERPT: under 220 characters (no dates)
 - Then the HTML body
 - Topic must stay inside "${opts.category}"
-- Beautiful formatting: short lead, 3–5 h2 sections, one list, optional blockquote
-${opts.inBodyImage ? `- After the first paragraph include: <figure><img src="${opts.inBodyImage.url}" alt="${opts.inBodyImage.caption}" /><figcaption>${opts.inBodyImage.caption}</figcaption></figure>` : ''}
+- Beautiful formatting: short lead paragraph, 3–5 h2 sections, one list, one blockquote
 - Cite at least two source links from the brief
-- Practical takeaways for buyers, tenants, or owners in Nigeria`;
+- Practical takeaways for buyers, tenants, or owners in Nigeria
+- No images in the HTML body`;
 
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -217,8 +206,8 @@ ${opts.inBodyImage ? `- After the first paragraph include: <figure><img src="${o
     if (!raw) return null;
 
     const lines = raw.split('\n');
-    let title = `${opts.category} briefing — ${dateStr}`;
-    let excerpt = `Nigerian real estate notes on ${opts.category.toLowerCase()} for ${dateStr}.`;
+    let title = `${opts.category} market briefing`;
+    let excerpt = `Nigerian real estate notes on ${opts.category.toLowerCase()}.`;
     let bodyStart = 0;
     for (let i = 0; i < Math.min(4, lines.length); i++) {
       if (/^TITLE:/i.test(lines[i])) {
@@ -230,13 +219,7 @@ ${opts.inBodyImage ? `- After the first paragraph include: <figure><img src="${o
       }
     }
 
-    let content = normalizeBodyHtml(lines.slice(bodyStart).join('\n'));
-    if (opts.inBodyImage && !content.includes(opts.inBodyImage.url)) {
-      const firstP = content.indexOf('</p>');
-      const insert = figure(opts.inBodyImage.url, opts.inBodyImage.caption, title);
-      content =
-        firstP >= 0 ? `${content.slice(0, firstP + 4)}\n${insert}${content.slice(firstP + 4)}` : `${insert}\n${content}`;
-    }
+    const content = stripInlineImages(normalizeBodyHtml(lines.slice(bodyStart).join('\n')));
 
     const sourceUrls = [
       ...opts.snippets.map((s) => s.url),
@@ -261,7 +244,6 @@ export async function writeTrendArticle(opts: {
   researchBrief: string;
   batchDate: Date;
   siblingCategories?: string[];
-  inBodyImage?: { url: string; caption: string };
 }): Promise<GeneratedTrendArticle> {
   const ai = await writeWithOpenAI({
     category: opts.category,
@@ -269,8 +251,7 @@ export async function writeTrendArticle(opts: {
     snippets: opts.snippets,
     batchDate: opts.batchDate,
     siblingCategories: opts.siblingCategories ?? [],
-    inBodyImage: opts.inBodyImage,
   });
   if (ai) return ai;
-  return buildFallbackArticle(opts.category, opts.snippets, opts.batchDate, opts.inBodyImage);
+  return buildFallbackArticle(opts.category, opts.snippets, opts.batchDate);
 }

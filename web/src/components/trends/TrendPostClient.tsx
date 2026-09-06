@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -8,6 +9,7 @@ import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { ListPropertyCta } from '@/components/listings/ListPropertyCta';
 import { getTrendAuthorBio } from '@/lib/trend-authors';
+import { stripInlineImages } from '@/lib/trends/html';
 
 export type TrendPost = {
   _id: string;
@@ -46,6 +48,12 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
     enabled: !!post,
   });
   const otherPosts = (listData?.posts ?? []).filter((p: { slug: string }) => p.slug !== slug).slice(0, 4);
+
+  const bodyHtml = useMemo(() => {
+    if (!post?.content) return '';
+    // Hero shows the post image once; strip any in-body figures/imgs (legacy posts).
+    return post.imageUrl ? stripInlineImages(post.content) : post.content;
+  }, [post?.content, post?.imageUrl]);
 
   if (!slug || isLoading) {
     return (
@@ -97,8 +105,8 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
               )}
             </header>
 
-            <div className="relative mt-8 aspect-video overflow-hidden rounded-2xl bg-slate-100 shadow-lg ring-1 ring-slate-200/50">
-              {post.imageUrl ? (
+            {post.imageUrl ? (
+              <div className="relative mt-8 aspect-video overflow-hidden rounded-2xl bg-slate-100 shadow-lg ring-1 ring-slate-200/50">
                 <TrendImage
                   src={post.imageUrl}
                   alt=""
@@ -107,23 +115,16 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
                   sizes="(max-width: 1024px) 100vw,  min(900px, 80vw)"
                   priority
                 />
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-50 text-slate-400">
-                  <span className="text-5xl" aria-hidden>📰</span>
-                  <span className="text-sm font-medium">No image — add one in Admin → Edit post</span>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : null}
 
             {post.excerpt && (
-              <div className="mt-8 rounded-xl bg-slate-50/80 border border-slate-200/60 px-6 py-5">
-                <p className="text-lg leading-relaxed text-slate-700 font-medium">
-                  {post.excerpt}
-                </p>
-              </div>
+              <p className="mt-8 text-xl leading-relaxed text-slate-600 font-medium border-l-4 border-primary-300 pl-5">
+                {post.excerpt}
+              </p>
             )}
 
-            <div className="mt-6 rounded-xl border border-slate-200/60 bg-white/80 px-6 py-4">
+            <div className="mt-6">
               <SocialShareButtons
                 url={shareUrl ?? (typeof window !== 'undefined' ? `${window.location.origin}/trends/${slug}` : `/trends/${slug}`)}
                 title={shareTitle ?? post.title}
@@ -133,23 +134,21 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
             </div>
 
             <div
-              className="trend-prose rich-html-content mt-10 rounded-xl bg-white/80 px-6 py-8 shadow-sm ring-1 ring-slate-200/50 sm:px-8
+              className="trend-prose rich-html-content mt-10
                 prose prose-slate prose-lg max-w-none
                 prose-headings:font-bold prose-headings:tracking-tight
-                prose-h2:mt-14 prose-h2:mb-5 prose-h2:text-2xl prose-h2:text-slate-900 prose-h2:border-b-2 prose-h2:border-primary-200 prose-h2:pb-2 prose-h2:first:mt-8
-                prose-h3:mt-10 prose-h3:mb-4 prose-h3:text-xl prose-h3:text-slate-800
-                prose-h4:mt-8 prose-h4:mb-3 prose-h4:text-lg prose-h4:text-slate-800
-                prose-img:my-6 prose-img:max-w-full prose-img:rounded-lg
-                prose-table:my-8 prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-slate-200 prose-th:px-3 prose-th:py-2 prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-2
-                prose-p:leading-[1.9] prose-p:mb-6 prose-p:text-slate-700 prose-p:text-[1.0625rem]
+                prose-h2:mt-12 prose-h2:mb-4 prose-h2:text-2xl prose-h2:text-slate-900 prose-h2:border-b prose-h2:border-slate-200 prose-h2:pb-2
+                prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-xl prose-h3:text-slate-800
+                prose-p:leading-[1.85] prose-p:mb-5 prose-p:text-slate-700 prose-p:text-[1.0625rem]
                 prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
-                prose-ul:my-6 prose-ul:pl-6 prose-li:my-2 prose-li:leading-relaxed prose-li:pl-1
-                prose-strong:text-slate-900 prose-strong:font-semibold"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+                prose-ul:my-6 prose-ul:pl-6 prose-li:my-2.5 prose-li:leading-relaxed
+                prose-strong:text-slate-900 prose-strong:font-semibold
+                prose-em:text-slate-700"
+              dangerouslySetInnerHTML={{ __html: bodyHtml }}
             />
 
             {Array.isArray(post.sourceUrls) && post.sourceUrls.length > 0 && (
-              <div className="mt-10 rounded-xl border border-slate-200 bg-white px-6 py-5">
+              <div className="mt-12 rounded-2xl border border-slate-200 bg-slate-50/80 px-6 py-5">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Sources</h2>
                 <ul className="mt-3 space-y-2">
                   {post.sourceUrls.map((url: string) => (
@@ -169,7 +168,7 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
             )}
 
             {post.author && (
-              <footer className="mt-10 rounded-xl border border-slate-200 bg-slate-50 px-6 py-5">
+              <footer className="mt-10 rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
                 <p className="text-sm font-semibold text-slate-900">{post.author}</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">{getTrendAuthorBio(post.author)}</p>
               </footer>
