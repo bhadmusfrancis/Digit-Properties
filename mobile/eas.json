@@ -20,8 +20,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.digitproperties.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "507742756143-v5lievjjm65uhei3k82jloic652qfdb3.apps.googleusercontent.com",
-        "EXPO_PUBLIC_FACEBOOK_APP_ID": "2275129516137890",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyAjPc1j6EzXfwjPC1wXue5S03YsimxB9ic"
+        "EXPO_PUBLIC_FACEBOOK_APP_ID": "2275129516137890"
       }
     },
     "production": {
@@ -32,8 +31,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.digitproperties.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "507742756143-v5lievjjm65uhei3k82jloic652qfdb3.apps.googleusercontent.com",
-        "EXPO_PUBLIC_FACEBOOK_APP_ID": "2275129516137890",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyAjPc1j6EzXfwjPC1wXue5S03YsimxB9ic"
+        "EXPO_PUBLIC_FACEBOOK_APP_ID": "2275129516137890"
       }
     }
   },

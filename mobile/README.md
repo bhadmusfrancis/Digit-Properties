@@ -41,19 +41,26 @@ Apple Sign-In is available on iOS 13+ without extra env vars.
 
 1. Install EAS CLI: `npm i -g eas-cli` and run `eas login`.
 2. From `mobile/`: `eas init` (creates the Expo project and writes `extra.eas.projectId` into `app.json`).
-3. Android Play Store (AAB):
+3. Set the Google Maps key as an EAS environment variable (do **not** commit it to `eas.json` or `AndroidManifest.xml`):
+
+   ```bash
+   eas env:create --name EXPO_PUBLIC_GOOGLE_MAPS_API_KEY --environment preview --visibility sensitive
+   eas env:create --name EXPO_PUBLIC_GOOGLE_MAPS_API_KEY --environment production --visibility sensitive
+   ```
+
+4. Android Play Store (AAB):
 
    ```bash
    eas build --platform android --profile production
    ```
 
-4. iOS App Store:
+5. iOS App Store:
 
    ```bash
    eas build --platform ios --profile production
    ```
 
-5. Submit drafts:
+6. Submit drafts:
 
    ```bash
    eas submit --platform android --profile production
