@@ -1,7 +1,11 @@
 import OpenAI from 'openai';
 import cloudinary from '@/lib/cloudinary';
 import type { TrendCategory } from '@/lib/trends/sources';
-import { buildCopyrightSafeTrendImagePrompt } from '@/lib/trends/copyright';
+import type { ResearchSnippet } from '@/lib/trends/research';
+import {
+  SOURCE_IMAGE_CUE_VISION_PROMPT,
+  buildCopyrightSafeTrendImagePrompt,
+} from '@/lib/trends/copyright';
 
 export type TrendImageLicense = 'unsplash' | 'ai_generated' | 'uploaded' | 'licensed_third_party' | 'source_editorial';
 
@@ -71,6 +75,27 @@ const CATEGORY_STOCK: Record<
   },
 };
 
+const KIND_PRIORITY: Record<string, number> = {
+  website: 0,
+  report: 1,
+  twitter: 2,
+  facebook: 3,
+  instagram: 4,
+};
+
+function isUsableImageUrl(url?: string): url is string {
+  if (!url) return false;
+  if (!/^https?:\/\//i.test(url)) return false;
+  if (url.includes('placeholder') || url.includes('default-avatar')) return false;
+  return true;
+}
+
+function snippetsByMajorSource(snippets: ResearchSnippet[]): ResearchSnippet[] {
+  return [...snippets].sort(
+    (a, b) => (KIND_PRIORITY[a.kind] ?? 9) - (KIND_PRIORITY[b.kind] ?? 9)
+  );
+}
+
 async function uploadRemote(url: string): Promise<string | undefined> {
   try {
     const upload = await cloudinary.uploader.upload(url, {
@@ -84,10 +109,55 @@ async function uploadRemote(url: string): Promise<string | undefined> {
   }
 }
 
+/**
+ * Distill a news/OG image into abstract thematic cues (never a recreate brief).
+ * The source image is not stored or published.
+ */
+async function visualCuesFromSourceImage(
+  client: OpenAI,
+  imageUrl: string
+): Promise<string | undefined> {
+  try {
+    const result = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 220,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: SOURCE_IMAGE_CUE_VISION_PROMPT },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Extract abstract thematic cues from this reference image for an original editorial illustration.',
+            },
+            { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+          ],
+        },
+      ],
+    });
+    const text = result.choices[0]?.message?.content?.trim();
+    return text || undefined;
+  } catch (e) {
+    console.warn('[trends/images] source cue vision failed', (e as Error).message);
+    return undefined;
+  }
+}
+
+function textualCuesFromSnippet(snippet: ResearchSnippet): string | undefined {
+  const parts = [
+    snippet.name ? `Source context: ${snippet.name}` : '',
+    snippet.title ? `Headline theme: ${snippet.title}` : '',
+    snippet.description ? `Summary theme: ${snippet.description}` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join('. ') : undefined;
+}
+
 async function generateEditorialImage(input: {
   title: string;
   excerpt: string;
   category: TrendCategory;
+  visualCues?: string;
 }): Promise<string | undefined> {
   if (!process.env.OPENAI_API_KEY) return undefined;
   try {
@@ -96,6 +166,7 @@ async function generateEditorialImage(input: {
       title: input.title,
       excerpt: input.excerpt,
       category: input.category,
+      visualCues: input.visualCues,
     });
     const result = await client.images.generate({
       model: 'gpt-image-1',
@@ -116,20 +187,48 @@ async function generateEditorialImage(input: {
 }
 
 /**
- * Resolve hero image using only copyright-clear sources:
- * 1. Original AI-generated image (copyright-safe prompt)
- * 2. Category Unsplash stock (Unsplash License + photographer credit)
- *
- * Third-party news/OG images are never rehosted — attribution alone is not a license.
+ * Resolve hero image using only copyright-clear outputs:
+ * 1. Prefer news/OG images as *thematic cues* → original AI hero (never rehost OG)
+ * 2. Else AI from article title/excerpt only
+ * 3. Else category Unsplash stock (Unsplash License + photographer credit)
  */
 export async function resolveTrendImage(opts: {
   title: string;
   excerpt: string;
   category: TrendCategory;
-  /** Kept for call-site compatibility; source OG images are intentionally unused. */
-  snippets?: unknown;
+  snippets?: ResearchSnippet[];
 }): Promise<TrendImageAttribution> {
-  const generated = await generateEditorialImage(opts);
+  const snippets = Array.isArray(opts.snippets) ? opts.snippets : [];
+  let visualCues: string | undefined;
+
+  const client = process.env.OPENAI_API_KEY
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    : null;
+
+  for (const snippet of snippetsByMajorSource(snippets)) {
+    if (!isUsableImageUrl(snippet.imageUrl)) continue;
+    if (client) {
+      visualCues = await visualCuesFromSourceImage(client, snippet.imageUrl);
+    }
+    if (!visualCues) {
+      visualCues = textualCuesFromSnippet(snippet);
+    }
+    if (visualCues) break;
+  }
+
+  if (!visualCues) {
+    const textOnly = snippetsByMajorSource(snippets).find(
+      (s) => s.ok && (s.title || s.description)
+    );
+    if (textOnly) visualCues = textualCuesFromSnippet(textOnly);
+  }
+
+  const generated = await generateEditorialImage({
+    title: opts.title,
+    excerpt: opts.excerpt,
+    category: opts.category,
+    visualCues,
+  });
   if (generated) {
     return {
       imageUrl: generated,

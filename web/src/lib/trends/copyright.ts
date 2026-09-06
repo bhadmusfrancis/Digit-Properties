@@ -23,6 +23,11 @@ export type TrendImagePromptInput = {
   excerpt?: string;
   content?: string;
   category?: string;
+  /**
+   * Thematic cues distilled from news/OG imagery (setting, mood, subject types).
+   * Must never instruct recreating a specific photo, face, logo, or composition.
+   */
+  visualCues?: string;
 };
 
 function stripHtml(value: string): string {
@@ -39,6 +44,7 @@ export function buildCopyrightSafeTrendImagePrompt(input: TrendImagePromptInput)
   const excerpt = typeof input.excerpt === 'string' ? input.excerpt.trim() : '';
   const content = typeof input.content === 'string' ? stripHtml(input.content) : '';
   const category = typeof input.category === 'string' ? input.category.trim() : '';
+  const visualCues = typeof input.visualCues === 'string' ? input.visualCues.trim() : '';
 
   return [
     'Create a premium editorial hero image for a Nigerian real estate publication (Digit Properties).',
@@ -46,6 +52,12 @@ export function buildCopyrightSafeTrendImagePrompt(input: TrendImagePromptInput)
     'Composition: wide landscape cover image, suitable as a featured blog banner.',
     COPYRIGHT_SAFE_IMAGE_RULES,
     'Use original imagery that matches the article topic and feels credible for a property publication.',
+    visualCues
+      ? [
+          'Thematic inspiration cues (abstract only — invent a NEW original scene; do not recreate any specific photograph, face, logo, watermark, or distinctive composition):',
+          truncate(visualCues, 900),
+        ].join(' ')
+      : '',
     category ? `Category: ${category}.` : '',
     title ? `Post title (topic cue only — do not render as text): ${title}.` : '',
     excerpt ? `Excerpt (topic cue only): ${truncate(excerpt, 300)}.` : '',
@@ -54,6 +66,19 @@ export function buildCopyrightSafeTrendImagePrompt(input: TrendImagePromptInput)
     .filter(Boolean)
     .join('\n');
 }
+
+/**
+ * System/user guidance for vision: turn a news/OG image into abstract thematic cues only.
+ */
+export const SOURCE_IMAGE_CUE_VISION_PROMPT = [
+  'You help create copyright-safe editorial image briefs for a Nigerian real estate publication.',
+  'Describe ONLY abstract thematic cues from the reference image: setting type, lighting, mood, architecture style, and anonymous subject types (e.g. "adult in traditional attire", "school-age child").',
+  'Do NOT name or identify any real person, celebrity, brand, logo, watermark, or news outlet.',
+  'Do NOT describe composition so precisely that another model could recreate the photo.',
+  'Do NOT quote visible text.',
+  'Reply in 2-4 short sentences of plain thematic cues only.',
+].join(' ');
+
 
 export type TrendImageAttributionInput = {
   imageUrl?: string | null;
