@@ -1,6 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import type { TrendImageLicense } from '@/lib/trends/images';
+
+export type TrendImageAttributionFields = {
+  imageCredit: string;
+  imageSourceName: string;
+  imageSourceUrl: string;
+  imageLicense: TrendImageLicense | '';
+  imageRightsConfirmed: boolean;
+};
 
 type TrendImageGenerationInput = {
   title: string;
@@ -12,16 +21,46 @@ type TrendImageGenerationInput = {
 type TrendImageUploadProps = {
   imageUrl: string;
   onImageUrlChange: (url: string) => void;
+  attribution: TrendImageAttributionFields;
+  onAttributionChange: (next: TrendImageAttributionFields) => void;
   disabled?: boolean;
   generationInput?: TrendImageGenerationInput;
 };
 
+const EMPTY_ATTR: TrendImageAttributionFields = {
+  imageCredit: '',
+  imageSourceName: '',
+  imageSourceUrl: '',
+  imageLicense: '',
+  imageRightsConfirmed: false,
+};
+
+const AI_ATTR: TrendImageAttributionFields = {
+  imageCredit: 'AI-generated image for Digit Properties editorial use',
+  imageSourceName: 'Digit Properties',
+  imageSourceUrl: '',
+  imageLicense: 'ai_generated',
+  imageRightsConfirmed: true,
+};
+
 /** Single image upload to Cloudinary (folder: trends). Use for trend post featured image. */
-export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generationInput }: TrendImageUploadProps) {
+export function TrendImageUpload({
+  imageUrl,
+  onImageUrlChange,
+  attribution,
+  onAttributionChange,
+  disabled,
+  generationInput,
+}: TrendImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+  function clearImage() {
+    onImageUrlChange('');
+    onAttributionChange(EMPTY_ATTR);
+  }
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -36,6 +75,13 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
       const data = await res.json();
       if (data.url) {
         onImageUrlChange(data.url);
+        onAttributionChange({
+          imageCredit: attribution.imageCredit || '',
+          imageSourceName: attribution.imageSourceName || '',
+          imageSourceUrl: attribution.imageSourceUrl || '',
+          imageLicense: 'uploaded',
+          imageRightsConfirmed: false,
+        });
       } else {
         setUploadError(data.error || 'Upload failed');
       }
@@ -69,6 +115,13 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
       }
       if (data.url) {
         onImageUrlChange(data.url);
+        onAttributionChange({
+          imageCredit: data.imageCredit || AI_ATTR.imageCredit,
+          imageSourceName: data.imageSourceName || AI_ATTR.imageSourceName,
+          imageSourceUrl: data.imageSourceUrl || '',
+          imageLicense: data.imageLicense || AI_ATTR.imageLicense,
+          imageRightsConfirmed: true,
+        });
       } else {
         setUploadError('Image generation failed');
       }
@@ -81,11 +134,15 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
 
   const isCloudinary = imageUrl.includes('res.cloudinary.com');
   const busy = disabled || uploading || generating;
+  const needsRights =
+    attribution.imageLicense === 'uploaded' || attribution.imageLicense === 'licensed_third_party';
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700">Featured image (Cloudinary)</label>
-      <p className="text-xs text-gray-500">Upload an image or auto-generate one from the trend post content. The final image is stored on Cloudinary for consistent delivery.</p>
+      <p className="text-xs text-gray-500">
+        Upload an image or auto-generate one from the trend post content. Always add a photo credit for uploads.
+      </p>
       {imageUrl ? (
         <div className="flex flex-wrap items-start gap-4">
           <div className="relative h-32 w-48 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
@@ -94,7 +151,7 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
           <div className="flex flex-col gap-2">
             <button
               type="button"
-              onClick={() => onImageUrlChange('')}
+              onClick={clearImage}
               disabled={disabled}
               className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
@@ -127,13 +184,6 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
         </div>
       ) : (
         <div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={onFileChange}
-            className="hidden"
-          />
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -152,6 +202,96 @@ export function TrendImageUpload({ imageUrl, onImageUrlChange, disabled, generat
           </button>
         </div>
       )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={onFileChange}
+        className="hidden"
+      />
+
+      {imageUrl ? (
+        <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">Photo credit *</label>
+            <input
+              type="text"
+              value={attribution.imageCredit}
+              onChange={(e) => onAttributionChange({ ...attribution, imageCredit: e.target.value })}
+              disabled={disabled}
+              required
+              className="input mt-1 w-full"
+              placeholder="e.g. Photo by Jane Doe on Unsplash · or Image via World Bank Nigeria"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Source name</label>
+            <input
+              type="text"
+              value={attribution.imageSourceName}
+              onChange={(e) => onAttributionChange({ ...attribution, imageSourceName: e.target.value })}
+              disabled={disabled}
+              className="input mt-1 w-full"
+              placeholder="Unsplash, World Bank, Digit Properties…"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Source URL</label>
+            <input
+              type="url"
+              value={attribution.imageSourceUrl}
+              onChange={(e) => onAttributionChange({ ...attribution, imageSourceUrl: e.target.value })}
+              disabled={disabled}
+              className="input mt-1 w-full"
+              placeholder="https://…"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">License type *</label>
+            <select
+              value={attribution.imageLicense}
+              onChange={(e) =>
+                onAttributionChange({
+                  ...attribution,
+                  imageLicense: e.target.value as TrendImageLicense | '',
+                  imageRightsConfirmed:
+                    e.target.value === 'uploaded' || e.target.value === 'licensed_third_party'
+                      ? attribution.imageRightsConfirmed
+                      : true,
+                })
+              }
+              disabled={disabled}
+              required
+              className="input mt-1 w-full max-w-md"
+            >
+              <option value="">Select license…</option>
+              <option value="unsplash">Unsplash</option>
+              <option value="ai_generated">AI-generated</option>
+              <option value="uploaded">Uploaded (owned/licensed)</option>
+              <option value="licensed_third_party">Licensed third-party</option>
+              <option value="source_editorial">Legacy source editorial</option>
+            </select>
+          </div>
+          {needsRights ? (
+            <label className="sm:col-span-2 flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={attribution.imageRightsConfirmed}
+                onChange={(e) =>
+                  onAttributionChange({ ...attribution, imageRightsConfirmed: e.target.checked })
+                }
+                disabled={disabled}
+              />
+              <span>
+                I confirm Digit Properties owns or has a license/permission to publish this image.
+              </span>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
       {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
     </div>
   );

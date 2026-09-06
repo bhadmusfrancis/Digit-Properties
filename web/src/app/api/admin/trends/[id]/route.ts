@@ -4,6 +4,8 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Trend from '@/models/Trend';
 import { USER_ROLES, TREND_STATUS, TREND_CATEGORIES } from '@/lib/constants';
+import { TREND_IMAGE_LICENSES, validateTrendImageAttribution } from '@/lib/trends/copyright';
+import type { TrendImageLicense } from '@/models/Trend';
 
 function slugify(s: string): string {
   return s
@@ -74,6 +76,36 @@ export async function PUT(
     if (body.content != null) post.content = typeof body.content === 'string' ? body.content : '';
     if (body.category != null && TREND_CATEGORIES.includes(body.category)) post.category = body.category;
     if (body.imageUrl !== undefined) post.imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.trim() || undefined : undefined;
+    if (body.imageCredit !== undefined) {
+      post.imageCredit = typeof body.imageCredit === 'string' ? body.imageCredit.trim() || undefined : undefined;
+    }
+    if (body.imageSourceName !== undefined) {
+      post.imageSourceName = typeof body.imageSourceName === 'string' ? body.imageSourceName.trim() || undefined : undefined;
+    }
+    if (body.imageSourceUrl !== undefined) {
+      post.imageSourceUrl = typeof body.imageSourceUrl === 'string' ? body.imageSourceUrl.trim() || undefined : undefined;
+    }
+    if (body.imageLicense !== undefined) {
+      post.imageLicense =
+        typeof body.imageLicense === 'string' && (TREND_IMAGE_LICENSES as readonly string[]).includes(body.imageLicense)
+          ? (body.imageLicense as TrendImageLicense)
+          : undefined;
+    }
+    const attributionError = validateTrendImageAttribution({
+      imageUrl: post.imageUrl,
+      imageCredit: post.imageCredit,
+      imageSourceName: post.imageSourceName,
+      imageSourceUrl: post.imageSourceUrl,
+      imageLicense: post.imageLicense,
+      imageRightsConfirmed:
+        Boolean(body.imageRightsConfirmed) ||
+        post.imageLicense === 'source_editorial' ||
+        post.imageLicense === 'unsplash' ||
+        post.imageLicense === 'ai_generated',
+    });
+    if (attributionError) {
+      return NextResponse.json({ error: attributionError }, { status: 400 });
+    }
     if (body.author !== undefined) post.author = typeof body.author === 'string' ? body.author.trim() || undefined : undefined;
     if (body.status === TREND_STATUS.PUBLISHED || body.status === TREND_STATUS.DRAFT) {
       post.status = body.status;

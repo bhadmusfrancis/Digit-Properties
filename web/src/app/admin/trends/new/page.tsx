@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
-import { TrendImageUpload } from '@/components/trends/TrendImageUpload';
+import { TrendImageUpload, type TrendImageAttributionFields } from '@/components/trends/TrendImageUpload';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 
 export default function AdminTrendNewPage() {
@@ -15,6 +15,13 @@ export default function AdminTrendNewPage() {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<(typeof TREND_CATEGORIES)[number]>(TREND_CATEGORIES[0]);
   const [imageUrl, setImageUrl] = useState('');
+  const [attribution, setAttribution] = useState<TrendImageAttributionFields>({
+    imageCredit: '',
+    imageSourceName: '',
+    imageSourceUrl: '',
+    imageLicense: '',
+    imageRightsConfirmed: false,
+  });
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<(typeof TREND_STATUS)[keyof typeof TREND_STATUS]>(TREND_STATUS.DRAFT);
   const [saving, setSaving] = useState(false);
@@ -25,6 +32,20 @@ export default function AdminTrendNewPage() {
     const textOnly = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     if (!textOnly) {
       setError('Content is required.');
+      return;
+    }
+    if (imageUrl && !attribution.imageCredit.trim()) {
+      setError('Photo credit is required when a featured image is set.');
+      return;
+    }
+    if (
+      imageUrl &&
+      (attribution.imageLicense === 'uploaded' ||
+        attribution.imageLicense === 'licensed_third_party' ||
+        attribution.imageLicense === 'source_editorial') &&
+      !attribution.imageRightsConfirmed
+    ) {
+      setError('Confirm image publishing rights before saving.');
       return;
     }
     setError('');
@@ -40,6 +61,11 @@ export default function AdminTrendNewPage() {
           content,
           category,
           imageUrl: imageUrl || undefined,
+          imageCredit: attribution.imageCredit || undefined,
+          imageSourceName: attribution.imageSourceName || undefined,
+          imageSourceUrl: attribution.imageSourceUrl || undefined,
+          imageLicense: attribution.imageLicense || undefined,
+          imageRightsConfirmed: attribution.imageRightsConfirmed,
           author: author || undefined,
           status,
         }),
@@ -100,6 +126,8 @@ export default function AdminTrendNewPage() {
           <TrendImageUpload
             imageUrl={imageUrl}
             onImageUrlChange={setImageUrl}
+            attribution={attribution}
+            onAttributionChange={setAttribution}
             disabled={saving}
             generationInput={{ title, excerpt, content, category }}
           />

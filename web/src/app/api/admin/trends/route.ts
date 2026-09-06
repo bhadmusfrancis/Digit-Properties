@@ -3,6 +3,8 @@ import { getSession } from '@/lib/get-session';
 import { dbConnect } from '@/lib/db';
 import Trend from '@/models/Trend';
 import { USER_ROLES, TREND_STATUS, TREND_CATEGORIES } from '@/lib/constants';
+import { TREND_IMAGE_LICENSES, validateTrendImageAttribution } from '@/lib/trends/copyright';
+import type { TrendImageLicense } from '@/models/Trend';
 
 function slugify(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -58,6 +60,25 @@ export async function POST(req: Request) {
     if (!TREND_CATEGORIES.includes(category)) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
     }
+    const imageCredit = typeof body.imageCredit === 'string' ? body.imageCredit.trim() : '';
+    const resolvedImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+    const imageSourceName = typeof body.imageSourceName === 'string' ? body.imageSourceName.trim() : '';
+    const imageSourceUrl = typeof body.imageSourceUrl === 'string' ? body.imageSourceUrl.trim() : '';
+    const imageLicense =
+      typeof body.imageLicense === 'string' && (TREND_IMAGE_LICENSES as readonly string[]).includes(body.imageLicense)
+        ? (body.imageLicense as TrendImageLicense)
+        : undefined;
+    const attributionError = validateTrendImageAttribution({
+      imageUrl: resolvedImageUrl,
+      imageCredit,
+      imageSourceName,
+      imageSourceUrl,
+      imageLicense,
+      imageRightsConfirmed: Boolean(body.imageRightsConfirmed),
+    });
+    if (attributionError) {
+      return NextResponse.json({ error: attributionError }, { status: 400 });
+    }
     let slug = typeof body.slug === 'string' ? body.slug.trim() : slugify(title);
     const finalStatus = status === TREND_STATUS.PUBLISHED ? TREND_STATUS.PUBLISHED : TREND_STATUS.DRAFT;
     await dbConnect();
@@ -73,7 +94,11 @@ export async function POST(req: Request) {
       excerpt: typeof excerpt === 'string' ? excerpt.trim() : '',
       content: typeof content === 'string' ? content : '',
       category,
-      imageUrl: typeof imageUrl === 'string' ? imageUrl.trim() || undefined : undefined,
+      imageUrl: resolvedImageUrl || undefined,
+      imageCredit: imageCredit || undefined,
+      imageSourceName: imageSourceName || undefined,
+      imageSourceUrl: imageSourceUrl || undefined,
+      imageLicense,
       author: typeof author === 'string' ? author.trim() || undefined : undefined,
       status: finalStatus,
       publishedAt: finalStatus === TREND_STATUS.PUBLISHED ? new Date() : undefined,

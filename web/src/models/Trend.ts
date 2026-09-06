@@ -1,7 +1,13 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
 
-export type TrendImageLicense = 'source_editorial' | 'unsplash' | 'ai_generated' | 'uploaded';
+/** `source_editorial` is legacy (rehosted OG images); prefer licensed_third_party for new posts. */
+export type TrendImageLicense =
+  | 'unsplash'
+  | 'ai_generated'
+  | 'uploaded'
+  | 'licensed_third_party'
+  | 'source_editorial';
 
 export interface ITrend {
   _id: mongoose.Types.ObjectId;
@@ -46,7 +52,7 @@ const TrendSchema = new Schema<ITrend>(
     imageSourceUrl: String,
     imageLicense: {
       type: String,
-      enum: ['source_editorial', 'unsplash', 'ai_generated', 'uploaded'],
+      enum: ['unsplash', 'ai_generated', 'uploaded', 'licensed_third_party', 'source_editorial'],
     },
     author: String,
     status: { type: String, enum: Object.values(TREND_STATUS), default: TREND_STATUS.DRAFT },

@@ -9,6 +9,7 @@ import { SocialShareButtons } from '@/components/ui/SocialShareButtons';
 import { FeaturedSlot } from '@/components/listings/FeaturedSlot';
 import { ListPropertyCta } from '@/components/listings/ListPropertyCta';
 import { getTrendAuthorBio } from '@/lib/trend-authors';
+import { trendImageLicenseFootnote } from '@/lib/trends/copyright';
 import { formatTrendArticleHtml, stripInlineImages } from '@/lib/trends/html';
 
 export type TrendPost = {
@@ -137,19 +138,12 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
                         </a>
                       </>
                     ) : null}
-                    {post.imageLicense === 'source_editorial' ? (
-                      <span className="block mt-0.5 text-slate-400">
-                        Used for editorial news reporting with attribution (fair dealing).
-                      </span>
-                    ) : post.imageLicense === 'unsplash' ? (
-                      <span className="block mt-0.5 text-slate-400">
-                        Unsplash License — free to use with credit.
-                      </span>
-                    ) : post.imageLicense === 'ai_generated' ? (
-                      <span className="block mt-0.5 text-slate-400">
-                        Original AI-generated asset for Digit Properties.
-                      </span>
-                    ) : null}
+                    {(() => {
+                      const footnote = trendImageLicenseFootnote(post.imageLicense);
+                      return footnote ? (
+                        <span className="block mt-0.5 text-slate-400">{footnote}</span>
+                      ) : null;
+                    })()}
                   </p>
                 )}
               </div>
