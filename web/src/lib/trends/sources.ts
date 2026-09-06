@@ -57,13 +57,13 @@ export const TREND_SOURCES: TrendSource[] = [
   },
   {
     name: 'Lagos State Ministry of Housing',
-    url: 'https://housing.lagosstate.gov.ng',
+    url: 'https://lagosstate.gov.ng',
     kind: 'website',
     categories: ['Lagos Focus', 'Housing & Affordability', 'Policy & Regulation'],
   },
   {
     name: 'Lagos State Lands Bureau',
-    url: 'https://lands.lagosstate.gov.ng',
+    url: 'https://landonline.lagosstate.gov.ng',
     kind: 'website',
     categories: ['Lagos Focus', 'Land & Titling', 'Policy & Regulation'],
   },
@@ -111,7 +111,7 @@ export const TREND_SOURCES: TrendSource[] = [
   },
   {
     name: 'Mixta Africa',
-    url: 'https://www.mixtaafrica.com',
+    url: 'https://mixtafrica.com',
     kind: 'website',
     categories: ['Housing & Affordability', 'Investment & Finance', 'Lagos Focus'],
   },
@@ -183,13 +183,13 @@ export const TREND_SOURCES: TrendSource[] = [
   },
   {
     name: 'CBN on X',
-    url: 'https://x.com/CBNNigeria',
+    url: 'https://x.com/cenbank',
     kind: 'twitter',
     categories: ['Investment & Finance', 'Policy & Regulation', 'Market Trends'],
   },
   {
     name: 'NBS on X',
-    url: 'https://x.com/NigerianStat',
+    url: 'https://x.com/NBS_Nigeria',
     kind: 'twitter',
     categories: ['Market Trends', 'Industry Reports', 'Housing & Affordability'],
   },
