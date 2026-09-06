@@ -1,6 +1,8 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import { TREND_CATEGORIES, TREND_STATUS } from '@/lib/constants';
 
+export type TrendImageLicense = 'source_editorial' | 'unsplash' | 'ai_generated' | 'uploaded';
+
 export interface ITrend {
   _id: mongoose.Types.ObjectId;
   title: string;
@@ -9,12 +11,24 @@ export interface ITrend {
   content: string;
   category: (typeof TREND_CATEGORIES)[number];
   imageUrl?: string;
+  /** Display credit for the hero image. */
+  imageCredit?: string;
+  imageSourceName?: string;
+  imageSourceUrl?: string;
+  imageLicense?: TrendImageLicense;
   author?: string;
   status: (typeof TREND_STATUS)[keyof typeof TREND_STATUS];
   publishedAt?: Date;
   /** UTC date-only for the daily generation batch. */
   batchDate?: Date;
   sourceUrls?: string[];
+  facebookPostId?: string;
+  facebookPostedAt?: Date;
+  instagramPostId?: string;
+  instagramPermalink?: string;
+  instagramPostedAt?: Date;
+  twitterPostId?: string;
+  twitterPostedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,11 +41,25 @@ const TrendSchema = new Schema<ITrend>(
     content: { type: String, required: true, default: '' },
     category: { type: String, required: true, enum: TREND_CATEGORIES },
     imageUrl: String,
+    imageCredit: String,
+    imageSourceName: String,
+    imageSourceUrl: String,
+    imageLicense: {
+      type: String,
+      enum: ['source_editorial', 'unsplash', 'ai_generated', 'uploaded'],
+    },
     author: String,
     status: { type: String, enum: Object.values(TREND_STATUS), default: TREND_STATUS.DRAFT },
     publishedAt: Date,
     batchDate: Date,
     sourceUrls: { type: [String], default: undefined },
+    facebookPostId: String,
+    facebookPostedAt: Date,
+    instagramPostId: String,
+    instagramPermalink: String,
+    instagramPostedAt: Date,
+    twitterPostId: String,
+    twitterPostedAt: Date,
   },
   { timestamps: true }
 );

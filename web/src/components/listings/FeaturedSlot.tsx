@@ -63,6 +63,11 @@ type FeaturedSlotProps = {
   hideWhenEmpty?: boolean;
   /** Extra classes on the outer wrapper (default includes mt-6). */
   className?: string;
+  /**
+   * `banner` = wide horizontal card (homepage).
+   * `card` = stacked image-on-top card for narrow sidebars (trends detail).
+   */
+  layout?: 'banner' | 'card';
 };
 
 function slotWrap(className: string | undefined, children: ReactNode) {
@@ -73,6 +78,7 @@ export function FeaturedSlot({
   placement = 'home_featured',
   hideWhenEmpty = false,
   className,
+  layout = 'banner',
 }: FeaturedSlotProps) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['ads', 'slot', placement],
@@ -83,6 +89,19 @@ export function FeaturedSlot({
 
   if (isLoading) {
     if (hideWhenEmpty) return null;
+    if (layout === 'card') {
+      return slotWrap(
+        className,
+        <div className="card w-full max-w-sm animate-pulse overflow-hidden">
+          <div className="aspect-[16/10] w-full bg-gray-200" />
+          <div className="space-y-2 p-3">
+            <div className="h-4 w-4/5 rounded bg-gray-200" />
+            <div className="h-4 w-1/3 rounded bg-gray-200" />
+            <div className="h-3 w-2/3 rounded bg-gray-200" />
+          </div>
+        </div>
+      );
+    }
     return slotWrap(
       className,
       <div className="card w-full animate-pulse overflow-hidden md:flex">
@@ -128,6 +147,66 @@ export function FeaturedSlot({
       ? listing.description.replace(/<[^>]+>/g, '').trim().slice(0, 200)
       : '';
     const locationLine = formatListingLocationDisplay(listing.location);
+    const typeBadge = (
+      <>
+        {formatListingTypeLabel(listing.listingType)}
+        {listing.listingType === 'rent' && listing.rentPeriod && (
+          <span className="ml-1 text-primary-600">/ {listing.rentPeriod}</span>
+        )}
+      </>
+    );
+
+    if (layout === 'card') {
+      return slotWrap(
+        className,
+        <Link
+          href={getListingPublicPath(listing)}
+          className="card group block w-full max-w-sm overflow-hidden transition hover:shadow-lg"
+        >
+          <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-200">
+            <Image
+              {...listingImageProps(
+                getListingDisplayImage(listing.images, listing.propertyType, listing.videos),
+                480
+              )}
+              alt={listing.title}
+              fill
+              className="object-cover transition duration-300 group-hover:scale-105"
+              sizes="(max-width: 1024px) 100vw, 300px"
+            />
+            {listingHasVideoMedia(listing.images, listing.videos) && (
+              <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[11px] font-medium text-white">
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Video
+              </span>
+            )}
+            <span className="absolute left-2 top-2 rounded bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-gray-800 shadow-sm">
+              {typeBadge}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5 p-3.5">
+            <p className="text-[15px] font-semibold leading-snug text-gray-900 line-clamp-2">{listing.title}</p>
+            <p className="text-base font-bold text-primary-600">
+              {formatPrice(listing.price, listing.listingType === 'rent' ? listing.rentPeriod : undefined)}
+            </p>
+            {locationLine ? <p className="text-xs text-gray-500 line-clamp-1">{locationLine}</p> : null}
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
+              {listing.bedrooms != null && listing.bedrooms > 0 && <span>{listing.bedrooms} beds</span>}
+              {listing.bathrooms != null && listing.bathrooms > 0 && <span>{listing.bathrooms} baths</span>}
+              {listing.area != null && listing.area > 0 && <span>{listing.area} sqm</span>}
+              {(listing.propertyTypes?.length || listing.propertyType) && (
+                <span className="line-clamp-1">{formatPropertyTypesLine(listing.propertyTypes, listing.propertyType)}</span>
+              )}
+            </div>
+            <span className="mt-2 inline-flex w-fit rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition group-hover:bg-primary-700">
+              View property →
+            </span>
+          </div>
+        </Link>
+      );
+    }
 
     return slotWrap(
       className,
@@ -135,7 +214,6 @@ export function FeaturedSlot({
           href={getListingPublicPath(listing)}
           className="card group block w-full overflow-hidden transition hover:shadow-xl md:flex md:flex-row"
         >
-          {/* Image: full width on small, ~42% on md+ with fixed min height */}
           <div className="relative w-full shrink-0 overflow-hidden bg-gray-200 md:min-h-[280px] md:w-[42%] lg:min-h-[320px] lg:max-w-[540px]">
             <div className="aspect-[4/3] w-full md:absolute md:inset-0 md:aspect-auto md:h-full">
               <Image
@@ -158,14 +236,9 @@ export function FeaturedSlot({
               </span>
             )}
             <span className="absolute right-2 top-2 rounded bg-white/95 px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-sm">
-              {formatListingTypeLabel(listing.listingType)}
-              {listing.listingType === 'rent' && listing.rentPeriod && (
-                <span className="ml-1 text-primary-600">/ {listing.rentPeriod}</span>
-              )}
+              {typeBadge}
             </span>
           </div>
-
-          {/* Details: compact on small, full on md+ */}
           <div className="flex flex-1 flex-col p-4 md:justify-center md:p-6 lg:p-8">
             <p className="text-lg font-semibold text-gray-900 line-clamp-2 md:text-xl md:line-clamp-none">
               {listing.title}

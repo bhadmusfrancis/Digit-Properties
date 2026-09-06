@@ -121,6 +121,30 @@ export async function publishListingToSocial(
   const listingUrl = listingPublicUrl({ _id: listing._id, slug: listing.slug });
   const media = collectListingSocialMedia(plain);
 
+  // Facebook & Instagram need a real photo when the listing has none — generate one.
+  const needsGeneratedPhoto =
+    (wantFacebook && !facebookAlready) || (wantInstagram && !instagramAlready);
+  if (needsGeneratedPhoto && media.photos.length === 0 && media.videos.length === 0) {
+    const { generateListingSocialImage } = await import('@/lib/listing-social-image');
+    const generated = await generateListingSocialImage(plain as {
+      title?: string;
+      propertyType?: string;
+      listingType?: string;
+      bedrooms?: number | null;
+      location?: { suburb?: string; city?: string; state?: string; address?: string } | null;
+    });
+    if (generated) {
+      media.photos.push(generated);
+      const images = Array.isArray(listing.images) ? [...listing.images] : [];
+      const hasReal = images.some(
+        (img) => typeof img?.url === 'string' && img.url.startsWith('http') && !img.url.includes('/images/default-listing')
+      );
+      if (!hasReal) {
+        listing.images = [{ url: generated, public_id: `social-generated/${Date.now()}` }];
+      }
+    }
+  }
+
   if (wantFacebook && !facebookAlready) {
     try {
       const plan = facebookMediaPlan(media);

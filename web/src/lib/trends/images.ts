@@ -3,27 +3,72 @@ import cloudinary from '@/lib/cloudinary';
 import type { TrendCategory } from '@/lib/trends/sources';
 import type { ResearchSnippet } from '@/lib/trends/research';
 
-const CATEGORY_STOCK: Record<TrendCategory, string> = {
-  'Market Trends':
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80',
-  'Policy & Regulation':
-    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1600&q=80',
-  'Lagos Focus':
-    'https://images.unsplash.com/photo-1618828665011-0abd973f7bb8?auto=format&fit=crop&w=1600&q=80',
-  'Abuja & FCT':
-    'https://images.unsplash.com/photo-1611348524140-53c9a25263d6?auto=format&fit=crop&w=1600&q=80',
-  'Port Harcourt & Niger Delta':
-    'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
-  'Events & Exhibitions':
-    'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80',
-  'Industry Reports':
-    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80',
-  'Investment & Finance':
-    'https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?auto=format&fit=crop&w=1600&q=80',
-  'Housing & Affordability':
-    'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80',
-  'Land & Titling':
-    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
+export type TrendImageLicense = 'source_editorial' | 'unsplash' | 'ai_generated' | 'uploaded';
+
+export type TrendImageAttribution = {
+  imageUrl?: string;
+  fromSource: boolean;
+  imageSourceName?: string;
+  imageSourceUrl?: string;
+  imageCredit?: string;
+  imageLicense?: TrendImageLicense;
+};
+
+/** Unsplash License (https://unsplash.com/license) — free to use with credit. */
+const CATEGORY_STOCK: Record<
+  TrendCategory,
+  { url: string; credit: string; photoUrl: string }
+> = {
+  'Market Trends': {
+    url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Sean Pollock on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/building-under-blue-sky-PhYq704ffdA',
+  },
+  'Policy & Regulation': {
+    url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Tingey Injury Law Firm on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/brown-wooden-gavel-on-brown-wooden-table-DZpc4UY8Gkc',
+  },
+  'Lagos Focus': {
+    url: 'https://images.unsplash.com/photo-1618828665011-0abd973f7bb8?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/1618828665011-0abd973f7bb8',
+  },
+  'Abuja & FCT': {
+    url: 'https://images.unsplash.com/photo-1611348524140-53c9a25263d6?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/1611348524140-53c9a25263d6',
+  },
+  'Port Harcourt & Niger Delta': {
+    url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/1500530855697-b586d89ba3ee',
+  },
+  'Events & Exhibitions': {
+    url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Product School on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/people-sitting-on-chair-in-front-of-computer-nWvOTe7ZZKQ',
+  },
+  'Industry Reports': {
+    url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Scott Graham on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/person-holding-pencil-near-laptop-computer-5fNmWej4tAA',
+  },
+  'Investment & Finance': {
+    url: 'https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Towfiqu barbhuiya on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/1560520653-9e0e4c89eb11',
+  },
+  'Housing & Affordability': {
+    url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Tierra Mallorca on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/white-and-brown-concrete-building-61QvN5bX1ZI',
+  },
+  'Land & Titling': {
+    url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
+    credit: 'Photo by Dominik Vanyi on Unsplash',
+    photoUrl: 'https://unsplash.com/photos/green-grass-field-during-sunset-Hb6-hkdHUss',
+  },
 };
 
 function isUsableImageUrl(url?: string): url is string {
@@ -88,33 +133,80 @@ const KIND_PRIORITY: Record<string, number> = {
   instagram: 4,
 };
 
-/** Prefer imagery from major websites/reports over social feeds. */
 function snippetsByMajorSource(snippets: ResearchSnippet[]): ResearchSnippet[] {
   return [...snippets].sort(
     (a, b) => (KIND_PRIORITY[a.kind] ?? 9) - (KIND_PRIORITY[b.kind] ?? 9)
   );
 }
 
+/**
+ * Resolve hero image with provenance for lawful editorial use:
+ * - Source OG images: attributed + linked (Nigeria Copyright Act fair dealing for news/review)
+ * - Unsplash stock: Unsplash License with photographer credit
+ * - AI: Digit Properties / model terms — original generated asset
+ */
 export async function resolveTrendImage(opts: {
   title: string;
   excerpt: string;
   category: TrendCategory;
   snippets: ResearchSnippet[];
-}): Promise<{ imageUrl?: string; fromSource: boolean }> {
+}): Promise<TrendImageAttribution> {
   for (const snippet of snippetsByMajorSource(opts.snippets)) {
     if (!isUsableImageUrl(snippet.imageUrl)) continue;
     const uploaded = await uploadRemote(snippet.imageUrl);
-    if (uploaded) return { imageUrl: uploaded, fromSource: true };
+    if (uploaded) {
+      return {
+        imageUrl: uploaded,
+        fromSource: true,
+        imageSourceName: snippet.name,
+        imageSourceUrl: snippet.url,
+        imageCredit: `Image via ${snippet.name}`,
+        imageLicense: 'source_editorial',
+      };
+    }
   }
 
   const generated = await generateEditorialImage(opts);
-  if (generated) return { imageUrl: generated, fromSource: false };
+  if (generated) {
+    return {
+      imageUrl: generated,
+      fromSource: false,
+      imageSourceName: 'Digit Properties',
+      imageCredit: 'AI-generated image for Digit Properties editorial use',
+      imageLicense: 'ai_generated',
+    };
+  }
 
   const stock = CATEGORY_STOCK[opts.category];
-  const uploadedStock = await uploadRemote(stock);
-  return { imageUrl: uploadedStock ?? stock, fromSource: false };
+  const uploadedStock = await uploadRemote(stock.url);
+  return {
+    imageUrl: uploadedStock ?? stock.url,
+    fromSource: false,
+    imageSourceName: 'Unsplash',
+    imageSourceUrl: stock.photoUrl,
+    imageCredit: `${stock.credit} · Unsplash License`,
+    imageLicense: 'unsplash',
+  };
 }
 
 export function firstSourceImage(snippets: ResearchSnippet[]): string | undefined {
   return snippetsByMajorSource(snippets).find((s) => isUsableImageUrl(s.imageUrl))?.imageUrl;
+}
+
+/** Short credit line for captions / footer. */
+export function formatImageCreditLine(attrs: {
+  imageCredit?: string | null;
+  imageSourceName?: string | null;
+  imageSourceUrl?: string | null;
+  imageLicense?: string | null;
+}): string | null {
+  const credit = attrs.imageCredit?.trim();
+  if (credit) {
+    if (attrs.imageSourceUrl) return `${credit} (${attrs.imageSourceUrl})`;
+    return credit;
+  }
+  if (attrs.imageSourceName && attrs.imageSourceUrl) {
+    return `Image: ${attrs.imageSourceName} — ${attrs.imageSourceUrl}`;
+  }
+  return null;
 }

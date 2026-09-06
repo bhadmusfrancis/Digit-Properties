@@ -19,6 +19,10 @@ export type TrendPost = {
   content: string;
   category: string;
   imageUrl?: string;
+  imageCredit?: string;
+  imageSourceName?: string;
+  imageSourceUrl?: string;
+  imageLicense?: string;
   author?: string;
   publishedAt?: string;
   createdAt?: string;
@@ -84,7 +88,7 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 xl:max-w-[1400px]">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px] xl:gap-14">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] xl:gap-14">
           <article className="min-w-0 max-w-3xl">
             <Link href="/trends" className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline">
               <span aria-hidden>←</span> Back to Trends
@@ -106,15 +110,48 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
             </header>
 
             {post.imageUrl ? (
-              <div className="relative mt-6 aspect-[16/9] overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/60">
-                <TrendImage
-                  src={post.imageUrl}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 768px"
-                  priority
-                />
+              <div className="mt-6">
+                <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/60">
+                  <TrendImage
+                    src={post.imageUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 768px"
+                    priority
+                  />
+                </div>
+                {(post.imageCredit || post.imageSourceName) && (
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                    {post.imageCredit || `Image via ${post.imageSourceName}`}
+                    {post.imageSourceUrl ? (
+                      <>
+                        {' · '}
+                        <a
+                          href={post.imageSourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:underline"
+                        >
+                          Source
+                        </a>
+                      </>
+                    ) : null}
+                    {post.imageLicense === 'source_editorial' ? (
+                      <span className="block mt-0.5 text-slate-400">
+                        Used for editorial news reporting with attribution (fair dealing).
+                      </span>
+                    ) : post.imageLicense === 'unsplash' ? (
+                      <span className="block mt-0.5 text-slate-400">
+                        Unsplash License — free to use with credit.
+                      </span>
+                    ) : post.imageLicense === 'ai_generated' ? (
+                      <span className="block mt-0.5 text-slate-400">
+                        Original AI-generated asset for Digit Properties.
+                      </span>
+                    ) : null}
+                  </p>
+                )}
               </div>
             ) : null}
 
@@ -182,7 +219,7 @@ export function TrendPostClient({ initialPost, shareUrl, shareTitle, shareText }
 
           <aside className="lg:pt-8">
             <div className="sticky top-8 space-y-10">
-              <FeaturedSlot placement="trends" hideWhenEmpty className="mb-0" />
+              <FeaturedSlot placement="trends" hideWhenEmpty className="mb-0" layout="card" />
               <div>
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">More from Trends</h2>
                 <ul className="mt-4 space-y-4">
