@@ -27,6 +27,12 @@ import {
   LISTING_HAS_MEDIA_FIELD,
   LISTING_MARKET_AVAILABLE_FIELD,
 } from '@/lib/listing-proximity-sort';
+import {
+  buildKeywordFilter,
+  buildKeywordScoreFields,
+  keywordSupportsAnyFallback,
+  LISTING_KEYWORD_SCORE_KEY,
+} from '@/lib/listing-keyword-relevance';
 import { shapePublicCreatedBy, USER_PUBLIC_BADGE_FIELDS } from '@/lib/verification';
 import { omitPublicListingContact } from '@/lib/omit-public-listing-contact';
 
@@ -90,16 +96,15 @@ export async function GET(req: Request) {
     if (bedrooms) filter.bedrooms = { $gte: parseInt(bedrooms, 10) };
     if (tags?.length) filter.tags = { $in: tags };
 
-    const useTextRelevance = Boolean(q && sort === 'relevance');
-    if (useTextRelevance) {
-      filter.$text = { $search: q };
-    } else if (q && q.trim()) {
-      filter.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { tags: { $in: [new RegExp(q, 'i')] } },
-      ];
-    }
+    const keyword = q?.trim() || '';
+    // `filter` stays keyword-free so the widening retry below can rebuild from it.
+    const baseFilter = filter;
+    const withKeywordFilter = (mode: 'all' | 'any'): Record<string, unknown> => {
+      const keywordFilter = keyword ? buildKeywordFilter(keyword, mode) : null;
+      if (!keywordFilter) return baseFilter;
+      return { ...baseFilter, $and: [...((baseFilter.$and as unknown[]) || []), keywordFilter] };
+    };
+    filter = withKeywordFilter('all');
 
     const skip = (page - 1) * limit;
     type ListingRow = Omit<IListing, 'createdBy'> & { createdBy?: IListing['createdBy'] | { firstName?: string; name?: string; image?: string; role?: string } };
@@ -109,7 +114,8 @@ export async function GET(req: Request) {
       [...arr].sort((a, b) => {
         const marketCmp = compareListingMarketAvailable(a, b);
         if (marketCmp !== 0) return marketCmp;
-        return compareListingHasMedia(a, b);
+        // Keyword searches are already relevance-ordered; don't reshuffle by media.
+        return keyword ? 0 : compareListingHasMedia(a, b);
       });
 
     if (featured && random) {
@@ -125,21 +131,18 @@ export async function GET(req: Request) {
       const addFields: Record<string, unknown> = {
         ...LISTING_MARKET_AVAILABLE_FIELD,
         ...LISTING_HAS_MEDIA_FIELD,
+        ...buildKeywordScoreFields(keyword),
       };
-      if (useTextRelevance) {
-        addFields.score = { $meta: 'textScore' };
-      }
       if (sort === 'closest' && hasNearLocation(nearLocation)) {
         Object.assign(addFields, buildLocationScoreFields(nearLocation));
       }
 
-      const pipeline: PipelineStage[] = [
-        { $match: filter } as PipelineStage,
+      const buildPipeline = (matchFilter: Record<string, unknown>): PipelineStage[] => [
+        { $match: matchFilter } as PipelineStage,
         { $addFields: addFields } as PipelineStage,
         buildListingSortStage(sort, {
-          hasQuery: Boolean(q),
+          hasQuery: Boolean(keyword),
           hasNear: hasNearLocation(nearLocation),
-          useTextScore: useTextRelevance,
         }),
         { $skip: skip } as PipelineStage,
         { $limit: limit } as PipelineStage,
@@ -167,16 +170,32 @@ export async function GET(req: Request) {
         } as PipelineStage,
         { $addFields: { createdBy: { $arrayElemAt: ['$_createdByArr', 0] } } } as PipelineStage,
         {
-          $project: { _createdByArr: 0, _hasMedia: 0, _isMarketAvailable: 0, _locScore: 0, score: 0 },
+          $project: {
+            _createdByArr: 0,
+            _hasMedia: 0,
+            _isMarketAvailable: 0,
+            _locScore: 0,
+            [LISTING_KEYWORD_SCORE_KEY]: 0,
+          },
         } as PipelineStage,
       ];
 
-      const [listingsRes, totalRes] = await Promise.all([
-        Listing.aggregate(pipeline).allowDiskUse(true),
-        Listing.countDocuments(filter),
-      ]);
-      listings = listingsRes as ListingRow[];
-      total = totalRes;
+      const runSearch = async (matchFilter: Record<string, unknown>) => {
+        const [rows, count] = await Promise.all([
+          Listing.aggregate(buildPipeline(matchFilter)).allowDiskUse(true),
+          Listing.countDocuments(matchFilter),
+        ]);
+        return { rows: rows as ListingRow[], total: count };
+      };
+
+      let result = await runSearch(filter);
+      // Requiring every word can be too strict; widen to any word rather than
+      // show an empty page for a query that does have partial matches.
+      if (result.total === 0 && keywordSupportsAnyFallback(keyword)) {
+        result = await runSearch(withKeywordFilter('any'));
+      }
+      listings = result.rows;
+      total = result.total;
     }
 
     return NextResponse.json({

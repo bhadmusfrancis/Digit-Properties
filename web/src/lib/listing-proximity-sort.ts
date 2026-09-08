@@ -1,4 +1,5 @@
 import type { PipelineStage } from 'mongoose';
+import { LISTING_KEYWORD_SCORE_KEY } from '@/lib/listing-keyword-relevance';
 
 export type NearLocationParams = {
   suburb?: string;
@@ -108,13 +109,18 @@ export const LISTING_HAS_MEDIA_FIELD = {
   },
 } as const;
 
-const LISTING_SORT_PRIORITIES = {
-  _isMarketAvailable: -1 as const,
-  _hasMedia: -1 as const,
-};
-
-function listingSortStage(sort: Record<string, 1 | -1>): PipelineStage {
-  return { $sort: { ...LISTING_SORT_PRIORITIES, ...sort } } as PipelineStage;
+/**
+ * Prefixed to every listing sort. `_hasMedia` is dropped for keyword searches so
+ * results lead with how well they match what was typed; media then only breaks
+ * ties between listings of equal relevance.
+ */
+function listingSortStage(
+  sort: Record<string, 1 | -1>,
+  options: { prioritizeMedia?: boolean } = {}
+): PipelineStage {
+  const priorities: Record<string, -1> = { _isMarketAvailable: -1 };
+  if (options.prioritizeMedia !== false) priorities._hasMedia = -1;
+  return { $sort: { ...priorities, ...sort } } as PipelineStage;
 }
 
 export function isListingMarketAvailable(listing: {
@@ -159,14 +165,37 @@ export function compareListingHasMedia(
 
 export function buildListingSortStage(
   sort: string | undefined,
-  options: { hasQuery: boolean; hasNear: boolean; useTextScore: boolean }
+  options: { hasQuery: boolean; hasNear: boolean }
 ): PipelineStage {
   const key = sort || 'default';
 
   const stableId = { _id: 1 as const };
 
-  if (key === 'relevance' && options.useTextScore) {
-    return listingSortStage({ score: -1, boostExpiresAt: -1, createdAt: -1, ...stableId });
+  if (options.hasQuery) {
+    // Keyword relevance leads; media presence is demoted to a late tiebreaker.
+    const relevance = { [LISTING_KEYWORD_SCORE_KEY]: -1 as const };
+    const tiebreak = { _hasMedia: -1 as const, createdAt: -1 as const, ...stableId };
+    const noMediaFirst = { prioritizeMedia: false };
+
+    switch (key) {
+      case 'price_asc':
+        return listingSortStage({ price: 1, ...relevance, ...tiebreak }, noMediaFirst);
+      case 'price_desc':
+        return listingSortStage({ price: -1, ...relevance, ...tiebreak }, noMediaFirst);
+      case 'newest':
+        return listingSortStage({ createdAt: -1, ...relevance, ...stableId }, noMediaFirst);
+      case 'popular':
+        return listingSortStage({ viewCount: -1, ...relevance, ...tiebreak }, noMediaFirst);
+      case 'closest':
+        return listingSortStage(
+          options.hasNear
+            ? { _locScore: -1, ...relevance, ...tiebreak }
+            : { ...relevance, boostExpiresAt: -1, ...tiebreak },
+          noMediaFirst
+        );
+      default:
+        return listingSortStage({ ...relevance, boostExpiresAt: -1, ...tiebreak }, noMediaFirst);
+    }
   }
 
   if (key === 'closest' && options.hasNear) {
