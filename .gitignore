@@ -110,3 +110,6 @@ web/eng.traineddata
 
 # Paystack / webhook debug captures (if saved locally)
 paystack-*.json
+
+# Listing price/type repair reports & pre-change backups (local audit output)
+repair-*.json

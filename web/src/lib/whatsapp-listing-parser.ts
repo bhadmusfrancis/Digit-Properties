@@ -220,6 +220,26 @@ function applyPriceMultiplier(num: number, mult: string): number {
 
 const PRICE_MULT_SUFFIX = '(m|million|k|thousand|bn|billion|b)';
 
+/** "per annum" / "p.a." / "monthly" / "/year" — a rent-cycle phrase. */
+const PERIOD_PHRASE =
+  '(?:per\\s*(?:annum|year|month|day)|p\\.?\\s*a\\.?|p\\.?\\s*m\\.?|yearly|monthly|daily|\\/\\s*(?:year|month|day))';
+
+/**
+ * Highest believable per-square-metre rate (NGN). Prime Ikoyi/VI land tops out
+ * around ₦4m/sqm, so anything past this came from a chat typo such as
+ * "40,000k per sqm" (meaning ₦40,000) and the multiplier must be dropped.
+ */
+const MAX_PLAUSIBLE_RATE_PER_SQM = 10_000_000;
+/** Square metres per square foot, for posts that quote sqft. */
+const SQM_PER_SQFT = 0.09290304;
+
+/** Drop a multiplier that a chat typo attached to a per-unit rate. */
+function sanePerUnitRate(value: number, ceiling: number): number {
+  let v = value;
+  for (let i = 0; i < 3 && v > ceiling; i++) v /= 1_000;
+  return v > ceiling ? 0 : v;
+}
+
 function parseAmountToken(numStr: string, mult?: string): number {
   const num = parseFloat(numStr.replace(/,/g, ''));
   if (!Number.isFinite(num) || num <= 0) return 0;
@@ -234,11 +254,29 @@ function stripSecondaryChargeClauses(text: string): string {
     ' '
   );
   t = t.replace(/\b\d+(?:\.\d+)?\s*(?:%|\*)\s*(?:agency|legal|caution|commission|fee|fees)\b/gi, ' ');
+  // Trailing rent cycle is consumed too, so "service charge 500k per annum"
+  // in a sale post cannot be read as a rent signal.
   t = t.replace(
     new RegExp(
-      `\\b(?:sc|s\\/c|service\\s*charge)\\s*[;:#\\-–—]?\\s*(?:₦|NGN|N)?\\s*[\\d.,]+\\s*${PRICE_MULT_SUFFIX}?\\b`,
+      `\\b(?:sc|s\\/c|service\\s*charge)\\s*[;:#\\-–—]?\\s*(?:₦|NGN|N)?\\s*[\\d.,]+\\s*${PRICE_MULT_SUFFIX}?\\b\\s*${PERIOD_PHRASE}?`,
       'gi'
     ),
+    ' '
+  );
+  t = t.replace(
+    new RegExp(
+      `\\b(?:agency|legal|caution|commission|agreement)\\s*(?:fee|fees)?\\s*[;:#\\-–—]?\\s*(?:₦|NGN|N)?\\s*[\\d.,]+\\s*${PRICE_MULT_SUFFIX}?\\b\\s*${PERIOD_PHRASE}?`,
+      'gi'
+    ),
+    ' '
+  );
+  // JV "premium" cash is not the land value / asking price.
+  t = t.replace(
+    /\bpremiums?(?:\s+of)?\s*[:.\s]*[₦#N]?\s*[\d.,]+\s*(?:m|million|k|thousand)?/gi,
+    ' '
+  );
+  t = t.replace(
+    /(?:₦|#|NGN|N)?\s*[\d.,]+\s*(?:m|million|k|thousand)?\s*premiums?\b/gi,
     ' '
   );
   return t;
@@ -285,6 +323,13 @@ function collectPriceHits(text: string): PriceHit[] {
     {
       re: new RegExp(`\\b(?:rent|asking|lease)\\s*[;:#\\-–—]\\s*${labeledAmount}`, 'gi'),
       priority: 100,
+    },
+    {
+      re: new RegExp(
+        `\\b(?:land\\s*value)\\s*[;:#\\-–—]*\\s*${labeledAmount}`,
+        'gi'
+      ),
+      priority: 96,
     },
     {
       re: new RegExp(
@@ -336,20 +381,32 @@ function pickBestPriceHit(hits: PriceHit[]): number {
   return value;
 }
 
-function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'month' | 'year'; pricePerSqm?: number; rest: string } {
+function extractPrice(text: string): {
+  value: number;
+  rentPeriod?: 'day' | 'month' | 'year';
+  pricePerSqm?: number;
+  pricePerSqft?: number;
+  rest: string;
+} {
   let rest = text;
   let value = 0;
   let rentPeriod: 'day' | 'month' | 'year' | undefined;
   let pricePerSqm: number | undefined;
+  let pricePerSqft: number | undefined;
 
   // "N2. 7billion" / "N2\. 7billion" chat typos → "N2.7billion"
   rest = rest.replace(/(\d)\.\s+(\d)/g, '$1.$2');
+  // "2,5BILLION" is a decimal comma (₦2.5b), not ₦25b. Only a single digit
+  // before the scale word qualifies, so "2,500m" is left alone.
+  rest = rest.replace(/(\d),(\d)(?=\s*(?:bn|billion|b|million|m|k|thousand)\b)/gi, '$1.$2');
 
   const periodRe = new RegExp(
     '\\b(per\\s*(?:year|annum|month|day)|p\\.?\\s*a\\.?|p\\.?\\s*m\\.?|yearly|monthly|/year|/month|/day)\\b',
     'i'
   );
-  const periodMatch = text.match(periodRe);
+  // Read the cycle from text without agency/service-charge clauses, so a sale
+  // post's "service charge 500k per annum" is not mistaken for the rent cycle.
+  const periodMatch = stripSecondaryChargeClauses(text).match(periodRe);
   if (periodMatch) {
     const p = periodMatch[1].toLowerCase();
     const monthRe = new RegExp('\\b(per\\s*month|p\\.?\\s*m\\.?|monthly|/month)\\b');
@@ -360,30 +417,107 @@ function extractPrice(text: string): { value: number; rentPeriod?: 'day' | 'mont
   }
 
   rest = rest.replace(/\b[\d.,]+\s*(?:acres?|hectares?|hectare|ha)\b/gi, ' ');
+
+  // Per-square-foot rates ("Rate: n4,500/sqft net", "₦3,500 per sq ft") are
+  // quoted for warehouses/offices; capture before sqft sizes are stripped.
+  const perSqftMatch = rest.match(
+    /(?:rate|price|asking)?\s*[:.]?\s*(?:ngn|n|#|₦)?\s*([\d.,]+)\s*(m|million|k|thousand)?\s*(?:\/|\s+per\s+)\s*(?:sq\.?\s*ft|sqft|sqf|ft\s*[²2]|square\s*(?:foot|feet))/i
+  );
+  if (perSqftMatch) {
+    const raw = parseAmountToken(perSqftMatch[1], perSqftMatch[2] || undefined);
+    // A per-sqft rate is ~1/10 of a per-sqm rate; allow the same ceiling scaled.
+    const sane = sanePerUnitRate(raw, MAX_PLAUSIBLE_RATE_PER_SQM);
+    if (sane > 0) pricePerSqft = sane;
+    rest = rest.replace(perSqftMatch[0], ' ');
+  }
+  rest = rest.replace(
+    /\b[\d.,]+\s*(?:sq\.?\s*ft|sqft|sqf|ft\s*[²2]|square\s*(?:foot|feet))/gi,
+    ' '
+  );
+
   // Strip plot sizes like "1,123.100m²" / "500m2" so "m" is not read as millions.
   rest = rest.replace(/\b[\d.,]+\s*(?:sq\.?\s*m(?:eters?)?|sqm|m\s*[²2]|m²)/gi, ' ');
 
   const perSqmMatch =
     rest.match(
-      /(?:price|asking)?\s*[:.]?\s*(?:ngn|n|#|₦)?\s*([\d.,]+)\s*(m|million)?\s*(?:\/|\s+per\s+)\s*(?:sq\.?\s*m(?:eters?)?|sqm|sqmt|m\s*[²2]|m²)/i
+      /(?:price|asking|land\s*value|value)?\s*[:.]?\s*(?:ngn|n|#|₦)?\s*([\d.,]+)\s*(m|million|k)?\s*(?:\/|\s+per\s+)\s*(?:sq\.?\s*m(?:eters?)?|sqm|sqmt|square\s*met(?:er|re)s?|m\s*[²2]|m²)/i
     ) ?? rest.match(/\b([\d.,]+)\s*m\s*\/\s*sqm\b/i);
   if (perSqmMatch) {
     const rawNum = parseFloat(perSqmMatch[1].replace(/,/g, ''));
     const unit = (perSqmMatch[2] || '').toLowerCase();
-    // "2.6m/m2" / "2.5Million/sqmt" → millions; bare "2" with "m per sqm" also millions
-    pricePerSqm =
-      unit === 'm' || unit === 'million' || /m\s*\/|million/i.test(perSqmMatch[0])
-        ? rawNum * 1_000_000
-        : rawNum < 100
-          ? rawNum * 1_000_000
-          : rawNum;
+    // "2.6m/m2" / "2.5Million/sqmt" → millions; "900k per sqm" → thousands;
+    // bare "2" with "m per sqm" also millions
+    if (unit === 'k') pricePerSqm = rawNum * 1_000;
+    else if (unit === 'm' || unit === 'million' || /m\s*\/|million/i.test(perSqmMatch[0])) {
+      pricePerSqm = rawNum * 1_000_000;
+    } else {
+      pricePerSqm = rawNum < 100 ? rawNum * 1_000_000 : rawNum;
+    }
+    // "40,000k per sqm" means ₦40,000 — drop typo multipliers that push the
+    // rate past any real Nigerian per-sqm figure.
+    pricePerSqm = sanePerUnitRate(pricePerSqm, MAX_PLAUSIBLE_RATE_PER_SQM) || undefined;
     rest = rest.replace(perSqmMatch[0], ' ');
   }
 
   const cleaned = stripSecondaryChargeClauses(rest);
   value = pickBestPriceHit(collectPriceHits(cleaned));
 
-  return { value, rentPeriod, pricePerSqm, rest };
+  return { value, rentPeriod, pricePerSqm, pricePerSqft, rest };
+}
+
+/**
+ * Price/intent evidence behind a parse, for audit and repair tooling.
+ *
+ * Repair scripts must not apply a re-parse blindly, so they need to see *why*
+ * the parser reached a figure: whether the post quoted a per-unit rate, and
+ * whether sale/rent wording was explicit or merely inferred. Several intent
+ * phrases usually mean the post is a multi-property bulletin, which no single
+ * listing can represent faithfully.
+ */
+export type ListingPostSignals = {
+  price: number;
+  listingType: ParsedListing['listingType'];
+  rentPeriod?: ParsedListing['rentPeriod'];
+  pricePerSqm?: number;
+  pricePerSqft?: number;
+  areaSqm: number;
+  areaSqft: number;
+  /** Bare best price hit, before any rate × size multiplication. */
+  rawPriceHit: number;
+  rentIntentCount: number;
+  saleIntentCount: number;
+  /** True when sale/rent wording is present, rather than inferred from a cycle. */
+  hasExplicitIntent: boolean;
+};
+
+function countMatches(text: string, source: RegExp): number {
+  const re = new RegExp(source.source, 'gi');
+  return (text.match(re) ?? []).length;
+}
+
+export function analyzeListingPostSignals(raw: string): ListingPostSignals {
+  const text = normalizeText(stripChatArtifacts(raw));
+  const { value: rawPriceHit, rentPeriod, pricePerSqm, pricePerSqft } = extractPrice(text);
+  const { listingType } = extractListingType(text, { hasRentCycle: Boolean(rentPeriod) });
+  const { area: areaSqm } = extractArea(text);
+  const areaSqft = extractAreaSqft(text);
+  const { parsed } = parseWhatsAppListingText(raw);
+  const masked = maskNonIntentRentPhrases(text);
+
+  return {
+    price: parsed.price,
+    listingType,
+    rentPeriod: parsed.rentPeriod,
+    pricePerSqm,
+    pricePerSqft,
+    areaSqm,
+    areaSqft,
+    rawPriceHit,
+    rentIntentCount: countMatches(masked, RENT_INTENT_RE),
+    saleIntentCount: countMatches(masked, SALE_INTENT_RE),
+    hasExplicitIntent:
+      JV_INTENT_RE.test(text) || RENT_INTENT_RE.test(masked) || SALE_INTENT_RE.test(masked),
+  };
 }
 
 /** Re-parse price (and rent period) from stored WhatsApp description text. */
@@ -448,6 +582,16 @@ export function isLikelyMispricedWhatsAppListing(input: {
   return { mispriced: false, reparsedPrice: next };
 }
 
+/** Extract area quoted in square feet (e.g. 7,200sqft, 26,000 sq ft). */
+function extractAreaSqft(text: string): number {
+  const m = text.match(
+    /\b([\d,.]+)\s*(?:sq\.?\s*ft|sqft|sqf|ft\s*[²2]|square\s*(?:foot|feet))\b/i
+  );
+  if (!m) return 0;
+  const area = parseFloat(m[1].replace(/,/g, ''));
+  return area > 0 ? area : 0;
+}
+
 /** Extract area in square meters (e.g. 500sqm, 1,634sqm, 1,123.100m²). */
 function extractArea(text: string): { area: number; rest: string } {
   const m =
@@ -486,36 +630,73 @@ function extractBedsBaths(text: string): { bedrooms: number; bathrooms: number; 
   return { bedrooms, bathrooms, toilets, rest };
 }
 
-function extractListingType(text: string): {
+const JV_INTENT_RE =
+  /\b(joint\s+ventures?|\bjv\b|jv\s+in|partnership\s+on\s+land|sharing\s+ratio|facilitator'?s?\s+fee)\b/i;
+const RENT_INTENT_RE =
+  /\b(for\s*rent|to\s*rent|to\s*let|for\s*lease|to\s*lease|rental|renting|lettings?|available\s*for\s*(?:rent|lease)|short\s*let|shortlet)\b/i;
+const SALE_INTENT_RE =
+  /\b(for\s*sales?|to\s*sell|selling|available\s*for\s*sale|distress(?:ed)?\s*sale|outright\s*sale)\b/i;
+/** "Rent: 15m" / "Rent - ₦4.5m" — a rent-labelled asking figure. */
+const RENT_LABEL_RE = /\brent(?:al)?\s*(?:fee)?\s*[;:#\-–—]\s*(?:₦|NGN|N|#)?\s*\d/i;
+
+/**
+ * Blank out "rental income / value / yield / roll" style phrases: those are
+ * investment metrics quoted inside *sale* pitches, not a letting intent.
+ * Replaced with spaces so match positions stay comparable.
+ */
+function maskNonIntentRentPhrases(text: string): string {
+  return text.replace(
+    /\brent(?:al)?s?\s*(?:income|value|values|yield|yields|history|return|returns|roll|rates?|market|comparables?)\b/gi,
+    (m) => ' '.repeat(m.length)
+  );
+}
+
+/**
+ * Decide sale vs rent vs joint venture.
+ *
+ * When a post carries both rent and sale wording ("For sale … buyer may also
+ * lease it out"), the intent stated *first* is the headline and wins — a plain
+ * rent-before-sale precedence flips genuine sale posts. With no intent wording
+ * at all, a rent cycle ("₦4.5m per annum") means rent rather than the old
+ * silent default to sale.
+ */
+function extractListingType(
+  text: string,
+  hints?: { hasRentCycle?: boolean }
+): {
   listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE];
   rest: string;
 } {
   let rest = text;
   let listingType: (typeof LISTING_TYPE)[keyof typeof LISTING_TYPE] = LISTING_TYPE.SALE;
-  if (
-    /\b(joint\s+venture|\bjv\b|jv\s+in|partnership\s+on\s+land|sharing\s+ratio|facilitator'?s?\s+fee)\b/i.test(
-      text
-    )
-  ) {
+
+  if (JV_INTENT_RE.test(text)) {
     listingType = LISTING_TYPE.JOINT_VENTURE;
-    rest = rest.replace(
-      /\b(joint\s+venture|\bjv\b|jv\s+in)\b/gi,
-      ' '
-    );
-  } else if (
-    /\b(for\s*rent|to\s*rent|to\s*let|rental|renting|available\s*for\s*rent|short\s*let|shortlet)\b/i.test(
-      text
-    )
-  ) {
-    listingType = LISTING_TYPE.RENT;
-    rest = rest.replace(
-      /\b(for\s*rent|to\s*rent|to\s*let|rental|renting|available\s*for\s*rent|short\s*let|shortlet)\b/gi,
-      ' '
-    );
-  } else if (/\b(for\s*sale|to\s*sell|selling|available\s*for\s*sale)\b/i.test(text)) {
-    listingType = LISTING_TYPE.SALE;
-    rest = rest.replace(/\b(for\s*sale|to\s*sell|selling|available\s*for\s*sale)\b/gi, ' ');
+    rest = rest.replace(/\b(joint\s+ventures?|\bjv\b|jv\s+in)\b/gi, ' ');
+    return { listingType, rest };
   }
+
+  const masked = maskNonIntentRentPhrases(text);
+  const rentPhraseIdx = masked.search(RENT_INTENT_RE);
+  const rentLabelIdx = masked.search(RENT_LABEL_RE);
+  const rentIdx =
+    rentPhraseIdx >= 0 && rentLabelIdx >= 0
+      ? Math.min(rentPhraseIdx, rentLabelIdx)
+      : Math.max(rentPhraseIdx, rentLabelIdx);
+  const saleIdx = masked.search(SALE_INTENT_RE);
+
+  if (rentIdx >= 0 && saleIdx >= 0) {
+    listingType = rentIdx < saleIdx ? LISTING_TYPE.RENT : LISTING_TYPE.SALE;
+  } else if (rentIdx >= 0) {
+    listingType = LISTING_TYPE.RENT;
+  } else if (saleIdx >= 0) {
+    listingType = LISTING_TYPE.SALE;
+  } else {
+    listingType = hints?.hasRentCycle ? LISTING_TYPE.RENT : LISTING_TYPE.SALE;
+  }
+
+  const strip = listingType === LISTING_TYPE.RENT ? RENT_INTENT_RE : SALE_INTENT_RE;
+  rest = rest.replace(new RegExp(strip.source, 'gi'), ' ');
   return { listingType, rest };
 }
 
@@ -546,7 +727,11 @@ const TYPE_SYNONYM_PATTERNS: Array<{ type: string; re: RegExp }> = [
  * and is not phrased as a directional landmark.
  */
 function looksLikeFillingStation(lower: string): boolean {
-  const stationPhrase = /\b(?:filling|petrol|fuel|fueling|petroleum|gas)\s*[-]?\s*station\b/;
+  // "mega station" is common NG copy for a large filling station; "service
+  // station" is the older petrol-forecourt name. Bare "bus/train/police
+  // station" is excluded by the qualifier list.
+  const stationPhrase =
+    /\b(?:filling|petrol|fuel|fueling|petroleum|gas|mega|service)\s*[-]?\s*station\b/;
   if (!stationPhrase.test(lower)) return false;
 
   // Marine vessels (dump/cargo/oil-tank barges) are bundled into some
@@ -560,16 +745,16 @@ function looksLikeFillingStation(lower: string): boolean {
     /\bdispensing\s*pumps?\b/.test(lower) ||
     /\b(?:right\s*to\s*lift|lifting\s*right)\b/.test(lower) ||
     /\bdpr\b/.test(lower) ||
-    /\b(?:pms|ago|dpk)\b/.test(lower) ||
+    /\b(?:pms|ago|dpk|a\.\s*g\.\s*o\.?|d\.\s*p\.\s*k\.?)\b/.test(lower) ||
     /\d[\d,]*\s*(?:litres?|liters?)\b/.test(lower);
   if (hasAttributes) return true;
 
   // Explicit intent: the station itself is the asset for sale/lease.
   const intent =
-    /(?:filling|petrol|fuel|gas)\s*[-]?\s*station\s+(?:is\s+)?(?:now\s+)?for\s+(?:sale|sales|lease|rent)\b/.test(
+    /(?:filling|petrol|fuel|gas|mega|service)\s*[-]?\s*station\s+(?:is\s+)?(?:now\s+)?for\s+(?:sale|sales|lease|rent)\b/.test(
       lower
     ) ||
-    /\bfor\s+(?:sale|sales|lease|rent)\b[\s:!.\-]*(?:a\s+|an\s+|new\s+|brand\s+new\s+)?(?:filling|petrol|fuel|gas)\s*[-]?\s*station\b/.test(
+    /\bfor\s+(?:sale|sales|lease|rent)\b[\s:!.\-]*(?:a\s+|an\s+|new\s+|brand\s+new\s+)?(?:filling|petrol|fuel|gas|mega|service)\s*[-]?\s*station\b/.test(
       lower
     );
   return intent;
@@ -577,6 +762,28 @@ function looksLikeFillingStation(lower: string): boolean {
 
 function mentionsBedrooms(lower: string): boolean {
   return /\b\d+\s*[-\s]?(?:bed(?:room)?s?|br)\b/.test(lower);
+}
+
+/**
+ * True when a type keyword is only a nearby landmark, not the asset
+ * (e.g. "plots of land near Aare Arisekola house").
+ */
+function isLandmarkTypeMention(text: string, matchIndex: number): boolean {
+  const before = text.slice(Math.max(0, matchIndex - 96), matchIndex);
+  return /(?:^|[\s,;:.(])(?:(?:just|right)\s+)?(?:near|behind|beside|opposite|after|before|around|along|beyond|across\s+from|close\s+to|next\s+to|adjacent\s+to|in\s+front\s+of)\s+(?:the\s+)?(?:[\w.'’`-]+\s+){0,6}$/i.test(
+    before
+  );
+}
+
+function firstAssetKeywordMatch(re: RegExp, text: string): RegExpExecArray | null {
+  const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`;
+  const global = new RegExp(re.source, flags);
+  let m: RegExpExecArray | null;
+  while ((m = global.exec(text)) !== null) {
+    if (!isLandmarkTypeMention(text, m.index)) return m;
+    if (m[0].length === 0) global.lastIndex += 1;
+  }
+  return null;
 }
 
 function earliestResidentialTypeInText(lower: string): string | null {
@@ -597,12 +804,12 @@ function earliestResidentialTypeInText(lower: string): string | null {
       const pattern = p.replace(/_/g, '[\\s_-]*');
       re = new RegExp(`\\b${pattern}s?\\b`, 'i');
     }
-    const m = re.exec(lower);
+    const m = firstAssetKeywordMatch(re, lower);
     if (m) consider(p, m.index, p.length);
   }
   for (const { type, re } of TYPE_SYNONYM_PATTERNS) {
     if (type !== 'apartment') continue;
-    const m = re.exec(lower);
+    const m = firstAssetKeywordMatch(re, lower);
     if (m) consider(type, m.index, m[0].length);
   }
   return match.best?.type ?? null;
@@ -628,6 +835,7 @@ function refinePropertyTypeForBedrooms(type: string, lower: string): string {
  *     asset being sold is normally named first, so this avoids classifying a
  *     "Filling Station ... with ... 5 office Spaces" post as an office.
  *     Ties are broken by the longer keyword (e.g. "warehouse" over "house").
+ *     Landmark-only mentions are skipped (e.g. "plots of land near X house").
  *  3. Land fallbacks (plot / bare land / sqm-only).
  *  4. Default to apartment.
  */
@@ -678,11 +886,11 @@ export function extractPropertyType(text: string): string {
       const pattern = p.replace(/_/g, '[\\s_-]*');
       re = new RegExp(`\\b${pattern}s?\\b`, 'i');
     }
-    const m = re.exec(lower);
+    const m = firstAssetKeywordMatch(re, lower);
     if (m) consider(p, m.index, p.length);
   }
   for (const { type, re } of TYPE_SYNONYM_PATTERNS) {
-    const m = re.exec(lower);
+    const m = firstAssetKeywordMatch(re, lower);
     if (m) consider(type, m.index, m[0].length);
   }
   if (match.best) return refinePropertyTypeForBedrooms(match.best.type, lower);
@@ -724,7 +932,7 @@ function extractPhone(text: string): { phone: string | undefined; rest: string }
 }
 
 function inferStateWhenUnknown(lower: string): string {
-  if (/\b(lagos|lekki|ikeja|ajah|yaba|surulere|ikorodu|alimosho|vi\b|victoria island|ikoyi|oshodi|agege)\b/i.test(lower)) {
+  if (/\b(lagos|lekki|ikeja|ajah|yaba|surulere|ikorodu|alimosho|vi\b|victoria island|ikoyi|oshodi|agege|opebi)\b/i.test(lower)) {
     return 'Lagos';
   }
   if (
@@ -737,7 +945,10 @@ function inferStateWhenUnknown(lower: string): string {
   if (/\b(port\s*har(?:c)?ourt|pitakwa|trans\s*amadi|oyigbo|eleme|ph\b)\b/i.test(lower)) {
     return 'Rivers';
   }
-  if (/\b(ibadan|bodija|mokola|dugbe|oluyole|ogbomosho)\b/i.test(lower)) {
+  if (/\b(ilorin|tanke|kwara)\b/i.test(lower)) {
+    return 'Kwara';
+  }
+  if (/\b(ibadan|bodija|mokola|dugbe|oluyole|ogbomosho)\b/i.test(lower) && !/\bibadan\s+(close|street|road|avenue|lane|crescent|drive)\b/i.test(lower)) {
     return 'Oyo';
   }
   return 'Lagos';
@@ -823,21 +1034,27 @@ export function parseWhatsAppListingText(raw: string): ParseResult {
   const text = normalizeText(stripped);
   const missing: string[] = [];
 
-  const { value: priceVal, rentPeriod, pricePerSqm } = extractPrice(text);
-  const { listingType } = extractListingType(text);
-  const { area } = extractArea(text);
+  const { value: priceVal, rentPeriod, pricePerSqm, pricePerSqft } = extractPrice(text);
+  const { listingType } = extractListingType(text, { hasRentCycle: Boolean(rentPeriod) });
+  const { area: areaSqm } = extractArea(text);
+  const areaSqft = extractAreaSqft(text);
+  // Posts that quote only square feet still need `area` in square metres.
+  const area = areaSqm || (areaSqft ? Math.round(areaSqft * SQM_PER_SQFT) : 0);
   const { bedrooms, bathrooms, toilets } = extractBedsBaths(text);
   const { phone: agentPhone } = extractPhone(text);
   const { state, city, address, suburb } = extractLocation(text);
   const propertyType = extractPropertyType(text);
 
-  // Prefer explicit per-sqm × area over a bare "2.6m" hit from the same rate line.
+  // A quoted rate is per unit, not the asking figure: multiply it by the size
+  // so "₦40,000 per sqm" on 2,415 sqm becomes ₦96.6m, not ₦40,000.
   const price =
-    pricePerSqm && area
-      ? Math.round(pricePerSqm * area)
-      : priceVal > 0
-        ? priceVal
-        : pricePerSqm ?? 0;
+    pricePerSqm && areaSqm
+      ? Math.round(pricePerSqm * areaSqm)
+      : pricePerSqft && areaSqft
+        ? Math.round(pricePerSqft * areaSqft)
+        : priceVal > 0
+          ? priceVal
+          : (pricePerSqm ?? pricePerSqft ?? 0);
 
   const desc = prepareWhatsAppListingDescription(raw);
   const title = buildCanonicalListingTitle({
@@ -911,10 +1128,35 @@ function splitByInventoryLocationHeaders(text: string): string[] {
     .filter((s) => s.length >= 20);
 }
 
+/**
+ * Split 1️⃣ / 2️⃣ / … / 🔟 / 1️⃣1️⃣ style numbered briefs.
+ * Must run before double-newline splits — those posts use blank lines inside each item.
+ */
+export function splitByKeycapNumbers(text: string): string[] {
+  const marker = /(?:🔟|(?:[0-9]\uFE0F?\u20E3){1,2})/g;
+  const hits: { start: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = marker.exec(text)) !== null) {
+    hits.push({ start: m.index, end: m.index + m[0].length });
+  }
+  if (hits.length < 2) return [];
+  const blocks: string[] = [];
+  for (let i = 0; i < hits.length; i++) {
+    const from = hits[i].end;
+    const to = i + 1 < hits.length ? hits[i + 1].start : text.length;
+    const block = text.slice(from, to).trim();
+    if (block.length >= 20) blocks.push(block);
+  }
+  return blocks;
+}
+
 /** Splits raw text into segments that may each be one listing (double newlines, numbered items, or dividers). */
 function splitIntoListingBlocks(raw: string): string[] {
   const normalized = raw.replace(/\r\n/g, '\n').trim();
   if (!normalized) return [];
+
+  const byKeycap = splitByKeycapNumbers(normalized);
+  if (byKeycap.length >= 2) return byKeycap;
 
   // Split by double newline or more
   let segments = normalized.split(/\n\s*\n+/).map((s) => s.trim()).filter(Boolean);
@@ -946,9 +1188,27 @@ function splitIntoListingBlocks(raw: string): string[] {
 }
 
 /**
- * Detect multiple listings in a single post and parse each.
- * Uses block splits (double newline, numbered list, dividers) then runs single-listing parser on each block.
+ * A single message that bundles several distinct parcels/properties — numbered
+ * "(1)/(2)" / "1)/2." items, emoji keycaps (1️⃣ 2️⃣), repeated "parcel of land", or caps street inventory
+ * headers (e.g. "OLOGUN AGBAJE, VICTORIA ISLAND"). Such a brief must be split so
+ * each parcel becomes its own listing. Numbered/parcel detectors stay strict;
+ * inventory headers only count when there are 2+ distinct street headers.
  */
+export function isMultiParcelWhatsAppBrief(clean: string): boolean {
+  const keycaps = (clean.match(/(?:🔟|(?:[0-9]\uFE0F?\u20E3)+)/g) || []).length;
+  if (keycaps >= 2) return true;
+  const numbered = (clean.match(/(?:^|\n)\s*\*?\(?\s*\d{1,2}\s*[).]\s/g) || []).length;
+  if (numbered >= 2) return true;
+  const parcels = (clean.match(/\bparcel\s+of\s+land\b/gi) || []).length;
+  if (parcels >= 2) return true;
+  const inventoryHeaders = (
+    clean.match(
+      /(?:^|[.!?]\s+|\n)\s*(?:LAND(?:\s+WITH|\.?BY)\s+)?(?!OFF\b)[A-Z][A-Z0-9'.-]*(?:\s+(?:(?!OFF\b)[A-Z0-9'.-]+)){0,5},\s*(?:VICTORIA ISLAND|VI\b)/g
+    ) || []
+  ).length;
+  return inventoryHeaders >= 2;
+}
+
 /** Extract leading sender phone from full message (e.g. "[date] +234 806 121 7377: message"). */
 function extractLeadingSenderPhone(raw: string): string | undefined {
   const m = raw.match(/^(?:\[[^\]]*\]\s*)?(\+\s*234\s*\d{3}\s*\d{3}\s*\d{4}|234\s*\d{3}\s*\d{3}\s*\d{4}|0\d{10})\s*:/i);
