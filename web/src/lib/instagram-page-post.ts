@@ -93,20 +93,66 @@ async function resolveInstagramUserId(accessToken: string): Promise<string> {
   return igId;
 }
 
-async function waitUntilContainerReady(containerId: string, accessToken: string): Promise<void> {
-  for (let i = 0; i < 12; i += 1) {
+/** Meta processes containers asynchronously; publishing early fails with "media still loading". */
+const CONTAINER_READY_BUDGET_MS = 60000;
+const CONTAINER_POLL_MS = 3000;
+
+/** Returns true once the container reports FINISHED (or no status for plain image containers). */
+async function waitUntilContainerReady(
+  containerId: string,
+  accessToken: string,
+  budgetMs: number = CONTAINER_READY_BUDGET_MS
+): Promise<boolean> {
+  const deadline = Date.now() + budgetMs;
+  while (Date.now() < deadline) {
+    let terminalError: string | null = null;
     try {
       const data = await graphGet(containerId, 'status_code,status', accessToken);
       const code = (data.status_code || '').toUpperCase();
-      if (!code || code === 'FINISHED') return;
+      if (!code || code === 'FINISHED' || code === 'PUBLISHED') return true;
       if (code === 'ERROR' || code === 'EXPIRED') {
-        throw new Error(data.status?.trim() || 'Instagram media processing failed.');
+        terminalError = data.status?.trim() || 'Instagram media processing failed.';
       }
-    } catch (e) {
-      if (e instanceof Error && /processing failed/i.test(e.message)) throw e;
+    } catch {
+      /* transient status errors: keep polling until the deadline */
     }
-    await sleep(i === 0 ? 800 : 1500);
+    if (terminalError) throw new Error(terminalError);
+    await sleep(CONTAINER_POLL_MS);
   }
+  return false;
+}
+
+/** Meta rejects media_publish while a container is still being fetched/processed. */
+function isMediaNotReadyError(message: string): boolean {
+  return /not available|still (being )?(processed|processing|loading)|media.*(load|process|ready)|in progress|try again/i.test(
+    message
+  );
+}
+
+async function publishContainer(
+  igUserId: string,
+  containerId: string,
+  accessToken: string
+): Promise<{ postId: string; url: string }> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const published = await graphPost(
+        `${igUserId}/media_publish`,
+        { creation_id: containerId },
+        accessToken
+      );
+      const postId = String(published.id || '').trim();
+      if (!postId) throw new Error('Instagram did not return a post id.');
+      return { postId, url: await permalinkFor(postId, accessToken) };
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error('Instagram publish failed.');
+      if (!isMediaNotReadyError(lastError.message) || attempt === 3) throw lastError;
+      await sleep(4000);
+      await waitUntilContainerReady(containerId, accessToken, 15000).catch(() => false);
+    }
+  }
+  throw lastError ?? new Error('Instagram publish failed.');
 }
 
 async function createImageContainer(
@@ -204,6 +250,8 @@ export async function postListingToInstagram(input: {
       }
     }
     if (children.length >= 2) {
+      // Each carousel child must finish processing before the parent can be created/published.
+      await Promise.all(children.map((c) => waitUntilContainerReady(c.id, accessToken)));
       const parent = await graphPost(
         `${igUserId}/media`,
         {
@@ -228,8 +276,5 @@ export async function postListingToInstagram(input: {
 
   await waitUntilContainerReady(containerId, accessToken);
 
-  const published = await graphPost(`${igUserId}/media_publish`, { creation_id: containerId }, accessToken);
-  const postId = String(published.id || '').trim();
-  if (!postId) throw new Error('Instagram did not return a post id.');
-  return { postId, url: await permalinkFor(postId, accessToken) };
+  return publishContainer(igUserId, containerId, accessToken);
 }

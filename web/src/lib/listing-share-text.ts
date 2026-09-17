@@ -23,6 +23,8 @@ export type ListingShareFields = {
   } | null;
   images?: { url?: string }[] | null;
   videos?: ListingVideoRef[] | null;
+  /** Phone of the account that authored the listing (createdBy), used in social captions. */
+  authorPhone?: string | null;
 };
 
 export function listingDocToShareFields(listing: {
@@ -36,7 +38,20 @@ export function listingDocToShareFields(listing: {
   location?: ListingShareFields['location'];
   images?: { url?: string }[] | null;
   videos?: ListingVideoRef[] | null;
+  createdBy?: unknown;
+  contactSource?: string | null;
+  agentPhone?: string | null;
 }): ListingShareFields {
+  const creator = listing.createdBy;
+  const creatorPhone =
+    creator && typeof creator === 'object'
+      ? String((creator as { phone?: unknown }).phone ?? '').trim()
+      : '';
+  // Author phone is the creator's account phone — never the listing contact (agentPhone)
+  // unless the listing displays the author contact and no creator phone exists.
+  const authorPhone =
+    creatorPhone ||
+    (listing.contactSource === 'listing' ? '' : String(listing.agentPhone ?? '').trim());
   return {
     title: String(listing.title ?? ''),
     description: listing.description,
@@ -48,6 +63,7 @@ export function listingDocToShareFields(listing: {
     location: listing.location,
     images: listing.images,
     videos: listing.videos,
+    authorPhone: authorPhone || null,
   };
 }
 

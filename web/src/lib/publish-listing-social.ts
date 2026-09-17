@@ -116,6 +116,23 @@ export async function publishListingToSocial(
     return result;
   }
 
+  // Captions include the listing author's phone — populate the creator account if needed.
+  const populate = (listing as { populate?: (path: string, select?: string) => Promise<unknown> })
+    .populate;
+  const creator = listing.createdBy as { phone?: string } | undefined;
+  const hasAuthorPhone =
+    Boolean(creator) &&
+    typeof creator === 'object' &&
+    typeof creator.phone === 'string' &&
+    Boolean(creator.phone.trim());
+  if (typeof populate === 'function' && !hasAuthorPhone) {
+    try {
+      await populate.call(listing, 'createdBy', 'phone');
+    } catch {
+      /* author phone is optional */
+    }
+  }
+
   const plain = listingPlain(listing);
   const shareFields = listingToShareFields(plain);
   const listingUrl = listingPublicUrl({ _id: listing._id, slug: listing.slug });

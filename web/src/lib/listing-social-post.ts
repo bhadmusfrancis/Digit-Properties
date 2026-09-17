@@ -100,13 +100,25 @@ export function twitterPostUrl(postId: string): string {
   return `https://x.com/i/web/status/${id}`;
 }
 
+function authorContactLine(fields: ListingShareFields): string {
+  const phone = typeof fields.authorPhone === 'string' ? fields.authorPhone.trim() : '';
+  return phone ? `Call/WhatsApp: ${phone}` : '';
+}
+
 export function buildFacebookCaption(fields: ListingShareFields, listingUrl: string): string {
   const title = fields.title.trim();
   const details = buildListingDetailsLine(fields);
   const excerpt = plainTextExcerpt(fields.description, 420, '');
   const excerptUse =
     excerpt && excerpt.trim().toLowerCase() !== title.toLowerCase() ? excerpt.trim() : '';
-  return [title, details, excerptUse, `View listing: ${listingUrl}`, '#DigitProperties']
+  return [
+    title,
+    details,
+    excerptUse,
+    authorContactLine(fields),
+    `View listing: ${listingUrl}`,
+    '#DigitProperties',
+  ]
     .filter(Boolean)
     .join('\n\n');
 }
@@ -120,12 +132,19 @@ export function buildInstagramCaption(fields: ListingShareFields, listingUrl: st
 export function buildTwitterText(fields: ListingShareFields, listingUrl: string): string {
   const title = fields.title.trim();
   const details = buildListingDetailsLine(fields);
+  const phone = authorContactLine(fields);
   const reserved = TWITTER_URL_LENGTH + 1;
   const max = 280 - reserved;
   let head = title;
   if (details) {
     const withDetails = `${title}\n${details}`;
     if (withDetails.length <= max) head = withDetails;
+  }
+  if (phone) {
+    const withPhone = `${head}\n${phone}`;
+    const titlePhone = `${title}\n${phone}`;
+    if (withPhone.length <= max) head = withPhone;
+    else if (titlePhone.length <= max) head = titlePhone;
   }
   if (head.length > max) head = `${head.slice(0, Math.max(0, max - 1))}…`;
   return `${head}\n${listingUrl}`;
