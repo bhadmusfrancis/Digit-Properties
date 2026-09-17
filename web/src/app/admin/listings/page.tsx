@@ -125,6 +125,18 @@ export default async function AdminListingsPage({
         typeof (l as { twitterPostId?: unknown }).twitterPostId === 'string'
           ? (l as { twitterPostId: string }).twitterPostId
           : undefined,
+      facebookMarketCommentId:
+        typeof (l as { facebookMarketCommentId?: unknown }).facebookMarketCommentId === 'string'
+          ? (l as { facebookMarketCommentId: string }).facebookMarketCommentId
+          : undefined,
+      instagramMarketCommentId:
+        typeof (l as { instagramMarketCommentId?: unknown }).instagramMarketCommentId === 'string'
+          ? (l as { instagramMarketCommentId: string }).instagramMarketCommentId
+          : undefined,
+      twitterMarketCommentId:
+        typeof (l as { twitterMarketCommentId?: unknown }).twitterMarketCommentId === 'string'
+          ? (l as { twitterMarketCommentId: string }).twitterMarketCommentId
+          : undefined,
     };
   });
 

@@ -70,10 +70,16 @@ export async function PATCH(
     if (soldAt === true && rentedAt === true) {
       return NextResponse.json({ error: 'Listing cannot be sold and rented at the same time' }, { status: 400 });
     }
+    const clearMarketCommentIds = () => {
+      listing.facebookMarketCommentId = undefined;
+      listing.instagramMarketCommentId = undefined;
+      listing.twitterMarketCommentId = undefined;
+    };
     if (typeof soldAt === 'boolean') {
       if (listing.listingType === 'rent' && soldAt) {
         return NextResponse.json({ error: 'Rent listings cannot be marked as sold' }, { status: 400 });
       }
+      if (Boolean(listing.soldAt) !== soldAt) clearMarketCommentIds();
       listing.soldAt = soldAt ? new Date() : undefined;
       if (soldAt) listing.rentedAt = undefined;
     }
@@ -81,6 +87,7 @@ export async function PATCH(
       if (listing.listingType !== 'rent' && rentedAt) {
         return NextResponse.json({ error: 'Only rent listings can be marked as rented' }, { status: 400 });
       }
+      if (Boolean(listing.rentedAt) !== rentedAt) clearMarketCommentIds();
       listing.rentedAt = rentedAt ? new Date() : undefined;
       if (rentedAt) listing.soldAt = undefined;
     }

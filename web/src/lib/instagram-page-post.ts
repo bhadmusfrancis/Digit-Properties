@@ -216,6 +216,27 @@ async function permalinkFor(mediaId: string, accessToken: string): Promise<strin
   return instagramPostUrl();
 }
 
+/**
+ * Comment on an Instagram media object as the professional account.
+ * The Instagram Graph API does not support media attachments on comments — text only.
+ */
+export async function postCommentOnInstagramMedia(input: {
+  mediaId: string;
+  message: string;
+}): Promise<{ commentId: string }> {
+  if (!pageId() || !storedToken()) {
+    throw new Error('Facebook Page posting is not configured. Set FACEBOOK_PAGE_ID and FACEBOOK_PAGE_ACCESS_TOKEN.');
+  }
+  const mediaId = input.mediaId.trim();
+  if (!mediaId) throw new Error('Missing Instagram media id.');
+
+  const accessToken = await resolvePageAccessToken();
+  const data = await graphPost(`${mediaId}/comments`, { message: input.message }, accessToken);
+  const commentId = String(data.id || '').trim();
+  if (!commentId) throw new Error('Instagram did not return a comment id.');
+  return { commentId };
+}
+
 export async function postListingToInstagram(input: {
   caption: string;
   photos: string[];

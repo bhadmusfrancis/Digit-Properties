@@ -71,6 +71,12 @@ export interface IListing {
   /** X/Twitter status id after admin social publish. */
   twitterPostId?: string;
   twitterPostedAt?: Date;
+  /** Comment id after admin posts the Sold/Rented update on the Facebook post. */
+  facebookMarketCommentId?: string;
+  /** Comment id after admin posts the Sold/Rented update on the Instagram media. */
+  instagramMarketCommentId?: string;
+  /** Reply status id after admin posts the Sold/Rented update on the X post. */
+  twitterMarketCommentId?: string;
   /** When ownership transferred to a user via claim (starts 24h owner edit window). */
   claimedAt?: Date;
   createdAt: Date;
@@ -146,6 +152,9 @@ const ListingSchema = new Schema<IListing>(
     instagramPermalink: String,
     twitterPostId: String,
     twitterPostedAt: Date,
+    facebookMarketCommentId: String,
+    instagramMarketCommentId: String,
+    twitterMarketCommentId: String,
     claimedAt: Date,
   },
   { timestamps: true }

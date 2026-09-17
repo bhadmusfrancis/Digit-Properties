@@ -96,6 +96,30 @@ async function uploadUnpublishedPhoto(imageUrl: string, accessToken: string): Pr
   return id;
 }
 
+/**
+ * Comment on a Page post as the Page. `imageUrl` attaches a photo to the comment
+ * (Graph API `attachment_url`).
+ */
+export async function postCommentOnFacebookPost(input: {
+  postId: string;
+  message: string;
+  imageUrl?: string;
+}): Promise<{ commentId: string }> {
+  if (!pageId() || !storedToken()) {
+    throw new Error('Facebook Page posting is not configured. Set FACEBOOK_PAGE_ID and FACEBOOK_PAGE_ACCESS_TOKEN.');
+  }
+  const postId = input.postId.trim();
+  if (!postId) throw new Error('Missing Facebook post id.');
+
+  const accessToken = await resolvePageAccessToken();
+  const params: Record<string, string> = { message: input.message };
+  if (input.imageUrl) params.attachment_url = input.imageUrl;
+  const data = await graphPost(`${postId}/comments`, params, accessToken);
+  const commentId = String(data.id || '').trim();
+  if (!commentId) throw new Error('Facebook did not return a comment id.');
+  return { commentId };
+}
+
 export async function postListingToFacebookPage(input: {
   caption: string;
   listingUrl: string;

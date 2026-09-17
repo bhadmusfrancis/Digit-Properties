@@ -15,6 +15,11 @@ type Props = {
   instagramPostId?: string | null;
   instagramPermalink?: string | null;
   twitterPostId?: string | null;
+  facebookMarketCommentId?: string | null;
+  instagramMarketCommentId?: string | null;
+  twitterMarketCommentId?: string | null;
+  soldAt?: string | Date | null;
+  rentedAt?: string | Date | null;
   facebookConfigured: boolean;
   twitterConfigured: boolean;
   variant?: 'panel' | 'compact';
@@ -45,10 +50,10 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
-function summarizeResult(label: string, result?: PlatformResult): string | null {
+function summarizeResult(label: string, result?: PlatformResult, verb = 'posted'): string | null {
   if (!result) return null;
-  if (result.ok) return `${label}: posted.`;
-  if (result.skipped && result.alreadyPosted) return `${label}: already posted (skipped).`;
+  if (result.ok) return `${label}: ${verb}.`;
+  if (result.skipped && result.alreadyPosted) return `${label}: already ${verb} (skipped).`;
   if (result.skipped && result.error) return `${label}: ${result.error}`;
   if (result.error) return `${label}: ${result.error}`;
   return null;
@@ -60,6 +65,11 @@ export function AdminSocialPostButtons({
   instagramPostId,
   instagramPermalink,
   twitterPostId,
+  facebookMarketCommentId,
+  instagramMarketCommentId,
+  twitterMarketCommentId,
+  soldAt,
+  rentedAt,
   facebookConfigured,
   twitterConfigured,
   variant = 'panel',
@@ -69,16 +79,30 @@ export function AdminSocialPostButtons({
   const [instagramId, setInstagramId] = useState(instagramPostId || '');
   const [instagramUrl, setInstagramUrl] = useState(instagramPermalink || '');
   const [twitterId, setTwitterId] = useState(twitterPostId || '');
+  const [fbCommentId, setFbCommentId] = useState(facebookMarketCommentId || '');
+  const [igCommentId, setIgCommentId] = useState(instagramMarketCommentId || '');
+  const [twCommentId, setTwCommentId] = useState(twitterMarketCommentId || '');
   const [facebookOn, setFacebookOn] = useState(facebookConfigured);
   const [twitterOn, setTwitterOn] = useState(twitterConfigured);
-  const [busy, setBusy] = useState<SocialPlatform | null>(null);
+  const [busy, setBusy] = useState<SocialPlatform | 'comment' | null>(null);
 
   useEffect(() => {
     setFacebookId(facebookPostId || '');
     setInstagramId(instagramPostId || '');
     setInstagramUrl(instagramPermalink || '');
     setTwitterId(twitterPostId || '');
-  }, [facebookPostId, instagramPostId, instagramPermalink, twitterPostId]);
+    setFbCommentId(facebookMarketCommentId || '');
+    setIgCommentId(instagramMarketCommentId || '');
+    setTwCommentId(twitterMarketCommentId || '');
+  }, [
+    facebookPostId,
+    instagramPostId,
+    instagramPermalink,
+    twitterPostId,
+    facebookMarketCommentId,
+    instagramMarketCommentId,
+    twitterMarketCommentId,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +206,85 @@ export function AdminSocialPostButtons({
     if (data.facebook?.ok || data.instagram?.ok || data.twitter?.ok) router.refresh();
   }
 
+  const marketKind: 'sold' | 'rented' | null = soldAt ? 'sold' : rentedAt ? 'rented' : null;
+  const marketLabel = marketKind === 'rented' ? 'RENTED' : 'SOLD';
+  const hasSocialPost = Boolean(facebookId || instagramId || twitterId);
+  const commentPairs: [string, string][] = [
+    [facebookId, fbCommentId],
+    [instagramId, igCommentId],
+    [twitterId, twCommentId],
+  ];
+  const commentedPairs = commentPairs.filter(([postId]) => Boolean(postId));
+  const allCommented =
+    commentedPairs.length > 0 && commentedPairs.every(([, commentId]) => Boolean(commentId));
+  const canMarketComment = Boolean(marketKind) && hasSocialPost;
+
+  async function commentMarket() {
+    if (busy || !canMarketComment) return;
+    setBusy('comment');
+    try {
+      const res = await fetch(`/api/admin/listings/${listingId}/social-comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'all', force: allCommented }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        alreadyPosted?: boolean;
+        facebook?: PlatformResult;
+        instagram?: PlatformResult;
+        twitter?: PlatformResult;
+      };
+
+      if (res.status === 409 && data.alreadyPosted) {
+        const ok = window.confirm(`${data.error || 'Already commented.'} Comment again?`);
+        if (!ok) return;
+        const retry = await fetch(`/api/admin/listings/${listingId}/social-comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform: 'all', force: true }),
+        });
+        const retryData = (await retry.json().catch(() => ({}))) as typeof data;
+        applyCommentResult(retry, retryData);
+        return;
+      }
+
+      applyCommentResult(res, data);
+    } catch {
+      alert('Failed to post market status comment');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applyCommentResult(
+    res: Response,
+    data: {
+      error?: string;
+      facebook?: PlatformResult;
+      instagram?: PlatformResult;
+      twitter?: PlatformResult;
+    }
+  ) {
+    if (data.facebook?.ok && data.facebook.postId) setFbCommentId(data.facebook.postId);
+    if (data.instagram?.ok && data.instagram.postId) setIgCommentId(data.instagram.postId);
+    if (data.twitter?.ok && data.twitter.postId) setTwCommentId(data.twitter.postId);
+
+    const lines = [
+      summarizeResult('Facebook', data.facebook, 'commented'),
+      summarizeResult('Instagram', data.instagram, 'commented'),
+      summarizeResult('X', data.twitter, 'replied'),
+    ].filter(Boolean) as string[];
+    if (!res.ok && lines.length === 0) {
+      alert(typeof data.error === 'string' ? data.error : 'Failed to post market status comment');
+      return;
+    }
+    if (lines.length) alert(lines.join('\n'));
+    else if (!res.ok)
+      alert(typeof data.error === 'string' ? data.error : 'Failed to post market status comment');
+    if (data.facebook?.ok || data.instagram?.ok || data.twitter?.ok) router.refresh();
+  }
+
   const facebookHref = facebookId ? facebookPostUrl(facebookId) : null;
   const instagramHref = instagramId ? instagramPostUrl(instagramUrl) : null;
   const twitterHref = twitterId ? twitterPostUrl(twitterId) : null;
@@ -239,6 +342,21 @@ export function AdminSocialPostButtons({
         <XIcon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
         {busy === 'twitter' ? (compact ? '…' : 'Posting…') : twitterLabel}
       </button>
+      {compact && canMarketComment ? (
+        <button
+          type="button"
+          onClick={commentMarket}
+          disabled={busy !== null}
+          title={`Comment “${marketLabel}” with a banner image on the Facebook post, Instagram post, and X post`}
+          className={`${btn} border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100`}
+        >
+          {busy === 'comment'
+            ? '…'
+            : allCommented
+              ? `${marketLabel} commented`
+              : `Comment ${marketLabel}`}
+        </button>
+      ) : null}
       {!compact ? (
         <button
           type="button"
@@ -248,6 +366,21 @@ export function AdminSocialPostButtons({
           className={`${btn} border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100`}
         >
           {busy === 'both' ? 'Posting…' : 'Post to Facebook, Instagram & X'}
+        </button>
+      ) : null}
+      {!compact && canMarketComment ? (
+        <button
+          type="button"
+          onClick={commentMarket}
+          disabled={busy !== null}
+          title={`Comment “${marketLabel}” with a banner image on the Facebook post, Instagram post, and X post`}
+          className={`${btn} border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100`}
+        >
+          {busy === 'comment'
+            ? 'Posting…'
+            : allCommented
+              ? `${marketLabel} update commented — post again`
+              : `Comment “${marketLabel}” on Facebook, Instagram & X`}
         </button>
       ) : null}
       {!compact && (facebookHref || instagramHref || twitterHref) ? (

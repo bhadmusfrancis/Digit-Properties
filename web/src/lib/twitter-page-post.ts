@@ -183,6 +183,38 @@ function twitterErrorMessage(data: unknown, status: number): string {
   return `X API error (${status})`;
 }
 
+/** Reply to a tweet (e.g. a Sold/Rented update under the original listing post). */
+export async function replyToTweet(input: {
+  tweetId: string;
+  text: string;
+  photos?: string[];
+}): Promise<{ postId: string; url: string }> {
+  requireTwitterEnv();
+  const tweetId = input.tweetId.trim();
+  if (!tweetId) throw new Error('Missing X post id.');
+
+  const mediaIds: string[] = [];
+  for (const photo of input.photos ?? []) {
+    const id = await uploadImage(photo);
+    if (id) mediaIds.push(id);
+  }
+
+  const payload: {
+    text: string;
+    reply: { in_reply_to_tweet_id: string };
+    media?: { media_ids: string[] };
+  } = { text: input.text, reply: { in_reply_to_tweet_id: tweetId } };
+  if (mediaIds.length) payload.media = { media_ids: mediaIds };
+
+  const res = await twitterFetch('POST', TWEET_URL, { json: payload });
+  const data = (await res.json().catch(() => ({}))) as { data?: { id?: string } };
+  if (!res.ok || !data.data?.id) {
+    throw new Error(twitterErrorMessage(data, res.status));
+  }
+  const postId = data.data.id;
+  return { postId, url: twitterPostUrl(postId) };
+}
+
 export async function postListingToTwitter(input: {
   text: string;
   photos: string[];

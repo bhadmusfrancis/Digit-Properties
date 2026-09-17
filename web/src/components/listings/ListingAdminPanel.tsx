@@ -19,6 +19,9 @@ type Props = {
   instagramPostId?: string | null;
   instagramPermalink?: string | null;
   twitterPostId?: string | null;
+  facebookMarketCommentId?: string | null;
+  instagramMarketCommentId?: string | null;
+  twitterMarketCommentId?: string | null;
   facebookConfigured: boolean;
   twitterConfigured: boolean;
 };
@@ -36,6 +39,9 @@ export function ListingAdminPanel({
   instagramPostId,
   instagramPermalink,
   twitterPostId,
+  facebookMarketCommentId,
+  instagramMarketCommentId,
+  twitterMarketCommentId,
   facebookConfigured,
   twitterConfigured,
 }: Props) {
@@ -98,6 +104,11 @@ export function ListingAdminPanel({
         instagramPostId={instagramPostId}
         instagramPermalink={instagramPermalink}
         twitterPostId={twitterPostId}
+        facebookMarketCommentId={facebookMarketCommentId}
+        instagramMarketCommentId={instagramMarketCommentId}
+        twitterMarketCommentId={twitterMarketCommentId}
+        soldAt={soldAt}
+        rentedAt={rentedAt}
         facebookConfigured={facebookConfigured}
         twitterConfigured={twitterConfigured}
         variant="panel"

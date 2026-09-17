@@ -39,6 +39,9 @@ type Listing = {
   instagramPostId?: string;
   instagramPermalink?: string;
   twitterPostId?: string;
+  facebookMarketCommentId?: string;
+  instagramMarketCommentId?: string;
+  twitterMarketCommentId?: string;
 };
 
 export function AdminListingsTable({
@@ -196,6 +199,9 @@ export function AdminListingsTable({
                 instagramPostId={l.instagramPostId}
                 instagramPermalink={l.instagramPermalink}
                 twitterPostId={l.twitterPostId}
+                facebookMarketCommentId={l.facebookMarketCommentId}
+                instagramMarketCommentId={l.instagramMarketCommentId}
+                twitterMarketCommentId={l.twitterMarketCommentId}
                 facebookConfigured={facebookConfigured}
                 twitterConfigured={twitterConfigured}
               />
@@ -308,6 +314,9 @@ export function AdminListingsTable({
                         instagramPostId={l.instagramPostId}
                         instagramPermalink={l.instagramPermalink}
                         twitterPostId={l.twitterPostId}
+                        facebookMarketCommentId={l.facebookMarketCommentId}
+                        instagramMarketCommentId={l.instagramMarketCommentId}
+                        twitterMarketCommentId={l.twitterMarketCommentId}
                         facebookConfigured={facebookConfigured}
                         twitterConfigured={twitterConfigured}
                       />

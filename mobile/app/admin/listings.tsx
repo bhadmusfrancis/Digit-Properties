@@ -15,7 +15,31 @@ type Listing = {
   formattedPrice?: string;
   createdBy?: { name?: string; email?: string };
   images?: Array<{ url: string }>;
+  soldAt?: string | null;
+  rentedAt?: string | null;
+  facebookPostId?: string | null;
+  instagramPostId?: string | null;
+  twitterPostId?: string | null;
+  facebookMarketCommentId?: string | null;
+  instagramMarketCommentId?: string | null;
+  twitterMarketCommentId?: string | null;
 };
+
+type SocialResult = {
+  ok?: boolean;
+  skipped?: boolean;
+  alreadyPosted?: boolean;
+  postId?: string;
+  error?: string;
+};
+
+function summarizeSocial(label: string, r?: SocialResult): string | null {
+  if (!r) return null;
+  if (r.ok) return `${label}: commented.`;
+  if (r.skipped && r.alreadyPosted) return `${label}: already commented (skipped).`;
+  if (r.error) return `${label}: ${r.error}`;
+  return null;
+}
 
 type SortKey = 'default' | 'image' | 'title' | 'price' | 'status';
 
@@ -80,6 +104,7 @@ export default function AdminListingsScreen() {
   const [sortAsc, setSortAsc] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [commentingId, setCommentingId] = useState<string | null>(null);
   const topPad = (insets.top || 0) + TOP_PADDING_EXTRA;
 
   const sortedListings = useMemo(
@@ -161,6 +186,51 @@ export default function AdminListingsScreen() {
     setSearchInput('');
     setSearchQuery('');
     load({ reset: true, q: '' });
+  };
+
+  const postMarketComment = (item: Listing, force = false) => {
+    if (!token || commentingId) return;
+    setCommentingId(item._id);
+    fetch(getApiUrl('admin/listings/' + item._id + '/social-comment'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ platform: 'all', force }),
+    })
+      .then(async (r) => ({ status: r.status, data: await r.json().catch(() => ({})) }))
+      .then(({ status, data }) => {
+        if (status === 409 && data?.alreadyPosted) {
+          Alert.alert('Already commented', data.error || 'Comment again?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Comment again', onPress: () => postMarketComment(item, true) },
+          ]);
+          return;
+        }
+        const lines = [
+          summarizeSocial('Facebook', data?.facebook),
+          summarizeSocial('Instagram', data?.instagram),
+          summarizeSocial('X', data?.twitter),
+        ].filter(Boolean) as string[];
+        if (data?.facebook?.ok || data?.instagram?.ok || data?.twitter?.ok) {
+          setListings((prev) =>
+            prev.map((l) =>
+              l._id === item._id
+                ? {
+                    ...l,
+                    facebookMarketCommentId: data.facebook?.postId || l.facebookMarketCommentId,
+                    instagramMarketCommentId: data.instagram?.postId || l.instagramMarketCommentId,
+                    twitterMarketCommentId: data.twitter?.postId || l.twitterMarketCommentId,
+                  }
+                : l
+            )
+          );
+        }
+        Alert.alert(
+          'Market status comment',
+          lines.length ? lines.join('\n') : data?.error || 'Failed to post comment'
+        );
+      })
+      .catch(() => Alert.alert('Error', 'Failed to post market status comment'))
+      .finally(() => setCommentingId(null));
   };
 
   const deleteListing = (listingId: string, title: string) => {
@@ -280,7 +350,19 @@ export default function AdminListingsScreen() {
               </View>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const marketLabel = item.soldAt ? 'SOLD' : item.rentedAt ? 'RENTED' : null;
+            const hasSocialPost = Boolean(item.facebookPostId || item.instagramPostId || item.twitterPostId);
+            const commentPairs: [string | null | undefined, string | null | undefined][] = [
+              [item.facebookPostId, item.facebookMarketCommentId],
+              [item.instagramPostId, item.instagramMarketCommentId],
+              [item.twitterPostId, item.twitterMarketCommentId],
+            ];
+            const postedPairs = commentPairs.filter(([postId]) => Boolean(postId));
+            const allCommented =
+              postedPairs.length > 0 && postedPairs.every(([, commentId]) => Boolean(commentId));
+            const canMarketComment = Boolean(marketLabel) && hasSocialPost;
+            return (
             <View style={styles.card}>
               <Pressable style={styles.cardPress} onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item._id } })}>
                 {item.images?.[0]?.url ? (
@@ -291,6 +373,11 @@ export default function AdminListingsScreen() {
                   <Text style={styles.price}>{item.formattedPrice || formatPrice(item.price, item.listingType === 'rent' ? item.rentPeriod : undefined)}</Text>
                   <View style={styles.row}>
                     <Text style={[styles.badge, item.status === 'active' ? styles.badgeActive : styles.badgeDraft]}>{item.status}</Text>
+                    {item.soldAt ? (
+                      <Text style={[styles.badge, styles.badgeSold]}>Sold</Text>
+                    ) : item.rentedAt ? (
+                      <Text style={[styles.badge, styles.badgeRented]}>Rented</Text>
+                    ) : null}
                     <Text style={styles.creator}>{item.createdBy?.name || item.createdBy?.email || '—'}</Text>
                   </View>
                 </View>
@@ -299,12 +386,24 @@ export default function AdminListingsScreen() {
                 <Pressable onPress={() => router.push({ pathname: '/listings/[id]/edit', params: { id: item._id } })}>
                   <Text style={styles.actionText}>Edit</Text>
                 </Pressable>
+                {canMarketComment ? (
+                  <Pressable disabled={commentingId === item._id} onPress={() => postMarketComment(item)}>
+                    <Text style={[styles.actionText, styles.actionMarket, commentingId === item._id && styles.actionDisabled]}>
+                      {commentingId === item._id
+                        ? 'Commenting…'
+                        : allCommented
+                          ? `${marketLabel} commented`
+                          : `Comment ${marketLabel}`}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <Pressable onPress={() => deleteListing(item._id, item.title)}>
                   <Text style={[styles.actionText, styles.actionDanger]}>Delete</Text>
                 </Pressable>
               </View>
             </View>
-          )}
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -378,10 +477,14 @@ const styles = StyleSheet.create({
   badge: { fontSize: 11, fontWeight: '600', paddingVertical: 2, paddingHorizontal: 6, borderRadius: 6 },
   badgeActive: { backgroundColor: '#dcfce7', color: '#166534' },
   badgeDraft: { backgroundColor: '#f1f5f9', color: '#475569' },
+  badgeSold: { backgroundColor: '#dc2626', color: '#fff' },
+  badgeRented: { backgroundColor: '#4f46e5', color: '#fff' },
   creator: { fontSize: 12, color: '#64748b' },
   cardActions: { flexDirection: 'row', gap: 16, padding: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
   actionText: { fontSize: 14, color: '#0d9488', fontWeight: '600' },
   actionDanger: { color: '#dc2626' },
+  actionMarket: { color: '#be123c' },
+  actionDisabled: { opacity: 0.5 },
   footerLoad: { paddingVertical: 16, alignItems: 'center' },
   footerHint: { fontSize: 13, color: '#94a3b8' },
 });

@@ -25,11 +25,14 @@ type Props = {
   instagramPostId?: string;
   instagramPermalink?: string;
   twitterPostId?: string;
+  facebookMarketCommentId?: string;
+  instagramMarketCommentId?: string;
+  twitterMarketCommentId?: string;
   facebookConfigured: boolean;
   twitterConfigured: boolean;
 };
 
-export function AdminListingActions({ listingId, listingSlug, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '', facebookPostId, instagramPostId, instagramPermalink, twitterPostId, facebookConfigured, twitterConfigured }: Props) {
+export function AdminListingActions({ listingId, listingSlug, status, listingType = '', soldAt, rentedAt, createdById, createdByLabel, users, featured = false, highlighted = false, boostPackage = '', facebookPostId, instagramPostId, instagramPermalink, twitterPostId, facebookMarketCommentId, instagramMarketCommentId, twitterMarketCommentId, facebookConfigured, twitterConfigured }: Props) {
   const [assigning, setAssigning] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
@@ -191,6 +194,11 @@ export function AdminListingActions({ listingId, listingSlug, status, listingTyp
         instagramPostId={instagramPostId}
         instagramPermalink={instagramPermalink}
         twitterPostId={twitterPostId}
+        facebookMarketCommentId={facebookMarketCommentId}
+        instagramMarketCommentId={instagramMarketCommentId}
+        twitterMarketCommentId={twitterMarketCommentId}
+        soldAt={soldAt}
+        rentedAt={rentedAt}
         facebookConfigured={facebookConfigured}
         twitterConfigured={twitterConfigured}
         variant="compact"
