@@ -8,7 +8,10 @@ import Trend from '@/models/Trend';
 import {
   buildLocationLandingPath,
 } from '@/lib/location-seo';
-import { buildListingDetailSitemapRoutes } from '@/lib/seo/listing-sitemap-data';
+import {
+  buildListingDetailSitemapRoutes,
+  escapeSitemapXml,
+} from '@/lib/seo/listing-sitemap-data';
 
 export const revalidate = 3600;
 
@@ -129,7 +132,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: updated,
         changeFrequency: (ageDays <= 14 ? 'daily' : 'weekly') as 'daily' | 'weekly',
         priority: ageDays <= 7 ? 0.75 : 0.65,
-        ...(imageUrl ? { images: [imageUrl] } : {}),
+        // Next.js serialises `images` into <image:loc> verbatim (no XML
+        // escaping), so escape here or URLs like `?auto=format&fit=crop`
+        // break the whole sitemap.
+        ...(imageUrl ? { images: [escapeSitemapXml(imageUrl)] } : {}),
       };
     });
 
