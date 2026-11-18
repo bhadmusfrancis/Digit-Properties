@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fee Table Editor</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e3e6ea; --ink:#1d2330; --muted:#6b7280; --acc:#2563eb; --up:#15803d; --down:#b91c1c; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  header { position:sticky; top:0; z-index:10; background:#111827; color:#fff; padding:12px 20px; display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
+  header h1 { font-size:17px; margin:0 12px 0 0; }
+  header label { display:flex; gap:6px; align-items:center; font-size:13px; }
+  header input, header select { width:80px; padding:5px 6px; border-radius:6px; border:1px solid #374151; background:#1f2937; color:#fff; }
+  header select { width:auto; }
+  button { cursor:pointer; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; color:var(--ink); font-size:13px; }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  main { padding:20px; max-width:1500px; margin:0 auto; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:20px; }
+  section h2 { font-size:16px; margin:0; }
+  .sec-head { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:12px; }
+  .sec-head .pct { display:flex; gap:6px; align-items:center; margin-left:auto; }
+  .pct input { width:80px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; }
+  .scroll { overflow:auto; }
+  table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+  th, td { border:1px solid var(--line); padding:4px 6px; text-align:right; white-space:nowrap; }
+  th { background:#f1f3f6; font-weight:600; position:sticky; top:0; }
+  th.left, td.left { text-align:left; }
+  td input.val { width:100px; text-align:right; border:1px solid transparent; background:#fafbfc; padding:3px 4px; border-radius:4px; font:inherit; }
+  td input.val:focus { border-color:var(--acc); background:#fff; outline:none; }
+  td input.val.changed { background:#fff7d6; }
+  .new { font-weight:600; color:var(--up); }
+  .new.down { color:var(--down); }
+  .diff { font-size:11px; color:var(--muted); display:block; }
+  .rowpct { width:60px !important; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; }
+  .calc { border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .calc h3 { margin:0 0 8px; font-size:14px; }
+  .calc label { display:block; margin:6px 0; font-size:13px; }
+  .calc input, .calc select { padding:5px 6px; border:1px solid var(--line); border-radius:6px; width:100%; }
+  .out { margin-top:8px; display:grid; grid-template-columns:auto 1fr; gap:2px 10px; }
+  .out b { text-align:right; font-variant-numeric:tabular-nums; }
+  .muted { color:var(--muted); font-size:12px; }
+  textarea { width:100%; height:300px; font:12px/1.4 ui-monospace, Menlo, Consolas, monospace; border:1px solid var(--line); border-radius:6px; padding:8px; }
+  .tabs { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .tabs button.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fee Table Editor</h1>
+  <label>Global % increase <input id="globalPct" type="number" step="0.1" value="0"></label>
+  <button class="primary" id="applyGlobal">Apply to all sections</button>
+  <label>Round new values to
+    <select id="rounding">
+      <option value="1">nearest 1</option>
+      <option value="100">nearest 100</option>
+      <option value="1000" selected>nearest 1,000</option>
+      <option value="10000">nearest 10,000</option>
+    </select>
+  </label>
+  <button id="bakeAll" title="Make the new values the base values">Commit new values as base</button>
+  <button id="resetAll">Reset to original</button>
+</header>
+<main>
+  <section>
+    <div class="sec-head"><h2>Test calculator</h2><span class="muted">Compares current (base) values with new (after % increase) values.</span></div>
+    <div class="grid">
+      <div class="calc">
+        <h3>Fixed plot table</h3>
+        <label>Category <select id="cFixedCat"></select></label>
+        <label>Plots (2–20) <input id="cFixedPlots" type="number" min="2" max="20" value="5"></label>
+        <div class="out" id="oFixed"></div>
+      </div>
+      <div class="calc">
+        <h3>SQM brackets</h3>
+        <label>Area (sqm) <input id="cSqm" type="number" min="0" value="1500"></label>
+        <label>Zone <select id="cSqmZone"><option value="general">General</option><option value="prime">Prime</option><option value="special">Special Prime</option></select></label>
+        <label>Use <select id="cSqmUse"><option value="private">Private</option><option value="commercial">Commercial</option></select></label>
+        <div class="out" id="oSqm"></div>
+      </div>
+      <div class="calc">
+        <h3>computePlotBase(plots)</h3>
+        <label>Plots <input id="cPlots" type="number" min="0" value="25"></label>
+        <div class="out" id="oPlots"></div>
+      </div>
+      <div class="calc">
+        <h3>computeAcreBase(acres)</h3>
+        <label>Acres <input id="cAcres" type="number" min="0" step="0.01" value="12"></label>
+        <div class="out" id="oAcres"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="secFixed">
+    <div class="sec-head"><h2>Fixed plot table</h2>
+      <div class="pct"><label>Section % <input type="number" step="0.1" value="0" data-sec="fixed" class="secPct"></label></div>
+    </div>
+    <p class="muted">Each cell: editable base value, new value and change. Row % adds to the section %.</p>
+    <div class="scroll" id="tFixed"></div>
+  </section>
+
+  <section id="secSqm">
+    <div class="sec-head"><h2>SQM brackets</h2>
+      <div class="pct"><label>Section % <input type="number" step="0.1" value="0" data-sec="sqm" class="secPct"></label></div>
+    </div>
+    <div class="scroll" id="tSqm"></div>
+  </section>
+
+  <section id="secPlot">
+    <div class="sec-head"><h2>computePlotBase tiers (rate per plot)</h2>
+      <div class="pct"><label>Section % <input type="number" step="0.1" value="0" data-sec="plot" class="secPct"></label></div>
+    </div>
+    <div class="scroll" id="tPlot"></div>
+  </section>
+
+  <section id="secAcre">
+    <div class="sec-head"><h2>computeAcreBase (base + rate per extra acre)</h2>
+      <div class="pct"><label>Section % <input type="number" step="0.1" value="0" data-sec="acre" class="secPct"></label></div>
+    </div>
+    <div class="scroll" id="tAcre"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Export updated code</h2>
+      <div class="pct"><button id="copyCode" class="primary">Copy</button></div>
+    </div>
+    <div class="tabs"><button data-exp="new" class="active">New values</button><button data-exp="base">Base values</button></div>
+    <textarea id="code" readonly></textarea>
+  </section>
+</main>
+
+<script>
+const ORIGINAL = {
+  fixed: {
+    'General Area-private': {2:468000,3:703000,4:937000,5:1125000,6:1312000,7:1500000,8:1687000,9:1875000,10:2062000,11:2218000,12:2375000,13:2531000,14:2687000,15:2843000,16:3000000,17:3156000,18:3312000,19:3468000,20:3625000},
+    'General Area-commercial': {2:725000,3:1087000,4:1450000,5:1762000,6:1950000,7:2137000,8:2325000,9:2512000,10:2700000,11:2856000,12:3012000,13:3168000,14:3325000,15:3481000,16:3637000,17:3793000,18:3950000,19:4106000,20:4262000},
+    'Prime Area-private': {2:593000,3:890000,4:1187000,5:1382000,6:1578000,7:1773000,8:1968000,9:2164000,10:2359000,11:2554000,12:2750000,13:2945000,14:3140000,15:3335000,16:3531000,17:3726000,18:3921000,19:4117000,20:4312000},
+    'Prime Area-commercial': {2:1093000,3:1640000,4:2187000,5:2656000,6:2843000,7:3031000,8:3218000,9:3406000,10:3593000,11:3781000,12:3968000,13:4156000,14:4343000,15:4531000,16:4718000,17:4906000,18:5093000,19:5281000,20:5468000},
+    'Special Prime Area-private': {2:1015000,3:1523000,4:2031000,5:2500000,6:2968000,7:3437000,8:3906000,9:4375000,10:4843000,11:5234000,12:5625000,13:6015000,14:6406000,15:6796000,16:7187000,17:7578000,18:7968000,19:8359000,20:8750000},
+    'Special Prime Area-commercial': {2:1484000,3:1953000,4:2421000,5:2890000,6:3359000,7:3828000,8:4296000,9:4765000,10:5234000,11:5703000,12:6171000,13:6640000,14:7109000,15:7578000,16:8046000,17:8515000,18:8984000,19:9453000,20:9921000},
+  },
+  sqm: [
+    { max:700, general:{private:250000,commercial:367000}, prime:{private:312000,commercial:546000}, special:{private:546000,commercial:820000} },
+    { max:1200, general:{private:306000,commercial:439000}, prime:{private:400000,commercial:650000}, special:{private:947000,commercial:1132000} },
+    { max:1800, general:{private:362000,commercial:511000}, prime:{private:487000,commercial:753000}, special:{private:1269000,commercial:1464000} },
+    { max:2500, general:{private:418000,commercial:582000}, prime:{private:574000,commercial:834000}, special:{private:1590000,commercial:1785000} },
+    { max:3000, general:{private:474000,commercial:654000}, prime:{private:646000,commercial:896000}, special:{private:1912000,commercial:2107000} },
+    { max:4000, general:{private:531000,commercial:729000}, prime:{private:718000,commercial:968000}, special:{private:2234000,commercial:2429000} },
+    { max:5000, general:{private:581000,commercial:792000}, prime:{private:768000,commercial:1018000}, special:{private:2550000,commercial:2745000} },
+    { max:6000, general:{private:628000,commercial:854000}, prime:{private:815000,commercial:1065000}, special:{private:2862000,commercial:3057000} },
+    { max:7000, general:{private:675000,commercial:917000}, prime:{private:862000,commercial:1112000}, special:{private:3175000,commercial:3370000} },
+    { max:8000, general:{private:721000,commercial:979000}, prime:{private:909000,commercial:1159000}, special:{private:3487000,commercial:3682000} },
+    { max:9000, general:{private:768000,commercial:1042000}, prime:{private:956000,commercial:1206000}, special:{private:3587000,commercial:3782000} },
+    { max:10000, general:{private:815000,commercial:1104000}, prime:{private:1003000,commercial:1253000}, special:{private:3687000,commercial:3882000} },
+    { max:12000, general:{private:839000,commercial:1151000}, prime:{private:1050000,commercial:1315000}, special:{private:4062000,commercial:4236000} },
+    { max:14000, general:{private:862000,commercial:1198000}, prime:{private:1096000,commercial:1378000}, special:{private:4375000,commercial:4550000} },
+    { max:16000, general:{private:885000,commercial:1245000}, prime:{private:1143000,commercial:1440000}, special:{private:4687000,commercial:4802000} },
+    { max:18000, general:{private:909000,commercial:1292000}, prime:{private:1190000,commercial:1503000}, special:{private:5000000,commercial:5115000} },
+    { max:20234.2821, general:{private:932000,commercial:1339000}, prime:{private:1237000,commercial:1565000}, special:{private:5637000,commercial:6432000} },
+  ],
+  plot: {
+    tiers: [
+      {upto:5,rate:234000},{upto:10,rate:200000},{upto:20,rate:180000},{upto:30,rate:160000},{upto:50,rate:140000},
+      {upto:70,rate:120000},{upto:100,rate:100000},{upto:150,rate:80000},{upto:500,rate:60000},{upto:1000,rate:40000},
+    ],
+    overflowRate: 200000,
+  },
+  acre: {
+    base: 932000,
+    freeAcres: 5,
+    segs: [
+      {span:5,rate:90000},{span:10,rate:80000},{span:10,rate:70000},{span:20,rate:50000},{span:20,rate:40000},
+      {span:30,rate:30000},{span:150,rate:20000},{span:250,rate:15000},{span:500,rate:12000},{span:1000,rate:10000},{span:Infinity,rate:5000},
+    ],
+  },
+};
+
+const ZONES = ['general','prime','special'], USES = ['private','commercial'];
+const ZONE_LABEL = {general:'General', prime:'Prime', special:'Special Prime'};
+const STORE = 'fee-editor-state-v1';
+const clone = (o) => JSON.parse(JSON.stringify(o, (k,v) => v === Infinity ? '__INF__' : v), (k,v) => v === '__INF__' ? Infinity : v);
+const fmt = (n) => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '∞';
+const roundK = (n) => Math.round(n / 1000) * 1000;
+
+let state;
+function defaultState() {
+  return { base: clone(ORIGINAL), pct: {fixed:0, sqm:0, plot:0, acre:0}, rowPct: {fixed:{}, sqm:{}}, rounding: 1000, exp: 'new' };
+}
+function load() {
+  try { const s = localStorage.getItem(STORE); if (s) { const d = defaultState(); const p = JSON.parse(s, (k,v) => v === '__INF__' ? Infinity : v); return Object.assign(d, p); } } catch(e) {}
+  return defaultState();
+}
+function save() { localStorage.setItem(STORE, JSON.stringify(state, (k,v) => v === Infinity ? '__INF__' : v)); }
+
+function bump(v, p) {
+  const r = state.rounding;
+  return Math.round(v * (1 + p / 100) / r) * r;
+}
+const pctOf = (sec, row) => (Number(state.pct[sec]) || 0) + (row != null ? (Number(state.rowPct[sec]?.[row]) || 0) : 0);
+
+function newTables() {
+  const fixed = {};
+  for (const [cat, row] of Object.entries(state.base.fixed)) {
+    const p = pctOf('fixed', cat); fixed[cat] = {};
+    for (const [k, v] of Object.entries(row)) fixed[cat][k] = bump(v, p);
+  }
+  const sqm = state.base.sqm.map((b, i) => {
+    const p = pctOf('sqm', i); const o = { max: b.max };
+    for (const z of ZONES) { o[z] = {}; for (const u of USES) o[z][u] = bump(b[z][u], p); }
+    return o;
+  });
+  const pp = pctOf('plot');
+  const plot = { tiers: state.base.plot.tiers.map(t => ({ upto: t.upto, rate: bump(t.rate, pp) })), overflowRate: bump(state.base.plot.overflowRate, pp) };
+  const ap = pctOf('acre');
+  const acre = { base: bump(state.base.acre.base, ap), freeAcres: state.base.acre.freeAcres, segs: state.base.acre.segs.map(s => ({ span: s.span, rate: bump(s.rate, ap) })) };
+  return { fixed, sqm, plot, acre };
+}
+
+function computePlotBase(plots, cfg) {
+  const n = Math.floor(Number(plots) || 0);
+  let remaining = n, total = 0, prev = 0;
+  for (const t of cfg.tiers) {
+    if (remaining <= 0) break;
+    const span = Math.min(remaining, t.upto - prev);
+    total += span * t.rate; remaining -= span; prev = t.upto;
+  }
+  if (remaining > 0) total += remaining * cfg.overflowRate;
+  return total;
+}
+function computeAcreBase(acres, cfg) {
+  if (acres <= cfg.freeAcres) return cfg.base;
+  let base = cfg.base, extra = acres - cfg.freeAcres;
+  for (const s of cfg.segs) {
+    if (extra <= 0) break;
+    const used = Math.min(extra, s.span);
+    base += used * s.rate; extra -= used;
+  }
+  return roundK(base);
+}
+function sqmLookup(sqm, z, u, table) {
+  const b = table.find(b => sqm <= b.max);
+  return b ? { value: b[z][u], max: b.max } : null;
+}
+
+function cell(path, baseVal, origVal, newVal) {
+  const d = newVal - baseVal;
+  const pc = baseVal ? (d / baseVal * 100) : 0;
+  return `<input class="val${baseVal !== origVal ? ' changed' : ''}" data-path="${path}" type="number" value="${baseVal}">`
+    + `<span class="new${d < 0 ? ' down' : ''}">${fmt(newVal)}</span>`
+    + `<span class="diff">${d >= 0 ? '+' : ''}${fmt(d)} (${pc.toFixed(1)}%)</span>`;
+}
+
+function renderTables(N) {
+  const plots = Object.keys(Object.values(state.base.fixed)[0]);
+  let h = '<table><thead><tr><th class="left">Category</th><th>Row %</th>' + plots.map(p => `<th>${p} plots</th>`).join('') + '</tr></thead><tbody>';
+  for (const cat of Object.keys(state.base.fixed)) {
+    h += `<tr><td class="left">${cat}</td><td><input class="val rowpct" data-rowpct="fixed|${cat}" type="number" step="0.1" value="${state.rowPct.fixed[cat] || 0}"></td>`;
+    for (const p of plots) h += `<td>${cell(`fixed|${cat}|${p}`, state.base.fixed[cat][p], ORIGINAL.fixed[cat][p], N.fixed[cat][p])}</td>`;
+    h += '</tr>';
+  }
+  document.getElementById('tFixed').innerHTML = h + '</tbody></table>';
+
+  h = '<table><thead><tr><th>Max sqm</th><th>Row %</th>' + ZONES.flatMap(z => USES.map(u => `<th>${ZONE_LABEL[z]} ${u}</th>`)).join('') + '</tr></thead><tbody>';
+  state.base.sqm.forEach((b, i) => {
+    h += `<tr><td>${b.max.toLocaleString('en-US')}</td><td><input class="val rowpct" data-rowpct="sqm|${i}" type="number" step="0.1" value="${state.rowPct.sqm[i] || 0}"></td>`;
+    for (const z of ZONES) for (const u of USES) h += `<td>${cell(`sqm|${i}|${z}|${u}`, b[z][u], ORIGINAL.sqm[i][z][u], N.sqm[i][z][u])}</td>`;
+    h += '</tr>';
+  });
+  document.getElementById('tSqm').innerHTML = h + '</tbody></table>';
+
+  h = '<table><thead><tr><th class="left">Plots range</th><th>Rate per plot</th></tr></thead><tbody>';
+  let prev = 0;
+  state.base.plot.tiers.forEach((t, i) => {
+    h += `<tr><td class="left">${prev + 1} – ${t.upto}</td><td>${cell(`plot|tiers|${i}`, t.rate, ORIGINAL.plot.tiers[i].rate, N.plot.tiers[i].rate)}</td></tr>`;
+    prev = t.upto;
+  });
+  h += `<tr><td class="left">Above ${prev}</td><td>${cell('plot|overflow', state.base.plot.overflowRate, ORIGINAL.plot.overflowRate, N.plot.overflowRate)}</td></tr>`;
+  document.getElementById('tPlot').innerHTML = h + '</tbody></table>';
+
+  h = `<table><thead><tr><th class="left">Acres range</th><th>Rate per extra acre</th></tr></thead><tbody>`;
+  h += `<tr><td class="left">Up to ${state.base.acre.freeAcres} acres (flat base)</td><td>${cell('acre|base', state.base.acre.base, ORIGINAL.acre.base, N.acre.base)}</td></tr>`;
+  let a = state.base.acre.freeAcres;
+  state.base.acre.segs.forEach((s, i) => {
+    const to = a + s.span;
+    h += `<tr><td class="left">${a} – ${Number.isFinite(to) ? to : '∞'}</td><td>${cell(`acre|segs|${i}`, s.rate, ORIGINAL.acre.segs[i].rate, N.acre.segs[i].rate)}</td></tr>`;
+    a = to;
+  });
+  document.getElementById('tAcre').innerHTML = h + '</tbody></table>';
+}
+
+function outRows(el, base, nv, extra = '') {
+  const d = nv - base;
+  el.innerHTML = `<span>Current</span><b>${fmt(base)}</b><span>New</span><b class="new${d < 0 ? ' down' : ''}">${fmt(nv)}</b>`
+    + `<span>Change</span><b>${d >= 0 ? '+' : ''}${fmt(d)} (${base ? (d / base * 100).toFixed(2) : '0.00'}%)</b>` + extra;
+}
+
+function renderCalc(N) {
+  const cat = document.getElementById('cFixedCat').value;
+  const pl = document.getElementById('cFixedPlots').value;
+  const oF = document.getElementById('oFixed');
+  if (state.base.fixed[cat]?.[pl] != null) outRows(oF, state.base.fixed[cat][pl], N.fixed[cat][pl]);
+  else oF.innerHTML = '<span class="muted">No entry for that plot count.</span>';
+
+  const sqm = Number(document.getElementById('cSqm').value);
+  const z = document.getElementById('cSqmZone').value, u = document.getElementById('cSqmUse').value;
+  const b = sqmLookup(sqm, z, u, state.base.sqm), n = sqmLookup(sqm, z, u, N.sqm);
+  const oS = document.getElementById('oSqm');
+  if (b) outRows(oS, b.value, n.value, `<span>Bracket</span><b>≤ ${b.max.toLocaleString('en-US')} sqm</b>`);
+  else oS.innerHTML = '<span class="muted">Above the largest bracket.</span>';
+
+  const plots = document.getElementById('cPlots').value;
+  outRows(document.getElementById('oPlots'), computePlotBase(plots, state.base.plot), computePlotBase(plots, N.plot));
+
+  const acres = Number(document.getElementById('cAcres').value);
+  outRows(document.getElementById('oAcres'), computeAcreBase(acres, state.base.acre), computeAcreBase(acres, N.acre));
+}
+
+function codeFor(T) {
+  const num = (v) => Number.isFinite(v) ? String(v) : 'Infinity';
+  let s = 'const fixedPlotTable = {\n';
+  for (const [cat, row] of Object.entries(T.fixed)) s += `  '${cat}': {\n    ${Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(', ')},\n  },\n`;
+  s += '};\n\nconst sqmBrackets = [\n';
+  for (const b of T.sqm) s += `  { max: ${b.max}, ${ZONES.map(z => `${z}: { private: ${b[z].private}, commercial: ${b[z].commercial} }`).join(', ')} },\n`;
+  s += '];\n\nconst roundK = (n) => Math.round(n / 1000) * 1000;\n\n';
+  s += 'function computePlotBase(plots) {\n  const n = Math.floor(Number(plots) || 0);\n  const tiers = [\n';
+  for (const t of T.plot.tiers) s += `    { upto: ${t.upto}, rate: ${t.rate} },\n`;
+  s += '  ];\n  let remaining = n, total = 0, prev = 0;\n  for (const t of tiers) {\n    if (remaining <= 0) break;\n    const span = Math.min(remaining, t.upto - prev);\n    total += span * t.rate;\n    remaining -= span;\n    prev = t.upto;\n  }\n';
+  s += `  if (remaining > 0) total += remaining * ${T.plot.overflowRate};\n  return total;\n}\n\n`;
+  s += `function computeAcreBase(acres) {\n  if (acres <= ${T.acre.freeAcres}) return ${T.acre.base};\n  let base = ${T.acre.base};\n  let extra = acres - ${T.acre.freeAcres};\n  const segs = [\n`;
+  for (const g of T.acre.segs) s += `    { span: ${num(g.span)}, rate: ${g.rate} },\n`;
+  s += '  ];\n  for (const s of segs) {\n    if (extra <= 0) break;\n    const used = Math.min(extra, s.span);\n    base += used * s.rate;\n    extra -= used;\n  }\n  return roundK(base);\n}\n';
+  return s;
+}
+
+function render() {
+  const N = newTables();
+  renderTables(N);
+  renderCalc(N);
+  document.getElementById('code').value = codeFor(state.exp === 'new' ? N : state.base);
+  document.querySelectorAll('.secPct').forEach(i => { if (document.activeElement !== i) i.value = state.pct[i.dataset.sec]; });
+  document.getElementById('rounding').value = String(state.rounding);
+  document.querySelectorAll('[data-exp]').forEach(b => b.classList.toggle('active', b.dataset.exp === state.exp));
+  save();
+}
+
+function setPath(path, v) {
+  const p = path.split('|');
+  if (p[0] === 'fixed') state.base.fixed[p[1]][p[2]] = v;
+  else if (p[0] === 'sqm') state.base.sqm[+p[1]][p[2]][p[3]] = v;
+  else if (p[0] === 'plot') { if (p[1] === 'overflow') state.base.plot.overflowRate = v; else state.base.plot.tiers[+p[2]].rate = v; }
+  else if (p[0] === 'acre') { if (p[1] === 'base') state.base.acre.base = v; else state.base.acre.segs[+p[2]].rate = v; }
+}
+
+// Re-render on change (not on every keystroke) so table inputs keep focus while typing.
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.path) setPath(t.dataset.path, Number(t.value) || 0);
+  else if (t.dataset.rowpct) { const [sec, row] = t.dataset.rowpct.split('|'); state.rowPct[sec][row] = Number(t.value) || 0; }
+  else if (t.classList.contains('secPct')) state.pct[t.dataset.sec] = Number(t.value) || 0;
+  else if (t.id === 'rounding') state.rounding = Number(t.value);
+  else if (t.id === 'globalPct') return;
+  render();
+});
+document.addEventListener('input', (e) => {
+  if (e.target.closest('.calc') || e.target.classList.contains('secPct')) {
+    if (e.target.classList.contains('secPct')) state.pct[e.target.dataset.sec] = Number(e.target.value) || 0;
+    render();
+  }
+});
+document.getElementById('applyGlobal').onclick = () => {
+  const g = Number(document.getElementById('globalPct').value) || 0;
+  for (const k of Object.keys(state.pct)) state.pct[k] = g;
+  render();
+};
+document.getElementById('bakeAll').onclick = () => {
+  if (!confirm('Replace base values with the new values and reset all percentages to 0?')) return;
+  state.base = newTables();
+  state.pct = {fixed:0, sqm:0, plot:0, acre:0}; state.rowPct = {fixed:{}, sqm:{}};
+  document.getElementById('globalPct').value = 0;
+  render();
+};
+document.getElementById('resetAll').onclick = () => {
+  if (!confirm('Reset all values and percentages to the original tables?')) return;
+  state = defaultState(); document.getElementById('globalPct').value = 0; render();
+};
+document.querySelectorAll('[data-exp]').forEach(b => b.onclick = () => { state.exp = b.dataset.exp; render(); });
+document.getElementById('copyCode').onclick = async () => {
+  const ta = document.getElementById('code');
+  try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand('copy'); }
+  const btn = document.getElementById('copyCode'); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy', 1200);
+};
+
+state = load();
+document.getElementById('cFixedCat').innerHTML = Object.keys(ORIGINAL.fixed).map(c => `<option>${c}</option>`).join('');
+render();
+</script>
+</body>
+</html>
