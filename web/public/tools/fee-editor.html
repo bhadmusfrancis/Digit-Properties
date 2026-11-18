@@ -30,6 +30,10 @@
   td input.val { width:100px; text-align:right; border:1px solid transparent; background:#fafbfc; padding:3px 4px; border-radius:4px; font:inherit; }
   td input.val:focus { border-color:var(--acc); background:#fff; outline:none; }
   td input.val.changed { background:#fff7d6; }
+  td input.val.bad, td input.lim.bad { background:#fde2e2; border-color:var(--down); }
+  td input.lim { width:90px; text-align:right; border:1px solid var(--line); background:#fafbfc; padding:3px 4px; border-radius:4px; font:inherit; }
+  td input.lim:focus { border-color:var(--acc); background:#fff; outline:none; }
+  td input.lim.changed { background:#fff7d6; }
   .new { font-weight:600; color:var(--up); }
   .new.down { color:var(--down); }
   .diff { font-size:11px; color:var(--muted); display:block; }
@@ -97,7 +101,7 @@
     <div class="sec-head"><h2>Fixed plot table</h2>
       <div class="pct"><label>Section % <input type="number" step="0.1" value="0" data-sec="fixed" class="secPct"></label></div>
     </div>
-    <p class="muted">Each cell: editable base value, new value and change. Row % adds to the section %.</p>
+    <p class="muted">Each cell: editable base value, new value and change. Row % adds to the section %. Range limits (Max sqm, plot/acre ranges) are editable in the other sections; a red field means the range is not increasing.</p>
     <div class="scroll" id="tFixed"></div>
   </section>
 
@@ -252,6 +256,10 @@ function cell(path, baseVal, origVal, newVal) {
     + `<span class="diff">${d >= 0 ? '+' : ''}${fmt(d)} (${pc.toFixed(1)}%)</span>`;
 }
 
+function lim(path, v, orig, bad) {
+  return `<input class="lim${v !== orig ? ' changed' : ''}${bad ? ' bad' : ''}" data-lim="${path}" type="number" step="any" min="0" value="${v}">`;
+}
+
 function renderTables(N) {
   const plots = Object.keys(Object.values(state.base.fixed)[0]);
   let h = '<table><thead><tr><th class="left">Category</th><th>Row %</th>' + plots.map(p => `<th>${p} plots</th>`).join('') + '</tr></thead><tbody>';
@@ -264,7 +272,8 @@ function renderTables(N) {
 
   h = '<table><thead><tr><th>Max sqm</th><th>Row %</th>' + ZONES.flatMap(z => USES.map(u => `<th>${ZONE_LABEL[z]} ${u}</th>`)).join('') + '</tr></thead><tbody>';
   state.base.sqm.forEach((b, i) => {
-    h += `<tr><td>${b.max.toLocaleString('en-US')}</td><td><input class="val rowpct" data-rowpct="sqm|${i}" type="number" step="0.1" value="${state.rowPct.sqm[i] || 0}"></td>`;
+    const bad = i > 0 && !(b.max > state.base.sqm[i - 1].max);
+    h += `<tr><td>${lim(`sqm|${i}`, b.max, ORIGINAL.sqm[i]?.max, bad)}</td><td><input class="val rowpct" data-rowpct="sqm|${i}" type="number" step="0.1" value="${state.rowPct.sqm[i] || 0}"></td>`;
     for (const z of ZONES) for (const u of USES) h += `<td>${cell(`sqm|${i}|${z}|${u}`, b[z][u], ORIGINAL.sqm[i][z][u], N.sqm[i][z][u])}</td>`;
     h += '</tr>';
   });
@@ -273,18 +282,18 @@ function renderTables(N) {
   h = '<table><thead><tr><th class="left">Plots range</th><th>Rate per plot</th></tr></thead><tbody>';
   let prev = 0;
   state.base.plot.tiers.forEach((t, i) => {
-    h += `<tr><td class="left">${prev + 1} – ${t.upto}</td><td>${cell(`plot|tiers|${i}`, t.rate, ORIGINAL.plot.tiers[i].rate, N.plot.tiers[i].rate)}</td></tr>`;
+    h += `<tr><td class="left">${prev + 1} – ${lim(`plot|${i}`, t.upto, ORIGINAL.plot.tiers[i]?.upto, !(t.upto > prev))}</td><td>${cell(`plot|tiers|${i}`, t.rate, ORIGINAL.plot.tiers[i].rate, N.plot.tiers[i].rate)}</td></tr>`;
     prev = t.upto;
   });
   h += `<tr><td class="left">Above ${prev}</td><td>${cell('plot|overflow', state.base.plot.overflowRate, ORIGINAL.plot.overflowRate, N.plot.overflowRate)}</td></tr>`;
   document.getElementById('tPlot').innerHTML = h + '</tbody></table>';
 
   h = `<table><thead><tr><th class="left">Acres range</th><th>Rate per extra acre</th></tr></thead><tbody>`;
-  h += `<tr><td class="left">Up to ${state.base.acre.freeAcres} acres (flat base)</td><td>${cell('acre|base', state.base.acre.base, ORIGINAL.acre.base, N.acre.base)}</td></tr>`;
+  h += `<tr><td class="left">Up to ${lim('acre|free', state.base.acre.freeAcres, ORIGINAL.acre.freeAcres, false)} acres (flat base)</td><td>${cell('acre|base', state.base.acre.base, ORIGINAL.acre.base, N.acre.base)}</td></tr>`;
   let a = state.base.acre.freeAcres;
   state.base.acre.segs.forEach((s, i) => {
     const to = a + s.span;
-    h += `<tr><td class="left">${a} – ${Number.isFinite(to) ? to : '∞'}</td><td>${cell(`acre|segs|${i}`, s.rate, ORIGINAL.acre.segs[i].rate, N.acre.segs[i].rate)}</td></tr>`;
+    h += `<tr><td class="left">${a} – ${Number.isFinite(to) ? lim(`acre|${i}`, to, acreEnds(ORIGINAL.acre)[i], !(s.span > 0)) : '∞'}</td><td>${cell(`acre|segs|${i}`, s.rate, ORIGINAL.acre.segs[i].rate, N.acre.segs[i].rate)}</td></tr>`;
     a = to;
   });
   document.getElementById('tAcre').innerHTML = h + '</tbody></table>';
@@ -345,6 +354,22 @@ function render() {
   save();
 }
 
+function acreEnds(cfg) {
+  let a = cfg.freeAcres; return cfg.segs.map(s => (a += s.span));
+}
+// Range limits are edited as absolute upper bounds; acre spans are re-derived so other bounds stay put.
+function setLimit(path, v) {
+  const [sec, key] = path.split('|');
+  if (sec === 'sqm') state.base.sqm[+key].max = v;
+  else if (sec === 'plot') state.base.plot.tiers[+key].upto = v;
+  else if (sec === 'acre') {
+    const cfg = state.base.acre, ends = acreEnds(cfg);
+    if (key === 'free') cfg.freeAcres = v; else ends[+key] = v;
+    let prev = cfg.freeAcres;
+    cfg.segs.forEach((s, i) => { if (Number.isFinite(ends[i])) { s.span = ends[i] - prev; prev = ends[i]; } });
+  }
+}
+
 function setPath(path, v) {
   const p = path.split('|');
   if (p[0] === 'fixed') state.base.fixed[p[1]][p[2]] = v;
@@ -357,6 +382,7 @@ function setPath(path, v) {
 document.addEventListener('change', (e) => {
   const t = e.target;
   if (t.dataset.path) setPath(t.dataset.path, Number(t.value) || 0);
+  else if (t.dataset.lim) setLimit(t.dataset.lim, Number(t.value) || 0);
   else if (t.dataset.rowpct) { const [sec, row] = t.dataset.rowpct.split('|'); state.rowPct[sec][row] = Number(t.value) || 0; }
   else if (t.classList.contains('secPct')) state.pct[t.dataset.sec] = Number(t.value) || 0;
   else if (t.id === 'rounding') state.rounding = Number(t.value);
